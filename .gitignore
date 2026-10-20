@@ -1,0 +1,2 @@
+# per-machine Claude Code settings (SessionStart TODO hook lives here)
+.claude/settings.local.json

@@ -23,4 +23,6 @@ changing lib/ or adding a module).
 
 ## Roadmap and known issues
 
-@TODO.md
+`TODO.md`. Its open items are shown at session start (SessionStart hook in `.claude/settings.local.json`)
+and on demand with `/todo [section]`; both use `~/.shell/scripts/todo-status`. Tick items off as they
+land.
