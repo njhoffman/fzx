@@ -20,8 +20,8 @@ logs::opts() {
     --no-sort
     --preview "$(fzx::cb preview {1} {2})"
     --preview-window=down,60%,follow,nowrap,nohidden
-    --bind "${FZX_KEYS[logs.follow]}:execute($(fzx::cb action follow {1} {2}))"
   )
+  fzx::bind "${FZX_KEYS[logs.follow]}" "execute($(fzx::cb action follow {1} {2}))" "follow the log (ctrl-c returns)"
 }
 
 fzx::module_main "$@"

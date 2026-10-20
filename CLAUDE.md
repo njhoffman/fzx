@@ -16,6 +16,7 @@ changing lib/ or adding a module).
 - Module scripts define `<module>::<fn>` functions and end with a `[[ "${BASH_SOURCE[0]}" == "$0" ]]` guard
   so they are importable and runnable on their own.
 - Bind strings are built with `fzx::cb <verb>`; logic lives behind `fzx _cb`, never inline in binds.
+- Key bindings use `fzx::bind <key> <action> <description>` so they appear in the f1 help.
 - `fzx _cb preview` runs on every focus change: keep its load path minimal (core, log, session, config).
 - Functions returning through a variable name prefix their locals with `_`.
 - Tests are isolated through `setup_fzx` (runtime, state, config and cache dirs under `$BATS_TEST_TMPDIR`).

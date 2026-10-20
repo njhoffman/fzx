@@ -13,7 +13,7 @@ systemd::modes() {
 }
 
 systemd::opts() {
-  local action key hints=""
+  local action hints
   FZX_OPTS+=(
     --delimiter=$'\t'
     --with-nth=3
@@ -22,15 +22,13 @@ systemd::opts() {
     --preview-window=down,50%,nowrap,nohidden
   )
   for action in start stop restart enable disable; do
-    key="${FZX_KEYS[systemd.$action]}"
-    FZX_OPTS+=(--bind "$key:execute($(fzx::cb action "$action" {+1}))+reload($(fzx::cb source))")
-    hints+="$key $action  "
+    fzx::bind "${FZX_KEYS[systemd.$action]}" "execute($(fzx::cb action "$action" {+1}))+reload($(fzx::cb source))" "$action"
   done
-  FZX_OPTS+=(
-    --bind "${FZX_KEYS[systemd.journal]}:execute($(fzx::cb action journal {1}))"
-    --bind "${FZX_KEYS[systemd.edit]}:execute($(fzx::cb action edit {1}))+reload($(fzx::cb source))"
-    "--header=${hints}${FZX_KEYS[systemd.journal]} journal  ${FZX_KEYS[systemd.edit]} edit"
-  )
+  fzx::bind "${FZX_KEYS[systemd.journal]}" "execute($(fzx::cb action journal {1}))" journal
+  fzx::bind "${FZX_KEYS[systemd.edit]}" "execute($(fzx::cb action edit {1}))+reload($(fzx::cb source))" edit
+  # the header lists the module's keys from what was just bound, so it cannot drift from the bindings
+  fzx::key_hints hints
+  FZX_OPTS+=("--header=$hints")
 }
 
 fzx::module_main "$@"

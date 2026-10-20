@@ -18,12 +18,14 @@ ps::opts() {
     --accept-nth=1
     --preview "$(fzx::cb preview {1})"
     --preview-window=down,40%,wrap,nohidden
-    --bind "${FZX_KEYS[ps.term]}:execute-silent($(fzx::cb action term {+1}))+reload($(fzx::cb source))"
   )
+  fzx::bind "${FZX_KEYS[ps.term]}" "execute-silent($(fzx::cb action term {+1}))+reload($(fzx::cb source))" \
+    "send SIGTERM to the selected processes"
   # the forest only reads correctly in input order
   [[ "$FZX_MODE" == tree ]] && FZX_OPTS+=(--no-sort)
   if fzx::in_session; then
-    FZX_OPTS+=(--bind "${FZX_KEYS[ps.children]}:transform:$(fzx::cb nav goto ps --ppid {1})")
+    fzx::bind "${FZX_KEYS[ps.children]}" "transform:$(fzx::cb nav goto ps --ppid {1})" \
+      "open the children of the process under the cursor"
   fi
 }
 

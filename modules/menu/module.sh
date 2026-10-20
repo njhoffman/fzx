@@ -18,10 +18,8 @@ menu::opts() {
     --preview-window=right,40%,wrap
   )
   if fzx::in_session; then
-    FZX_OPTS+=(
-      --bind "enter:transform:$(fzx::cb nav entry {1})"
-      --bind "start:+bg-transform:$(fzx::cb transform refresh)"
-    )
+    fzx::bind enter "transform:$(fzx::cb nav entry {1})" "open the entry (alt-left comes back to the menu)"
+    FZX_OPTS+=(--bind "start:+bg-transform:$(fzx::cb transform refresh)")
   fi
 }
 

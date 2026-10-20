@@ -39,36 +39,73 @@ fzx::mode_hints() {
   printf -v "$1" '%s' "$_hints"
 }
 
+# fzx::bind <key> <action> <description>: add a key binding and record it for the help key (f1).
+# Bindings made while the module's opts hook runs are listed as the module's, the rest as fzx's.
+fzx::bind() {
+  FZX_OPTS+=(--bind "$1:$2")
+  FZX_HELP+=("${_FZX_BIND_SCOPE:-fzx}"$'\t'"$1"$'\t'"$3")
+}
+
+# fzx::key_hints <var>: "key description" pairs of the module's bindings, for a header
+fzx::key_hints() {
+  local _entry _scope _key _desc _hints=""
+  for _entry in "${FZX_HELP[@]}"; do
+    IFS=$'\t' read -r _scope _key _desc <<< "$_entry"
+    [[ "$_scope" == fzx ]] && continue
+    _hints+="${_hints:+  }$_key $_desc"
+  done
+  printf -v "$1" '%s' "$_hints"
+}
+
+# the help key: show-preview, then a preview command that prints every recorded binding. The text is
+# part of the binding itself, so help needs no callback and works standalone as well.
+fzx::_help_bind() {
+  local module="$1" entry scope _s key desc last="" lines=() cmd b=$'\e[1m' r=$'\e[0m'
+  local d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m"
+  for scope in "$module" fzx; do
+    last=""
+    for entry in "${FZX_HELP[@]}"; do
+      IFS=$'\t' read -r _s key desc <<< "$entry"
+      [[ "$_s" == "$scope" ]] || continue
+      [[ -n "$last" ]] || lines+=("" "$b$scope keys$r")
+      last=1
+      lines+=("$(printf '  %-12s %s' "$key" "$desc")")
+    done
+  done
+  ((${#FZX_MODES[@]} > 1)) && lines+=("" "${b}modes$r  ${FZX_MODES[*]}")
+  lines+=("" "${d}any cursor movement returns to the normal preview$r")
+  printf -v cmd '%q ' "${lines[@]:1}"
+  FZX_OPTS+=(--bind "${FZX_KEYS[help]}:show-preview+preview:printf '%s\\n' $cmd")
+}
+
 # fzx::opts_build <module>; expects config loaded, module.sh sourced, FZX_MODES and FZX_MODE set
 fzx::opts_build() {
   local module="$1" label hints query pos
   FZX_OPTS=("${FZX_FZF_OPTS[@]}")
+  FZX_HELP=()
+  _FZX_BIND_SCOPE=fzx
   [[ -n "${FZX_FZF_COLORS:-}" ]] && FZX_OPTS+=("--color=$FZX_FZF_COLORS")
   if [[ "${FZX_HISTORY:-1}" == 1 ]]; then
     mkdir -p -- "$FZX_STATE_DIR/history"
     FZX_OPTS+=("--history=$FZX_STATE_DIR/history/$module")
   fi
-  FZX_OPTS+=(
-    --bind "start:reload:$(fzx::cb load)"
-    --bind "${FZX_KEYS[reload_hard]}:reload:$(fzx::cb source)"
-  )
+  FZX_OPTS+=(--bind "start:reload:$(fzx::cb load)")
+  fzx::bind "${FZX_KEYS[reload_hard]}" "reload:$(fzx::cb source)" "reload: run the source again"
 
   if fzx::in_session; then
     fzx::session_label label
     FZX_OPTS+=(
       "--listen=$FZX_SESSION_DIR/fzf.sock"
       "--border-label= $label "
-      --bind "${FZX_KEYS[reload_soft]}:transform:$(fzx::cb nav resume)"
-      --bind "${FZX_KEYS[back]}:transform:$(fzx::cb nav back)"
-      --bind "${FZX_KEYS[popout]}:transform:$(fzx::cb nav popout)"
     )
+    fzx::bind "${FZX_KEYS[reload_soft]}" "transform:$(fzx::cb nav resume)" "restart the interface, data from cache"
+    fzx::bind "${FZX_KEYS[back]}" "transform:$(fzx::cb nav back)" "back to the previous screen"
+    fzx::bind "${FZX_KEYS[popout]}" "transform:$(fzx::cb nav popout)" "move into / out of a tmux popup"
     if ((${#FZX_MODES[@]} > 1)); then
       fzx::mode_hints hints "$FZX_MODE"
-      FZX_OPTS+=(
-        "--footer=$hints"
-        --bind "${FZX_KEYS[mode_next]}:transform:$(fzx::cb mode next)"
-        --bind "${FZX_KEYS[mode_prev]}:transform:$(fzx::cb mode prev)"
-      )
+      FZX_OPTS+=("--footer=$hints")
+      fzx::bind "${FZX_KEYS[mode_next]}" "transform:$(fzx::cb mode next)" "next mode"
+      fzx::bind "${FZX_KEYS[mode_prev]}" "transform:$(fzx::cb mode prev)" "previous mode"
     fi
     # restore what the previous interface of this session saved before become()
     fzx::state_get query query && [[ -n "$query" ]] && FZX_OPTS+=("--query=$query")
@@ -79,8 +116,12 @@ fzx::opts_build() {
   fi
 
   if declare -F "$module::opts" > /dev/null; then
+    _FZX_BIND_SCOPE="$module"
     "$module::opts" || return 1
+    _FZX_BIND_SCOPE=fzx
   fi
+  FZX_HELP+=("fzx"$'\t'"${FZX_KEYS[help]}"$'\t'"this help")
+  fzx::_help_bind "$module"
 }
 
 # print FZX_OPTS as a readable, copy-pastable fzf command; a flag and its separate value share a line

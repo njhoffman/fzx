@@ -27,23 +27,23 @@ files::opts() {
       --disabled
       --bind "change:reload:sleep 0.1; $(fzx::cb source)"
       --preview "$(fzx::cb preview {1} {2})"
-      --bind "${FZX_KEYS[files.edit]}:execute($edit +{2} {1})"
     )
+    fzx::bind "${FZX_KEYS[files.edit]}" "execute($edit +{2} {1})" "open the file at the matching line in \$EDITOR"
   else
     FZX_OPTS+=(
       --with-nth=2
       --accept-nth=1
       --scheme=path
       --preview "$(fzx::cb preview {1})"
-      --bind "${FZX_KEYS[files.edit]}:execute($edit {+1})"
     )
+    fzx::bind "${FZX_KEYS[files.edit]}" "execute($edit {+1})" "open the selected files in \$EDITOR"
   fi
   if fzx::in_session; then
     local parent="${FILES_BASE%/*}"
-    FZX_OPTS+=(
-      --bind "${FZX_KEYS[files.into]}:transform:$(fzx::cb nav goto "files:$FZX_MODE" {1})"
-      --bind "${FZX_KEYS[files.up]}:transform:$(fzx::cb nav goto "files:$FZX_MODE" "$(printf '%q' "${parent:-/}")")"
-    )
+    fzx::bind "${FZX_KEYS[files.into]}" "transform:$(fzx::cb nav goto "files:$FZX_MODE" {1})" \
+      "browse the directory under the cursor"
+    fzx::bind "${FZX_KEYS[files.up]}" "transform:$(fzx::cb nav goto "files:$FZX_MODE" "$(printf '%q' "${parent:-/}")")" \
+      "browse the parent directory"
   fi
 }
 

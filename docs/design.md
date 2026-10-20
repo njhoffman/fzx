@@ -171,7 +171,13 @@ the same way under fzx and standalone (`FZX_MODE=tree modules/ps/source.sh`). Se
 while running. fzf only has `toggle-sort` and does not export the sort state (the user's own `ctrl-s`
 toggles it too), so `ps` restarts when entering or leaving `tree`, which needs `--no-sort`.
 
-`<name>::opts` appends to the `FZX_OPTS` array. It builds command strings through `fzx::cb <verb> [fzf
+`<name>::opts` appends to the `FZX_OPTS` array. Key bindings go through
+`fzx::bind <key> <action> <description>`, which records them for the help key (f1, `FZX_KEYS[help]`):
+f1 runs `show-preview+preview:printf ...` with every recorded binding (the module's, then fzx's) and the
+modes; the text is embedded in the binding, so help needs no callback and works standalone. Moving the
+cursor returns to the normal preview. Descriptions must not contain `{...}`, which fzf would substitute.
+`fzx::key_hints <var>` turns the module's bindings into a header (systemd uses it). Non-key events
+(`start`, `change`, `load`) still use plain `--bind`. It builds command strings through `fzx::cb <verb> [fzf
 placeholders]`, which resolves differently depending on how the module was launched:
 
 | Verb | Under fzx | Standalone (`modules/ps/module.sh`) |
