@@ -56,7 +56,7 @@ fzx::nav_mode() {
   printf 'change-border-label( %s )+change-footer(%s)+reload:%s' "$label" "$hints" "$(fzx::cb load)"
 }
 
-# fzx::nav <resume | back | popout | goto <module[:mode]> [module args...]>
+# fzx::nav <resume | back | popout | goto <module[:mode]> [module args...] | entry <module>#<n>>
 # Saves the query and cursor position of the current session, then prints become() into the target.
 fzx::nav() {
   local action="${1:-}"
@@ -72,6 +72,7 @@ fzx::nav() {
     back) fzx::_nav_back ;;
     popout) fzx::_nav_popout ;;
     goto) fzx::_nav_goto "$@" ;;
+    entry) fzx::_nav_entry "$@" ;;
     *)
       fzx::log error "unknown nav action: $action"
       printf 'fzx: unknown nav action: %s\n' "$action" >&2
@@ -122,6 +123,26 @@ fzx::_nav_popout() {
     _FZX_STAT=(nav - popout:out)
   fi
   fzx::_nav_become "$FZX_SESSION"
+}
+
+# go to the n-th entry of a module's manifest (what the menu opens)
+fzx::_nav_entry() {
+  local id="${1:-}" module n dir
+  module="${id%%#*}"
+  n="${id#*#}"
+  if [[ "$id" != *#* || ! "$n" =~ ^[0-9]+$ ]] || ! dir="$(fzx::module_find "$module")"; then
+    fzx::log error "nav entry: bad entry id: $id"
+    printf 'fzx: bad entry id: %s\n' "$id" >&2
+    return 2
+  fi
+  fzx::require menu
+  if ! fzx::menu_entries "$module" "$dir" 2>> "$FZX_LOG_FILE" || ((n >= ${#FZX_ENTRY_TARGETS[@]})); then
+    fzx::log error "nav entry: no entry $id"
+    printf 'fzx: no entry %s\n' "$id" >&2
+    return 2
+  fi
+  fzx::menu_entry_args "$n"
+  fzx::_nav_goto "${FZX_ENTRY_TARGETS[n]}" "${FZX_ARGS[@]}"
 }
 
 # go to a child session for <module> with these args, reusing it when one already exists

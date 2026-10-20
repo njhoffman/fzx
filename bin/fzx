@@ -8,7 +8,8 @@ source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib/core.sh"
 
 fzx::usage() {
   cat << 'EOF'
-usage: fzx -m|--mode <module[:mode]> [--popup[=OPTS]] [--dry-run] [--keep] [--] [module args...]
+usage: fzx                        open the menu of modules
+       fzx -m|--mode <module[:mode]> [--popup[=OPTS]] [--dry-run] [--keep] [--] [module args...]
        fzx --resume[=SID] [-m :mode] [--dry-run]
        fzx gc [--all]
        fzx stats [--since 90s|5m|2h|7d] [--module NAME] [--raw]
@@ -100,11 +101,8 @@ main() {
   if ((resume)); then
     [[ -z "$module" || "$module" == :* ]] || fzx::die 2 "--resume takes only a mode (-m :MODE), not a module"
     fzx::run_resume "${sid:-${FZX_SESSION:-}}" "$dry_run" "${module#:}"
-  elif [[ -n "$module" ]]; then
-    fzx::run_new "$module" "$dry_run" "$keep" "$popup" "${args[@]}"
   else
-    fzx::usage >&2
-    return 2
+    fzx::run_new "${module:-menu}" "$dry_run" "$keep" "$popup" "${args[@]}"
   fi
 }
 

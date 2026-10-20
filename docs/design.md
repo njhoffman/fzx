@@ -143,7 +143,8 @@ modules/<name>/
   preview.sh    defines <name>::preview <fields>; runnable directly
   actions.sh    defines <name>::action <action> <items...>; runnable directly
   config.sh     optional overrides of global config
-  manifest.sh   (step 5) name, desc, entries, persist, applicable(), summary(), detect
+  manifest.sh   optional: menu entries (<name>::manifest) and the <name>::applicable and
+                <name>::summary hooks; see Menu
 ```
 
 Each script defines namespaced functions and ends with a guard so it is both importable and executable:
@@ -179,6 +180,7 @@ placeholders]`, which resolves differently depending on how the module was launc
 | `source` | `fzx _cb source` | `source.sh <args>` |
 | `preview` | `fzx _cb preview ...` | `preview.sh ...` |
 | `action` | `fzx _cb action ...` | `actions.sh ...` |
+| `transform` | `fzx _cb transform <name> ...`: `<name>::transform` in actions.sh, prints fzf actions | not available |
 | `mode`, `nav` | `fzx _cb mode/nav ...` | not available |
 
 Running `module.sh` directly gives the same interface with global defaults but no session, cache,
@@ -207,6 +209,8 @@ colors and layout keys arrive in step 6.
 - Log: `$XDG_STATE_HOME/fzx/fzx.log`, one line per event tagged with session id and pid. Every callback
   logs its verb, arguments, exit code and duration. Stderr of source/action scripts goes to the log.
   Kept outside the session dir so it survives cleanup. Level via `FZX_LOG_LEVEL` (debug|info|warn|error).
+- Callbacks that answer with fzf actions (`transform`, `mode`, `nav`) log what they print at debug level
+  (`actions: become:...`), so what fzf was told to do is visible in `fzx debug tail`.
 - `fzx debug ls` lists sessions with module:mode, parent, owner and whether the owner is alive;
   `fzx debug tail [sid]` follows the log (all, or one session).
 - Each session listens on `fzf.sock`; `fzx debug attach` (later) wraps fzfg's `fzf-repl`.
@@ -243,11 +247,41 @@ or mawk 1.3.4+).
 `fzx gc` keeps the file bounded: once it passes 1 MiB it drops rows older than `FZX_STATS_MAX_AGE_DAYS`
 (default 90). Rows appended during that rewrite can be lost.
 
-## Menu (step 5)
+## Menu
 
-`fzx` with no arguments runs `modules/menu`. Entries come from module manifests (several per module, with
-arguments). `applicable` is a fast exit-code check that hides irrelevant entries; `summary` is slow, cached
-per module and context with a TTL, and filled in after first render via `bg-transform`/`reload`.
+`fzx` with no arguments runs `modules/menu` as the root session.
+
+**Entries** come from each module's optional `manifest.sh` (first module of a name on `FZX_MODULE_PATH`
+wins; the menu itself is excluded):
+
+```bash
+ps::manifest() {
+  fzx::entry ps "Your processes, busiest first"
+  fzx::entry ps:all "All processes, busiest first"
+  fzx::entry ps:tree "Process tree"
+}
+ps::applicable() { ... }   # optional: <target> [args]; fast exit-code check, run on every menu open
+ps::summary() { ... }      # optional: <target> [args]; one short line, may be slow
+```
+
+`fzx::entry <module[:mode]> <description> [args...]` stores args `%q`-quoted. An entry's id is
+`<module>#<index in its manifest>`, so hiding an entry with `applicable` does not renumber the others.
+Each module is read in a subshell, so a broken manifest drops only that module (logged as a warning).
+
+**Opening** an entry is `enter:transform:fzx _cb nav entry {1}`: the callback re-reads that module's
+manifest, then goes to the entry as a child of the menu (`nav goto`), so `alt-left` comes back to the
+menu. Entries with the same module and args share one child session, so `ps` and `ps:tree` reuse one
+session and its per-mode cache.
+
+**Summaries** are cached per directory in `$XDG_CACHE_HOME/fzx/summary/<hash(cwd)>/<id>` and shown
+immediately. `start:+bg-transform:fzx _cb transform refresh` then computes the stale ones (older than
+`FZX_SUMMARY_TTL`, default 300s) for applicable entries, all in parallel, each cut off after
+`FZX_SUMMARY_TIMEOUT` (default 3s), and answers with a single `reload` when anything changed. A
+failing or timed-out summary is cached empty, so it is not retried on every open. The timeout watcher
+must not hold the callback's stdout: fzf waits for every writer of a `bg-transform` to close it.
+
+**Preview** shows what the entry opens, its description and summary, and `fzx stats` for its module.
+Running `modules/menu/module.sh` directly lists entries but cannot open them.
 
 ## Piping (later)
 
@@ -260,7 +294,8 @@ If stdin is not a tty and no module is given, match each manifest's `detect` aga
    drills into a process's children).
 3. Popout/popin; persist policies with a persistent cache; dead-session sweep (`fzx gc`).
 4. Stats: event rows from callbacks and the owner; `fzx stats`; pruning in `fzx gc`.
-5. Menu with `applicable`, then cached summaries.
+5. Menu: manifests, `applicable`, cached per-directory summaries refreshed in the background, entries
+   opened as children of the menu.
 6. Config layering for colors and keys; port `files`, `logs`, systemd.
 
 Tests (bats) at each step: module scripts are tested directly, libs are unit-tested, `bin/fzx` is tested

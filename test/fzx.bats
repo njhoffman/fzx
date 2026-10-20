@@ -8,12 +8,6 @@ setup() {
   stub_fzf
 }
 
-@test "no arguments prints usage and fails with 2" {
-  run "$FZX"
-  [ "$status" -eq 2 ]
-  [[ "$output" == *"usage: fzx"* ]]
-}
-
 @test "--help prints usage" {
   run "$FZX" --help
   [ "$status" -eq 0 ]

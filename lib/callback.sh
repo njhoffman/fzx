@@ -2,7 +2,8 @@
 # callback: handlers behind `fzx _cb <verb>`, invoked by fzf binds. Keep the load path minimal:
 # preview runs on every focus change, so it loads only log and session.
 
-# fzx::callback <load|source|preview|action|mode|nav> [args...]
+# fzx::callback <load|source|preview|action|transform|mode|nav> [args...]
+# transform <name> [args]: <module>::transform from actions.sh, which prints fzf actions
 # Handlers describe their stats row in _FZX_STAT=(event count detail [mode]); preview never does.
 fzx::callback() {
   local verb="${1:-}" start end rc
@@ -24,13 +25,14 @@ fzx::callback() {
       _FZX_STAT=(action "$(($# > 0 ? $# - 1 : 0))" "${1:-}:$rc")
       (exit "$rc")
       ;;
+    transform) fzx::_cb_actions fzx::_cb_call actions transform "$@" ;;
     mode)
       fzx::require nav
-      fzx::nav_mode "$@"
+      fzx::_cb_actions fzx::nav_mode "$@"
       ;;
     nav)
       fzx::require nav
-      fzx::nav "$@"
+      fzx::_cb_actions fzx::nav "$@"
       ;;
     *)
       fzx::log error "unknown callback verb: $verb"
@@ -57,6 +59,20 @@ fzx::callback() {
     fzx::stat "${_FZX_STAT[0]}" "$((end - start))" "${_FZX_STAT[1]}" "${_FZX_STAT[2]}"
   fi
   return "$rc"
+}
+
+# fzx::_cb_actions <handler> [args...]: run a handler whose stdout is fzf actions, logging what it
+# returns (debug level) so the actions fzf receives can be inspected with `fzx debug tail`
+# (through a file, not $(...): the handler must run in this shell so the _FZX_STAT it sets survives)
+fzx::_cb_actions() {
+  local _out="" _rc _file="$FZX_SESSION_DIR/actions.$BASHPID"
+  "$@" > "$_file" 2>> "$FZX_LOG_FILE"
+  _rc=$?
+  fzx::_kv_get "$_file" _out || :
+  rm -f -- "$_file"
+  fzx::log debug "actions: ${_out:-<none>}"
+  printf '%s' "$_out"
+  return "$_rc"
 }
 
 # current mode into FZX_MODE (exported, so the source sees it)
