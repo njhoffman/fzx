@@ -14,8 +14,7 @@ usage: fzx                        open the menu of modules
        fzx gc [--all]
        fzx stats [--since 90s|5m|2h|7d] [--module NAME] [--raw]
        fzx config [-m MODULE]
-       fzx debug ls
-       fzx debug tail [SID]
+       fzx debug ls | tail [SID] | attach [SID] | state [SID] [N] | send ACTION [SID]
 
   -m, --mode MODULE[:MODE]
                      run MODULE (searched in $FZX_MODULE_PATH), optionally in MODE

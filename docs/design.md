@@ -254,7 +254,12 @@ prompt; list parsing forces `SYSTEMD_COLORS=0` because users commonly export it.
   (`actions: become:...`), so what fzf was told to do is visible in `fzx debug tail`.
 - `fzx debug ls` lists sessions with module:mode, parent, owner and whether the owner is alive;
   `fzx debug tail [sid]` follows the log (all, or one session).
-- Each session listens on `fzf.sock`; `fzx debug attach` (later) wraps fzfg's `fzf-repl`.
+- Each session listens on `fzf.sock`. `fzx debug attach [SID]` is an interactive prompt against it (curl
+  over the unix socket): `state [N]` summarises query, position, counts, selection, current item and the
+  first N matches (jq when installed), `raw [N]` prints the JSON, any other line is sent as an fzf action.
+  `fzx debug state [SID] [N]` and `fzx debug send ACTION [SID]` are the one-shot forms. Without a SID the
+  newest session whose fzf answers is used: the one on screen, since sessions navigated away from no
+  longer listen. Chosen over wrapping fzfg's Go `fzf-repl`: no build step, same API.
 - Later: a debug key that switches the preview to session state plus all `FZF_*` variables.
 
 ## Statistics
