@@ -25,6 +25,11 @@ FZX_PERSIST=session
 # persistent cache entries older than this many days are removed by `fzx gc`
 FZX_CACHE_MAX_AGE_DAYS=7
 
+# usage statistics in $FZX_STATE_DIR/stats.tsv (see `fzx stats`); 0 turns recording off
+FZX_STATS="${FZX_STATS:-1}"
+# once the stats file passes 1 MiB, `fzx gc` drops rows older than this many days
+FZX_STATS_MAX_AGE_DAYS=90
+
 # SGR parameters (the part between ESC[ and m)
 declare -gA FZX_COLORS=(
   [mode_active]="38;5;45;1"

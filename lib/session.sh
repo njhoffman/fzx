@@ -141,21 +141,10 @@ fzx::session_label() {
 
 # fzx::persist_ttl <policy> <var>: validate a persist policy; var gets the ttl in seconds (0 unless cache:)
 fzx::persist_ttl() {
-  local _n _unit
   printf -v "$2" '%s' 0
   case "$1" in
     none | session) return 0 ;;
-    cache:*)
-      [[ "${1#cache:}" =~ ^([0-9]+)([smhd]?)$ ]] || return 1
-      _n="${BASH_REMATCH[1]}" _unit="${BASH_REMATCH[2]}"
-      case "$_unit" in
-        m) _n=$((_n * 60)) ;;
-        h) _n=$((_n * 3600)) ;;
-        d) _n=$((_n * 86400)) ;;
-      esac
-      ((_n > 0)) || return 1
-      printf -v "$2" '%s' "$_n"
-      ;;
+    cache:*) fzx::parse_duration "${1#cache:}" "$2" ;;
     *) return 1 ;;
   esac
 }

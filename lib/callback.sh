@@ -3,9 +3,11 @@
 # preview runs on every focus change, so it loads only log and session.
 
 # fzx::callback <load|source|preview|action|mode|nav> [args...]
+# Handlers describe their stats row in _FZX_STAT=(event count detail [mode]); preview never does.
 fzx::callback() {
   local verb="${1:-}" start end rc
   shift
+  _FZX_STAT=()
   fzx::require log session
   fzx::session_attach || fzx::die 2 "callback '$verb' outside a session (FZX_SESSION=${FZX_SESSION:-})"
   fzx::meta_get module FZX_MODULE
@@ -14,9 +16,14 @@ fzx::callback() {
 
   case "$verb" in
     load) fzx::_cb_load ;;
-    source) fzx::_cb_source ;;
+    source) fzx::_cb_source reload ;;
     preview) fzx::_cb_call preview preview "$@" ;;
-    action) fzx::_cb_call actions action "$@" 2>> "$FZX_LOG_FILE" ;;
+    action)
+      fzx::_cb_call actions action "$@" 2>> "$FZX_LOG_FILE"
+      rc=$?
+      _FZX_STAT=(action "$(($# > 0 ? $# - 1 : 0))" "${1:-}:$rc")
+      (exit "$rc")
+      ;;
     mode)
       fzx::require nav
       fzx::nav_mode "$@"
@@ -38,6 +45,17 @@ fzx::callback() {
   [[ "$verb" == preview ]] && level=debug
   ((rc == 0)) || level=error
   fzx::log "$level" "cb $verb${*:+ $*} rc=$rc $((end - start))ms"
+  if ((${#_FZX_STAT[@]})); then
+    fzx::require stats
+    # FZX_MODE inherited from fzf's environment goes stale after an in-place mode switch: resolve it,
+    # unless the handler names the mode the event belongs to (_FZX_STAT[3])
+    if [[ -n "${_FZX_STAT[3]:-}" ]]; then
+      FZX_MODE="${_FZX_STAT[3]}"
+    else
+      fzx::_cb_mode
+    fi
+    fzx::stat "${_FZX_STAT[0]}" "$((end - start))" "${_FZX_STAT[1]}" "${_FZX_STAT[2]}"
+  fi
   return "$rc"
 }
 
@@ -57,13 +75,21 @@ fzx::_cb_load() {
   fzx::data_path data "$FZX_MODE"
   if [[ "$persist" != none && -f "$data" ]]; then
     fzx::log debug "load: cache hit $data"
+    _FZX_STAT=(cache "$(fzx::_cb_lines "$data")" session)
     cat -- "$data"
     return
   fi
   if [[ "$persist" == cache:* ]] && fzx::_cb_persistent_load "$persist" "$data"; then
     return
   fi
-  fzx::_cb_source
+  fzx::_cb_source miss
+}
+
+# line count of a file for stats; skipped (and not forked) when stats are off
+fzx::_cb_lines() {
+  local n=-
+  [[ "${FZX_STATS:-1}" == 1 ]] && n="$(wc -l < "$1")" && n="${n// /}"
+  printf '%s' "$n"
 }
 
 # fzx::_cb_persistent_path <var>: persistent cache file for this module, args, cwd and mode
@@ -87,12 +113,14 @@ fzx::_cb_persistent_load() {
   fi
   cp -f -- "$file" "$2"
   fzx::log info "load: persistent cache hit age=${age}s ttl=${ttl}s"
+  _FZX_STAT=(cache "$(fzx::_cb_lines "$2")" persistent)
   cat -- "$2"
 }
 
-# run the module source, streaming to fzf while writing the cache; the cache is only replaced on success
+# fzx::_cb_source <miss|reload>: run the module source, streaming to fzf while writing the cache;
+# the cache is only replaced on success
 fzx::_cb_source() {
-  local data tmp rc lines persist file
+  local why="${1:-reload}" data tmp rc lines persist file
   fzx::_cb_import source source || return
   fzx::_cb_mode
   fzx::meta_get persist persist || persist=session
@@ -102,6 +130,8 @@ fzx::_cb_source() {
     "$FZX_MODULE::source" "${FZX_ARGS[@]}" 2>> "$FZX_LOG_FILE"
     rc=$?
     ((rc == 0)) || fzx::log error "source failed mode=$FZX_MODE rc=$rc"
+    # output streams straight to fzf, so the line count is unknown
+    if ((rc == 0)); then _FZX_STAT=(source - "$why"); else _FZX_STAT=(source - "fail:$rc"); fi
     return "$rc"
   fi
 
@@ -112,11 +142,13 @@ fzx::_cb_source() {
   if ((rc != 0)); then
     rm -f -- "$tmp"
     fzx::log error "source failed mode=$FZX_MODE rc=$rc, cache kept"
+    _FZX_STAT=(source - "fail:$rc")
     return "$rc"
   fi
   mv -f -- "$tmp" "$data"
   lines="$(wc -l < "$data")"
   fzx::log info "source: mode=$FZX_MODE ${lines// /} lines"
+  _FZX_STAT=(source "${lines// /}" "$why")
 
   if [[ "$persist" == cache:* ]] && fzx::_cb_persistent_path file; then
     mkdir -p -- "${file%/*}" && cp -f -- "$data" "$file.$BASHPID" && mv -f -- "$file.$BASHPID" "$file" ||

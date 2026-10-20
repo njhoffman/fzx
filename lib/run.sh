@@ -22,7 +22,32 @@ fzx::run_new() {
     trap 'fzx::_owner_cleanup' EXIT
   fi
   [[ -n "$popup" ]] && fzx::state_set popup "$popup"
+  local rc
   fzx::_launch "$dry_run" "$mode"
+  rc=$?
+  ((dry_run)) || fzx::_stat_exit "$rc"
+  return "$rc"
+}
+
+# exit row: duration of the whole run, attributed to the session the user was in when it ended
+fzx::_stat_exit() {
+  local rc="$1" started now current kind
+  fzx::require stats
+  fzx::session_attach "$_FZX_ROOT_SESSION" || return 0
+  fzx::meta_get started_ms started || started=0
+  fzx::now_ms now
+  fzx::state_get current current && fzx::session_attach "$current" || current="$_FZX_ROOT_SESSION"
+  fzx::meta_get module FZX_MODULE
+  fzx::state_get mode FZX_MODE || FZX_MODE=-
+  case "$rc" in
+    0) kind=accept ;;
+    1) kind=nomatch ;;
+    2) kind=error ;;
+    130) kind=abort ;;
+    *) kind=rc ;;
+  esac
+  fzx::stat exit "$((now - started))" - "rc:$rc $kind"
+  fzx::session_attach "$_FZX_ROOT_SESSION"
 }
 
 fzx::_owner_cleanup() {
@@ -86,6 +111,18 @@ fzx::_launch() {
 
   fzx::opts_build "$FZX_MODULE" || fzx::die 1 "$FZX_MODULE::opts failed"
   fzx::_placement
+
+  fzx::require stats
+  export FZX_STATS FZX_STATS_FILE
+  if ((!dry_run)); then
+    local root
+    fzx::meta_get root root || root="$FZX_SESSION"
+    fzx::_kv_set "$FZX_SESSIONS_DIR/$root/state/current" "$FZX_SESSION"
+    if [[ -n "${_FZX_OWNER:-}" && -z "${_FZX_STARTED:-}" ]]; then
+      _FZX_STARTED=1
+      fzx::stat start 0 - "$FZX_MODULE${FZX_ARGS[*]:+ ${FZX_ARGS[*]}}"
+    fi
+  fi
 
   if ((dry_run)); then
     printf '# module  %s:%s (%s)\n# session %s (%s)\n' \

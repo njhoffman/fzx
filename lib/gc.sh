@@ -43,6 +43,9 @@ fzx::gc() {
     find "$FZX_CACHE_DIR" -mindepth 1 -type d -empty -delete 2> /dev/null
   fi
 
+  fzx::require stats
+  fzx::stats_prune
+
   ((trees + orphans + files)) && fzx::log info "gc: removed $trees trees, $orphans orphans, $files cache files"
   ((quiet)) || printf 'removed %s session trees, %s orphaned sessions, %s cache files\n' "$trees" "$orphans" "$files"
   return 0

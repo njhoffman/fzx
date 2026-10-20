@@ -40,6 +40,7 @@ fzx::nav_mode() {
     fzx::state_set query "${FZF_QUERY:-}"
     fzx::state_set pos 1
     fzx::log info "mode $current -> $mode (restart)"
+    _FZX_STAT=(mode - "$current>$mode:restart" "$current")
     fzx::_nav_become "$FZX_SESSION" "$mode"
     return
   fi
@@ -51,6 +52,7 @@ fzx::nav_mode() {
   fzx::mode_hints hints "$mode"
 
   fzx::log info "mode $current -> $mode"
+  _FZX_STAT=(mode - "$current>$mode" "$current")
   printf 'change-border-label( %s )+change-footer(%s)+reload:%s' "$label" "$hints" "$(fzx::cb load)"
 }
 
@@ -63,7 +65,10 @@ fzx::nav() {
   fzx::state_set pos "${FZF_POS:-1}"
 
   case "$action" in
-    resume) fzx::_nav_become "$FZX_SESSION" ;;
+    resume)
+      _FZX_STAT=(nav - resume)
+      fzx::_nav_become "$FZX_SESSION"
+      ;;
     back) fzx::_nav_back ;;
     popout) fzx::_nav_popout ;;
     goto) fzx::_nav_goto "$@" ;;
@@ -88,8 +93,10 @@ fzx::_nav_back() {
   local parent
   if fzx::meta_get parent parent && [[ -d "$FZX_SESSIONS_DIR/$parent/meta" ]]; then
     fzx::log info "nav back -> $parent"
+    _FZX_STAT=(nav - back)
     fzx::_nav_become "$parent"
   else
+    _FZX_STAT=(nav - back:none)
     printf 'bell'
   fi
 }
@@ -108,16 +115,18 @@ fzx::_nav_popout() {
   if [[ -n "$popup" ]]; then
     rm -f -- "$root_dir/state/popup"
     fzx::log info "nav popout: back inline"
+    _FZX_STAT=(nav - popout:in)
   else
     fzx::_kv_set "$root_dir/state/popup" default
     fzx::log info "nav popout: into a popup"
+    _FZX_STAT=(nav - popout:out)
   fi
   fzx::_nav_become "$FZX_SESSION"
 }
 
 # go to a child session for <module> with these args, reusing it when one already exists
 fzx::_nav_goto() {
-  local target="${1:-}" module mode="" dir key child=""
+  local target="${1:-}" module mode="" dir key child="" parent="$FZX_SESSION"
   shift
   module="${target%%:*}"
   [[ "$target" == *:* ]] && mode="${target#*:}"
@@ -136,6 +145,9 @@ fzx::_nav_goto() {
     fzx::session_create_child "$module" "$dir" "$@" || return 1
     child="$FZX_SESSION"
     fzx::_kv_set "$index" "$child"
+    # the stats row and log belong to the session the user navigated from
+    fzx::session_attach "$parent"
   fi
+  _FZX_STAT=(nav - "goto:$target")
   fzx::_nav_become "$child" "$mode"
 }

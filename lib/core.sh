@@ -32,6 +32,19 @@ fzx::now_ms() {
   printf -v "$1" '%s' "$((_us / 1000))"
 }
 
+# fzx::parse_duration <90|90s|5m|2h|1d> <var>: seconds into var; fails on anything else or zero
+fzx::parse_duration() {
+  [[ "$1" =~ ^([0-9]+)([smhd]?)$ ]] || return 1
+  local _n="${BASH_REMATCH[1]}"
+  case "${BASH_REMATCH[2]}" in
+    m) _n=$((_n * 60)) ;;
+    h) _n=$((_n * 3600)) ;;
+    d) _n=$((_n * 86400)) ;;
+  esac
+  ((_n > 0)) || return 1
+  printf -v "$2" '%s' "$_n"
+}
+
 # print an error, log it when logging is loaded, and exit: fzx::die <code> <message>
 fzx::die() {
   local code="$1"

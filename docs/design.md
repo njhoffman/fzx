@@ -212,10 +212,36 @@ colors and layout keys arrive in step 6.
 - Each session listens on `fzf.sock`; `fzx debug attach` (later) wraps fzfg's `fzf-repl`.
 - Later: a debug key that switches the preview to session state plus all `FZF_*` variables.
 
-## Statistics (step 4)
+## Statistics
 
-Append-only `$XDG_STATE_HOME/fzx/stats.tsv`: `ts sid module mode event duration_ms items exit_action`.
-`fzx stats` summarises with awk.
+Append-only `$XDG_STATE_HOME/fzx/stats.tsv`, one row per event:
+`ts_ms root sid module mode event duration_ms count detail`.
+
+| Event | Recorded by | count | detail |
+|---|---|---|---|
+| `start` | owner, first launch | - | module and args |
+| `exit` | owner, when the tree ends; duration is the whole run; sid/module/mode are where the user ended (`state/current` on the root) | - | `rc:<n> accept\|nomatch\|error\|abort\|rc` |
+| `source` | load miss or hard reload | lines (`-` for `persist=none`, which streams) | `miss`, `reload`, `fail:<rc>` |
+| `cache` | load served from cache | lines | `session`, `persistent` |
+| `action` | module action | items | `<action>:<rc>` |
+| `mode` | mode switch; mode column is the mode switched from | - | `<from>><to>[:restart]` |
+| `nav` | navigation | - | `goto:<target>`, `back`, `back:none`, `resume`, `popout:out\|in` |
+
+Previews are not recorded (they run on every focus change; the stats lib is loaded only when a handler
+sets `_FZX_STAT`). The dispatcher writes the row with the duration it already measures, and resolves the
+current mode itself: `FZX_MODE` inherited from fzf's environment goes stale after an in-place switch.
+Recording is on unless `FZX_STATS=0` (env or config); `FZX_STATS` and `FZX_STATS_FILE` are exported at
+launch because callbacks do not load config. Standalone runs are not recorded.
+
+`fzx stats [--since 90s|5m|2h|7d] [--module NAME] [--raw]` prints, per module: runs, last use, run
+duration avg/max, source runs avg/max (and failures), average items, cache hit rate (hits / (hits +
+misses); hard reloads are not misses), accept/abort, actions and navigation counts. Runs, durations and
+outcomes are credited to the module a tree started in; source, cache, action and nav rows to the module
+where they happened. `--raw` prints the matching rows with a header. Needs an awk with `strftime` (gawk,
+or mawk 1.3.4+).
+
+`fzx gc` keeps the file bounded: once it passes 1 MiB it drops rows older than `FZX_STATS_MAX_AGE_DAYS`
+(default 90). Rows appended during that rewrite can be lost.
 
 ## Menu (step 5)
 
@@ -233,7 +259,7 @@ If stdin is not a tty and no module is given, match each manifest's `detect` aga
 2. `become` navigation (session tree, back, query/pos restore); modes (`ps`: user, all, tree; `ctrl-o`
    drills into a process's children).
 3. Popout/popin; persist policies with a persistent cache; dead-session sweep (`fzx gc`).
-4. Stats.
+4. Stats: event rows from callbacks and the owner; `fzx stats`; pruning in `fzx gc`.
 5. Menu with `applicable`, then cached summaries.
 6. Config layering for colors and keys; port `files`, `logs`, systemd.
 

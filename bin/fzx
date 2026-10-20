@@ -11,6 +11,7 @@ fzx::usage() {
 usage: fzx -m|--mode <module[:mode]> [--popup[=OPTS]] [--dry-run] [--keep] [--] [module args...]
        fzx --resume[=SID] [-m :mode] [--dry-run]
        fzx gc [--all]
+       fzx stats [--since 90s|5m|2h|7d] [--module NAME] [--raw]
        fzx debug ls
        fzx debug tail [SID]
 
@@ -39,6 +40,13 @@ main() {
       shift
       fzx::require log session debug
       fzx::debug "$@"
+      return
+      ;;
+    stats)
+      shift
+      fzx::require log session config stats
+      fzx::config_load
+      fzx::stats "$@"
       return
       ;;
     gc)
