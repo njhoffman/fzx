@@ -48,9 +48,8 @@ Design questions for these are in `docs/components.md` (proposal, waiting for de
 - [ ] **Placement toggle: inline / popup / tmux split** (p1) [feature]: a key cycling through configured
       placements, including fzf-tmux split panes (-d/-u/-l/-r with width/height/position), which `--popup`
       cannot do; needs the owner relaunch again (fzf-tmux runs fzf in another pane). Ref: fzf-rsc/fzfp.
-- [ ] **Header components and styles** (p2) [feature]: modes, toggles, sort and key hints rendered from the
-      declarations; styles bubble / triangle / minimal / none (none keeps the behaviour, hides the line);
-      active and inactive colors per component; header or footer position.
+- [x] **Header components and styles** (p2) [feature]: `FZX_HEADER_STYLE` minimal/bubble/triangle/none,
+      pill colors, `FZX_HEADER_POSITION` footer/header (merged with the module's header).
 - [ ] **Prompt icon per module with a loading state** (p2) [feature]: `start` sets the dim "loading" prompt,
       `load` the bold "loaded" one (the old `actions.sh load` idea), composed with the cursor-restore load bind.
 - [ ] **Event tracing** (p2) [feature]: `FZX_TRACE=start,load,resize,result,focus,change` binds those events to

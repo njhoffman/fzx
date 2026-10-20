@@ -198,6 +198,14 @@ fzf instead. The cache key is the view, not just the mode: `<mode>[+<toggles on>
 (`data/all+kernel@mem`), so each combination is cached once. The footer shows modes, toggles and the sort
 key, active ones highlighted (`FZX_COLORS[toggle_on|toggle_off|sort]`).
 
+`FZX_HEADER_STYLE` draws that line: `minimal` (colored text, the default), `bubble` (a rounded pill per
+item), `triangle` (one powerline with arrows), `none` (no line; every key still works). Pills use
+`FZX_COLORS[pill_on|pill_off]` (background) and `[pill_on_fg|pill_off_fg]` (text) as 256-color numbers;
+bubble and triangle need a Nerd Font. `FZX_HEADER_POSITION=footer` (default) or `header`: in the header
+the line sits above the module's own `--header` (kept in `meta/header`), and in-place refreshes rebuild
+both with `transform-header(fzx _cb header)`, since a module header can hold text that cannot be quoted
+into `change-header(...)`. Standalone runs show the line too.
+
 `<name>::opts` appends to the `FZX_OPTS` array. Key bindings go through
 `fzx::bind <key> <action> <description>`, which records them for the help key (f1, `FZX_KEYS[help]`):
 f1 runs `show-preview+preview:printf ...` with every recorded binding (the module's, then fzx's) and the

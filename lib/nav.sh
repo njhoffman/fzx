@@ -54,12 +54,33 @@ fzx::nav_mode() {
 # in place after a mode, toggle or sort change: new label and component line, reload from the cache
 # of the new view (or the source when that view was never loaded)
 fzx::_nav_refresh() {
-  local label line
+  local label line place
   fzx::config_load "$FZX_MODULE_DIR" "$FZX_MODULE"
   fzx::comp_current
   fzx::session_label label
   fzx::component_line line
-  printf 'change-border-label( %s )+change-footer(%s)+reload:%s' "$label" "$line" "$(fzx::cb load)"
+  # in the header the line sits above the module's header, which may hold any text: fetch it through a
+  # callback instead of quoting it into change-header(...)
+  if [[ "${FZX_HEADER_POSITION:-footer}" == header ]]; then
+    place="transform-header($(fzx::cb header))"
+  else
+    place="change-footer($line)"
+  fi
+  printf 'change-border-label( %s )+%s+reload:%s' "$label" "$place" "$(fzx::cb load)"
+}
+
+# fzx::nav_header: the header text for header placement: the component line, then the module's header
+fzx::nav_header() {
+  local line h=""
+  fzx::require config opts components
+  fzx::config_load "$FZX_MODULE_DIR" "$FZX_MODULE"
+  fzx::comp_load_session
+  fzx::session_modes
+  fzx::session_mode FZX_MODE
+  fzx::comp_current
+  fzx::component_line line
+  fzx::meta_get header h || :
+  printf '%s%s%s\n' "$line" "${line:+${h:+$'\n'}}" "$h"
 }
 
 # shared tail of toggle/sort changes: a row flagged "restart" restarts fzf, otherwise refresh in place

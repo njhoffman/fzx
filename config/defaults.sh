@@ -47,10 +47,21 @@ declare -gA FZX_COLORS=(
   [toggle_on]="38;5;49"
   [toggle_off]="38;5;240"
   [sort]="38;5;45"
+  # bubble and triangle header styles: 256-color numbers for the background and text of on/off items
+  [pill_on]=39
+  [pill_on_fg]=16
+  [pill_off]=237
+  [pill_off_fg]=248
   [menu_target]="38;5;110"
   [menu_summary]="38;5;244"
   [dim]="38;5;244"
 )
+
+# how the component line (modes, toggles, sort) is drawn: minimal (colored text), bubble (rounded pills),
+# triangle (powerline arrows), none (no line; keys keep working). bubble and triangle need a Nerd Font.
+FZX_HEADER_STYLE=minimal
+# where it goes: footer, or header (merged with a header the module sets itself)
+FZX_HEADER_POSITION=footer
 
 # passed to fzf as --color when set (e.g. "dark,hl:208,border:240"); empty keeps the user's fzf colors
 FZX_FZF_COLORS=""

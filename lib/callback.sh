@@ -30,6 +30,10 @@ fzx::callback() {
       fzx::require nav
       fzx::_cb_actions fzx::nav_mode "$@"
       ;;
+    header)
+      fzx::require nav
+      fzx::nav_header
+      ;;
     toggle)
       fzx::require nav
       fzx::_cb_actions fzx::nav_toggle "$@"

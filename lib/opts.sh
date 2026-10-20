@@ -25,31 +25,75 @@ fzx::cb() {
   printf '%s' "${cmd% }"
 }
 
-# fzx::component_line <var>: modes (when there is more than one), toggles and the sort key, the active
-# ones highlighted; empty when the module has none of them (locals _-prefixed: they would shadow the
-# caller's variable)
+# fzx::component_line <var>: modes (when there is more than one), toggles and the sort key as one line in
+# FZX_HEADER_STYLE, active ones highlighted; empty when the module has none of them or the style is none
+# (locals _-prefixed: they would shadow the caller's variable)
 fzx::component_line() {
-  local _parts=() _m _row _k _n _clr _line=""
-  local _rst=$'\e[0m'
+  local _items=() _m _k _n _line="" _style="${FZX_HEADER_STYLE:-minimal}"
+  [[ "$_style" == none ]] && { printf -v "$1" '%s' ""; return; }
+  # items as "group<TAB>state<TAB>kind<TAB>text"; state is on or off
   if ((${#FZX_MODES[@]} > 1)); then
-    _line=""
     for _m in "${FZX_MODES[@]}"; do
-      if [[ "$_m" == "$FZX_MODE" ]]; then _clr="${FZX_COLORS[mode_active]}"; else _clr="${FZX_COLORS[mode_inactive]}"; fi
-      _line+="${_line:+  }"$'\e['"${_clr}m$_m$_rst"
+      if [[ "$_m" == "$FZX_MODE" ]]; then _items+=($'1\ton\tmode\t'"$_m"); else _items+=($'1\toff\tmode\t'"$_m"); fi
     done
-    _parts+=("$_line")
   fi
-  _line=""
   while IFS=$'\t' read -r _k _n _ _ _; do
-    if fzx::comp_on "$_n"; then _clr="${FZX_COLORS[toggle_on]}"; else _clr="${FZX_COLORS[toggle_off]}"; fi
-    _line+="${_line:+  }"$'\e['"${_clr}m$_n$_rst"
+    if fzx::comp_on "$_n"; then _items+=($'2\ton\ttoggle\t'"$_n"); else _items+=($'2\toff\ttoggle\t'"$_n"); fi
   done < <(fzx::comp_rows toggle)
-  [[ -n "$_line" ]] && _parts+=("$_line")
-  [[ -n "${FZX_SORT:-}" ]] && _parts+=($'\e['"${FZX_COLORS[sort]}m"$'\u2193'"$FZX_SORT$_rst")
-  local _sep=$'\e['"${FZX_COLORS[mode_inactive]}m  |  $_rst"
-  local IFS=$'\x1f'
-  _line="${_parts[*]}"
-  printf -v "$1" '%s' "${_line//$'\x1f'/$_sep}"
+  [[ -n "${FZX_SORT:-}" ]] && _items+=($'3\ton\tsort\t↓'"$FZX_SORT")
+  ((${#_items[@]})) || { printf -v "$1" '%s' ""; return; }
+  case "$_style" in
+    bubble | triangle) fzx::_component_pills _line "$_style" "${_items[@]}" ;;
+    *) fzx::_component_minimal _line "${_items[@]}" ;;
+  esac
+  printf -v "$1" '%s' "$_line"
+}
+
+# minimal: colored text per kind, groups separated by a dim bar
+fzx::_component_minimal() {
+  local _out="" _prev="" _it _g _s _k _t _c _r=$'\e[0m'
+  local _var="$1"
+  shift
+  for _it in "$@"; do
+    IFS=$'\t' read -r _g _s _k _t <<< "$_it"
+    case "$_k:$_s" in
+      mode:on) _c="${FZX_COLORS[mode_active]}" ;;
+      toggle:on) _c="${FZX_COLORS[toggle_on]}" ;;
+      toggle:off) _c="${FZX_COLORS[toggle_off]}" ;;
+      sort:*) _c="${FZX_COLORS[sort]}" ;;
+      *) _c="${FZX_COLORS[mode_inactive]}" ;;
+    esac
+    if [[ -z "$_prev" ]]; then :
+    elif [[ "$_g" != "$_prev" ]]; then _out+=$'\e['"${FZX_COLORS[mode_inactive]}m  |  $_r"
+    else _out+="  "; fi
+    _out+=$'\e['"${_c}m$_t$_r"
+    _prev="$_g"
+  done
+  printf -v "$_var" '%s' "$_out"
+}
+
+# bubble: each item a rounded pill; triangle: one powerline, an arrow between items. Colors from
+# FZX_COLORS[pill_on|pill_off] (background) and [pill_on_fg|pill_off_fg] (text), 256-color numbers.
+fzx::_component_pills() {
+  local _var="$1" _style="$2" _out="" _prev="" _it _g _s _k _t _bg _fg _pbg="" _r=$'\e[0m'
+  local _left=$'' _right=$'' _arrow=$''
+  shift 2
+  for _it in "$@"; do
+    IFS=$'\t' read -r _g _s _k _t <<< "$_it"
+    _bg="${FZX_COLORS[pill_$_s]}" _fg="${FZX_COLORS[pill_${_s}_fg]}"
+    if [[ "$_style" == bubble ]]; then
+      if [[ -z "$_prev" ]]; then :; elif [[ "$_g" != "$_prev" ]]; then _out+="   "; else _out+=" "; fi
+      _out+=$'\e[38;5;'"${_bg}m$_left"$'\e[48;5;'"$_bg;38;5;${_fg}m$_t$_r"$'\e[38;5;'"${_bg}m$_right$_r"
+    else
+      # the arrow takes the previous item's background as its color, over this item's background
+      [[ -n "$_pbg" ]] && _out+=$'\e[38;5;'"$_pbg;48;5;${_bg}m$_arrow"
+      _out+=$'\e[48;5;'"$_bg;38;5;${_fg}m $_t "
+      _pbg="$_bg"
+    fi
+    _prev="$_g"
+  done
+  [[ "$_style" == triangle ]] && _out+="$_r"$'\e[38;5;'"${_pbg}m$_arrow$_r"
+  printf -v "$_var" '%s' "$_out"
 }
 
 # fzx::bind <key> <action> <description>: add a key binding and record it for the help key (f1).
@@ -107,7 +151,7 @@ fzx::_help_bind() {
 
 # fzx::opts_build <module>; expects config loaded, module.sh sourced, FZX_MODES and FZX_MODE set
 fzx::opts_build() {
-  local module="$1" label hints query pos
+  local module="$1" label query pos
   FZX_OPTS=("${FZX_FZF_OPTS[@]}")
   FZX_HELP=()
   _FZX_BIND_SCOPE=fzx
@@ -128,8 +172,6 @@ fzx::opts_build() {
     fzx::bind "${FZX_KEYS[reload_soft]}" "transform:$(fzx::cb nav resume)" "restart the interface, data from cache"
     fzx::bind "${FZX_KEYS[back]}" "transform:$(fzx::cb nav back)" "back to the previous screen"
     fzx::bind "${FZX_KEYS[popout]}" "transform:$(fzx::cb nav popout)" "move into / out of a tmux popup"
-    fzx::component_line hints
-    [[ -n "$hints" ]] && FZX_OPTS+=("--footer=$hints")
     if ((${#FZX_MODES[@]} > 1)); then
       fzx::bind "${FZX_KEYS[mode_next]}" "transform:$(fzx::cb mode next)" "next mode"
       fzx::bind "${FZX_KEYS[mode_prev]}" "transform:$(fzx::cb mode prev)" "previous mode"
@@ -166,6 +208,7 @@ fzx::opts_build() {
     "$module::opts" || return 1
     _FZX_BIND_SCOPE=fzx
   fi
+  fzx::_component_place
   # debug view in the preview; standalone has no session, so only the variables
   if fzx::in_session; then
     fzx::bind "${FZX_KEYS[debug]}" "show-preview+preview:$(fzx::cb debug {})" "debug: session state and FZF_* variables"
@@ -174,6 +217,27 @@ fzx::opts_build() {
   fi
   FZX_HELP+=("fzx"$'\t'"${FZX_KEYS[help]}"$'\t'"this help")
   fzx::_help_bind "$module"
+}
+
+# put the component line in the footer, or in the header above the module's own header (which is kept
+# in meta/header for the in-place refreshes)
+fzx::_component_place() {
+  local line i h=""
+  fzx::component_line line
+  if [[ "${FZX_HEADER_POSITION:-footer}" == header ]]; then
+    for ((i = ${#FZX_OPTS[@]} - 1; i >= 0; i--)); do
+      if [[ "${FZX_OPTS[i]}" == --header=* ]]; then
+        h="${FZX_OPTS[i]#--header=}"
+        unset 'FZX_OPTS[i]'
+        FZX_OPTS=("${FZX_OPTS[@]}")
+        break
+      fi
+    done
+    fzx::in_session && fzx::meta_set header "$h"
+    [[ -n "$line$h" ]] && FZX_OPTS+=("--header=$line${line:+${h:+$'\n'}}$h")
+  elif [[ -n "$line" ]]; then
+    FZX_OPTS+=("--footer=$line")
+  fi
 }
 
 # print FZX_OPTS as a readable, copy-pastable fzf command; a flag and its separate value share a line
