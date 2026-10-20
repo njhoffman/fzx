@@ -1,0 +1,4 @@
+# logs components: kind  name  key  description  flags (see lib/components.sh)
+mode  files   -  log files, newest first                  default
+mode  units   -  journals of running and failed services  -
+mode  docker  -  docker container logs                    -

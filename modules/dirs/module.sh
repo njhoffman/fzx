@@ -9,16 +9,6 @@ source "${FZX_ROOT:-$FZX_MODULE_DIR/../..}/lib/core.sh"
 # shellcheck source=./source.sh
 source "$FZX_MODULE_DIR/source.sh"
 
-# only the modes whose tool is installed (bookmarks when some are configured)
-# shellcheck disable=SC2034  # FZX_MODES is read by lib/run.sh
-dirs::modes() {
-  FZX_MODES=()
-  command -v zoxide > /dev/null && FZX_MODES+=(frecent)
-  command -v fasd > /dev/null && FZX_MODES+=(fasd recent)
-  ((${#FZX_DIRS_BOOKMARKS[@]})) && FZX_MODES+=(bookmarks)
-  ((${#FZX_MODES[@]})) || FZX_MODES=(frecent)
-}
-
 dirs::opts() {
   FZX_OPTS+=(
     --delimiter=$'\t'

@@ -8,11 +8,6 @@ source "${FZX_ROOT:-$FZX_MODULE_DIR/../..}/lib/core.sh"
 # shellcheck source=./source.sh
 source "$FZX_MODULE_DIR/source.sh"
 
-# shellcheck disable=SC2034  # FZX_MODES is read by lib/run.sh
-ps::modes() {
-  FZX_MODES=(user all tree)
-}
-
 ps::opts() {
   FZX_OPTS+=(
     --header-lines=1
@@ -28,11 +23,6 @@ ps::opts() {
     fzx::bind "${FZX_KEYS[ps.children]}" "transform:$(fzx::cb nav goto ps --ppid '{1}')" \
       "open the children of the process under the cursor"
   fi
-}
-
-# tree needs --no-sort, which fzf cannot toggle reliably while running: restart when entering or leaving it
-ps::mode_restart() {
-  [[ "$1" == tree || "$2" == tree ]]
 }
 
 fzx::module_main "$@"

@@ -77,7 +77,16 @@ fzx::_help_bind() {
       lines+=("$(printf '  %-12s %s' "$key" "$desc")")
     done
   done
-  ((${#FZX_MODES[@]} > 1)) && lines+=("" "${b}modes$r  ${FZX_MODES[*]}")
+  # components from the table: modes (and, as they are added, toggles, sort keys, actions)
+  local _kind _row _k _n _key _desc _fl _title
+  for _kind in mode toggle sort action; do
+    _title=""
+    while IFS=$'\t' read -r _k _n _key _desc _fl; do
+      [[ -n "$_title" ]] || { _title=1; lines+=("" "$b${_kind}s$r"); }
+      [[ "$_key" == - ]] && _key=""
+      lines+=("$(printf '  %-12s %-12s %s' "$_n" "$_key" "${_desc#-}")")
+    done < <(fzx::comp_rows "$_kind" 2> /dev/null)
+  done
   lines+=("" "${d}any cursor movement returns to the normal preview$r")
   printf -v cmd '%q ' "${lines[@]:1}"
   FZX_OPTS+=(--bind "${FZX_KEYS[help]}:show-preview+preview:printf '%s\\n' $cmd")
@@ -111,6 +120,12 @@ fzx::opts_build() {
       FZX_OPTS+=("--footer=$hints")
       fzx::bind "${FZX_KEYS[mode_next]}" "transform:$(fzx::cb mode next)" "next mode"
       fzx::bind "${FZX_KEYS[mode_prev]}" "transform:$(fzx::cb mode prev)" "previous mode"
+      # a mode row with a key jumps straight to that mode
+      local _row _k _n _key _desc _flags
+      while IFS=$'\t' read -r _k _n _key _desc _flags; do
+        [[ -n "$_key" && "$_key" != - ]] || continue
+        _FZX_BIND_SCOPE="$module" fzx::bind "$_key" "transform:$(fzx::cb mode "$_n")" "mode: ${_desc:-$_n}"
+      done < <(fzx::comp_rows mode)
     fi
     # restore what the previous interface of this session saved before become()
     fzx::state_get query query && [[ -n "$query" ]] && FZX_OPTS+=("--query=$query")

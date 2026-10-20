@@ -1,0 +1,4 @@
+# ps components: kind  name  key  description  flags (see lib/components.sh)
+mode  user  -  your processes, busiest first            default
+mode  all   -  all processes, busiest first             -
+mode  tree  -  process tree (input order: sorting off)  restart

@@ -8,11 +8,6 @@ source "${FZX_ROOT:-$FZX_MODULE_DIR/../..}/lib/core.sh"
 # shellcheck source=./source.sh
 source "$FZX_MODULE_DIR/source.sh"
 
-# shellcheck disable=SC2034  # FZX_MODES is read by lib/run.sh
-files::modes() {
-  FZX_MODES=(files dirs grep)
-}
-
 files::opts() {
   files::base "${FZX_ARGS[0]:-}" || return
   FZX_OPTS+=(
@@ -46,11 +41,6 @@ files::opts() {
     fzx::bind "${FZX_KEYS[files.up]}" "transform:$(fzx::cb nav goto "files:$FZX_MODE" "$(printf '%q' "${parent:-/}")")" \
       "browse the parent directory"
   fi
-}
-
-# grep searches as you type (--disabled plus change:reload), which cannot be toggled while fzf runs
-files::mode_restart() {
-  [[ "$1" == grep || "$2" == grep ]]
 }
 
 fzx::module_main "$@"

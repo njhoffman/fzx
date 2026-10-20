@@ -71,8 +71,9 @@ fzx::run_standalone() {
   shift
   FZX_ARGS=("$@")
   fzx::config_load "$FZX_MODULE_DIR" "$FZX_MODULE"
-  fzx::_module_modes
-  local mode="${FZX_MODE:-${FZX_MODES[0]}}"
+  fzx::require components
+  fzx::comp_load "$FZX_MODULE_DIR" "$FZX_MODULE"
+  local mode="${FZX_MODE:-$FZX_MODE_DEFAULT}"
   fzx::_mode_valid "$mode" || fzx::die 2 "unknown mode for $FZX_MODULE: $mode (modes: ${FZX_MODES[*]})"
   export FZX_MODE="$mode"
   fzx::opts_build "$FZX_MODULE" || fzx::die 1 "$FZX_MODULE::opts failed"
@@ -96,16 +97,18 @@ fzx::_launch() {
   fzx::persist_ttl "$FZX_PERSIST" ttl || fzx::die 1 "$FZX_MODULE: invalid FZX_PERSIST: '$FZX_PERSIST' (none, session or cache:<ttl>)"
   fzx::meta_set persist "$FZX_PERSIST"
 
-  fzx::_module_modes
+  fzx::require components
+  fzx::comp_load "$FZX_MODULE_DIR" "$FZX_MODULE"
+  fzx::comp_save
   printf '%s\0' "${FZX_MODES[@]}" > "$FZX_SESSION_DIR/meta/modes"
   if [[ -n "$requested" ]]; then
     fzx::_mode_valid "$requested" || fzx::die 2 "unknown mode for $FZX_MODULE: $requested (modes: ${FZX_MODES[*]})"
     mode="$requested"
   else
-    fzx::session_mode mode
+    fzx::state_get mode mode || mode="$FZX_MODE_DEFAULT"
     if ! fzx::_mode_valid "$mode"; then
-      fzx::log warn "saved mode '$mode' no longer exists, using ${FZX_MODES[0]}"
-      mode="${FZX_MODES[0]}"
+      fzx::log warn "saved mode '$mode' no longer exists, using $FZX_MODE_DEFAULT"
+      mode="$FZX_MODE_DEFAULT"
     fi
   fi
   fzx::state_set mode "$mode"
@@ -149,19 +152,6 @@ fzx::_placement() {
   fi
   [[ "$popup" == default ]] && popup="$FZX_POPUP_OPTS"
   FZX_OPTS+=("--popup=$popup")
-}
-
-# modes declared by the module's <module>::modes hook into FZX_MODES; default is the single mode "main"
-fzx::_module_modes() {
-  local m
-  FZX_MODES=()
-  if declare -F "$FZX_MODULE::modes" > /dev/null; then
-    "$FZX_MODULE::modes"
-  fi
-  ((${#FZX_MODES[@]})) || FZX_MODES=(main)
-  for m in "${FZX_MODES[@]}"; do
-    [[ "$m" =~ ^[A-Za-z0-9_-]+$ ]] || fzx::die 1 "$FZX_MODULE::modes: invalid mode name: '$m'"
-  done
 }
 
 fzx::_mode_valid() {

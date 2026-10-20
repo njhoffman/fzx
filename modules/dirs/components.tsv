@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# dirs components, computed: only the modes whose tool is installed, bookmarks when configured
+# (see lib/components.sh for the table format)
+source "${FZX_ROOT:-$(dirname "$(readlink -f "$0")")/../..}/lib/core.sh"
+fzx::require log config
+fzx::config_load "$(dirname "$(readlink -f "$0")")" dirs
+command -v zoxide > /dev/null && printf 'mode\tfrecent\t-\tfrecent directories (zoxide)\tdefault\n'
+command -v fasd > /dev/null && printf 'mode\tfasd\t-\tfrecent directories (fasd)\t-\nmode\trecent\t-\trecently visited (fasd)\t-\n'
+((${#FZX_DIRS_BOOKMARKS[@]})) && printf 'mode\tbookmarks\t-\tnamed directories (FZX_DIRS_BOOKMARKS)\t-\n'
+exit 0

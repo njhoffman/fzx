@@ -8,11 +8,6 @@ source "${FZX_ROOT:-$FZX_MODULE_DIR/../..}/lib/core.sh"
 # shellcheck source=./source.sh
 source "$FZX_MODULE_DIR/source.sh"
 
-# shellcheck disable=SC2034  # FZX_MODES is read by lib/run.sh
-systemd::modes() {
-  FZX_MODES=(user system failed)
-}
-
 systemd::opts() {
   local action hints
   FZX_OPTS+=(

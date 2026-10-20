@@ -8,11 +8,6 @@ source "${FZX_ROOT:-$FZX_MODULE_DIR/../..}/lib/core.sh"
 # shellcheck source=./source.sh
 source "$FZX_MODULE_DIR/source.sh"
 
-# shellcheck disable=SC2034  # FZX_MODES is read by lib/run.sh
-git::modes() {
-  FZX_MODES=(status log branches stash)
-}
-
 # "repo  branch  ↑ahead ↓behind upstream" for the header
 git::header() {
   local branch upstream counts ahead behind header

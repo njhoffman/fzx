@@ -1,0 +1,5 @@
+# git components: kind  name  key  description  flags (see lib/components.sh)
+mode  status    -  changed files              default
+mode  log       -  commits                    -
+mode  branches  -  local and remote branches  -
+mode  stash     -  stashes                    -

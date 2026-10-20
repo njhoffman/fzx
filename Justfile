@@ -5,9 +5,19 @@ default:
 test *ARGS:
     bats {{ ARGS }} test
 
-# shellcheck every bash file (.bats files excluded: their idioms trip most checks)
+# shellcheck every bash file, executable components.tsv tables included (.bats files excluded: their
+# idioms trip most checks)
 lint:
-    git ls-files -z --cached --others --exclude-standard | grep -zE '\.(sh|bash)$|^bin/fzx$' | xargs -0 shellcheck
+    #!/usr/bin/env bash
+    set -euo pipefail
+    files=()
+    while IFS= read -r -d '' f; do
+      case "$f" in
+        *.sh | *.bash | bin/fzx) files+=("$f") ;;
+        */components.tsv) [[ -x "$f" ]] && files+=("$f") ;;
+      esac
+    done < <(git ls-files -z --cached --others --exclude-standard)
+    shellcheck "${files[@]}"
 
 # print the resolved fzf command for a module
 dry-run MODULE *ARGS:

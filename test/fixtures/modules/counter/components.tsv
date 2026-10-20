@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# counter components: modes from $COUNTER_MODES (default "one two three"); "three" restarts fzf
+for m in ${COUNTER_MODES-one two three}; do
+  flags=-
+  [[ "$m" == three ]] && flags=restart
+  printf 'mode\t%s\t-\tcounter mode %s\t%s\n' "$m" "$m" "$flags"
+done

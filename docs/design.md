@@ -115,7 +115,7 @@ cache. `fzx gc` removes persistent entries older than `FZX_CACHE_MAX_AGE_DAYS` (
 |---|---|---|
 | Hard reload | `ctrl-r` | `reload(fzx _cb source)`: rerun the source, rewrite `data/<mode>` |
 | Soft reload | `alt-r` | `transform(fzx _cb nav resume)`: save query/pos, `become(fzx --resume <sid>)`; options re-resolved, data from cache |
-| Mode change | `alt-0` / `alt-9` | `transform(fzx _cb mode next\|prev)`: `change-border-label`, `change-footer`, `reload`; fzf keeps running and keeps the query. When `<module>::mode_restart <from> <to>` returns 0, it restarts instead: `become(fzx --resume <sid> -m :<mode>)` |
+| Mode change | `alt-0` / `alt-9` | `transform(fzx _cb mode next\|prev)`: `change-border-label`, `change-footer`, `reload`; fzf keeps running and keeps the query. When the mode left or entered has the `restart` flag, it restarts instead: `become(fzx --resume <sid> -m :<mode>)` |
 | Go to module/subscreen | module-defined | `transform(fzx _cb nav goto <module[:mode]> [args])`: save query/pos, find or create the child, `become(fzx --resume <child>)` |
 | Back | `alt-left` | `transform(fzx _cb nav back)`: `become` the parent; `bell` at the root |
 | Popout / popin | `ctrl-space` | `transform(fzx _cb nav popout)`: toggle the root's `state/popup`, save query/pos, `become(fzx --resume <sid>)`; `bell` outside tmux/Zellij |
@@ -137,8 +137,8 @@ one highlighted (only when a module has more than one mode).
 
 ```
 modules/<name>/
-  module.sh     loader: sources lib/core.sh and source.sh, defines <name>::opts and the optional
-                <name>::modes and <name>::mode_restart hooks; runnable directly
+  module.sh     loader: sources lib/core.sh and source.sh, defines <name>::opts; runnable directly
+  components.tsv  optional: modes (and later toggles, sort, actions), one row each; see Modes
   source.sh     defines <name>::source [args]; prints lines. Runnable directly
   preview.sh    defines <name>::preview <fields>; runnable directly
   actions.sh    defines <name>::action <action> <items...>; runnable directly
@@ -162,14 +162,29 @@ because bash's dynamic scoping would otherwise let a same-named local swallow th
 
 ### Modes
 
-`<name>::modes` sets `FZX_MODES=(user all tree)`; without it a module has the single mode `main`. The
-current mode is exported as `FZX_MODE` to the source, preview, action and opts hooks, so a script reads it
-the same way under fzx and standalone (`FZX_MODE=tree modules/ps/source.sh`). Select it with
-`fzx -m ps:tree`; the first mode is the default. Mode names match `[A-Za-z0-9_-]+`.
+Modes (and the other components, `docs/components.md`) are rows of the module's `components.tsv`:
 
-`<name>::mode_restart <from> <to>` (optional) returns 0 when the switch needs options fzf cannot change
-while running. fzf only has `toggle-sort` and does not export the sort state (the user's own `ctrl-s`
-toggles it too), so `ps` restarts when entering or leaving `tree`, which needs `--no-sort`.
+```
+# kind  name  key  description                              flags
+mode    user  -    your processes, busiest first            default
+mode    all   -    all processes, busiest first             -
+mode    tree  -    process tree (input order: sorting off)  restart
+```
+
+Columns split on tabs or runs of 2+ spaces; `key`/`flags` may be `-`. An executable table is run and its
+output read (dirs lists only the modes whose tool is installed). `~/.config/fzx/modules/<m>/components.tsv`
+replaces rows by kind+name (`=` keeps a field, the flag `off` removes the row, new names are added). The
+resolved table is stored in `meta/components`, so callbacks read it without config. Without mode rows a
+module has the single mode `main`; the row flagged `default` (else the first) starts; a mode row with a key
+gets a binding straight to that mode.
+
+The current mode is exported as `FZX_MODE` to the source, preview, action and opts hooks, so a script reads
+it the same way under fzx and standalone (`FZX_MODE=tree modules/ps/source.sh`). Select it with
+`fzx -m ps:tree`. Mode names match `[A-Za-z0-9_-]+`.
+
+The `restart` flag marks a mode that needs options fzf cannot change while running; entering or leaving
+it restarts fzf (query kept). fzf only has `toggle-sort` and does not export the sort state (the user's
+own `ctrl-s` toggles it too), so `ps` marks `tree`, which needs `--no-sort`.
 
 `<name>::opts` appends to the `FZX_OPTS` array. Key bindings go through
 `fzx::bind <key> <action> <description>`, which records them for the help key (f1, `FZX_KEYS[help]`):

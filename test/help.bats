@@ -25,7 +25,8 @@ help_text() {
   [[ "$output" == *$'\n'"fzx keys"$'\n'*"  ctrl-r       reload: run the source again"* ]]
   [[ "$output" == *"  alt-left     back to the previous screen"* ]]
   [[ "$output" == *"  f1           this help"* ]]
-  [[ "$output" == *"modes  user all tree"* ]]
+  [[ "$output" == *$'\nmodes\n  user'*"your processes, busiest first"* ]]
+  [[ "$output" == *"  tree"*"process tree"* ]]
 }
 
 @test "rebinding a key changes both the binding and the help" {

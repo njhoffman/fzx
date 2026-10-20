@@ -6,7 +6,9 @@
 # or restart fzf when the module asks for it
 fzx::nav_mode() {
   local target="${1:-next}" current mode label hints i n idx=0
-  fzx::require config opts
+  fzx::require config opts components
+  # the table first: session_modes (the modes recorded at launch) is what the switch cycles through
+  fzx::comp_load_session
   fzx::session_modes
   n="${#FZX_MODES[@]}"
   ((n > 1)) || return 0
@@ -31,12 +33,9 @@ fzx::nav_mode() {
       ;;
   esac
 
-  # optional <module>::mode_restart <from> <to> in module.sh: return 0 when the new mode needs
-  # options that cannot change while fzf runs (sorting, delimiter, header lines); fzf then restarts
-  # through become() with the query kept
-  # shellcheck source=/dev/null
-  source "$FZX_MODULE_DIR/module.sh" || return 1
-  if declare -F "$FZX_MODULE::mode_restart" > /dev/null && "$FZX_MODULE::mode_restart" "$current" "$mode"; then
+  # a mode row flagged "restart" needs options that cannot change while fzf runs (sorting, delimiter,
+  # header lines): entering or leaving it restarts fzf through become() with the query kept
+  if fzx::comp_flag mode "$current" restart || fzx::comp_flag mode "$mode" restart; then
     fzx::state_set query "${FZF_QUERY:-}"
     fzx::state_set pos 1
     fzx::log info "mode $current -> $mode (restart)"

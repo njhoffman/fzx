@@ -1,0 +1,4 @@
+# systemd components: kind  name  key  description  flags (see lib/components.sh)
+mode  user    -  user services                     default
+mode  system  -  system services                   -
+mode  failed  -  failed services of both managers  -

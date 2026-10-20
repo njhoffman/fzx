@@ -1,0 +1,4 @@
+# files components: kind  name  key  description  flags (see lib/components.sh)
+mode  files  -  files under the directory         default
+mode  dirs   -  directories under the directory   -
+mode  grep   -  search file contents as you type  restart
