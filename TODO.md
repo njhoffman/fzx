@@ -24,12 +24,54 @@ Categories: module
 - [ ] **Menu ordering by use** (p2) [feature]: sort entries by `stats.tsv` (recent and frequent first), maybe a
       "recent" group on top.
 - [ ] **git** (p2) [feature]: commit-to-files drill-down (ctrl-o on a commit lists its changed files with per-file diff),
-      fetch, commit/amend in `execute`, blame preview, worktrees. Discard/restore stays opt-in only.
+      fetch, commit/amend in `execute`, blame preview, worktrees. From fzf-rsc/git.zsh and fzfmenu
+      widgets/git/fzg-*: diff (staged/unstaged), add -p, reset HEAD, restore a file from a commit,
+      .gitignore entries, clean (dry run first), stash show/apply/drop, cherry-pick, fixup/rebase onto a
+      commit, checkout a file at a commit, grep through history. Discard/restore stays opt-in only.
 - [x] **Shell integration**: `shell/fzx.zsh` widgets on alt-f/d/g/p/m (insert paths, cd, git, pids,
       menu) and `just install` (symlink `bin/fzx` into ~/.local/bin).
 - [ ] **Sessions module** (p3) [module]: a picker over `fzx debug ls` that resumes a kept or running session from
       another terminal.
 - [ ] **New modules** (p2) [module]: see "Module candidates" below; pick by priority.
+
+### From PLAN.md (2026-10-20): components, presentation, debugging
+
+Design questions for these are in `docs/components.md` (proposal, waiting for decisions).
+
+- [ ] **Component declarations in config** (p1) [refactor]: one way for a module to declare its modes,
+      toggles, actions and sort keys (with keys, descriptions, defaults) that users override per module;
+      replaces fzfmenu's many `FZF_*` arrays. Decide the format first (docs/components.md, question 1).
+- [ ] **Toggles** (p1) [feature]: independent on/off switches (fzfmenu `FZF_TOGGLES`, e.g. user/system) kept
+      in session state, passed to the source like the mode, shown in the header, keys from config.
+- [ ] **Actions menu and default action** (p1) [feature]: named actions with descriptions (fzfmenu
+      `FZF_ACTIONS`/`FZF_DEFAULT_ACTION`), defaults (copy id, copy line, view preview, pop out) that modules
+      override by name, an actions key opening a list of them for the selected items, enter running the
+      default action when one is set.
+- [ ] **Placement toggle: inline / popup / tmux split** (p1) [feature]: a key cycling through configured
+      placements, including fzf-tmux split panes (-d/-u/-l/-r with width/height/position), which `--popup`
+      cannot do; needs the owner relaunch again (fzf-tmux runs fzf in another pane). Ref: fzf-rsc/fzfp.
+- [ ] **Header components and styles** (p2) [feature]: modes, toggles, sort and key hints rendered from the
+      declarations; styles bubble / triangle / minimal / none (none keeps the behaviour, hides the line);
+      active and inactive colors per component; header or footer position.
+- [ ] **Prompt icon per module with a loading state** (p2) [feature]: `start` sets the dim "loading" prompt,
+      `load` the bold "loaded" one (the old `actions.sh load` idea), composed with the cursor-restore load bind.
+- [ ] **Event tracing** (p2) [feature]: `FZX_TRACE=start,load,resize,result,focus,change` binds those events to
+      a cheap callback that logs them (with `FZF_*` values) for `fzx debug tail`.
+- [ ] **Help: every module parameter and free keys** (p2) [feature]: f1 lists modes, toggles, actions and
+      sort keys besides bindings; parse FZF_DEFAULT_OPTS / FZF_DEFAULT_OPTS_FILE binds to show which keys are
+      taken and which are free (fzf-rsc bindkeys data has a key list).
+- [ ] **prettypath for files and dirs** (p2) [feature]: icons and colors from prettypath in the files and
+      dirs displays (after the glyph bug below); and for plain fzf with no piped input: fzx as the
+      default file lister, prettypath-formatted.
+- [ ] **Sort cycling** (p3) [feature]: fzfmenu's `FZF_SORT` with prev/next keys, passed to the source.
+- [ ] **files: recent files mode** (p2) [feature]: `fasd -f` most recently used files (fzf-rsc README's
+      Ctrl+u MRU).
+- [ ] **files: search and replace from grep mode** (p3) [feature]: preview and apply a replacement over the
+      matches (fzfmenu files/sad).
+- [ ] **Completion integration** (p3) [feature]: `**<TAB>` completion (`_fzf_complete_<cmd>`) backed by fzx
+      modules for kill, ssh, docker, systemctl, git (fzf-rsc/completions).
+- [ ] **Theme presets** (p3) [feature]: the 182 base16 fzf schemes in fzf-rsc/colors as `FZX_FZF_COLORS`
+      presets, and a themes module previewing them live.
 
 ## Module candidates
 
@@ -50,7 +92,12 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [ ] **env** (p3) [module]: environment variables and shell parameters with values. Refs: system/fzf.params.zsh,
       vendors/completers/env.zsh. Has: everything (shell builtins).
 - [ ] **keybindings** (p3) [module]: zsh bindkey maps and tmux bindings, searchable with descriptions.
-      Refs: widgets/bindkeys/*, system/keybindings.zsh. Has: zsh, tmux.
+      Refs: widgets/bindkeys/*, system/keybindings.zsh, fzf-rsc/modules/bindkeys (key list JSON).
+      Has: zsh, tmux.
+- [ ] **commands** (p2) [module]: executables on PATH, aliases and shell functions with man/tldr or
+      definition preview. Refs: fzfmenu system/fz-commands, system/fz-funcs. Has: man, tldr.
+- [ ] **zsh docs** (p3) [module]: the zsh manual index (option, builtin, parameter) opening the right section.
+      Refs: fzfmenu system/zman*, zmandata.tsv.
 
 ### tmux and desktop
 
@@ -67,9 +114,10 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 ### System
 
 - [ ] **network** (p2) [module]: listening sockets and connections (ss), open files per process (lsof),
-      interfaces and routes (ip), wifi networks (nmcli connect), mDNS services (avahi-browse).
-      Refs: system/fzf.netstat.zsh, system/fzf.lsof.zsh, system/fzwifi, fzf-scripts/wifi,
-      avahi-browse.sh, ref/mods/avahi.sh. Has: ss, netstat, lsof, ip, nmcli, avahi-browse.
+      interfaces and routes (ip), wifi networks (nmcli connect), mDNS services (avahi-browse), kill the
+      process on a port. Refs: system/fzf.netstat.zsh, system/fzf.lsof.zsh, system/fzwifi, fzf-scripts/wifi,
+      avahi-browse.sh, ref/mods/avahi.sh, fzf-rsc/completions/system/kill-proc-by-port.zsh.
+      Has: ss, netstat, lsof, ip, nmcli, avahi-browse.
 - [ ] **packages** (p2) [module]: installed and available packages with info preview, install/remove/upgrade
       (sudo in execute): apt/dpkg modes, plus snap, flatpak, pip/pipx, cargo, npm/pnpm globals, gem.
       Refs: packages/fzf.apt.zsh, system/fzapt-{search,rm,up}, ref/mods/apt.sh, fzf-scripts/pkgsearch,
@@ -166,7 +214,10 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       (`prompt:39:regular`), so a tool's `--prompt` now wins; `alt-g:last`. Left for fzx (optional): the
       ps source no longer needs left-aligned PIDs for `{1}`, and the cursor-restore `load:pos(...)` bind
       no longer competes with a global load bind.
-- [ ] **prettypath glyphs** (p3) [bug]: prints icons as literal `\u{f0f6}` text instead of glyphs.
+- [ ] **prettypath glyphs** (p2) [bug]: prints icons as literal `\u{f0f6}` text instead of glyphs (blocks the
+      prettypath integration above). Found so far: it runs under Lua 5.1 (luarocks), which has no `\u{...}`
+      escapes; the text `u{` is in neither ~/git/prettypath nor the installed rock, so the escape is built at
+      runtime somewhere; the installed rock also lacks override_materialicons/override_webicons.
 - [ ] **Global CLAUDE.md test command** (p3) [docs]: `~/.claude/CLAUDE.md` says to run `npm run test` before
       commits; this repo uses `just test` (bats). "Run the project's test command" fits all repos.
 - [ ] **Source the zsh widgets** (p1) [chore]: add `source ~/ghq/github.com/njhoffman/fzx/shell/fzx.zsh` to the
