@@ -157,10 +157,14 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 
 ## Suggestions outside this repo
 
-- [ ] **`~/.fzf/.fzfrc` delimiter** (p1): drop `--delimiter='\s+\s*'` (empties `{1}` on lines starting
+- [x] **`~/.fzf/.fzfrc` delimiter** (p1): drop `--delimiter='\s+\s*'` (empties `{1}` on lines starting
       with whitespace; modules work around it), move the `load:transform-prompt(...)` bind into fzx config
       (it runs on every load and is replaced by fzx's cursor restore), `alt-g:last` instead of
       `alt-g:top` + `alt-g:+up`.
+      Done in dotfiles 7c9204bce: delimiter dropped; the load bind replaced by a plain `--prompt` default
+      (`prompt:39:regular`), so a tool's `--prompt` now wins; `alt-g:last`. Left for fzx (optional): the
+      ps source no longer needs left-aligned PIDs for `{1}`, and the cursor-restore `load:pos(...)` bind
+      no longer competes with a global load bind.
 - [ ] **prettypath glyphs** (p3): prints icons as literal `\u{f0f6}` text instead of glyphs.
 - [ ] **Global CLAUDE.md test command** (p3): `~/.claude/CLAUDE.md` says to run `npm run test` before
       commits; this repo uses `just test` (bats). "Run the project's test command" fits all repos.
