@@ -133,8 +133,8 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [ ] **Undocumented fzf behaviour we depend on** (p2) [test]: `become()` inside a `--popup` runs in the original
       terminal, so every launch re-requests the popup (`fzx::_placement`). Observed on fzf 0.74 (devel);
       re-check on every fzf upgrade with the popup test in design.md's popout notes.
-- [ ] **No linting** (p1) [chore]: shellcheck is not installed here; the scripts have never been linted. Add it,
-      and a CI job (GitHub Actions) that runs shellcheck and `bats test`.
+- [x] **No linting** (p1) [chore]: `just lint` (shellcheck, `.shellcheckrc`) is clean;
+      `.github/workflows/ci.yml` runs lint and `bats test` on ubuntu-24.04 (verified in a local container).
 - [ ] **Log rotation** (p2) [bug]: `$XDG_STATE_HOME/fzx/fzx.log` is never rotated or pruned; add it to `fzx gc`
       like the stats file.
 - [ ] **Summary cache is keyed by directory only** (p2) [bug]: git summaries (ahead/behind, changes) stay stale for

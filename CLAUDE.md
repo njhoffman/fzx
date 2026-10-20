@@ -6,6 +6,7 @@ changing lib/ or adding a module).
 ## Commands
 
 - `just test` (or `bats test`): full suite, ~2 minutes; `bats test/<file>.bats` for one area
+- `just lint`: shellcheck over every bash file (keep it clean; CI runs it); `.bats` files are not linted
 - `bin/fzx -m <module> --dry-run`: the resolved fzf command
 - `bin/fzx config -m <module>`: resolved config layers, keys, colors, settings
 - `just install`: symlink `bin/fzx` into ~/.local/bin; `shell/fzx.zsh`: zsh widgets (source from zshrc)
