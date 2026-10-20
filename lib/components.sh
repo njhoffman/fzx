@@ -93,6 +93,16 @@ fzx::comp_rows() {
   done
 }
 
+# fzx::comp_has <kind>: the table has at least one row of that kind (no pipe: under pipefail a
+# "comp_rows | grep -q" fails when grep exits first and the writer gets SIGPIPE)
+fzx::comp_has() {
+  local _row
+  for _row in "${FZX_COMP[@]}"; do
+    [[ "$_row" == "$1"$'\t'* ]] && return 0
+  done
+  return 1
+}
+
 # fzx::comp_field <kind> <name> <key|description|flags> <var>; fails when there is no such row
 fzx::comp_field() {
   local _row _k _n _key _desc _flags
@@ -114,4 +124,51 @@ fzx::comp_flag() {
   # not _flags: comp_field has a local of that name, which would swallow the result
   local __cf_flags
   fzx::comp_field "$1" "$2" flags __cf_flags && [[ ",$__cf_flags," == *",$3,"* ]]
+}
+
+# fzx::comp_current: resolve and export FZX_TOGGLES (names that are on, space-separated, table order)
+# and FZX_SORT. Session state wins (state/toggles, state/sort); otherwise the environment (a standalone
+# run), otherwise the table's defaults (toggles flagged "on", the sort flagged "default", else the first).
+fzx::comp_current() {
+  local _row _k _n _f _have_state=0 _t="" _s="" _first_sort="" _def_sort=""
+  if [[ -n "${FZX_SESSION_DIR:-}" && -f "$FZX_SESSION_DIR/state/toggles" ]]; then
+    fzx::_kv_get "$FZX_SESSION_DIR/state/toggles" _t || :
+    _have_state=1
+  elif [[ -n "${FZX_TOGGLES+set}" ]]; then
+    _t="$FZX_TOGGLES"
+    _have_state=1
+  fi
+  for _row in "${FZX_COMP[@]}"; do
+    IFS=$'\t' read -r _k _n _ _ _f <<< "$_row"
+    if [[ "$_k" == toggle ]] && ((!_have_state)) && [[ ",$_f," == *,on,* ]]; then
+      _t+="${_t:+ }$_n"
+    elif [[ "$_k" == sort ]]; then
+      [[ -n "$_first_sort" ]] || _first_sort="$_n"
+      [[ -z "$_def_sort" && ",$_f," == *,default,* ]] && _def_sort="$_n"
+    fi
+  done
+  if [[ -n "${FZX_SESSION_DIR:-}" ]] && fzx::_kv_get "$FZX_SESSION_DIR/state/sort" _s 2> /dev/null; then
+    :
+  else
+    _s="${FZX_SORT:-}"
+  fi
+  # a sort name that is not (or no longer) in the table falls back to the default
+  [[ -n "$_s" ]] && ! fzx::comp_field sort "$_s" key _ 2> /dev/null && _s=""
+  [[ -n "$_s" ]] || _s="${_def_sort:-$_first_sort}"
+  FZX_TOGGLES="$_t" FZX_SORT="$_s"
+  export FZX_TOGGLES FZX_SORT
+}
+
+# fzx::comp_on <toggle>: the toggle is on (expects comp_current)
+fzx::comp_on() {
+  [[ " $FZX_TOGGLES " == *" $1 "* ]]
+}
+
+# fzx::data_key <var>: cache key for the current view: the mode, plus "+toggles" and "@sort" when the
+# table has toggles / sort keys, so each combination is cached on its own
+fzx::data_key() {
+  local _key="$FZX_MODE"
+  fzx::comp_has toggle && _key+="+${FZX_TOGGLES// /,}"
+  [[ -n "$FZX_SORT" ]] && _key+="@$FZX_SORT"
+  printf -v "$1" '%s' "$_key"
 }

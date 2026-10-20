@@ -186,6 +186,18 @@ The `restart` flag marks a mode that needs options fzf cannot change while runni
 it restarts fzf (query kept). fzf only has `toggle-sort` and does not export the sort state (the user's
 own `ctrl-s` toggles it too), so `ps` marks `tree`, which needs `--no-sort`.
 
+### Toggles and sort
+
+`toggle` rows are independent switches (flag `on` = on at start), `sort` rows the sort orders (flag
+`default`, else the first). They reach every module script as `FZX_TOGGLES` (the names that are on,
+space-separated) and `FZX_SORT`, exactly like `FZX_MODE`, and live in `state/toggles` / `state/sort`;
+standalone runs take them from the environment. A toggle row's key flips it; f11/f12 (`FZX_KEYS[sort_prev]`,
+`[sort_next]`) cycle the sort when there are two or more, and a sort row's key selects it. Changes reload
+in place (`transform(fzx _cb toggle NAME)`, `fzx _cb sort next|prev|NAME`); a row flagged `restart` restarts
+fzf instead. The cache key is the view, not just the mode: `<mode>[+<toggles on>][@<sort>]`
+(`data/all+kernel@mem`), so each combination is cached once. The footer shows modes, toggles and the sort
+key, active ones highlighted (`FZX_COLORS[toggle_on|toggle_off|sort]`).
+
 `<name>::opts` appends to the `FZX_OPTS` array. Key bindings go through
 `fzx::bind <key> <action> <description>`, which records them for the help key (f1, `FZX_KEYS[help]`):
 f1 runs `show-preview+preview:printf ...` with every recorded binding (the module's, then fzx's) and the

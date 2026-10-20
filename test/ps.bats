@@ -180,7 +180,8 @@ setup() {
   run "$FZX" _cb load
   [ "$status" -eq 0 ]
   [[ "${lines[0]}" =~ ^PID ]]
-  [ -s "$FZX_SESSION_DIR/data/user" ]
+  # the cache key carries toggles and sort: mode "user", no toggles on, sort cpu
+  [ -s "$FZX_SESSION_DIR/data/user+@cpu" ]
 }
 
 @test "source: --ppid of a process without children prints only the header" {

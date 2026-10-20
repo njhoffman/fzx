@@ -2,3 +2,8 @@
 mode  user  -  your processes, busiest first            default
 mode  all   -  all processes, busiest first             -
 mode  tree  -  process tree (input order: sorting off)  restart
+toggle  kernel  alt-k  show kernel threads                      -
+sort    cpu     -      busiest first                            default
+sort    mem     -      most memory first                        -
+sort    age     -      newest first                             -
+sort    pid     -      by pid                                   -

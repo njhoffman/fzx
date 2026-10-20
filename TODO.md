@@ -38,11 +38,9 @@ Categories: module
 
 Design questions for these are in `docs/components.md` (proposal, waiting for decisions).
 
-- [ ] **Component declarations in config** (p1) [refactor]: one way for a module to declare its modes,
-      toggles, actions and sort keys (with keys, descriptions, defaults) that users override per module;
-      replaces fzfmenu's many `FZF_*` arrays. Decide the format first (docs/components.md, question 1).
-- [ ] **Toggles** (p1) [feature]: independent on/off switches (fzfmenu `FZF_TOGGLES`, e.g. user/system) kept
-      in session state, passed to the source like the mode, shown in the header, keys from config.
+- [x] **Component declarations in config** (p1) [refactor]: `components.tsv` per module (executable
+      allowed), user override rows by kind+name; modes migrated.
+- [x] **Toggles** (p1) [feature]: `toggle` rows, `FZX_TOGGLES`, state, keys, footer; ps has `kernel`.
 - [ ] **Actions menu and default action** (p1) [feature]: named actions with descriptions (fzfmenu
       `FZF_ACTIONS`/`FZF_DEFAULT_ACTION`), defaults (copy id, copy line, view preview, pop out) that modules
       override by name, an actions key opening a list of them for the selected items, enter running the
@@ -63,7 +61,7 @@ Design questions for these are in `docs/components.md` (proposal, waiting for de
 - [ ] **prettypath for files and dirs** (p2) [feature]: icons and colors from prettypath in the files and
       dirs displays (after the glyph bug below); and for plain fzf with no piped input: fzx as the
       default file lister, prettypath-formatted.
-- [ ] **Sort cycling** (p3) [feature]: fzfmenu's `FZF_SORT` with prev/next keys, passed to the source.
+- [x] **Sort cycling** (p3) [feature]: `sort` rows, `FZX_SORT`, f11/f12; ps sorts by cpu/mem/age/pid.
 - [ ] **files: recent files mode** (p2) [feature]: `fasd -f` most recently used files (fzf-rsc README's
       Ctrl+u MRU).
 - [ ] **files: search and replace from grep mode** (p3) [feature]: preview and apply a replacement over the

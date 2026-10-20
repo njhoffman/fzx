@@ -5,7 +5,7 @@
 # fzx::nav_mode <next|prev|NAME>: switch mode in place (fzf keeps running and keeps the query),
 # or restart fzf when the module asks for it
 fzx::nav_mode() {
-  local target="${1:-next}" current mode label hints i n idx=0
+  local target="${1:-next}" current mode i n idx=0
   fzx::require config opts components
   # the table first: session_modes (the modes recorded at launch) is what the switch cycles through
   fzx::comp_load_session
@@ -46,13 +46,87 @@ fzx::nav_mode() {
 
   fzx::state_set mode "$mode"
   export FZX_MODE="$mode"
-  fzx::config_load "$FZX_MODULE_DIR" "$FZX_MODULE"
-  fzx::session_label label
-  fzx::mode_hints hints "$mode"
-
   fzx::log info "mode $current -> $mode"
   _FZX_STAT=(mode - "$current>$mode" "$current")
-  printf 'change-border-label( %s )+change-footer(%s)+reload:%s' "$label" "$hints" "$(fzx::cb load)"
+  fzx::_nav_refresh
+}
+
+# in place after a mode, toggle or sort change: new label and component line, reload from the cache
+# of the new view (or the source when that view was never loaded)
+fzx::_nav_refresh() {
+  local label line
+  fzx::config_load "$FZX_MODULE_DIR" "$FZX_MODULE"
+  fzx::comp_current
+  fzx::session_label label
+  fzx::component_line line
+  printf 'change-border-label( %s )+change-footer(%s)+reload:%s' "$label" "$line" "$(fzx::cb load)"
+}
+
+# shared tail of toggle/sort changes: a row flagged "restart" restarts fzf, otherwise refresh in place
+fzx::_nav_apply() {
+  local kind="$1" name="$2"
+  if fzx::comp_flag "$kind" "$name" restart; then
+    fzx::state_set query "${FZF_QUERY:-}"
+    fzx::state_set pos 1
+    fzx::_nav_become "$FZX_SESSION"
+    return
+  fi
+  fzx::_nav_refresh
+}
+
+# fzx::nav_toggle <name>: flip a toggle
+fzx::nav_toggle() {
+  local name="${1:-}" on=() t found=0
+  fzx::require config opts components
+  fzx::comp_load_session
+  fzx::session_modes
+  fzx::session_mode FZX_MODE
+  if ! fzx::comp_field toggle "$name" key _; then
+    fzx::log error "unknown toggle for $FZX_MODULE: $name"
+    printf 'fzx: unknown toggle: %s\n' "$name" >&2
+    return 2
+  fi
+  fzx::comp_current
+  for t in $FZX_TOGGLES; do
+    if [[ "$t" == "$name" ]]; then found=1; else on+=("$t"); fi
+  done
+  ((found)) || on+=("$name")
+  fzx::state_set toggles "${on[*]}"
+  fzx::log info "toggle $name $( ((found)) && echo off || echo on)"
+  _FZX_STAT=(toggle - "$name:$( ((found)) && echo off || echo on)" "$FZX_MODE")
+  fzx::_nav_apply toggle "$name"
+}
+
+# fzx::nav_sort <next|prev|name>
+fzx::nav_sort() {
+  local target="${1:-next}" names=() i n idx=0 sort
+  fzx::require config opts components
+  fzx::comp_load_session
+  fzx::session_modes
+  fzx::session_mode FZX_MODE
+  fzx::comp_current
+  mapfile -t names < <(fzx::comp_rows sort | cut -f2)
+  n="${#names[@]}"
+  ((n > 0)) || return 0
+  for ((i = 0; i < n; i++)); do
+    [[ "${names[i]}" == "$FZX_SORT" ]] && idx="$i"
+  done
+  case "$target" in
+    next) sort="${names[(idx + 1) % n]}" ;;
+    prev) sort="${names[(idx - 1 + n) % n]}" ;;
+    *)
+      if ! fzx::comp_field sort "$target" key _; then
+        fzx::log error "unknown sort for $FZX_MODULE: $target"
+        printf 'fzx: unknown sort: %s\n' "$target" >&2
+        return 2
+      fi
+      sort="$target"
+      ;;
+  esac
+  fzx::state_set sort "$sort"
+  fzx::log info "sort $FZX_SORT -> $sort"
+  _FZX_STAT=(sort - "$FZX_SORT>$sort" "$FZX_MODE")
+  fzx::_nav_apply sort "$sort"
 }
 
 # fzx::nav <resume | back | popout | goto <module[:mode]> [module args...] | entry <module>#<n>>

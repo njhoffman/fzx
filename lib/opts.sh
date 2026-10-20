@@ -25,18 +25,31 @@ fzx::cb() {
   printf '%s' "${cmd% }"
 }
 
-# fzx::mode_hints <var> <active mode>: mode names with the active one highlighted; expects FZX_MODES
-# (locals are _-prefixed so they cannot shadow the caller's variable)
-fzx::mode_hints() {
-  local _m _hints="" _on=$'\e['"${FZX_COLORS[mode_active]}m" _off=$'\e['"${FZX_COLORS[mode_inactive]}m"
-  for _m in "${FZX_MODES[@]}"; do
-    if [[ "$_m" == "$2" ]]; then
-      _hints+="${_hints:+  }$_on$_m"$'\e[0m'
-    else
-      _hints+="${_hints:+  }$_off$_m"$'\e[0m'
-    fi
-  done
-  printf -v "$1" '%s' "$_hints"
+# fzx::component_line <var>: modes (when there is more than one), toggles and the sort key, the active
+# ones highlighted; empty when the module has none of them (locals _-prefixed: they would shadow the
+# caller's variable)
+fzx::component_line() {
+  local _parts=() _m _row _k _n _clr _line=""
+  local _rst=$'\e[0m'
+  if ((${#FZX_MODES[@]} > 1)); then
+    _line=""
+    for _m in "${FZX_MODES[@]}"; do
+      if [[ "$_m" == "$FZX_MODE" ]]; then _clr="${FZX_COLORS[mode_active]}"; else _clr="${FZX_COLORS[mode_inactive]}"; fi
+      _line+="${_line:+  }"$'\e['"${_clr}m$_m$_rst"
+    done
+    _parts+=("$_line")
+  fi
+  _line=""
+  while IFS=$'\t' read -r _k _n _ _ _; do
+    if fzx::comp_on "$_n"; then _clr="${FZX_COLORS[toggle_on]}"; else _clr="${FZX_COLORS[toggle_off]}"; fi
+    _line+="${_line:+  }"$'\e['"${_clr}m$_n$_rst"
+  done < <(fzx::comp_rows toggle)
+  [[ -n "$_line" ]] && _parts+=("$_line")
+  [[ -n "${FZX_SORT:-}" ]] && _parts+=($'\e['"${FZX_COLORS[sort]}m"$'\u2193'"$FZX_SORT$_rst")
+  local _sep=$'\e['"${FZX_COLORS[mode_inactive]}m  |  $_rst"
+  local IFS=$'\x1f'
+  _line="${_parts[*]}"
+  printf -v "$1" '%s' "${_line//$'\x1f'/$_sep}"
 }
 
 # fzx::bind <key> <action> <description>: add a key binding and record it for the help key (f1).
@@ -115,9 +128,9 @@ fzx::opts_build() {
     fzx::bind "${FZX_KEYS[reload_soft]}" "transform:$(fzx::cb nav resume)" "restart the interface, data from cache"
     fzx::bind "${FZX_KEYS[back]}" "transform:$(fzx::cb nav back)" "back to the previous screen"
     fzx::bind "${FZX_KEYS[popout]}" "transform:$(fzx::cb nav popout)" "move into / out of a tmux popup"
+    fzx::component_line hints
+    [[ -n "$hints" ]] && FZX_OPTS+=("--footer=$hints")
     if ((${#FZX_MODES[@]} > 1)); then
-      fzx::mode_hints hints "$FZX_MODE"
-      FZX_OPTS+=("--footer=$hints")
       fzx::bind "${FZX_KEYS[mode_next]}" "transform:$(fzx::cb mode next)" "next mode"
       fzx::bind "${FZX_KEYS[mode_prev]}" "transform:$(fzx::cb mode prev)" "previous mode"
       # a mode row with a key jumps straight to that mode
@@ -126,6 +139,19 @@ fzx::opts_build() {
         [[ -n "$_key" && "$_key" != - ]] || continue
         _FZX_BIND_SCOPE="$module" fzx::bind "$_key" "transform:$(fzx::cb mode "$_n")" "mode: ${_desc:-$_n}"
       done < <(fzx::comp_rows mode)
+    fi
+    # toggles with a key flip in place; sort keys cycle (and a sort row with a key selects it)
+    while IFS=$'\t' read -r _k _n _key _desc _flags; do
+      [[ -n "$_key" && "$_key" != - ]] || continue
+      _FZX_BIND_SCOPE="$module" fzx::bind "$_key" "transform:$(fzx::cb toggle "$_n")" "toggle: ${_desc:-$_n}"
+    done < <(fzx::comp_rows toggle)
+    if (($(fzx::comp_rows sort | wc -l) > 1)); then
+      fzx::bind "${FZX_KEYS[sort_next]}" "transform:$(fzx::cb sort next)" "next sort order"
+      fzx::bind "${FZX_KEYS[sort_prev]}" "transform:$(fzx::cb sort prev)" "previous sort order"
+      while IFS=$'\t' read -r _k _n _key _desc _flags; do
+        [[ -n "$_key" && "$_key" != - ]] || continue
+        _FZX_BIND_SCOPE="$module" fzx::bind "$_key" "transform:$(fzx::cb sort "$_n")" "sort: ${_desc:-$_n}"
+      done < <(fzx::comp_rows sort)
     fi
     # restore what the previous interface of this session saved before become()
     fzx::state_get query query && [[ -n "$query" ]] && FZX_OPTS+=("--query=$query")

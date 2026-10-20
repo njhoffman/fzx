@@ -20,8 +20,9 @@ help_text() {
   run "$FZX" -m ps
   run help_text
   [ "${lines[0]}" = "ps keys" ]
-  [[ "${lines[1]}" =~ ^\ \ ctrl-x\ +send\ SIGTERM ]]
-  [[ "${lines[2]}" =~ ^\ \ ctrl-o\ +open\ the\ children ]]
+  [[ "$output" =~ $'\n'\ \ ctrl-x\ +send\ SIGTERM ]]
+  [[ "$output" =~ $'\n'\ \ ctrl-o\ +open\ the\ children ]]
+  [[ "$output" =~ $'\n'\ \ alt-k\ +toggle:\ show\ kernel\ threads ]]
   [[ "$output" == *$'\n'"fzx keys"$'\n'*"  ctrl-r       reload: run the source again"* ]]
   [[ "$output" == *"  alt-left     back to the previous screen"* ]]
   [[ "$output" == *"  f1           this help"* ]]

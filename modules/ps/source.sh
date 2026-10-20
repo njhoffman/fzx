@@ -1,10 +1,23 @@
 #!/usr/bin/env bash
 # ps source: one line per process, header first. PID is left-aligned so {1} works with any --delimiter.
-# Mode from $FZX_MODE: user (default, own processes by cpu), all (every process by cpu), tree (forest).
+# Mode from $FZX_MODE: user (default, own processes), all (every process), tree (forest).
+# $FZX_SORT: cpu (default), mem, age, pid (ignored in tree, which keeps input order).
+# $FZX_TOGGLES: "kernel" shows kernel threads (pid 2 and its children), hidden otherwise.
 
 # ps::source [--ppid PID]   only the direct children of PID
 ps::source() {
-  local mode="${FZX_MODE:-user}" scope sort=(--sort=-%cpu) ppid=""
+  local mode="${FZX_MODE:-user}" scope sort ppid="" kernel=0
+  case "${FZX_SORT:-cpu}" in
+    cpu) sort=(--sort=-%cpu) ;;
+    mem) sort=(--sort=-%mem) ;;
+    age) sort=(--sort=etimes) ;;
+    pid) sort=(--sort=pid) ;;
+    *)
+      printf 'ps: unknown sort: %s\n' "$FZX_SORT" >&2
+      return 2
+      ;;
+  esac
+  [[ " ${FZX_TOGGLES:-} " == *" kernel "* ]] && kernel=1
   while (($#)); do
     case "$1" in
       --ppid)
@@ -42,8 +55,9 @@ ps::source() {
     return "$rc"
   fi
   printf '%s\n' "$out" |
-    awk '{ match($0, /^ *[^ ]+/); w = RLENGTH; f = substr($0, 1, w); gsub(/ /, "", f)
-           printf "%-" w "s%s\n", f, substr($0, w + 1) }'
+    awk -v kernel="$kernel" 'NR > 1 && !kernel && ($1 == 2 || $2 == 2) { next }
+      { match($0, /^ *[^ ]+/); w = RLENGTH; f = substr($0, 1, w); gsub(/ /, "", f)
+        printf "%-" w "s%s\n", f, substr($0, w + 1) }'
 }
 
 [[ "${BASH_SOURCE[0]}" == "$0" ]] && ps::source "$@"

@@ -30,6 +30,14 @@ fzx::callback() {
       fzx::require nav
       fzx::_cb_actions fzx::nav_mode "$@"
       ;;
+    toggle)
+      fzx::require nav
+      fzx::_cb_actions fzx::nav_toggle "$@"
+      ;;
+    sort)
+      fzx::require nav
+      fzx::_cb_actions fzx::nav_sort "$@"
+      ;;
     nav)
       fzx::require nav
       fzx::_cb_actions fzx::nav "$@"
@@ -84,15 +92,22 @@ fzx::_cb_mode() {
   fzx::session_modes
   fzx::session_mode FZX_MODE
   export FZX_MODE
+  # toggles and sort ride along with the mode
+  fzx::require components
+  local _modes=("${FZX_MODES[@]}")
+  fzx::comp_load_session
+  FZX_MODES=("${_modes[@]}")
+  fzx::comp_current
 }
 
 # serve cached data for the current mode when present (session cache, then the persistent cache for
 # cache:<ttl> modules), otherwise run the source. persist=none always runs the source.
 fzx::_cb_load() {
-  local data persist
+  local data persist view
   fzx::_cb_mode
   fzx::meta_get persist persist || persist=session
-  fzx::data_path data "$FZX_MODE"
+  fzx::data_key view
+  fzx::data_path data "$view"
   if [[ "$persist" != none && -f "$data" ]]; then
     fzx::log debug "load: cache hit $data"
     _FZX_STAT=(cache "$(fzx::_cb_lines "$data")" session)
@@ -116,7 +131,9 @@ fzx::_cb_lines() {
 fzx::_cb_persistent_path() {
   local _key=""
   fzx::meta_get cache_key _key || return 1
-  printf -v "$1" '%s/%s/%s/%s' "$FZX_CACHE_DIR" "$FZX_MODULE" "$_key" "$FZX_MODE"
+  local _view
+  fzx::data_key _view
+  printf -v "$1" '%s/%s/%s/%s' "$FZX_CACHE_DIR" "$FZX_MODULE" "$_key" "$_view"
 }
 
 # fzx::_cb_persistent_load <policy> <session data path>: serve a fresh persistent entry, seeding the session cache
@@ -140,7 +157,7 @@ fzx::_cb_persistent_load() {
 # fzx::_cb_source <miss|reload>: run the module source, streaming to fzf while writing the cache;
 # the cache is only replaced on success
 fzx::_cb_source() {
-  local why="${1:-reload}" data tmp rc lines persist file
+  local why="${1:-reload}" data tmp rc lines persist file view
   fzx::_cb_import source source || return
   fzx::_cb_mode
   fzx::meta_get persist persist || persist=session
@@ -155,7 +172,8 @@ fzx::_cb_source() {
     return "$rc"
   fi
 
-  fzx::data_path data "$FZX_MODE"
+  fzx::data_key view
+  fzx::data_path data "$view"
   tmp="$data.$BASHPID"
   "$FZX_MODULE::source" "${FZX_ARGS[@]}" 2>> "$FZX_LOG_FILE" | tee -- "$tmp"
   rc="${PIPESTATUS[0]}"

@@ -227,12 +227,18 @@ setup() {
   [ "$label" = "a:x > b > c:z" ]
 }
 
-@test "mode_hints: active mode highlighted, into the caller's variable" {
+@test "component_line: modes, toggles and the sort key, active ones highlighted" {
+  load_libs components
   fzx::config_load
-  FZX_MODES=(one two)
-  local hints
-  fzx::mode_hints hints two
-  [ "$hints" = $'\e[38;5;240mone\e[0m  \e[38;5;45;1mtwo\e[0m' ]
+  FZX_COMP=($'toggle\ta\t-\t-\t-' $'toggle\tb\t-\t-\t-')
+  FZX_MODES=(one two) FZX_MODE=two FZX_TOGGLES=b FZX_SORT=mem
+  local line
+  fzx::component_line line
+  local on=$'\e[38;5;45;1m' off=$'\e[38;5;240m' r=$'\e[0m' ton=$'\e[38;5;49m' srt=$'\e[38;5;45m'
+  [ "$line" = "${off}one${r}  ${on}two${r}${off}  |  ${r}${off}a${r}  ${ton}b${r}${off}  |  ${r}${srt}"$'\u2193'"mem${r}" ]
+  FZX_MODES=(main) FZX_COMP=() FZX_SORT=""
+  fzx::component_line line
+  [ -z "$line" ]
 }
 
 @test "persist_ttl: accepts none, session and cache:<n>[smhd]" {

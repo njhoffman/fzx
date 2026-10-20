@@ -169,5 +169,5 @@ fzx::meta_set() { fzx::_kv_set "$FZX_SESSION_DIR/meta/$1" "$2"; }
 fzx::state_get() { fzx::_kv_get "$FZX_SESSION_DIR/state/$1" "$2"; }
 fzx::state_set() { fzx::_kv_set "$FZX_SESSION_DIR/state/$1" "$2"; }
 
-# fzx::data_path <var> <mode>: path of the cached source output for a mode
+# fzx::data_path <var> <view>: path of the cached source output for a view (fzx::data_key)
 fzx::data_path() { printf -v "$1" '%s/data/%s' "$FZX_SESSION_DIR" "$2"; }

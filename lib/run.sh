@@ -76,6 +76,7 @@ fzx::run_standalone() {
   local mode="${FZX_MODE:-$FZX_MODE_DEFAULT}"
   fzx::_mode_valid "$mode" || fzx::die 2 "unknown mode for $FZX_MODULE: $mode (modes: ${FZX_MODES[*]})"
   export FZX_MODE="$mode"
+  fzx::comp_current
   fzx::opts_build "$FZX_MODULE" || fzx::die 1 "$FZX_MODULE::opts failed"
   fzx::_fzf
 }
@@ -113,6 +114,9 @@ fzx::_launch() {
   fi
   fzx::state_set mode "$mode"
   export FZX_MODE="$mode"
+  fzx::comp_current
+  fzx::comp_has toggle && fzx::state_set toggles "$FZX_TOGGLES"
+  [[ -n "$FZX_SORT" ]] && fzx::state_set sort "$FZX_SORT"
 
   fzx::opts_build "$FZX_MODULE" || fzx::die 1 "$FZX_MODULE::opts failed"
   fzx::_placement
