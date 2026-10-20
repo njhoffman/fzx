@@ -55,6 +55,7 @@ fzx::opts_build() {
       "--border-label= $label "
       --bind "${FZX_KEYS[reload_soft]}:transform:$(fzx::cb nav resume)"
       --bind "${FZX_KEYS[back]}:transform:$(fzx::cb nav back)"
+      --bind "${FZX_KEYS[popout]}:transform:$(fzx::cb nav popout)"
     )
     if ((${#FZX_MODES[@]} > 1)); then
       fzx::mode_hints hints "$FZX_MODE"

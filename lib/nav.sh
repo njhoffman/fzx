@@ -54,7 +54,7 @@ fzx::nav_mode() {
   printf 'change-border-label( %s )+change-footer(%s)+reload:%s' "$label" "$hints" "$(fzx::cb load)"
 }
 
-# fzx::nav <resume | back | goto <module[:mode]> [module args...]>
+# fzx::nav <resume | back | popout | goto <module[:mode]> [module args...]>
 # Saves the query and cursor position of the current session, then prints become() into the target.
 fzx::nav() {
   local action="${1:-}"
@@ -65,6 +65,7 @@ fzx::nav() {
   case "$action" in
     resume) fzx::_nav_become "$FZX_SESSION" ;;
     back) fzx::_nav_back ;;
+    popout) fzx::_nav_popout ;;
     goto) fzx::_nav_goto "$@" ;;
     *)
       fzx::log error "unknown nav action: $action"
@@ -91,6 +92,27 @@ fzx::_nav_back() {
   else
     printf 'bell'
   fi
+}
+
+# toggle the session tree between inline and a tmux/Zellij floating pane, then restart into it
+fzx::_nav_popout() {
+  local root root_dir popup=""
+  if [[ -z "${TMUX:-}" && -z "${ZELLIJ:-}" ]]; then
+    fzx::log info "nav popout: not inside tmux or Zellij"
+    printf 'bell'
+    return 0
+  fi
+  fzx::meta_get root root || root="$FZX_SESSION"
+  root_dir="$FZX_SESSIONS_DIR/$root"
+  fzx::_kv_get "$root_dir/state/popup" popup || :
+  if [[ -n "$popup" ]]; then
+    rm -f -- "$root_dir/state/popup"
+    fzx::log info "nav popout: back inline"
+  else
+    fzx::_kv_set "$root_dir/state/popup" default
+    fzx::log info "nav popout: into a popup"
+  fi
+  fzx::_nav_become "$FZX_SESSION"
 }
 
 # go to a child session for <module> with these args, reusing it when one already exists

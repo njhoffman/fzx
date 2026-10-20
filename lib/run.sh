@@ -1,17 +1,32 @@
 #!/usr/bin/env bash
 # run: launch a module in a new session, resume an existing session, or run a module standalone.
 
-# fzx::run_new <module[:mode]> <dry_run> <keep> [module args...]; the calling process becomes the owner
+# fzx::run_new <module[:mode]> <dry_run> <keep> <popup> [module args...]; the calling process becomes the owner.
+# <popup> is "" (inline), "default" (FZX_POPUP_OPTS) or fzf --popup options.
 fzx::run_new() {
-  local target="$1" dry_run="$2" keep="$3" module mode="" dir
-  shift 3
+  local target="$1" dry_run="$2" keep="$3" popup="$4" module mode="" dir
+  shift 4
   module="${target%%:*}"
   [[ "$target" == *:* ]] && mode="${target#*:}"
   dir="$(fzx::module_find "$module")" || fzx::die 2 "module not found: $module (FZX_MODULE_PATH=$FZX_MODULE_PATH)"
+
+  fzx::require gc
+  fzx::gc --quiet
+
   fzx::session_create "$module" "$dir" "$@" || fzx::die 1 "cannot create session in $FZX_SESSIONS_DIR"
-  ((keep)) || trap 'fzx::session_destroy' EXIT
   _FZX_OWNER=1
+  _FZX_ROOT_SESSION="$FZX_SESSION"
+  if ((keep)); then
+    fzx::meta_set keep 1
+  else
+    trap 'fzx::_owner_cleanup' EXIT
+  fi
+  [[ -n "$popup" ]] && fzx::state_set popup "$popup"
   fzx::_launch "$dry_run" "$mode"
+}
+
+fzx::_owner_cleanup() {
+  fzx::session_attach "$_FZX_ROOT_SESSION" && fzx::session_destroy
 }
 
 # fzx::run_resume <sid> <dry_run> [mode]; never cleans up, the owner does
@@ -50,6 +65,10 @@ fzx::_launch() {
   # shellcheck source=/dev/null
   source "$FZX_MODULE_DIR/module.sh" || fzx::die 1 "cannot load $FZX_MODULE_DIR/module.sh"
 
+  local ttl
+  fzx::persist_ttl "$FZX_PERSIST" ttl || fzx::die 1 "$FZX_MODULE: invalid FZX_PERSIST: '$FZX_PERSIST' (none, session or cache:<ttl>)"
+  fzx::meta_set persist "$FZX_PERSIST"
+
   fzx::_module_modes
   printf '%s\0' "${FZX_MODES[@]}" > "$FZX_SESSION_DIR/meta/modes"
   if [[ -n "$requested" ]]; then
@@ -66,6 +85,7 @@ fzx::_launch() {
   export FZX_MODE="$mode"
 
   fzx::opts_build "$FZX_MODULE" || fzx::die 1 "$FZX_MODULE::opts failed"
+  fzx::_placement
 
   if ((dry_run)); then
     printf '# module  %s:%s (%s)\n# session %s (%s)\n' \
@@ -74,6 +94,22 @@ fzx::_launch() {
     return 0
   fi
   fzx::_fzf
+}
+
+# placement is per session tree (the root's state/popup) and applied on every launch: fzf runs become()
+# from a popup in the original terminal, not inside the popup, so each launch has to ask for the popup
+# again to stay in it (observed with fzf 0.74; see docs/design.md)
+fzx::_placement() {
+  local popup="" root
+  fzx::meta_get root root || root="$FZX_SESSION"
+  fzx::_kv_get "$FZX_SESSIONS_DIR/$root/state/popup" popup || return 0
+  [[ -n "$popup" ]] || return 0
+  if [[ -z "${TMUX:-}" && -z "${ZELLIJ:-}" ]]; then
+    fzx::log warn "popup requested outside tmux/Zellij, running inline"
+    return 0
+  fi
+  [[ "$popup" == default ]] && popup="$FZX_POPUP_OPTS"
+  FZX_OPTS+=("--popup=$popup")
 }
 
 # modes declared by the module's <module>::modes hook into FZX_MODES; default is the single mode "main"

@@ -224,3 +224,53 @@ setup() {
   fzx::mode_hints hints two
   [ "$hints" = $'\e[38;5;240mone\e[0m  \e[38;5;45;1mtwo\e[0m' ]
 }
+
+@test "persist_ttl: accepts none, session and cache:<n>[smhd]" {
+  local ttl
+  fzx::persist_ttl none ttl && [ "$ttl" = 0 ]
+  fzx::persist_ttl session ttl && [ "$ttl" = 0 ]
+  fzx::persist_ttl cache:90 ttl && [ "$ttl" = 90 ]
+  fzx::persist_ttl cache:90s ttl && [ "$ttl" = 90 ]
+  fzx::persist_ttl cache:5m ttl && [ "$ttl" = 300 ]
+  fzx::persist_ttl cache:2h ttl && [ "$ttl" = 7200 ]
+  fzx::persist_ttl cache:1d ttl && [ "$ttl" = 86400 ]
+}
+
+@test "persist_ttl: rejects anything else" {
+  local ttl p
+  for p in "" cache cache: cache:0 cache:5x cache:-1 always; do
+    run fzx::persist_ttl "$p" ttl
+    [ "$status" -eq 1 ]
+  done
+}
+
+@test "pid_start/owner_alive: live owner, dead owner, recycled pid" {
+  local start
+  fzx::pid_start $$ start
+  [[ "$start" =~ ^[0-9]+$ ]]
+  fzx::session_create counter /d
+  fzx::owner_alive "$FZX_SESSION_DIR"
+
+  printf '999999999' > "$FZX_SESSION_DIR/meta/owner_pid"
+  run fzx::owner_alive "$FZX_SESSION_DIR"
+  [ "$status" -eq 1 ]
+
+  printf '%s' $$ > "$FZX_SESSION_DIR/meta/owner_pid"
+  printf '1' > "$FZX_SESSION_DIR/meta/owner_start"
+  run fzx::owner_alive "$FZX_SESSION_DIR"
+  [ "$status" -eq 1 ]
+}
+
+@test "session_create: a cache key that depends on module, args and cwd" {
+  fzx::session_create counter /d --x
+  local a b c
+  a="$(< "$FZX_SESSION_DIR/meta/cache_key")"
+  fzx::session_create counter /d --x
+  b="$(< "$FZX_SESSION_DIR/meta/cache_key")"
+  fzx::session_create counter /d --y
+  c="$(< "$FZX_SESSION_DIR/meta/cache_key")"
+  [ "$a" = "$b" ] && [ "$a" != "$c" ]
+  cd "$BATS_TEST_TMPDIR"
+  fzx::session_create counter /d --x
+  [ "$(< "$FZX_SESSION_DIR/meta/cache_key")" != "$a" ]
+}

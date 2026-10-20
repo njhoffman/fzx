@@ -10,7 +10,20 @@ declare -gA FZX_KEYS=(
   [mode_next]=alt-0
   [mode_prev]=alt-9
   [back]=alt-left
+  [popout]=ctrl-space
 )
+
+# placement used when popping out into a tmux/Zellij floating pane (fzf --popup syntax)
+FZX_POPUP_OPTS="center,80%"
+
+# what happens to loaded data (set per module in its config.sh; users can override per module):
+#   none         no cache: every load runs the source
+#   session      cache for the life of the session tree, deleted when fzx exits
+#   cache:<ttl>  also keep it across runs for the same module, args and directory; ttl as 90, 90s, 5m, 2h, 1d
+FZX_PERSIST=session
+
+# persistent cache entries older than this many days are removed by `fzx gc`
+FZX_CACHE_MAX_AGE_DAYS=7
 
 # SGR parameters (the part between ESC[ and m)
 declare -gA FZX_COLORS=(

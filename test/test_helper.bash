@@ -9,6 +9,7 @@ setup_fzx() {
   export FZX_RUNTIME_DIR="$BATS_TEST_TMPDIR/run"
   export FZX_STATE_DIR="$BATS_TEST_TMPDIR/state"
   export FZX_CONFIG_DIR="$BATS_TEST_TMPDIR/config"
+  export FZX_CACHE_DIR="$BATS_TEST_TMPDIR/cache"
   export FZX_MODULE_PATH="$BATS_TEST_DIRNAME/fixtures/modules:$FZX_REPO/modules"
   export FZX_LOG_LEVEL=debug
   export COUNTER_FILE="$BATS_TEST_TMPDIR/counter"

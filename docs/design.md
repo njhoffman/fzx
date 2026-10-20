@@ -58,9 +58,11 @@ on the command line and therefore win where they overlap.
 `$XDG_RUNTIME_DIR/fzx/sessions/<sid>/` (falls back to `$TMPDIR/fzx-$UID/fzx`).
 
 ```
-meta/         one file per key: module, module_dir, cwd, owner_pid, started_ms, args (NUL-separated),
-              root, parent (children only); modes (NUL-separated, rewritten on every launch)
-state/        one file per key, mutable: mode, query, pos (saved before every become())
+meta/         one file per key: module, module_dir, cwd, owner_pid, owner_start, started_ms,
+              args (NUL-separated), cache_key, root, parent (children only), keep (--keep);
+              rewritten on every launch: modes (NUL-separated), persist
+state/        one file per key, mutable: mode, query, pos (saved before every become()),
+              popup (root only: the tree's placement)
 data/<mode>   cached source output, one file per mode
 children/     <hash(module, args)> -> child sid, so navigating to the same target reuses its session
 fzf.sock      fzf --listen socket
@@ -81,11 +83,29 @@ still waiting when fzf replaces itself through `become(...)`, and it applies cle
 finishes. Processes started with `--resume` never clean up. The owner destroys the root and every session whose
 `meta/root` is the root.
 
-Persist policies (step 3): `none` deletes the session dir; `session` (default) keeps it until the owner
-exits; `cache:<ttl>` moves `data/` into `$XDG_CACHE_HOME/fzx/<module>/<hash(args,cwd)>` for reuse by
-later runs and by menu summaries. Session dirs whose owner pid is dead are swept on startup.
+`--keep` / `FZX_KEEP=1` skips the cleanup and marks the root with `meta/keep`.
 
-Implemented so far: the owner deletes the tree on exit; `--keep` / `FZX_KEEP=1` keeps it for debugging.
+**Dead sessions** (owner crashed or its terminal was killed) are swept by `fzx gc`, which also runs
+quietly before every new session. A tree is dead when its owner pid no longer runs *with the same start
+time* (`meta/owner_start`, field 22 of `/proc/<pid>/stat`), so a recycled pid does not keep a tree
+alive. Kept trees survive until `fzx gc --all`; children whose root is gone are removed too.
+
+### Persist policies
+
+Set per module with `FZX_PERSIST` in its `config.sh`; a user can override it per module in
+`~/.config/fzx/modules/<m>/config.sh`. The resolved value is recorded in `meta/persist` at launch, so
+callbacks need not load config.
+
+| Policy | During the session | After fzx exits |
+|---|---|---|
+| `none` | no cache; every load runs the source | nothing |
+| `session` (default) | `data/<mode>` | deleted with the tree |
+| `cache:<ttl>` (`90`, `90s`, `5m`, `2h`, `1d`) | `data/<mode>` | also written through to `$XDG_CACHE_HOME/fzx/<module>/<cache_key>/<mode>` on every successful source |
+
+`cache_key` is a hash of module, cwd and args, so "the same view" in the same directory reuses its data.
+A load with no session cache serves a persistent entry younger than the ttl and seeds the session cache
+from it; an older entry is refreshed by running the source. A failing source never touches either
+cache. `fzx gc` removes persistent entries older than `FZX_CACHE_MAX_AGE_DAYS` (default 7).
 
 ### Reloading and navigation
 
@@ -98,7 +118,15 @@ Implemented so far: the owner deletes the tree on exit; `--keep` / `FZX_KEEP=1` 
 | Mode change | `alt-0` / `alt-9` | `transform(fzx _cb mode next\|prev)`: `change-border-label`, `change-footer`, `reload`; fzf keeps running and keeps the query. When `<module>::mode_restart <from> <to>` returns 0, it restarts instead: `become(fzx --resume <sid> -m :<mode>)` |
 | Go to module/subscreen | module-defined | `transform(fzx _cb nav goto <module[:mode]> [args])`: save query/pos, find or create the child, `become(fzx --resume <child>)` |
 | Back | `alt-left` | `transform(fzx _cb nav back)`: `become` the parent; `bell` at the root |
-| Popout (step 3) | | `become(fzx --resume --tmux center,80%)`; fzf 0.74's native `--tmux` |
+| Popout / popin | `ctrl-space` | `transform(fzx _cb nav popout)`: toggle the root's `state/popup`, save query/pos, `become(fzx --resume <sid>)`; `bell` outside tmux/Zellij |
+
+**Placement** belongs to the session tree (`state/popup` on the root; `fzx -m ps --popup[=OPTS]` starts
+there, default `FZX_POPUP_OPTS=center,80%`) and is applied on **every** launch with fzf's `--popup`
+(tmux 3.3+ or Zellij). This relies on observed fzf 0.74 behaviour that the man page does not describe: a
+popup is two fzf processes, the original one in the caller's terminal and one inside the popup, and
+`become()` from inside the popup is executed by the original one, in the caller's terminal. A launch that
+did not ask for the popup again would therefore drop back inline. If a later fzf runs `become()` inside
+the popup instead, `_placement` must skip `--popup` when already in one.
 
 Navigation callbacks are `transform`s rather than plain `become`s so they can save `FZF_QUERY` and
 `FZF_POS` first; a launch restores them with `--query` and `--bind 'load:pos(N)+unbind(load)'`. The border
@@ -204,7 +232,7 @@ If stdin is not a tty and no module is given, match each manifest's `detect` aga
 1. Session, callback dispatch, log, `--dry-run`, `ps` module; soft and hard reload.
 2. `become` navigation (session tree, back, query/pos restore); modes (`ps`: user, all, tree; `ctrl-o`
    drills into a process's children).
-3. Popout; cleanup by persist policy; dead-session sweep.
+3. Popout/popin; persist policies with a persistent cache; dead-session sweep (`fzx gc`).
 4. Stats.
 5. Menu with `applicable`, then cached summaries.
 6. Config layering for colors and keys; port `files`, `logs`, systemd.

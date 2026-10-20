@@ -8,27 +8,32 @@ FZX_SESSIONS_DIR="$FZX_RUNTIME_DIR/sessions"
 # fzx::session_create <module> <module_dir> [args...]; creates a root session owned by this process.
 # Sets and exports FZX_SESSION, FZX_SESSION_DIR.
 fzx::session_create() {
+  local start
   fzx::_session_new "$@" || return 1
+  fzx::pid_start $$ start
   fzx::meta_set root "$FZX_SESSION"
   fzx::meta_set owner_pid "$$"
+  fzx::meta_set owner_start "$start"
   fzx::log info "session created module=$1 args=${*:3} cwd=$PWD"
 }
 
 # fzx::session_create_child <module> <module_dir> [args...]; child of the attached session.
 # Sets and exports FZX_SESSION, FZX_SESSION_DIR to the child.
 fzx::session_create_child() {
-  local parent="$FZX_SESSION" root owner
+  local parent="$FZX_SESSION" root owner owner_start
   fzx::meta_get root root || root="$parent"
   fzx::meta_get owner_pid owner || owner=""
+  fzx::meta_get owner_start owner_start || owner_start=""
   fzx::_session_new "$@" || return 1
   fzx::meta_set parent "$parent"
   fzx::meta_set root "$root"
   fzx::meta_set owner_pid "$owner"
+  fzx::meta_set owner_start "$owner_start"
   fzx::log info "session created module=$1 args=${*:3} parent=$parent"
 }
 
 fzx::_session_new() {
-  local module="$1" module_dir="$2" now
+  local module="$1" module_dir="$2" now key
   shift 2
   fzx::now_ms now
   FZX_SESSION="${EPOCHSECONDS}-$BASHPID-$RANDOM"
@@ -45,6 +50,30 @@ fzx::_session_new() {
   else
     : > "$FZX_SESSION_DIR/meta/args"
   fi
+  # identifies "the same view" across sessions for the persistent cache: module, args and cwd
+  key="$(printf '%s\0' "$module" "$PWD" "$@" | md5sum)"
+  fzx::meta_set cache_key "${key%% *}"
+}
+
+# fzx::pid_start <pid> <var>: process start time (clock ticks since boot), empty if the pid is gone.
+# Stored with owner_pid so a recycled pid is not mistaken for a live owner.
+fzx::pid_start() {
+  local _stat _fields
+  printf -v "$2" '%s' ""
+  [[ -r "/proc/$1/stat" ]] || return 1
+  IFS= read -r _stat < "/proc/$1/stat" 2> /dev/null || return 1
+  # the command name (field 2) may contain spaces and parens: split after the last ')'
+  read -r -a _fields <<< "${_stat##*) }"
+  printf -v "$2" '%s' "${_fields[19]}"
+}
+
+# fzx::owner_alive <session dir>: the owner process recorded in the session still runs
+fzx::owner_alive() {
+  local _pid="" _start="" _now
+  fzx::_kv_get "$1/meta/owner_pid" _pid || return 1
+  fzx::_kv_get "$1/meta/owner_start" _start || :
+  [[ -n "$_pid" ]] && fzx::pid_start "$_pid" _now || return 1
+  [[ -z "$_start" || "$_now" == "$_start" ]]
 }
 
 # fzx::session_attach [sid]; defaults to $FZX_SESSION
@@ -108,6 +137,27 @@ fzx::session_label() {
     _dir="$FZX_SESSIONS_DIR/$_sid"
   done
   printf -v "$1" '%s' "$_label"
+}
+
+# fzx::persist_ttl <policy> <var>: validate a persist policy; var gets the ttl in seconds (0 unless cache:)
+fzx::persist_ttl() {
+  local _n _unit
+  printf -v "$2" '%s' 0
+  case "$1" in
+    none | session) return 0 ;;
+    cache:*)
+      [[ "${1#cache:}" =~ ^([0-9]+)([smhd]?)$ ]] || return 1
+      _n="${BASH_REMATCH[1]}" _unit="${BASH_REMATCH[2]}"
+      case "$_unit" in
+        m) _n=$((_n * 60)) ;;
+        h) _n=$((_n * 3600)) ;;
+        d) _n=$((_n * 86400)) ;;
+      esac
+      ((_n > 0)) || return 1
+      printf -v "$2" '%s' "$_n"
+      ;;
+    *) return 1 ;;
+  esac
 }
 
 # fzx::_kv_get <file> <var>: whole file content into var; returns 1 when the file is missing

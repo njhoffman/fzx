@@ -29,7 +29,7 @@ fzx::_debug_ls() {
     fzx::_kv_get "$dir/meta/owner_pid" owner
     fzx::_kv_get "$dir/meta/cwd" cwd
     status=dead
-    [[ -n "$owner" ]] && kill -0 "$owner" 2> /dev/null && status=alive
+    fzx::owner_alive "${dir%/}" && status=alive
     printf '%-28s %-16s %-28s %-8s %-6s %s\n' "$sid" "$module${mode:+:$mode}" "${parent:--}" "$owner" "$status" "$cwd"
   done
 }

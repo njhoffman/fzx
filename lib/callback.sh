@@ -48,39 +48,81 @@ fzx::_cb_mode() {
   export FZX_MODE
 }
 
-# serve cached data for the current mode when present, otherwise run the source
+# serve cached data for the current mode when present (session cache, then the persistent cache for
+# cache:<ttl> modules), otherwise run the source. persist=none always runs the source.
 fzx::_cb_load() {
-  local data
+  local data persist
   fzx::_cb_mode
+  fzx::meta_get persist persist || persist=session
   fzx::data_path data "$FZX_MODE"
-  if [[ -f "$data" ]]; then
+  if [[ "$persist" != none && -f "$data" ]]; then
     fzx::log debug "load: cache hit $data"
     cat -- "$data"
+    return
+  fi
+  if [[ "$persist" == cache:* ]] && fzx::_cb_persistent_load "$persist" "$data"; then
     return
   fi
   fzx::_cb_source
 }
 
+# fzx::_cb_persistent_path <var>: persistent cache file for this module, args, cwd and mode
+fzx::_cb_persistent_path() {
+  local _key=""
+  fzx::meta_get cache_key _key || return 1
+  printf -v "$1" '%s/%s/%s/%s' "$FZX_CACHE_DIR" "$FZX_MODULE" "$_key" "$FZX_MODE"
+}
+
+# fzx::_cb_persistent_load <policy> <session data path>: serve a fresh persistent entry, seeding the session cache
+fzx::_cb_persistent_load() {
+  local ttl file mtime age
+  fzx::persist_ttl "$1" ttl || return 1
+  fzx::_cb_persistent_path file || return 1
+  [[ -f "$file" ]] || return 1
+  mtime="$(stat -c %Y -- "$file")" || return 1
+  age=$((EPOCHSECONDS - mtime))
+  if ((age >= ttl)); then
+    fzx::log debug "load: persistent cache expired age=${age}s ttl=${ttl}s"
+    return 1
+  fi
+  cp -f -- "$file" "$2"
+  fzx::log info "load: persistent cache hit age=${age}s ttl=${ttl}s"
+  cat -- "$2"
+}
+
 # run the module source, streaming to fzf while writing the cache; the cache is only replaced on success
 fzx::_cb_source() {
-  local data tmp rc lines
+  local data tmp rc lines persist file
   fzx::_cb_import source source || return
   fzx::_cb_mode
-  fzx::data_path data "$FZX_MODE"
-  tmp="$data.$BASHPID"
+  fzx::meta_get persist persist || persist=session
   fzx::session_args
 
+  if [[ "$persist" == none ]]; then
+    "$FZX_MODULE::source" "${FZX_ARGS[@]}" 2>> "$FZX_LOG_FILE"
+    rc=$?
+    ((rc == 0)) || fzx::log error "source failed mode=$FZX_MODE rc=$rc"
+    return "$rc"
+  fi
+
+  fzx::data_path data "$FZX_MODE"
+  tmp="$data.$BASHPID"
   "$FZX_MODULE::source" "${FZX_ARGS[@]}" 2>> "$FZX_LOG_FILE" | tee -- "$tmp"
   rc="${PIPESTATUS[0]}"
-  if ((rc == 0)); then
-    mv -f -- "$tmp" "$data"
-    lines="$(wc -l < "$data")"
-    fzx::log info "source: mode=$FZX_MODE ${lines// /} lines"
-  else
+  if ((rc != 0)); then
     rm -f -- "$tmp"
     fzx::log error "source failed mode=$FZX_MODE rc=$rc, cache kept"
+    return "$rc"
   fi
-  return "$rc"
+  mv -f -- "$tmp" "$data"
+  lines="$(wc -l < "$data")"
+  fzx::log info "source: mode=$FZX_MODE ${lines// /} lines"
+
+  if [[ "$persist" == cache:* ]] && fzx::_cb_persistent_path file; then
+    mkdir -p -- "${file%/*}" && cp -f -- "$data" "$file.$BASHPID" && mv -f -- "$file.$BASHPID" "$file" ||
+      fzx::log warn "could not write persistent cache $file"
+  fi
+  return 0
 }
 
 # fzx::_cb_call <script> <function> [args...]
