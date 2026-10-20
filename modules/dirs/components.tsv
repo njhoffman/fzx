@@ -7,4 +7,5 @@ fzx::config_load "$(dirname "$(readlink -f "$0")")" dirs
 command -v zoxide > /dev/null && printf 'mode\tfrecent\t-\tfrecent directories (zoxide)\tdefault\n'
 command -v fasd > /dev/null && printf 'mode\tfasd\t-\tfrecent directories (fasd)\t-\nmode\trecent\t-\trecently visited (fasd)\t-\n'
 ((${#FZX_DIRS_BOOKMARKS[@]})) && printf 'mode\tbookmarks\t-\tnamed directories (FZX_DIRS_BOOKMARKS)\t-\n'
+printf 'action\tremove\tctrl-x\tforget the selected directories\tsilent,reload\n'
 exit 0

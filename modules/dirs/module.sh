@@ -21,8 +21,6 @@ dirs::opts() {
   )
   # query words given: jump straight to a single match, quit quietly on none (the old g/gg idea)
   ((${#FZX_ARGS[@]})) && FZX_OPTS+=(--select-1 --exit-0)
-  fzx::bind "${FZX_KEYS[dirs.remove]}" "execute-silent($(fzx::cb action remove '{+1}'))+reload($(fzx::cb source))" \
-    "forget the selected directories"
   if fzx::in_session; then
     fzx::bind "${FZX_KEYS[dirs.files]}" "transform:$(fzx::cb nav goto files '{1}')" "browse the directory's files"
   fi

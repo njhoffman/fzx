@@ -1,0 +1,7 @@
+# components every module gets (lib/components.sh); a module row of the same kind and name replaces
+# one, and ~/.config/fzx/modules/<m>/components.tsv can switch one off ("action  copy  =  =  off").
+# Built-in actions run through `fzx builtin <name> <args>`.
+# kind   name       key  description                         flags
+action   copy       -    copy the selection to the clipboard  silent,builtin
+action   copy-line  -    copy the whole lines                  silent,builtin
+action   view       -    view the preview in a pager          foreground,builtin

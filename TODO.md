@@ -36,15 +36,14 @@ Categories: module
 
 ### From PLAN.md (2026-10-20): components, presentation, debugging
 
-Design questions for these are in `docs/components.md` (proposal, waiting for decisions).
+Design questions for these are in `docs/components.md` (decided; what is built is in `docs/design.md`).
 
 - [x] **Component declarations in config** (p1) [refactor]: `components.tsv` per module (executable
       allowed), user override rows by kind+name; modes migrated.
 - [x] **Toggles** (p1) [feature]: `toggle` rows, `FZX_TOGGLES`, state, keys, footer; ps has `kernel`.
-- [ ] **Actions menu and default action** (p1) [feature]: named actions with descriptions (fzfmenu
-      `FZF_ACTIONS`/`FZF_DEFAULT_ACTION`), defaults (copy id, copy line, view preview, pop out) that modules
-      override by name, an actions key opening a list of them for the selected items, enter running the
-      default action when one is set.
+- [x] **Actions menu and default action** (p1) [feature]: action rows with flags (silent, foreground,
+      become/print, reload, restart, confirm, default), built-ins copy/copy-line/view, the `ctrl-\` menu as a
+      child `actions` module; module action keys moved from FZX_KEYS into the tables.
 - [ ] **Placement toggle: inline / popup / tmux split** (p1) [feature]: a key cycling through configured
       placements, including fzf-tmux split panes (-d/-u/-l/-r with width/height/position), which `--popup`
       cannot do; needs the owner relaunch again (fzf-tmux runs fzf in another pane). Ref: fzf-rsc/fzfp.

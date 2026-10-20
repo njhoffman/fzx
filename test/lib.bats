@@ -295,6 +295,6 @@ setup() {
   run fzx::config_show ps
   [ "${lines[0]}" = "# layers (later wins)" ]
   [[ "$output" == *"/modules/ps/config.sh"* ]]
-  [[ "$output" == *"ps.term              ctrl-x"* ]]
+  [[ "$output" == *"ps.children          ctrl-o"* ]]
   [[ "$output" == *"FZX_HISTORY              1"* ]]
 }

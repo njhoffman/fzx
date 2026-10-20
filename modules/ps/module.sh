@@ -15,8 +15,6 @@ ps::opts() {
     --preview "$(fzx::cb preview '{1}')"
     "--preview-window=down,40%,wrap,nohidden"
   )
-  fzx::bind "${FZX_KEYS[ps.term]}" "execute-silent($(fzx::cb action term '{+1}'))+reload($(fzx::cb source))" \
-    "send SIGTERM to the selected processes"
   # the forest only reads correctly in input order
   [[ "$FZX_MODE" == tree ]] && FZX_OPTS+=(--no-sort)
   if fzx::in_session; then

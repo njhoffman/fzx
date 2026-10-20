@@ -43,6 +43,12 @@ main() {
       fzx::debug "$@"
       return
       ;;
+    builtin)
+      shift
+      fzx::require log builtin
+      fzx::builtin "$@"
+      return
+      ;;
     stats)
       shift
       fzx::require log session config stats

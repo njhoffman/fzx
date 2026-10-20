@@ -2,3 +2,4 @@
 mode  files   -  log files, newest first                  default
 mode  units   -  journals of running and failed services  -
 mode  docker  -  docker container logs                    -
+action  follow  ctrl-f  follow the log (ctrl-c returns)  foreground

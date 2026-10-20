@@ -1,0 +1,4 @@
+# menu components: the built-in actions make no sense on menu entries
+action  copy       -  -  off
+action  copy-line  -  -  off
+action  view       -  -  off

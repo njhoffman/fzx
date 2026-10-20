@@ -20,7 +20,7 @@ fzx::callback() {
     source) fzx::_cb_source reload ;;
     preview) fzx::_cb_call preview preview "$@" ;;
     action)
-      fzx::_cb_call actions action "$@" 2>> "$FZX_LOG_FILE"
+      fzx::_cb_action "$@" 2>> "$FZX_LOG_FILE"
       rc=$?
       _FZX_STAT=(action "$(($# > 0 ? $# - 1 : 0))" "${1:-}:$rc")
       (exit "$rc")
@@ -109,6 +109,12 @@ fzx::_cb_mode() {
 fzx::_cb_load() {
   local data persist view
   fzx::_cb_mode
+  # an action flagged reload or restart asked for fresh data (nav restart, the actions menu)
+  if [[ -f "$FZX_SESSION_DIR/state/fresh" ]]; then
+    rm -f -- "$FZX_SESSION_DIR/state/fresh"
+    fzx::_cb_source reload
+    return
+  fi
   fzx::meta_get persist persist || persist=session
   fzx::data_key view
   fzx::data_path data "$view"
@@ -198,6 +204,33 @@ fzx::_cb_source() {
     fi
   fi
   return 0
+}
+
+# fzx::_cb_action <name> [args...]: an action row of the table (confirm first when flagged; built-ins from
+# lib/builtin.sh), or a name the module's actions.sh handles without a row
+fzx::_cb_action() {
+  local name="${1:-}" flags="" desc=""
+  fzx::require components
+  fzx::comp_load_session
+  if fzx::comp_field action "$name" flags flags; then
+    if [[ ",$flags," == *,confirm,* ]]; then
+      fzx::require builtin
+      fzx::comp_field action "$name" description desc
+      [[ "$desc" == - ]] && desc=""
+      if ! fzx::confirm "${desc:-$name}" "${@:2}"; then
+        fzx::log info "action $name: not confirmed"
+        return 0
+      fi
+    fi
+    if [[ ",$flags," == *,builtin,* ]]; then
+      fzx::require builtin
+      fzx::_cb_mode
+      export FZX_MODULE FZX_MODULE_DIR
+      fzx::builtin "$@"
+      return
+    fi
+  fi
+  fzx::_cb_call actions action "$@"
 }
 
 # fzx::_cb_call <script> <function> [args...]

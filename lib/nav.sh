@@ -150,7 +150,7 @@ fzx::nav_sort() {
   fzx::_nav_apply sort "$sort"
 }
 
-# fzx::nav <resume | back | popout | goto <module[:mode]> [module args...] | entry <module>#<n>>
+# fzx::nav <resume | restart | back | popout | goto <module[:mode]> [module args...] | entry <module>#<n>>
 # Saves the query and cursor position of the current session, then prints become() into the target.
 fzx::nav() {
   local action="${1:-}"
@@ -161,6 +161,12 @@ fzx::nav() {
   case "$action" in
     resume)
       _FZX_STAT=(nav - resume)
+      fzx::_nav_become "$FZX_SESSION"
+      ;;
+    restart)
+      # resume with fresh data: the next load runs the source instead of serving the cache
+      fzx::state_set fresh 1
+      _FZX_STAT=(nav - restart)
       fzx::_nav_become "$FZX_SESSION"
       ;;
     back) fzx::_nav_back ;;

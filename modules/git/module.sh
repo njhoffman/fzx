@@ -23,6 +23,7 @@ git::header() {
   printf '%s' "$header"
 }
 
+# shellcheck disable=SC2034  # FZX_ACTION_ARGS*: read by lib/actions.sh
 git::opts() {
   git::args "${FZX_ARGS[@]}" || return
   # module args travel with every callback, before "--" and the selected ids
@@ -38,16 +39,9 @@ git::opts() {
     --preview "$(fzx::cb preview "$a" '{1}')"
     "--preview-window=right,60%,nohidden"
   )
-  fzx::bind "${FZX_KEYS[git.stage]}" "execute($(fzx::cb action stage "$a" '{+1}'))+reload($(fzx::cb source))" \
-    "status: stage the selected files"
-  fzx::bind "${FZX_KEYS[git.unstage]}" "execute($(fzx::cb action unstage "$a" '{+1}'))+reload($(fzx::cb source))" \
-    "status: unstage the selected files"
-  fzx::bind "${FZX_KEYS[git.edit]}" "execute($(fzx::cb action edit "$a" '{+1}'))+reload($(fzx::cb source))" \
-    "status: open the selected files in \$EDITOR"
+  # the actions (components.tsv) get the module args too
+  FZX_ACTION_ARGS="$a {+1}"
   if fzx::in_session; then
-    # switching changes the header (current branch), so restart the interface afterwards
-    fzx::bind "${FZX_KEYS[git.switch]}" "execute($(fzx::cb action switch "$a" '{1}'))+transform($(fzx::cb nav resume))" \
-      "branches: switch to the branch (remote: create a tracking branch)"
     fzx::bind "${FZX_KEYS[git.into]}" "transform:$(fzx::cb transform into "$a" '{1}')" "branches: open the branch's log"
   fi
 }

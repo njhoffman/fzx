@@ -91,11 +91,12 @@ need() { command -v "$1" > /dev/null || skip "$1 not installed"; }
   stub_fzf
   cd "$TREE"
   run "$FZX" -m files
-  [ "$(fzf_bind ctrl-e)" = "ctrl-e:execute(${EDITOR:-vi} {+1})" ]
+  [ "$(fzf_bind ctrl-e)" = "ctrl-e:execute($FZX _cb action edit {+1})" ]
   [ "$(fzf_bind alt-up)" = "alt-up:transform:$FZX _cb nav goto files:files $(cd "$BATS_TEST_TMPDIR" && pwd -P)" ]
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " == *" --accept-nth=1 "* && " ${FZF_ARGS[*]} " == *" --scheme=path "* ]]
   run "$FZX" -m files:grep
+  [ "$(fzf_bind ctrl-e)" = "ctrl-e:execute($FZX _cb action edit {1} {2})" ]
   [ "$(fzf_bind change)" = "change:reload:sleep 0.1; $FZX _cb source" ]
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " == *" --disabled "* && " ${FZF_ARGS[*]} " == *" --accept-nth={1}:{2} "* ]]
@@ -108,13 +109,24 @@ need() { command -v "$1" > /dev/null || skip "$1 not installed"; }
   [[ "$output" == "become:"*"-m :grep" ]]
 }
 
-@test "files: keys come from config and can be rebound" {
+@test "files: action keys come from the table and can be rebound" {
   stub_fzf
-  mkdir -p "$FZX_CONFIG_DIR"
-  echo 'FZX_KEYS[files.edit]=f4' > "$FZX_CONFIG_DIR/config.sh"
+  mkdir -p "$FZX_CONFIG_DIR/modules/files"
+  echo 'action  edit  f4  =  =' > "$FZX_CONFIG_DIR/modules/files/components.tsv"
   cd "$TREE"
   run "$FZX" -m files
-  [ "$(fzf_bind f4)" = "f4:execute(${EDITOR:-vi} {+1})" ]
+  [ "$(fzf_bind f4)" = "f4:execute($FZX _cb action edit {+1})" ]
+  run fzf_bind ctrl-e
+  [ "$status" -eq 1 ]
+}
+
+@test "files: edit opens \$EDITOR, at the line in grep mode" {
+  EDITOR="echo" run "$MODS/files/actions.sh" edit a b
+  [ "$output" = "-- a b" ]
+  FZX_MODE=grep EDITOR="echo" run "$MODS/files/actions.sh" edit a 12
+  [ "$output" = "+12 -- a" ]
+  run "$MODS/files/actions.sh" bogus
+  [ "$status" -eq 2 ]
 }
 
 # ---- logs
@@ -227,7 +239,7 @@ stub_systemctl() {
   stub_fzf
   run "$FZX" -m systemd
   [ "$(fzf_bind alt-R)" = "alt-R:execute($FZX _cb action restart {+1})+reload($FZX _cb source)" ]
-  [ "$(fzf_bind ctrl-l)" = "ctrl-l:execute($FZX _cb action journal {1})" ]
+  [ "$(fzf_bind ctrl-l)" = "ctrl-l:execute($FZX _cb action journal {+1})" ]
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " == *" --header=alt-s start  ctrl-x stop  alt-R restart  alt-e enable  alt-d disable  ctrl-l journal  ctrl-e edit "* ]]
 }

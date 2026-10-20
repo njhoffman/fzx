@@ -13,9 +13,17 @@ setup() {
 
 table() { printf '%s\n' "$@" > "$MOD/components.tsv"; }
 
+# comp_load without the built-in rows (config/components.tsv), which every module gets
+load_own() {
+  local r rows=()
+  fzx::comp_load "$MOD" m
+  for r in "${FZX_COMP[@]}"; do [[ ",${r##*$'\t'}," == *,builtin,* ]] || rows+=("$r"); done
+  FZX_COMP=("${rows[@]}")
+}
+
 @test "rows split on tabs or on runs of two or more spaces; comments and blanks skipped" {
   table '# kind name key description flags' '' $'mode\tone\tf3\tthe first mode\tdefault' 'mode  two  -  the second one, with spaces  restart' 'toggle  t  alt-t  a toggle'
-  fzx::comp_load "$MOD" m
+  load_own
   [ "${#FZX_COMP[@]}" -eq 3 ]
   [ "${FZX_COMP[0]}" = $'mode\tone\tf3\tthe first mode\tdefault' ]
   [ "${FZX_COMP[1]}" = $'mode\ttwo\t-\tthe second one, with spaces\trestart' ]
@@ -27,7 +35,7 @@ table() { printf '%s\n' "$@" > "$MOD/components.tsv"; }
   table 'mode  ok' 'bogus  x' 'mode  bad name!'
   run fzx::comp_load "$MOD" m
   [[ "$output" == *"bad component row: bogus  x"* && "$output" == *"bad name!"* ]]
-  fzx::comp_load "$MOD" m 2> /dev/null
+  load_own 2> /dev/null
   [ "${#FZX_COMP[@]}" -eq 1 ]
 }
 
@@ -46,7 +54,7 @@ table() { printf '%s\n' "$@" > "$MOD/components.tsv"; }
 @test "user rows replace by kind+name; '=' keeps a field, 'off' removes, new names are added" {
   table 'mode  a  f3  first  default' 'mode  b  -  second' 'action  x  ctrl-x  do x  silent'
   printf '%s\n' 'mode  a  f5  =  =' 'mode  b  =  =  off' 'action  y  alt-y  do y  foreground' > "$FZX_CONFIG_DIR/modules/m/components.tsv"
-  fzx::comp_load "$MOD" m
+  load_own
   [ "${FZX_COMP[*]}" = $'mode\ta\tf5\tfirst\tdefault action\tx\tctrl-x\tdo x\tsilent action\ty\talt-y\tdo y\tforeground' ]
   [ "${FZX_MODES[*]}" = a ]
 }

@@ -7,3 +7,5 @@ sort    cpu     -      busiest first                            default
 sort    mem     -      most memory first                        -
 sort    age     -      newest first                             -
 sort    pid     -      by pid                                   -
+action  term    ctrl-x  send SIGTERM to the selected processes   silent,reload
+action  kill    -       send SIGKILL to the selected processes   silent,reload,confirm

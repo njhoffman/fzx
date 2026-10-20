@@ -8,6 +8,7 @@ source "${FZX_ROOT:-$FZX_MODULE_DIR/../..}/lib/core.sh"
 # shellcheck source=./source.sh
 source "$FZX_MODULE_DIR/source.sh"
 
+# shellcheck disable=SC2034  # FZX_ACTION_ARGS*: read by lib/actions.sh
 files::opts() {
   files::base "${FZX_ARGS[0]:-}" || return
   FZX_OPTS+=(
@@ -15,7 +16,6 @@ files::opts() {
     "--preview-window=right,55%,nohidden"
     "--header=${FILES_BASE/#$HOME/\~}"
   )
-  local edit="${EDITOR:-vi}"
   if [[ "$FZX_MODE" == grep ]]; then
     FZX_OPTS+=(
       --with-nth=3
@@ -24,7 +24,7 @@ files::opts() {
       --bind "change:reload:sleep 0.1; $(fzx::cb source)"
       --preview "$(fzx::cb preview '{1}' '{2}')"
     )
-    fzx::bind "${FZX_KEYS[files.edit]}" "execute($edit +{2} {1})" "open the file at the matching line in \$EDITOR"
+    FZX_ACTION_ARGS='{1} {2}'
   else
     FZX_OPTS+=(
       --with-nth=2
@@ -32,7 +32,6 @@ files::opts() {
       --scheme=path
       --preview "$(fzx::cb preview '{1}')"
     )
-    fzx::bind "${FZX_KEYS[files.edit]}" "execute($edit {+1})" "open the selected files in \$EDITOR"
   fi
   if fzx::in_session; then
     local parent="${FILES_BASE%/*}"

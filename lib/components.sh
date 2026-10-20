@@ -41,15 +41,21 @@ fzx::comp_load() {
   local dir="$1" module="$2"
   FZX_COMP=()
   mapfile -t FZX_COMP < <(
+    # 0 = the module's rows, 2 = built-ins (config/components.tsv, only where the module has no row of that
+    # kind and name; listed last), 1 = the user's overrides
     { fzx::_comp_read "$dir/components.tsv" | sed 's/^/0\t/'
+      fzx::_comp_read "$FZX_ROOT/config/components.tsv" | sed 's/^/2\t/'
       fzx::_comp_read "$FZX_CONFIG_DIR/modules/$module/components.tsv" | sed 's/^/1\t/'; } |
       awk -F'\t' 'BEGIN { OFS = "\t" }
         { key = $2 SUBSEP $3
-          if ($1 == 0 || !(key in row)) { if (!(key in row)) order[++n] = key; row[key] = $2 OFS $3 OFS $4 OFS $5 OFS $6; next }
+          if ($1 == 2 && (key in row)) next
+          if ($1 != 1 || !(key in row)) { if (!(key in row)) order[++n] = key; if ($1 == 2) builtin[key] = 1; row[key] = $2 OFS $3 OFS $4 OFS $5 OFS $6; next }
           split(row[key], old, "\t")
           for (i = 3; i <= 5; i++) if ($(i + 1) == "=") $(i + 1) = old[i]
           row[key] = $2 OFS $3 OFS $4 OFS $5 OFS $6 }
-        END { for (i = 1; i <= n; i++) { split(row[order[i]], f, "\t"); if (("," f[5] ",") !~ /,off,/) print row[order[i]] } }'
+        END { for (b = 0; b <= 1; b++) for (i = 1; i <= n; i++) {
+                if ((order[i] in builtin) != b) continue
+                split(row[order[i]], f, "\t"); if (("," f[5] ",") !~ /,off,/) print row[order[i]] } }'
   )
   fzx::_comp_modes
 }

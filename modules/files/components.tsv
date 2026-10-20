@@ -2,3 +2,4 @@
 mode  files  -  files under the directory         default
 mode  dirs   -  directories under the directory   -
 mode  grep   -  search file contents as you type  restart
+action  edit  ctrl-e  open in $EDITOR (grep: at the matching line)  foreground

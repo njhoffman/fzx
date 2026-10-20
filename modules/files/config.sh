@@ -4,7 +4,6 @@
 # shellcheck disable=SC2034  # settings here are read by lib/ and the module
 declare -gA FZX_KEYS
 
-FZX_KEYS[files.edit]=ctrl-e  # open the selection in $EDITOR (at the matching line in grep)
 FZX_KEYS[files.into]=ctrl-o  # browse the directory under the cursor (a file's own directory)
 FZX_KEYS[files.up]=alt-up    # browse the parent directory
 

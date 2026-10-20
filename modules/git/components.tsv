@@ -3,3 +3,7 @@ mode  status    -  changed files              default
 mode  log       -  commits                    -
 mode  branches  -  local and remote branches  -
 mode  stash     -  stashes                    -
+action  stage    alt-s   status: stage the selected files                      foreground,reload
+action  unstage  alt-u   status: unstage the selected files                    foreground,reload
+action  edit     ctrl-e  status: open the selected files in $EDITOR             foreground,reload
+action  switch   alt-c   branches: switch (remote: create a tracking branch)  foreground,restart

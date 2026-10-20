@@ -203,11 +203,18 @@ fzx::opts_build() {
     FZX_OPTS+=("--border-label= $module${FZX_MODE:+:$FZX_MODE} ")
   fi
 
+  # the module's opts hook may set these for its action bindings (lib/actions.sh)
+  # shellcheck disable=SC2034
+  FZX_ACTION_ARGS='{+1}'
+  # shellcheck disable=SC2034
+  declare -gA FZX_ACTION_ARGS_FOR=()
   if declare -F "$module::opts" > /dev/null; then
     _FZX_BIND_SCOPE="$module"
     "$module::opts" || return 1
     _FZX_BIND_SCOPE=fzx
   fi
+  fzx::require actions
+  fzx::actions_bind "$module"
   fzx::_component_place
   # debug view in the preview; standalone has no session, so only the variables
   if fzx::in_session; then

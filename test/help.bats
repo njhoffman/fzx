@@ -20,7 +20,7 @@ help_text() {
   run "$FZX" -m ps
   run help_text
   [ "${lines[0]}" = "ps keys" ]
-  [[ "$output" =~ $'\n'\ \ ctrl-x\ +send\ SIGTERM ]]
+  [[ "$output" =~ $'\n'\ \ ctrl-x\ +action:\ send\ SIGTERM ]]
   [[ "$output" =~ $'\n'\ \ ctrl-o\ +open\ the\ children ]]
   [[ "$output" =~ $'\n'\ \ alt-k\ +toggle:\ show\ kernel\ threads ]]
   [[ "$output" == *$'\n'"fzx keys"$'\n'*"  ctrl-r       reload: run the source again"* ]]
@@ -32,7 +32,9 @@ help_text() {
 
 @test "rebinding a key changes both the binding and the help" {
   mkdir -p "$FZX_CONFIG_DIR"
-  echo 'FZX_KEYS[ps.term]=f5; FZX_KEYS[help]=f3' > "$FZX_CONFIG_DIR/config.sh"
+  echo 'FZX_KEYS[help]=f3' > "$FZX_CONFIG_DIR/config.sh"
+  mkdir -p "$FZX_CONFIG_DIR/modules/ps"
+  echo 'action  term  f5  =  =' > "$FZX_CONFIG_DIR/modules/ps/components.tsv"
   run "$FZX" -m ps
   [[ "$(fzf_bind f5)" == "f5:execute-silent("* ]]
   run fzf_bind f1
@@ -46,9 +48,10 @@ help_text() {
 
 @test "binding one key twice logs a warning" {
   mkdir -p "$FZX_CONFIG_DIR"
-  echo 'FZX_KEYS[ps.term]=ctrl-r' > "$FZX_CONFIG_DIR/config.sh"
+  mkdir -p "$FZX_CONFIG_DIR/modules/ps"
+  echo 'action  term  ctrl-r  =  =' > "$FZX_CONFIG_DIR/modules/ps/components.tsv"
   run "$FZX" -m ps
-  grep -q "key ctrl-r is bound twice (reload: run the source again / send SIGTERM to the selected processes)" "$LOG"
+  grep -q "key ctrl-r is bound twice (reload: run the source again / action: send SIGTERM to the selected processes)" "$LOG"
 }
 
 @test "standalone modules have help too, without session-only keys" {

@@ -17,6 +17,7 @@ declare -gA FZX_KEYS=(
   [popout]=ctrl-space
   [help]=f1
   [debug]=f2
+  [actions]="ctrl-\\"
 )
 
 # placement used when popping out into a tmux/Zellij floating pane (fzf --popup syntax)

@@ -138,10 +138,10 @@ one highlighted (only when a module has more than one mode).
 ```
 modules/<name>/
   module.sh     loader: sources lib/core.sh and source.sh, defines <name>::opts; runnable directly
-  components.tsv  optional: modes (and later toggles, sort, actions), one row each; see Modes
+  components.tsv  optional: modes, toggles, sort orders and actions, one row each; see Modes
   source.sh     defines <name>::source [args]; prints lines. Runnable directly
   preview.sh    defines <name>::preview <fields>; runnable directly
-  actions.sh    defines <name>::action <action> <items...>; runnable directly
+  actions.sh    defines <name>::action <action> <items...> for its action rows; runnable directly
   config.sh     optional overrides of global config
   manifest.sh   optional: menu entries (<name>::manifest) and the <name>::applicable and
                 <name>::summary hooks; see Menu
@@ -198,6 +198,40 @@ fzf instead. The cache key is the view, not just the mode: `<mode>[+<toggles on>
 (`data/all+kernel@mem`), so each combination is cached once. The footer shows modes, toggles and the sort
 key, active ones highlighted (`FZX_COLORS[toggle_on|toggle_off|sort]`).
 
+### Actions
+
+`action` rows name what can be done to the selection; `lib/actions.sh` turns them into bindings. Flags:
+
+| Flag | Binding |
+|---|---|
+| `silent` | `execute-silent`: no screen change (signals, database updates) |
+| `foreground` (default) | `execute`: the action gets the terminal (editors, sudo, followers) |
+| `become`, `print` | `become`: fzf is replaced by the action, whose output is fzx's result |
+| `reload` | `+reload(source)` afterwards |
+| `restart` | `+transform(nav restart)`: the interface restarts with fresh data (standalone: reload) |
+| `confirm` | ask `[y/N]` on the terminal first (in the callback; standalone in the binding); runs in the foreground |
+| `default` | also bound to enter; without one, enter prints the selection as before |
+| `builtin` | fzx's own (`lib/builtin.sh`), not the module's `actions.sh` |
+
+Built-ins come from `config/components.tsv` and every module gets them, listed after its own rows:
+`copy` (the ids, `{+1}`), `copy-line` (`{+}`) and `view` (the module's preview of the item in `$PAGER`).
+Clipboard: wl-copy, xclip, xsel, pbcopy, else tmux's paste buffer. A module row of the same name replaces
+a built-in, and the flag `off` removes it (the menu and actions modules switch all three off).
+
+Arguments are fzf placeholders appended to `fzx _cb action NAME`: `FZX_ACTION_ARGS` (default `{+1}`) for
+the module's actions and `FZX_ACTION_ARGS_FOR[name]` for one action, built-ins included, both set in the
+module's opts hook (it can depend on the mode). `view` takes the arguments of the module's `--preview`
+callback. git passes its module args (`$a {+1}`), logs `{1} {2}`, files in grep mode `{1} {2}`.
+
+The actions menu (`ctrl-\`, `FZX_KEYS[actions]`) is a child session of the built-in `actions` module, so
+back, help, stats and debugging work as on any screen. The binding passes the selection already expanded,
+grouped by argument template: `nav goto actions term,kill,copy {+1} --fzx-- copy-line {+} --fzx-- ...`.
+The menu lists the parent's rows (from its `meta/components`), the preview shows the flags and the
+arguments; enter runs `FZX_SESSION=<parent> fzx _cb action NAME ARGS` in the foreground and goes back
+(`become` and `print` actions take over instead). An action flagged `reload` or `restart` sets the parent's
+`state/fresh`, so its next load runs the source instead of serving the cache; `nav restart` uses the same
+flag.
+
 `FZX_HEADER_STYLE` draws that line: `minimal` (colored text, the default), `bubble` (a rounded pill per
 item), `triangle` (one powerline with arrows), `none` (no line; every key still works). Pills use
 `FZX_COLORS[pill_on|pill_off]` (background) and `[pill_on_fg|pill_off_fg]` (text) as 256-color numbers;
@@ -247,7 +281,7 @@ resolved config: the callback loads the layers just before the first module func
 | Setting | Default | Meaning |
 |---|---|---|
 | `FZX_FZF_OPTS` | `--ansi --with-shell='bash -c'` | base fzf options for every module |
-| `FZX_KEYS` | core: `reload_hard` ctrl-r, `reload_soft` alt-r, `mode_next` alt-0, `mode_prev` alt-9, `back` alt-left, `popout` ctrl-space | module keys are `<module>.<name>` (`ps.term`, `files.edit`, `systemd.restart`), set in the module's `config.sh` |
+| `FZX_KEYS` | core: `reload_hard` ctrl-r, `reload_soft` alt-r, `mode_next` alt-0, `mode_prev` alt-9, `back` alt-left, `popout` ctrl-space, `actions` ctrl-\\ | module navigation keys are `<module>.<name>` (`ps.children`, `files.into`), set in the module's `config.sh`; action keys are in the action rows of `components.tsv` |
 | `FZX_COLORS` | `mode_active`, `mode_inactive`, `menu_target`, `menu_summary`, `dim` | SGR parameters for what fzx draws itself |
 | `FZX_FZF_COLORS` | empty | passed as `--color` when set; empty keeps the user's fzf theme |
 | `FZX_HISTORY` | `1` | per-module `--history=$XDG_STATE_HOME/fzx/history/<module>`; `0` leaves fzf's history alone |
@@ -260,13 +294,14 @@ and settings.
 
 | Module | Modes | Args | Keys | Enter prints |
 |---|---|---|---|---|
-| `ps` | user, all, tree | `--ppid PID` | ctrl-x SIGTERM, ctrl-o children | pids |
+| `ps` | user, all, tree | `--ppid PID` | ctrl-x SIGTERM, kill (SIGKILL, confirm; menu only), ctrl-o children | pids |
 | `files` | files, dirs, grep (as you type) | `[DIR]` | ctrl-e edit, ctrl-o into directory, alt-up parent | absolute paths (`path:line` in grep) |
 | `logs` | files (newest first), units, docker | | ctrl-f follow (ctrl-c returns) | path, unit or container id |
 | `systemd` | user, system, failed | | alt-s start, ctrl-x stop, alt-R restart, alt-e enable, alt-d disable, ctrl-l journal, ctrl-e edit | unit names |
 | `git` | status, log, branches, stash (switch in place) | `[--all] [--rev REV] [DIR]` | alt-s stage, alt-u unstage, ctrl-e edit, alt-c switch branch (remote: `--track`), ctrl-o branch to its log | paths, hashes, ref names, stash names |
 | `dirs` | frecent (zoxide), fasd, recent (fasd by access), bookmarks (`FZX_DIRS_BOOKMARKS`), whichever are installed/configured | `[WORDS...]`: zoxide/fasd keywords; with words a single match is printed without the picker (`--select-1 --exit-0`) | ctrl-x forget, ctrl-o browse in files | the directory |
 | `menu` | | | enter opens the entry | entry id |
+| `actions` | | groups of `names args... --fzx--` (built by the actions key) | enter runs the action, then back | |
 
 `files` uses `FZX_PERSIST=cache:5m`; its base directory is resolved physically (`pwd -P`) because fd and rg
 report resolved paths. `logs` reads `FZX_LOGS_FILES` (name to path) and `FZX_LOGS_GLOBS` from config.
