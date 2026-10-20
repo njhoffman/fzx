@@ -22,9 +22,8 @@ Status: the six steps of `docs/design.md` are done, plus the git module. Modules
       not just logs), tmux sessions/panes (fzfmenu/widgets/tmux), apt packages, man pages, histdb,
       network (lsof/netstat/avahi), mpd (fzf/modules/music/fmpc), colors, web search (gh/stackoverflow),
       jq/awk repl (fzfmenu/ref/mods/repl.sh).
-- [ ] **Shell integration**: zsh widgets that run a module and insert its output into the command line
-      (files on ctrl-t, git branches, ps pids), and an install target (`just install`: symlink `bin/fzx`
-      into ~/.local/bin).
+- [x] **Shell integration**: `shell/fzx.zsh` widgets on alt-f/d/g/p/m (insert paths, cd, git, pids,
+      menu) and `just install` (symlink `bin/fzx` into ~/.local/bin).
 - [ ] **Sessions module**: a picker over `fzx debug ls` that resumes a kept or running session from
       another terminal.
 

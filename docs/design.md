@@ -318,6 +318,25 @@ must not hold the callback's stdout: fzf waits for every writer of a `bg-transfo
 **Preview** shows what the entry opens, its description and summary, and `fzx stats` for its module.
 Running `modules/menu/module.sh` directly lists entries but cannot open them.
 
+## Shell integration
+
+`shell/fzx.zsh` (source it from the zshrc) defines zle widgets that run a module and put the result on the
+command line: `fzx-insert [fzx args]` inserts the output at the cursor as shell-quoted words, with paths
+under the current directory made relative (against both `$PWD` and its resolved form, since modules print
+resolved paths). Default keys, bound in viins, vicmd and emacs unless `FZX_ZSH_NO_BIND=1`; set
+`FZX_ZSH_KEYS[<name>]` before sourcing to change one, or to empty to leave it unbound:
+
+| Key | Widget | Does |
+|---|---|---|
+| alt-f | `fzx-files-widget` | insert file paths |
+| alt-d | `fzx-dirs-widget` | `cd` into a directory, through accept-line so it is in history |
+| alt-g | `fzx-git-widget` | insert git paths, a hash or a branch |
+| alt-p | `fzx-ps-widget` | insert pids |
+| alt-m | `fzx-menu-widget` | open the menu, insert what it returns |
+
+fzf's own ctrl-t, alt-c and ctrl-r are left alone. `just install` symlinks `bin/fzx` into
+`~/.local/bin` (or `$XDG_BIN_HOME`) and refuses to replace anything that is not a symlink.
+
 ## Piping (later)
 
 If stdin is not a tty and no module is given, match each manifest's `detect` against the first lines.

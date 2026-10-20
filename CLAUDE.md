@@ -8,6 +8,7 @@ changing lib/ or adding a module).
 - `just test` (or `bats test`): full suite, ~2 minutes; `bats test/<file>.bats` for one area
 - `bin/fzx -m <module> --dry-run`: the resolved fzf command
 - `bin/fzx config -m <module>`: resolved config layers, keys, colors, settings
+- `just install`: symlink `bin/fzx` into ~/.local/bin; `shell/fzx.zsh`: zsh widgets (source from zshrc)
 - `FZX_LOG_LEVEL=debug` then `bin/fzx debug tail`: callbacks, their durations and the fzf actions they return
 
 ## Conventions
