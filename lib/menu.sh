@@ -86,8 +86,9 @@ fzx::menu_lines() {
         summary=""
         fzx::summary_path file "$name#$i"
         [[ -f "$file" ]] && summary="$(< "$file")"
-        printf '%s\t\e[38;5;110m%-24s\e[0m %-42s \e[38;5;244m%s\e[0m\n' \
-          "$name#$i" "$label" "${FZX_ENTRY_DESCS[i]}" "$summary"
+        printf '%s\t\e[%sm%-24s\e[0m %-42s \e[%sm%s\e[0m\n' \
+          "$name#$i" "${FZX_COLORS[menu_target]:-0}" "$label" "${FZX_ENTRY_DESCS[i]}" \
+          "${FZX_COLORS[menu_summary]:-0}" "$summary"
       done
     )
   done < <(fzx::menu_modules)

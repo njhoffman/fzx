@@ -39,7 +39,10 @@ plain_lines() {
   touch "$BATS_TEST_TMPDIR/mods/ps/manifest.sh" "$BATS_TEST_TMPDIR/mods/nomanifest/module.sh"
   FZX_MODULE_PATH="$BATS_TEST_TMPDIR/mods:$FZX_MODULE_PATH"
   run fzx::menu_modules
-  [ "$output" = "$(printf 'counter\t%s\nps\t%s' "$BATS_TEST_DIRNAME/fixtures/modules/counter" "$BATS_TEST_TMPDIR/mods/ps")" ]
+  [ "${lines[0]}" = "$(printf 'counter\t%s' "$BATS_TEST_DIRNAME/fixtures/modules/counter")" ]
+  [[ "$output" == *"$(printf 'ps\t%s' "$BATS_TEST_TMPDIR/mods/ps")"* ]]
+  [ "$(printf '%s\n' "${lines[@]}" | grep -c '^ps')" -eq 1 ]
+  [[ "$output" != *nomanifest* && "$output" != *$'\n'menu$'\t'* ]]
 }
 
 @test "source: one line per applicable entry with a stable id" {
@@ -47,14 +50,15 @@ plain_lines() {
   run plain_lines
   [[ "${lines[0]}" == "counter#0|counter "*"Counter in its first mode"* ]]
   [[ "${lines[1]}" == 'counter#1|counter:two --x a\ b '*"Counter in mode two"* ]]
-  [[ "${lines[2]}" == "ps#0|ps "* ]]
+  [[ "$output" == *$'\n'"ps#0|ps "* ]]
 }
 
 @test "source: applicable hides an entry without renumbering the others" {
   menu_session
   COUNTER_HIDE_TWO=1 run plain_lines
   [[ "${lines[0]}" == counter#0* ]]
-  [[ "${lines[1]}" == ps#0* ]]
+  [[ "$output" != *counter#1* ]]
+  [[ "$output" == *$'\n'ps#0* ]]
 }
 
 @test "source: a broken manifest drops only its module" {

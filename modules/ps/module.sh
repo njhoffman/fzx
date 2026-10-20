@@ -18,12 +18,12 @@ ps::opts() {
     --accept-nth=1
     --preview "$(fzx::cb preview {1})"
     --preview-window=down,40%,wrap,nohidden
-    --bind "ctrl-x:execute-silent($(fzx::cb action term {+1}))+reload($(fzx::cb source))"
+    --bind "${FZX_KEYS[ps.term]}:execute-silent($(fzx::cb action term {+1}))+reload($(fzx::cb source))"
   )
   # the forest only reads correctly in input order
   [[ "$FZX_MODE" == tree ]] && FZX_OPTS+=(--no-sort)
   if fzx::in_session; then
-    FZX_OPTS+=(--bind "ctrl-o:transform:$(fzx::cb nav goto ps --ppid {1})")
+    FZX_OPTS+=(--bind "${FZX_KEYS[ps.children]}:transform:$(fzx::cb nav goto ps --ppid {1})")
   fi
 }
 

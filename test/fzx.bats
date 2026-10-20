@@ -295,3 +295,26 @@ setup() {
   [ "$(< "$BATS_TEST_TMPDIR/fzf.pid")" = "$pid" ]
   grep -q "$sid .* fzf exec module=counter" "$LOG"
 }
+
+@test "per-module history by default; FZX_HISTORY=0 leaves fzf's history alone" {
+  run "$FZX" -m counter
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *" --history=$FZX_STATE_DIR/history/counter "* ]]
+  [ -d "$FZX_STATE_DIR/history" ]
+  FZX_HISTORY=0 run "$FZX" -m counter
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " != *" --history="* ]]
+}
+
+@test "FZX_FZF_COLORS is passed as --color" {
+  mkdir -p "$FZX_CONFIG_DIR"
+  echo 'FZX_FZF_COLORS="dark,hl:208"' > "$FZX_CONFIG_DIR/config.sh"
+  run "$FZX" -m counter
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *" --color=dark,hl:208 "* ]]
+}
+
+@test "fzx config: unknown module fails with 2" {
+  run "$FZX" config -m nope
+  [ "$status" -eq 2 ]
+}

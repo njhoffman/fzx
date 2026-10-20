@@ -194,14 +194,41 @@ Modules are found in `$FZX_MODULE_PATH` (default `~/.config/fzx/modules:<repo>/m
 Sourced in order; later layers override earlier ones by reassignment:
 
 1. `config/defaults.sh` (repo)
-2. `~/.config/fzx/config.sh`
-3. `modules/<m>/config.sh`
-4. `~/.config/fzx/modules/<m>/config.sh`
+2. `modules/<m>/config.sh` (the module's own defaults: its keys, settings, persist policy)
+3. `~/.config/fzx/config.sh` (the user, for every module)
+4. `~/.config/fzx/modules/<m>/config.sh` (the user, for one module)
 5. CLI flags
 
-Globals: `FZX_FZF_OPTS` (array of base fzf options), `FZX_KEYS` (core keys: `reload_hard`, `reload_soft`,
-`mode_next`, `mode_prev`, `back`) and `FZX_COLORS` (SGR parameters: `mode_active`, `mode_inactive`). More
-colors and layout keys arrive in step 6.
+Module defaults come before the user's config, so a key or setting the user sets globally is never
+undone by a module. Module code running in callbacks (source, preview, action, transform) gets the same
+resolved config: the callback loads the layers just before the first module function runs.
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `FZX_FZF_OPTS` | `--ansi --with-shell='bash -c'` | base fzf options for every module |
+| `FZX_KEYS` | core: `reload_hard` ctrl-r, `reload_soft` alt-r, `mode_next` alt-0, `mode_prev` alt-9, `back` alt-left, `popout` ctrl-space | module keys are `<module>.<name>` (`ps.term`, `files.edit`, `systemd.restart`), set in the module's `config.sh` |
+| `FZX_COLORS` | `mode_active`, `mode_inactive`, `menu_target`, `menu_summary`, `dim` | SGR parameters for what fzx draws itself |
+| `FZX_FZF_COLORS` | empty | passed as `--color` when set; empty keeps the user's fzf theme |
+| `FZX_HISTORY` | `1` | per-module `--history=$XDG_STATE_HOME/fzx/history/<module>`; `0` leaves fzf's history alone |
+| `FZX_PERSIST`, `FZX_POPUP_OPTS`, `FZX_STATS`, `FZX_SUMMARY_TTL`, ... | | see their sections |
+
+`fzx config [-m MODULE]` prints the layers that were loaded and the resolved keys, colors, base options
+and settings.
+
+## Modules
+
+| Module | Modes | Args | Keys | Enter prints |
+|---|---|---|---|---|
+| `ps` | user, all, tree | `--ppid PID` | ctrl-x SIGTERM, ctrl-o children | pids |
+| `files` | files, dirs, grep (as you type) | `[DIR]` | ctrl-e edit, ctrl-o into directory, alt-up parent | absolute paths (`path:line` in grep) |
+| `logs` | files (newest first), units, docker | | ctrl-f follow (ctrl-c returns) | path, unit or container id |
+| `systemd` | user, system, failed | | alt-s start, ctrl-x stop, alt-R restart, alt-e enable, alt-d disable, ctrl-l journal, ctrl-e edit | unit names |
+| `menu` | | | enter opens the entry | entry id |
+
+`files` uses `FZX_PERSIST=cache:5m`; its base directory is resolved physically (`pwd -P`) because fd and rg
+report resolved paths. `logs` reads `FZX_LOGS_FILES` (name to path) and `FZX_LOGS_GLOBS` from config.
+`systemd` runs actions on system units through sudo when not root, bound with `execute` so sudo can
+prompt; list parsing forces `SYSTEMD_COLORS=0` because users commonly export it.
 
 ## Debugging
 
@@ -296,7 +323,8 @@ If stdin is not a tty and no module is given, match each manifest's `detect` aga
 4. Stats: event rows from callbacks and the owner; `fzx stats`; pruning in `fzx gc`.
 5. Menu: manifests, `applicable`, cached per-directory summaries refreshed in the background, entries
    opened as children of the menu.
-6. Config layering for colors and keys; port `files`, `logs`, systemd.
+6. Config: module defaults before user config, module keys, `FZX_FZF_COLORS`, per-module history,
+   `fzx config`; ported `files`, `logs`, `systemd`.
 
 Tests (bats) at each step: module scripts are tested directly, libs are unit-tested, `bin/fzx` is tested
 against a stub fzf.

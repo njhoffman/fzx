@@ -122,19 +122,29 @@ setup() {
   [[ "$output" == *loud* ]]
 }
 
-@test "config_load: later layers override earlier ones" {
+@test "config_load: defaults, then module defaults, then user, then user per module" {
   local mod="$BATS_TEST_TMPDIR/mods/m"
   mkdir -p "$mod" "$FZX_CONFIG_DIR/modules/m"
-  echo 'FZX_KEYS[reload_hard]=ctrl-g; FZX_KEYS[reload_soft]=alt-g' > "$FZX_CONFIG_DIR/config.sh"
-  echo 'FZX_KEYS[reload_soft]=alt-m; FZX_FZF_OPTS+=(--module-layer)' > "$mod/config.sh"
-  echo 'FZX_FZF_OPTS+=(--user-module-layer)' > "$FZX_CONFIG_DIR/modules/m/config.sh"
+  echo 'FZX_KEYS[m.a]=ctrl-a; FZX_KEYS[m.b]=ctrl-b; FZX_FZF_OPTS+=(--module-layer)' > "$mod/config.sh"
+  echo 'FZX_KEYS[reload_hard]=ctrl-g; FZX_KEYS[m.a]=alt-a; FZX_FZF_OPTS+=(--user-layer)' > "$FZX_CONFIG_DIR/config.sh"
+  echo 'FZX_KEYS[m.a]=f1; FZX_FZF_OPTS+=(--user-module-layer)' > "$FZX_CONFIG_DIR/modules/m/config.sh"
 
   fzx::config_load "$mod" m
   [ "${FZX_KEYS[reload_hard]}" = ctrl-g ]
-  [ "${FZX_KEYS[reload_soft]}" = alt-m ]
+  [ "${FZX_KEYS[m.b]}" = ctrl-b ]
+  [ "${FZX_KEYS[m.a]}" = f1 ]
   [ "${FZX_FZF_OPTS[0]}" = --ansi ]
-  [ "${FZX_FZF_OPTS[-2]}" = --module-layer ]
-  [ "${FZX_FZF_OPTS[-1]}" = --user-module-layer ]
+  [ "${FZX_FZF_OPTS[*]: -3}" = "--module-layer --user-layer --user-module-layer" ]
+  [ "${#FZX_CONFIG_LOADED[@]}" -eq 4 ]
+}
+
+@test "config_load: a user's global key is not undone by a module default" {
+  local mod="$BATS_TEST_TMPDIR/mods/m"
+  mkdir -p "$mod" "$FZX_CONFIG_DIR"
+  echo 'FZX_KEYS[m.a]=ctrl-a' > "$mod/config.sh"
+  echo 'FZX_KEYS[m.a]=alt-a' > "$FZX_CONFIG_DIR/config.sh"
+  fzx::config_load "$mod" m
+  [ "${FZX_KEYS[m.a]}" = alt-a ]
 }
 
 @test "config_load: defaults only when no other layers exist" {
@@ -273,4 +283,12 @@ setup() {
   cd "$BATS_TEST_TMPDIR"
   fzx::session_create counter /d --x
   [ "$(< "$FZX_SESSION_DIR/meta/cache_key")" != "$a" ]
+}
+
+@test "config_show: layers, keys, colors and settings" {
+  run fzx::config_show ps
+  [ "${lines[0]}" = "# layers (later wins)" ]
+  [[ "$output" == *"/modules/ps/config.sh"* ]]
+  [[ "$output" == *"ps.term              ctrl-x"* ]]
+  [[ "$output" == *"FZX_HISTORY              1"* ]]
 }

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# files defaults; override in ~/.config/fzx/config.sh or ~/.config/fzx/modules/files/config.sh
+
+FZX_KEYS[files.edit]=ctrl-e  # open the selection in $EDITOR (at the matching line in grep)
+FZX_KEYS[files.into]=ctrl-o  # browse the directory under the cursor (a file's own directory)
+FZX_KEYS[files.up]=alt-up    # browse the parent directory
+
+# file lists can be large and change rarely within a few minutes: reuse them across runs
+FZX_PERSIST=cache:5m

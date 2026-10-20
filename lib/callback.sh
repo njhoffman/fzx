@@ -182,9 +182,16 @@ fzx::_cb_call() {
   "$FZX_MODULE::$fn" "$@"
 }
 
-# fzx::_cb_import <script> <function>: source <module_dir>/<script>.sh and check <module>::<function>
+# fzx::_cb_import <script> <function>: source <module_dir>/<script>.sh and check <module>::<function>.
+# Module code may read config (keys, colors, its own settings), so it is loaded first; this is the only
+# config cost on the callback path, a few small files.
 fzx::_cb_import() {
   local file="$FZX_MODULE_DIR/$1.sh"
+  if [[ -z "${_FZX_CB_CONFIG:-}" ]]; then
+    fzx::require config
+    fzx::config_load "$FZX_MODULE_DIR" "$FZX_MODULE"
+    _FZX_CB_CONFIG=1
+  fi
   # shellcheck source=/dev/null
   [[ -f "$file" ]] && source "$file"
   if ! declare -F "$FZX_MODULE::$2" > /dev/null; then

@@ -34,11 +34,21 @@ FZX_STATS="${FZX_STATS:-1}"
 # once the stats file passes 1 MiB, `fzx gc` drops rows older than this many days
 FZX_STATS_MAX_AGE_DAYS=90
 
-# SGR parameters (the part between ESC[ and m)
+# SGR parameters (the part between ESC[ and m) for what fzx draws itself
 declare -gA FZX_COLORS=(
   [mode_active]="38;5;45;1"
   [mode_inactive]="38;5;240"
+  [menu_target]="38;5;110"
+  [menu_summary]="38;5;244"
+  [dim]="38;5;244"
 )
+
+# passed to fzf as --color when set (e.g. "dark,hl:208,border:240"); empty keeps the user's fzf colors
+FZX_FZF_COLORS=""
+
+# one query history per module ($FZX_STATE_DIR/history/<module>) instead of the user's global --history;
+# 0 leaves fzf's history alone
+FZX_HISTORY="${FZX_HISTORY:-1}"
 
 # base fzf options for every module
 FZX_FZF_OPTS=(

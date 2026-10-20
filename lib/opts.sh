@@ -43,6 +43,11 @@ fzx::mode_hints() {
 fzx::opts_build() {
   local module="$1" label hints query pos
   FZX_OPTS=("${FZX_FZF_OPTS[@]}")
+  [[ -n "${FZX_FZF_COLORS:-}" ]] && FZX_OPTS+=("--color=$FZX_FZF_COLORS")
+  if [[ "${FZX_HISTORY:-1}" == 1 ]]; then
+    mkdir -p -- "$FZX_STATE_DIR/history"
+    FZX_OPTS+=("--history=$FZX_STATE_DIR/history/$module")
+  fi
   FZX_OPTS+=(
     --bind "start:reload:$(fzx::cb load)"
     --bind "${FZX_KEYS[reload_hard]}:reload:$(fzx::cb source)"

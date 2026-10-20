@@ -13,6 +13,7 @@ usage: fzx                        open the menu of modules
        fzx --resume[=SID] [-m :mode] [--dry-run]
        fzx gc [--all]
        fzx stats [--since 90s|5m|2h|7d] [--module NAME] [--raw]
+       fzx config [-m MODULE]
        fzx debug ls
        fzx debug tail [SID]
 
@@ -48,6 +49,13 @@ main() {
       fzx::require log session config stats
       fzx::config_load
       fzx::stats "$@"
+      return
+      ;;
+    config)
+      shift
+      fzx::require log session config
+      [[ "${1:-}" == -m || "${1:-}" == --mode ]] && shift
+      fzx::config_show "${1:-}"
       return
       ;;
     gc)
