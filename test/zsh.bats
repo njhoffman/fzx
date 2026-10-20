@@ -54,5 +54,5 @@ zsh_run() {
   [ "${lines[2]}" = '"^[d" fzx-dirs-widget' ]
   run zsh -f -i -c "FZX_ZSH_NO_BIND=1 source '$ZSH_INT'; bindkey -M viins '^[f'; zle -l | grep -c '^fzx-'" 2> /dev/null
   [[ "${lines[0]}" != *fzx-files-widget* ]]
-  [ "${lines[1]}" = 5 ]
+  [ "${lines[1]}" = 6 ]
 }

@@ -230,6 +230,7 @@ and settings.
 | `logs` | files (newest first), units, docker | | ctrl-f follow (ctrl-c returns) | path, unit or container id |
 | `systemd` | user, system, failed | | alt-s start, ctrl-x stop, alt-R restart, alt-e enable, alt-d disable, ctrl-l journal, ctrl-e edit | unit names |
 | `git` | status, log, branches, stash (switch in place) | `[--all] [--rev REV] [DIR]` | alt-s stage, alt-u unstage, ctrl-e edit, alt-c switch branch (remote: `--track`), ctrl-o branch to its log | paths, hashes, ref names, stash names |
+| `dirs` | frecent (zoxide), fasd, recent (fasd by access), bookmarks (`FZX_DIRS_BOOKMARKS`), whichever are installed/configured | `[WORDS...]`: zoxide/fasd keywords; with words a single match is printed without the picker (`--select-1 --exit-0`) | ctrl-x forget, ctrl-o browse in files | the directory |
 | `menu` | | | enter opens the entry | entry id |
 
 `files` uses `FZX_PERSIST=cache:5m`; its base directory is resolved physically (`pwd -P`) because fd and rg
@@ -344,12 +345,14 @@ resolved paths). Default keys, bound in viins, vicmd and emacs unless `FZX_ZSH_N
 | Key | Widget | Does |
 |---|---|---|
 | alt-f | `fzx-files-widget` | insert file paths |
-| alt-d | `fzx-dirs-widget` | `cd` into a directory, through accept-line so it is in history |
+| alt-d | `fzx-dirs-widget` | `cd` into a directory below the current one, through accept-line so it is in history |
+| alt-j | `fzx-jump-widget` | `cd` into a frecent directory (dirs module) |
 | alt-g | `fzx-git-widget` | insert git paths, a hash or a branch |
 | alt-p | `fzx-ps-widget` | insert pids |
 | alt-m | `fzx-menu-widget` | open the menu, insert what it returns |
 
-fzf's own ctrl-t, alt-c and ctrl-r are left alone. `just install` symlinks `bin/fzx` into
+`fzx-cd [WORDS]` is a function, not a widget: cd to a frecent directory, straight to it when the words
+match one (alias it to `g`). fzf's own ctrl-t, alt-c and ctrl-r are left alone. `just install` symlinks `bin/fzx` into
 `~/.local/bin` (or `$XDG_BIN_HOME`) and refuses to replace anything that is not a symlink.
 
 ## Piping (later)

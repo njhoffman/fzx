@@ -39,10 +39,8 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 
 ### Shell and navigation
 
-- [ ] **dirs** (p1) [module]: frecent directories (zoxide, fasd) with cd/insert, the `g_func`/`gg_func` idea from
-      fzf/functions.sh (cycle through matches), named dirs. Refs: fzf/functions.sh,
-      vendors/widgets/fzf-change-{directory,recent-directory,named-directory}, files/cdr.zsh.
-      Has: zoxide, fasd.
+- [x] **dirs** (p1) [module]: frecent/fasd/recent/bookmarks modes, ctrl-x forget, ctrl-o files; `fzx-cd
+      [words]` (single match jumps: the g/gg idea) and the alt-j widget.
 - [ ] **history** (p1) [module]: zsh-histdb history with per-directory and per-session modes, run/insert/delete.
       Refs: ref/mods/histdb.{sh,zsh}, system/fzf.histdb.zsh, system/fzhistory*.
       Has: sqlite3, ~/.histdb/zsh-history.db. Missing: atuin (not needed).

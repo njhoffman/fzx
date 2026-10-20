@@ -7,7 +7,8 @@
 
 typeset -gA FZX_ZSH_KEYS
 : ${FZX_ZSH_KEYS[files]=$'\ef'} # insert file paths
-: ${FZX_ZSH_KEYS[dirs]=$'\ed'}  # cd into a directory
+: ${FZX_ZSH_KEYS[dirs]=$'\ed'}  # cd into a directory below this one
+: ${FZX_ZSH_KEYS[jump]=$'\ej'}  # cd into a frecent directory (dirs module)
 : ${FZX_ZSH_KEYS[git]=$'\eg'}   # insert paths, a hash or a branch from the git module
 : ${FZX_ZSH_KEYS[ps]=$'\ep'}    # insert pids
 : ${FZX_ZSH_KEYS[menu]=$'\em'}  # open the menu, insert what it returns
@@ -52,12 +53,13 @@ fzx-git-widget() { fzx-insert -m git; }
 fzx-ps-widget() { fzx-insert -m ps; }
 fzx-menu-widget() { fzx-insert; }
 
-# cd through accept-line (like fzf's alt-c), so the cd is in history and prompt hooks run
-fzx-dirs-widget() {
+# fzx-cd-widget-run <fzx args...>: cd into the directory fzx prints, through accept-line (like fzf's
+# alt-c), so the cd is in history and prompt hooks run
+fzx-cd-widget-run() {
   emulate -L zsh
   setopt pipefail no_aliases
   local dir
-  dir="$(command "${FZX_ZSH_BIN:-fzx}" -m files:dirs < /dev/tty | head -n 1)"
+  dir="$(command "${FZX_ZSH_BIN:-fzx}" "$@" < /dev/tty | head -n 1)"
   if [[ -z "$dir" ]]; then
     zle reset-prompt
     return 0
@@ -67,14 +69,26 @@ fzx-dirs-widget() {
   zle accept-line
 }
 
+fzx-dirs-widget() { fzx-cd-widget-run -m files:dirs; }
+fzx-jump-widget() { fzx-cd-widget-run -m dirs; }
+
+# fzx-cd [words...]: cd to a frecent directory; with words, a single match is taken without a picker
+# (alias g=fzx-cd for the old g/gg behaviour)
+fzx-cd() {
+  emulate -L zsh
+  local dir
+  dir="$(command "${FZX_ZSH_BIN:-fzx}" -m dirs "$@" < /dev/tty | head -n 1)"
+  [[ -n "$dir" ]] && builtin cd -- "$dir"
+}
+
 () {
   local name
-  for name in files dirs git ps menu; do
+  for name in files dirs jump git ps menu; do
     zle -N "fzx-$name-widget"
   done
   [[ "${FZX_ZSH_NO_BIND:-0}" == 1 ]] && return
   local map
-  for name in files dirs git ps menu; do
+  for name in files dirs jump git ps menu; do
     [[ -n "${FZX_ZSH_KEYS[$name]}" ]] || continue
     for map in emacs viins vicmd; do
       bindkey -M "$map" "${FZX_ZSH_KEYS[$name]}" "fzx-$name-widget"
