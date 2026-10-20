@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# fzx: fzf module manager. See docs/design.md.
+
+set -o pipefail
+
+# shellcheck source=../lib/core.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib/core.sh"
+
+fzx::usage() {
+  cat << 'EOF'
+usage: fzx -m|--mode <module[:mode]> [--dry-run] [--keep] [--] [module args...]
+       fzx --resume[=SID] [-m :mode] [--dry-run]
+       fzx debug ls
+       fzx debug tail [SID]
+
+  -m, --mode MODULE[:MODE]
+                     run MODULE (searched in $FZX_MODULE_PATH), optionally in MODE
+      --resume[=SID] restart the interface for an existing session, reusing its cached data
+                     (SID defaults to $FZX_SESSION)
+      --dry-run      print the resolved fzf command instead of running it
+      --keep         keep the session directory after exit
+  -h, --help         show this help
+
+Arguments fzx does not recognise are passed to the module.
+EOF
+}
+
+main() {
+  case "${1:-}" in
+    _cb)
+      shift
+      fzx::require callback
+      fzx::callback "$@"
+      return
+      ;;
+    debug)
+      shift
+      fzx::require log session debug
+      fzx::debug "$@"
+      return
+      ;;
+  esac
+
+  local module="" resume=0 sid="" dry_run=0 keep="${FZX_KEEP:-0}" args=()
+  while (($#)); do
+    case "$1" in
+      -m | --mode)
+        [[ -n "${2:-}" ]] || fzx::die 2 "$1 requires a module name"
+        module="$2"
+        shift 2
+        ;;
+      --mode=*) module="${1#*=}" && shift ;;
+      --resume=*) resume=1 sid="${1#*=}" && shift ;;
+      --resume)
+        resume=1
+        shift
+        if [[ -n "${1:-}" && "$1" != -* ]]; then
+          sid="$1"
+          shift
+        fi
+        ;;
+      --dry-run) dry_run=1 && shift ;;
+      --keep) keep=1 && shift ;;
+      -h | --help)
+        fzx::usage
+        return 0
+        ;;
+      --)
+        shift
+        args+=("$@")
+        break
+        ;;
+      *) args+=("$1") && shift ;;
+    esac
+  done
+
+  fzx::require log session config opts run
+  if ((resume)); then
+    [[ -z "$module" || "$module" == :* ]] || fzx::die 2 "--resume takes only a mode (-m :MODE), not a module"
+    fzx::run_resume "${sid:-${FZX_SESSION:-}}" "$dry_run" "${module#:}"
+  elif [[ -n "$module" ]]; then
+    fzx::run_new "$module" "$dry_run" "$keep" "${args[@]}"
+  else
+    fzx::usage >&2
+    return 2
+  fi
+}
+
+main "$@"
+exit
