@@ -171,8 +171,9 @@ fzx::_cb_source() {
   _FZX_STAT=(source "${lines// /}" "$why")
 
   if [[ "$persist" == cache:* ]] && fzx::_cb_persistent_path file; then
-    mkdir -p -- "${file%/*}" && cp -f -- "$data" "$file.$BASHPID" && mv -f -- "$file.$BASHPID" "$file" ||
+    if ! { mkdir -p -- "${file%/*}" && cp -f -- "$data" "$file.$BASHPID" && mv -f -- "$file.$BASHPID" "$file"; }; then
       fzx::log warn "could not write persistent cache $file"
+    fi
   fi
   return 0
 }

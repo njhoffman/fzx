@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # logs defaults; override in ~/.config/fzx/config.sh or ~/.config/fzx/modules/logs/config.sh
 
+# shellcheck disable=SC2034  # settings here are read by lib/ and the module
+declare -gA FZX_KEYS
+
 FZX_KEYS[logs.follow]=ctrl-f # follow the log under the cursor (ctrl-c returns to the list)
 
 # named log files; missing or unreadable ones are skipped

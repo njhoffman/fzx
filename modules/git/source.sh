@@ -50,6 +50,7 @@ git::split() {
     shift
   done
   [[ "${1:-}" == -- ]] && shift
+  # shellcheck disable=SC2034  # read by the caller (preview, actions)
   GIT_IDS=("$@")
   git::args "${args[@]}"
 }

@@ -8,6 +8,7 @@ source "${FZX_ROOT:-$FZX_MODULE_DIR/../..}/lib/core.sh"
 # shellcheck source=./source.sh
 source "$FZX_MODULE_DIR/source.sh"
 
+# shellcheck disable=SC2034  # FZX_MODES is read by lib/run.sh
 files::modes() {
   FZX_MODES=(files dirs grep)
 }
@@ -16,7 +17,7 @@ files::opts() {
   files::base "${FZX_ARGS[0]:-}" || return
   FZX_OPTS+=(
     --delimiter=$'\t'
-    --preview-window=right,55%,nohidden
+    "--preview-window=right,55%,nohidden"
     "--header=${FILES_BASE/#$HOME/\~}"
   )
   local edit="${EDITOR:-vi}"
@@ -26,7 +27,7 @@ files::opts() {
       --accept-nth='{1}:{2}'
       --disabled
       --bind "change:reload:sleep 0.1; $(fzx::cb source)"
-      --preview "$(fzx::cb preview {1} {2})"
+      --preview "$(fzx::cb preview '{1}' '{2}')"
     )
     fzx::bind "${FZX_KEYS[files.edit]}" "execute($edit +{2} {1})" "open the file at the matching line in \$EDITOR"
   else
@@ -34,13 +35,13 @@ files::opts() {
       --with-nth=2
       --accept-nth=1
       --scheme=path
-      --preview "$(fzx::cb preview {1})"
+      --preview "$(fzx::cb preview '{1}')"
     )
     fzx::bind "${FZX_KEYS[files.edit]}" "execute($edit {+1})" "open the selected files in \$EDITOR"
   fi
   if fzx::in_session; then
     local parent="${FILES_BASE%/*}"
-    fzx::bind "${FZX_KEYS[files.into]}" "transform:$(fzx::cb nav goto "files:$FZX_MODE" {1})" \
+    fzx::bind "${FZX_KEYS[files.into]}" "transform:$(fzx::cb nav goto "files:$FZX_MODE" '{1}')" \
       "browse the directory under the cursor"
     fzx::bind "${FZX_KEYS[files.up]}" "transform:$(fzx::cb nav goto "files:$FZX_MODE" "$(printf '%q' "${parent:-/}")")" \
       "browse the parent directory"

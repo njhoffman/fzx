@@ -8,6 +8,7 @@ source "${FZX_ROOT:-$FZX_MODULE_DIR/../..}/lib/core.sh"
 # shellcheck source=./source.sh
 source "$FZX_MODULE_DIR/source.sh"
 
+# shellcheck disable=SC2034  # FZX_MODES is read by lib/run.sh
 logs::modes() {
   FZX_MODES=(files units docker)
 }
@@ -18,10 +19,10 @@ logs::opts() {
     --with-nth=3
     --accept-nth=2
     --no-sort
-    --preview "$(fzx::cb preview {1} {2})"
-    --preview-window=down,60%,follow,nowrap,nohidden
+    --preview "$(fzx::cb preview '{1}' '{2}')"
+    "--preview-window=down,60%,follow,nowrap,nohidden"
   )
-  fzx::bind "${FZX_KEYS[logs.follow]}" "execute($(fzx::cb action follow {1} {2}))" "follow the log (ctrl-c returns)"
+  fzx::bind "${FZX_KEYS[logs.follow]}" "execute($(fzx::cb action follow '{1}' '{2}'))" "follow the log (ctrl-c returns)"
 }
 
 fzx::module_main "$@"

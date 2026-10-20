@@ -8,6 +8,7 @@ source "${FZX_ROOT:-$FZX_MODULE_DIR/../../../..}/lib/core.sh"
 source "$FZX_MODULE_DIR/source.sh"
 
 # COUNTER_MODES overrides the mode list (space-separated); empty string means no modes hook result
+# shellcheck disable=SC2034  # FZX_MODES is read by lib/run.sh
 counter::modes() {
   read -r -a FZX_MODES <<< "${COUNTER_MODES-one two three}"
 }
@@ -19,8 +20,8 @@ counter::mode_restart() {
 
 counter::opts() {
   FZX_OPTS+=(
-    --preview "$(fzx::cb preview {1})"
-    --bind "ctrl-x:execute-silent($(fzx::cb action mark {+1}))"
+    --preview "$(fzx::cb preview '{1}')"
+    --bind "ctrl-x:execute-silent($(fzx::cb action mark '{+1}'))"
     "--header=mode:$FZX_MODE"
   )
   [[ -n "${COUNTER_OPTS_FAIL:-}" ]] && return 1

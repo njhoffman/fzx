@@ -8,6 +8,7 @@ source "${FZX_ROOT:-$FZX_MODULE_DIR/../..}/lib/core.sh"
 # shellcheck source=./source.sh
 source "$FZX_MODULE_DIR/source.sh"
 
+# shellcheck disable=SC2034  # FZX_MODES is read by lib/run.sh
 systemd::modes() {
   FZX_MODES=(user system failed)
 }
@@ -18,14 +19,14 @@ systemd::opts() {
     --delimiter=$'\t'
     --with-nth=3
     --accept-nth=2
-    --preview "$(fzx::cb preview {1})"
-    --preview-window=down,50%,nowrap,nohidden
+    --preview "$(fzx::cb preview '{1}')"
+    "--preview-window=down,50%,nowrap,nohidden"
   )
   for action in start stop restart enable disable; do
-    fzx::bind "${FZX_KEYS[systemd.$action]}" "execute($(fzx::cb action "$action" {+1}))+reload($(fzx::cb source))" "$action"
+    fzx::bind "${FZX_KEYS[systemd.$action]}" "execute($(fzx::cb action "$action" '{+1}'))+reload($(fzx::cb source))" "$action"
   done
-  fzx::bind "${FZX_KEYS[systemd.journal]}" "execute($(fzx::cb action journal {1}))" journal
-  fzx::bind "${FZX_KEYS[systemd.edit]}" "execute($(fzx::cb action edit {1}))+reload($(fzx::cb source))" edit
+  fzx::bind "${FZX_KEYS[systemd.journal]}" "execute($(fzx::cb action journal '{1}'))" journal
+  fzx::bind "${FZX_KEYS[systemd.edit]}" "execute($(fzx::cb action edit '{1}'))+reload($(fzx::cb source))" edit
   # the header lists the module's keys from what was just bound, so it cannot drift from the bindings
   fzx::key_hints hints
   FZX_OPTS+=("--header=$hints")

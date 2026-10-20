@@ -90,6 +90,8 @@ fzx::_launch() {
   # shellcheck source=/dev/null
   source "$FZX_MODULE_DIR/module.sh" || fzx::die 1 "cannot load $FZX_MODULE_DIR/module.sh"
 
+  # only validated here; the ttl itself is read again by the callbacks
+  # shellcheck disable=SC2034
   local ttl
   fzx::persist_ttl "$FZX_PERSIST" ttl || fzx::die 1 "$FZX_MODULE: invalid FZX_PERSIST: '$FZX_PERSIST' (none, session or cache:<ttl>)"
   fzx::meta_set persist "$FZX_PERSIST"

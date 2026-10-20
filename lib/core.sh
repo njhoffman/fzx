@@ -5,6 +5,7 @@
 _FZX_CORE_LOADED=1
 
 FZX_ROOT="${FZX_ROOT:-$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)}"
+# shellcheck disable=SC2034  # used by opts.sh and nav.sh to build callback commands
 FZX_BIN="$FZX_ROOT/bin/fzx"
 FZX_RUNTIME_DIR="${FZX_RUNTIME_DIR:-${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}/fzx-$UID}/fzx}"
 FZX_STATE_DIR="${FZX_STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/fzx}"

@@ -8,6 +8,7 @@ source "${FZX_ROOT:-$FZX_MODULE_DIR/../..}/lib/core.sh"
 # shellcheck source=./source.sh
 source "$FZX_MODULE_DIR/source.sh"
 
+# shellcheck disable=SC2034  # FZX_MODES is read by lib/run.sh
 ps::modes() {
   FZX_MODES=(user all tree)
 }
@@ -16,15 +17,15 @@ ps::opts() {
   FZX_OPTS+=(
     --header-lines=1
     --accept-nth=1
-    --preview "$(fzx::cb preview {1})"
-    --preview-window=down,40%,wrap,nohidden
+    --preview "$(fzx::cb preview '{1}')"
+    "--preview-window=down,40%,wrap,nohidden"
   )
-  fzx::bind "${FZX_KEYS[ps.term]}" "execute-silent($(fzx::cb action term {+1}))+reload($(fzx::cb source))" \
+  fzx::bind "${FZX_KEYS[ps.term]}" "execute-silent($(fzx::cb action term '{+1}'))+reload($(fzx::cb source))" \
     "send SIGTERM to the selected processes"
   # the forest only reads correctly in input order
   [[ "$FZX_MODE" == tree ]] && FZX_OPTS+=(--no-sort)
   if fzx::in_session; then
-    fzx::bind "${FZX_KEYS[ps.children]}" "transform:$(fzx::cb nav goto ps --ppid {1})" \
+    fzx::bind "${FZX_KEYS[ps.children]}" "transform:$(fzx::cb nav goto ps --ppid '{1}')" \
       "open the children of the process under the cursor"
   fi
 }

@@ -1,0 +1,9 @@
+# fzx is bash throughout; modules and libs source each other relative to their own directory
+shell=bash
+external-sources=true
+source-path=SCRIPTDIR
+source-path=SCRIPTDIR/..
+source-path=SCRIPTDIR/../..
+# config layers and libs share globals across files (FZX_MODULE, FZX_MODES, ...), so the
+# "possible misspelling" note is noise here; unused-variable warnings (SC2034) stay on
+disable=SC2153

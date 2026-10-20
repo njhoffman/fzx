@@ -105,6 +105,7 @@ fzx::session_destroy() {
 }
 
 # module arguments stored at creation, into the FZX_ARGS array
+# shellcheck disable=SC2034  # FZX_ARGS is the output, read by callers
 fzx::session_args() {
   FZX_ARGS=()
   [[ -s "$FZX_SESSION_DIR/meta/args" ]] && mapfile -d '' -t FZX_ARGS < "$FZX_SESSION_DIR/meta/args"

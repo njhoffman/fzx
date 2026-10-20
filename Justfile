@@ -5,6 +5,10 @@ default:
 test *ARGS:
     bats {{ ARGS }} test
 
+# shellcheck every bash file (.bats files excluded: their idioms trip most checks)
+lint:
+    git ls-files -z --cached --others --exclude-standard | grep -zE '\.(sh|bash)$|^bin/fzx$' | xargs -0 shellcheck
+
 # print the resolved fzf command for a module
 dry-run MODULE *ARGS:
     bin/fzx -m {{ MODULE }} --dry-run {{ ARGS }}

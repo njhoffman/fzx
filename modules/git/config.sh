@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # git defaults; override in ~/.config/fzx/config.sh or ~/.config/fzx/modules/git/config.sh
 
+# shellcheck disable=SC2034  # settings here are read by lib/ and the module
+declare -gA FZX_KEYS
+
 FZX_KEYS[git.stage]=alt-s   # status: git add the selected files
 FZX_KEYS[git.unstage]=alt-u # status: git restore --staged the selected files
 FZX_KEYS[git.switch]=alt-c  # branches: git switch (remote branches: --track)

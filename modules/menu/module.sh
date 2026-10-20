@@ -14,11 +14,11 @@ menu::opts() {
     --with-nth=2
     --accept-nth=1
     --no-multi
-    --preview "$(fzx::cb preview {1})"
-    --preview-window=right,40%,wrap
+    --preview "$(fzx::cb preview '{1}')"
+    "--preview-window=right,40%,wrap"
   )
   if fzx::in_session; then
-    fzx::bind enter "transform:$(fzx::cb nav entry {1})" "open the entry (alt-left comes back to the menu)"
+    fzx::bind enter "transform:$(fzx::cb nav entry '{1}')" "open the entry (alt-left comes back to the menu)"
     FZX_OPTS+=(--bind "start:+bg-transform:$(fzx::cb transform refresh)")
   fi
 }

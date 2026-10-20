@@ -3,6 +3,8 @@
 # fzf also reads the user's FZF_DEFAULT_OPTS / FZF_DEFAULT_OPTS_FILE; options here are passed on the
 # command line and take precedence where they overlap.
 
+# shellcheck disable=SC2034  # every setting here is read by lib/ or the modules
+
 # keys handled by fzx itself in every module
 declare -gA FZX_KEYS=(
   [reload_hard]=ctrl-r

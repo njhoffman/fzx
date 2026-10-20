@@ -8,6 +8,7 @@ source "${FZX_ROOT:-$FZX_MODULE_DIR/../..}/lib/core.sh"
 # shellcheck source=./source.sh
 source "$FZX_MODULE_DIR/source.sh"
 
+# shellcheck disable=SC2034  # FZX_MODES is read by lib/run.sh
 git::modes() {
   FZX_MODES=(status log branches stash)
 }
@@ -39,20 +40,20 @@ git::opts() {
     --accept-nth=1
     --no-sort
     "--header=$(git::header)"
-    --preview "$(fzx::cb preview "$a" {1})"
-    --preview-window=right,60%,nohidden
+    --preview "$(fzx::cb preview "$a" '{1}')"
+    "--preview-window=right,60%,nohidden"
   )
-  fzx::bind "${FZX_KEYS[git.stage]}" "execute($(fzx::cb action stage "$a" {+1}))+reload($(fzx::cb source))" \
+  fzx::bind "${FZX_KEYS[git.stage]}" "execute($(fzx::cb action stage "$a" '{+1}'))+reload($(fzx::cb source))" \
     "status: stage the selected files"
-  fzx::bind "${FZX_KEYS[git.unstage]}" "execute($(fzx::cb action unstage "$a" {+1}))+reload($(fzx::cb source))" \
+  fzx::bind "${FZX_KEYS[git.unstage]}" "execute($(fzx::cb action unstage "$a" '{+1}'))+reload($(fzx::cb source))" \
     "status: unstage the selected files"
-  fzx::bind "${FZX_KEYS[git.edit]}" "execute($(fzx::cb action edit "$a" {+1}))+reload($(fzx::cb source))" \
+  fzx::bind "${FZX_KEYS[git.edit]}" "execute($(fzx::cb action edit "$a" '{+1}'))+reload($(fzx::cb source))" \
     "status: open the selected files in \$EDITOR"
   if fzx::in_session; then
     # switching changes the header (current branch), so restart the interface afterwards
-    fzx::bind "${FZX_KEYS[git.switch]}" "execute($(fzx::cb action switch "$a" {1}))+transform($(fzx::cb nav resume))" \
+    fzx::bind "${FZX_KEYS[git.switch]}" "execute($(fzx::cb action switch "$a" '{1}'))+transform($(fzx::cb nav resume))" \
       "branches: switch to the branch (remote: create a tracking branch)"
-    fzx::bind "${FZX_KEYS[git.into]}" "transform:$(fzx::cb transform into "$a" {1})" "branches: open the branch's log"
+    fzx::bind "${FZX_KEYS[git.into]}" "transform:$(fzx::cb transform into "$a" '{1}')" "branches: open the branch's log"
   fi
 }
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+# shellcheck disable=SC2034  # FZX, LOG and the helpers below are used by the .bats files
 FZX_REPO="$(readlink -f "$BATS_TEST_DIRNAME/..")"
 FZX="$FZX_REPO/bin/fzx"
 
