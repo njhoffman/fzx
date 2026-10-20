@@ -172,3 +172,78 @@ fzx::_debug_tail() {
     tail -n 50 -F -- "$FZX_LOG_FILE"
   fi
 }
+
+# fzx::_debug_row <key> <value>: one row of the debug preview, the value cut to $width (the caller's)
+fzx::_debug_row() {
+  local _v="${2//$'\n'/ }"
+  ((${#_v} > width)) && _v="${_v:0:width-1}…"
+  printf '  %-22s %s\n' "$1" "$_v"
+}
+
+# fzx::debug_preview [focused line]: the debug key's preview (f2) for the attached session. Runs as a
+# preview command, so FZF_* holds fzf's live state (query, position, counts, preview size).
+fzx::debug_preview() {
+  local line="${1:-}" b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
+  local width=$((${FZF_PREVIEW_COLUMNS:-120} - 26)) dir="$FZX_SESSION_DIR" f key val label owner status
+  ((width > 20)) || width=20
+
+  fzx::session_label label
+  printf '%ssession%s %s\n' "$b" "$r" "$FZX_SESSION"
+  fzx::_debug_row path "$label"
+  fzx::_kv_get "$dir/meta/owner_pid" owner || owner=""
+  status=dead
+  fzx::owner_alive "$dir" && status=alive
+  fzx::_debug_row owner "${owner:--} ($status)"
+
+  printf '\n%smeta/%s\n' "$b" "$r"
+  for f in "$dir"/meta/*; do
+    [[ -f "$f" ]] || continue
+    key="${f##*/}"
+    val=""
+    case "$key" in
+      # NUL-separated lists: _kv_get would stop at the first NUL
+      args | modes)
+        local -a _list=()
+        mapfile -d '' -t _list < "$f"
+        ((${#_list[@]})) && printf -v val '%q ' "${_list[@]}"
+        val="${val% }"
+        ;;
+      *) fzx::_kv_get "$f" val || : ;;
+    esac
+    fzx::_debug_row "$key" "$val"
+  done
+
+  printf '\n%sstate/%s\n' "$b" "$r"
+  for f in "$dir"/state/*; do
+    [[ -f "$f" ]] || continue
+    val=""
+    fzx::_kv_get "$f" val || :
+    fzx::_debug_row "${f##*/}" "$val"
+  done
+
+  printf '\n%sdata/%s %s(cached source output per mode)%s\n' "$b" "$r" "$d" "$r"
+  for f in "$dir"/data/*; do
+    [[ -f "$f" ]] || continue
+    fzx::_debug_row "${f##*/}" "$(wc -l < "$f" | tr -d ' ') lines, $((EPOCHSECONDS - $(stat -c %Y -- "$f")))s old"
+  done
+
+  local persist="" cache_key="" mode=""
+  fzx::_kv_get "$dir/meta/persist" persist || :
+  if [[ "$persist" == cache:* ]] && fzx::_kv_get "$dir/meta/cache_key" cache_key; then
+    printf '\n%spersistent cache%s %s\n' "$b" "$r" "$persist"
+    for f in "$FZX_CACHE_DIR/$FZX_MODULE/$cache_key"/*; do
+      [[ -f "$f" ]] || continue
+      fzx::_debug_row "${f##*/}" "$((EPOCHSECONDS - $(stat -c %Y -- "$f")))s old  $f"
+    done
+  fi
+
+  printf '\n%sfzf%s %s(as exported to this preview)%s\n' "$b" "$r" "$d" "$r"
+  while IFS='=' read -r key val; do
+    fzx::_debug_row "$key" "$val"
+  done < <(env | grep -E '^FZF_[A-Z_]+=' | sort)
+
+  if [[ -n "$line" ]]; then
+    printf '\n%sfocused line%s %s(tabs shown as ⇥)%s\n' "$b" "$r" "$d" "$r"
+    printf '  %s\n' "${line//$'\t'/⇥}"
+  fi
+}

@@ -42,6 +42,11 @@ fzx::mode_hints() {
 # fzx::bind <key> <action> <description>: add a key binding and record it for the help key (f1).
 # Bindings made while the module's opts hook runs are listed as the module's, the rest as fzx's.
 fzx::bind() {
+  local _e
+  for _e in "${FZX_HELP[@]}"; do
+    [[ "$_e" == *$'\t'"$1"$'\t'* ]] &&
+      fzx::log warn "key $1 is bound twice (${_e##*$'\t'} / $3); the later binding wins"
+  done
   FZX_OPTS+=(--bind "$1:$2")
   FZX_HELP+=("${_FZX_BIND_SCOPE:-fzx}"$'\t'"$1"$'\t'"$3")
 }
@@ -119,6 +124,12 @@ fzx::opts_build() {
     _FZX_BIND_SCOPE="$module"
     "$module::opts" || return 1
     _FZX_BIND_SCOPE=fzx
+  fi
+  # debug view in the preview; standalone has no session, so only the variables
+  if fzx::in_session; then
+    fzx::bind "${FZX_KEYS[debug]}" "show-preview+preview:$(fzx::cb debug {})" "debug: session state and FZF_* variables"
+  else
+    fzx::bind "${FZX_KEYS[debug]}" "show-preview+preview:env | grep -E '^(FZX|FZF)_' | sort" "debug: FZX_* and FZF_* variables"
   fi
   FZX_HELP+=("fzx"$'\t'"${FZX_KEYS[help]}"$'\t'"this help")
   fzx::_help_bind "$module"

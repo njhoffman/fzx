@@ -30,16 +30,23 @@ help_text() {
 
 @test "rebinding a key changes both the binding and the help" {
   mkdir -p "$FZX_CONFIG_DIR"
-  echo 'FZX_KEYS[ps.term]=f5; FZX_KEYS[help]=f2' > "$FZX_CONFIG_DIR/config.sh"
+  echo 'FZX_KEYS[ps.term]=f5; FZX_KEYS[help]=f3' > "$FZX_CONFIG_DIR/config.sh"
   run "$FZX" -m ps
   [[ "$(fzf_bind f5)" == "f5:execute-silent("* ]]
   run fzf_bind f1
   [ "$status" -eq 1 ]
   local bind
-  bind="$(fzf_bind f2)"
-  run bash -c "${bind#f2:show-preview+preview:}"
+  bind="$(fzf_bind f3)"
+  run bash -c "${bind#f3:show-preview+preview:}"
   [[ "$output" == *"f5"*"send SIGTERM"* ]]
-  [[ "$output" == *"f2"*"this help"* ]]
+  [[ "$output" == *"f3"*"this help"* ]]
+}
+
+@test "binding one key twice logs a warning" {
+  mkdir -p "$FZX_CONFIG_DIR"
+  echo 'FZX_KEYS[ps.term]=ctrl-r' > "$FZX_CONFIG_DIR/config.sh"
+  run "$FZX" -m ps
+  grep -q "key ctrl-r is bound twice (reload: run the source again / send SIGTERM to the selected processes)" "$LOG"
 }
 
 @test "standalone modules have help too, without session-only keys" {

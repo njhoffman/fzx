@@ -101,3 +101,50 @@ listening() {
   [ "$status" -eq 2 ]
   [[ "$output" == *"fzx debug attach [SID]"* ]]
 }
+
+@test "f2: session state, data, FZF_* variables and the focused line" {
+  stub_fzf
+  "$FZX" --keep -m counter:two --x
+  local sid
+  sid="$(basename "$(session_dirs)")"
+  FZX_SESSION="$sid" "$FZX" _cb load > /dev/null
+  echo "my query" > "$FZX_RUNTIME_DIR/sessions/$sid/state/query"
+  FZX_SESSION="$sid" FZF_QUERY=abc FZF_POS=2 FZF_PREVIEW_COLUMNS=120 run "$FZX" _cb debug $'id\tshown'
+  [ "$status" -eq 0 ]
+  output="$(printf '%s' "$output" | sed 's/\x1b\[[0-9;]*m//g')"
+  [[ "$output" == "session $sid"* ]]
+  [[ "$output" == *"  path                   counter:two"* ]]
+  [[ "$output" == *"  args                   --x"* ]]
+  [[ "$output" == *"  modes                  one two three"* ]]
+  [[ "$output" == *$'state/\n'*"  query                  my query"* ]]
+  # two items plus the "args:--x" line the fixture prints when given args
+  [[ "$output" == *"  two                    3 lines, "*"s old"* ]]
+  [[ "$output" == *"  FZF_POS                2"* && "$output" == *"  FZF_QUERY              abc"* ]]
+  [[ "$output" == *$'focused line'*$'\n  id⇥shown'* ]]
+  [[ "$output" != *"persistent cache"* ]]
+}
+
+@test "f2: cache: modules show their persistent cache entry" {
+  stub_fzf
+  mkdir -p "$FZX_CONFIG_DIR/modules/counter"
+  echo 'FZX_PERSIST=cache:1h' > "$FZX_CONFIG_DIR/modules/counter/config.sh"
+  "$FZX" --keep -m counter
+  local sid
+  sid="$(basename "$(session_dirs)")"
+  FZX_SESSION="$sid" "$FZX" _cb load > /dev/null
+  FZX_SESSION="$sid" run "$FZX" _cb debug
+  [[ "$output" == *"persistent cache"*"cache:1h"* ]]
+  [[ "$output" == *"$FZX_CACHE_DIR/counter/"* ]]
+}
+
+@test "f2 is bound under fzx and standalone, and listed in the help" {
+  stub_fzf
+  run "$FZX" -m ps
+  [ "$(fzf_bind f2)" = "f2:show-preview+preview:$FZX _cb debug {}" ]
+  local bind
+  bind="$(fzf_bind f1)"
+  run bash -c "${bind#f1:show-preview+preview:}"
+  [[ "$output" == *"f2"*"debug: session state and FZF_* variables"* ]]
+  run "$BATS_TEST_DIRNAME/../modules/ps/module.sh"
+  [ "$(fzf_bind f2)" = "f2:show-preview+preview:env | grep -E '^(FZX|FZF)_' | sort" ]
+}

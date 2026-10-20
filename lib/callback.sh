@@ -34,6 +34,10 @@ fzx::callback() {
       fzx::require nav
       fzx::_cb_actions fzx::nav "$@"
       ;;
+    debug)
+      fzx::require debug
+      fzx::debug_preview "$@"
+      ;;
     *)
       fzx::log error "unknown callback verb: $verb"
       printf 'fzx: unknown callback verb: %s\n' "$verb" >&2

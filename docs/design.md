@@ -260,7 +260,11 @@ prompt; list parsing forces `SYSTEMD_COLORS=0` because users commonly export it.
   `fzx debug state [SID] [N]` and `fzx debug send ACTION [SID]` are the one-shot forms. Without a SID the
   newest session whose fzf answers is used: the one on screen, since sessions navigated away from no
   longer listen. Chosen over wrapping fzfg's Go `fzf-repl`: no build step, same API.
-- Later: a debug key that switches the preview to session state plus all `FZF_*` variables.
+- The debug key (f2, `FZX_KEYS[debug]`) shows in the preview: session id, path in the tree, owner and
+  whether it is alive, every `meta/` and `state/` key, the cached `data/` per mode (lines, age), the
+  persistent cache entry for `cache:` modules, every `FZF_*` variable fzf exported to the preview, and
+  the focused line raw (tabs shown as ⇥). Standalone runs show the `FZX_*`/`FZF_*` variables only.
+  `fzx::bind` logs a warning when one key is bound twice (the later binding wins in fzf).
 
 ## Statistics
 
