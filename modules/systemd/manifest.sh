@@ -18,7 +18,7 @@ systemd::applicable() {
 systemd::summary() {
   local manager=user n f
   [[ "$1" == systemd:system ]] && manager=system
-  [[ "$1" == systemd:failed ]] && return 1
+  [[ "$1" == systemd:failed ]] && return 0 # the entry only shows when something failed
   n="$(SYSTEMD_COLORS=0 systemctl "--$manager" list-units --type=service --state=running --no-legend --plain --no-pager | wc -l)"
   f="$(SYSTEMD_COLORS=0 systemctl "--$manager" list-units --type=service --state=failed --no-legend --plain --no-pager | wc -l)"
   printf '%s running, %s failed\n' "${n// /}" "${f// /}"

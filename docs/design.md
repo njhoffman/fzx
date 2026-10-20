@@ -223,10 +223,18 @@ and settings.
 | `files` | files, dirs, grep (as you type) | `[DIR]` | ctrl-e edit, ctrl-o into directory, alt-up parent | absolute paths (`path:line` in grep) |
 | `logs` | files (newest first), units, docker | | ctrl-f follow (ctrl-c returns) | path, unit or container id |
 | `systemd` | user, system, failed | | alt-s start, ctrl-x stop, alt-R restart, alt-e enable, alt-d disable, ctrl-l journal, ctrl-e edit | unit names |
+| `git` | status, log, branches, stash (switch in place) | `[--all] [--rev REV] [DIR]` | alt-s stage, alt-u unstage, ctrl-e edit, alt-c switch branch (remote: `--track`), ctrl-o branch to its log | paths, hashes, ref names, stash names |
 | `menu` | | | enter opens the entry | entry id |
 
 `files` uses `FZX_PERSIST=cache:5m`; its base directory is resolved physically (`pwd -P`) because fd and rg
 report resolved paths. `logs` reads `FZX_LOGS_FILES` (name to path) and `FZX_LOGS_GLOBS` from config.
+`git` uses one line format (`id<TAB>display`) in every mode, so preview, actions and ctrl-o dispatch on the
+current mode and switching never restarts fzf; an action that does not apply to the mode does nothing.
+Its callbacks take the module args explicitly (`<verb> [module args] -- <ids>`), so a session opened on
+another directory acts on that repository, standalone too. Failed actions wait for a key so the error stays
+visible. Menu entries apply only inside a work tree (stash only when stashes exist); summaries report
+changes, commits ahead/behind the upstream (no fetch), branch counts and stashes. `FZX_GIT_DIFF_FILTER`
+(e.g. `delta --paging=never`) is applied to preview diffs. There is no discard/restore key on purpose.
 `systemd` runs actions on system units through sudo when not root, bound with `execute` so sudo can
 prompt; list parsing forces `SYSTEMD_COLORS=0` because users commonly export it.
 

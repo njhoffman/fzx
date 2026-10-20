@@ -20,6 +20,6 @@ files::summary() {
   case "$1" in
     files) n="$("$fd" --type f --hidden --exclude .git . | wc -l)" && printf '%s files\n' "${n// /}" ;;
     files:dirs) n="$("$fd" --type d --hidden --exclude .git . | wc -l)" && printf '%s directories\n' "${n// /}" ;;
-    *) return 1 ;;
+    *) return 0 ;; # no summary for grep
   esac
 }

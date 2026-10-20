@@ -6,7 +6,8 @@
 # and optionally
 #   <module>::applicable <target> [args...]   fast exit-code check, run on every menu open
 #   <module>::summary <target> [args...]      one short line about the entry here (may be slow);
-#                                             cached per directory for FZX_SUMMARY_TTL seconds
+#                                             cached per directory for FZX_SUMMARY_TTL seconds.
+#                                             No output means no summary; a non-zero exit is logged
 
 # fzx::entry <target> <description> [args...]: called from <module>::manifest
 fzx::entry() {

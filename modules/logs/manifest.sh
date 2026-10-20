@@ -26,6 +26,6 @@ logs::summary() {
       n="$(docker ps -q 2> /dev/null | wc -l)" || return 1
       printf '%s running containers\n' "${n// /}"
       ;;
-    *) return 1 ;;
+    *) return 0 ;; # no summary for log files
   esac
 }
