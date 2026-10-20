@@ -1,0 +1,68 @@
+# fzx TODO
+
+Status: the six steps of `docs/design.md` are done, plus the git module. Modules: `ps`, `files`, `logs`,
+`systemd`, `git`, `menu`. Keep this file current: tick items off, add what you find.
+
+## Roadmap
+
+- [ ] **Piping**: when stdin is not a tty and no module is given, match each manifest's `detect` against
+      the first lines and pick the module (design.md, "Piping").
+- [ ] **Key help**: a `fzx::bind <key> <action> <description>` helper that records bindings, so a help key
+      (f1?) can show every binding of the current module, and headers like systemd's are generated, not
+      hand-written. ps, files and git currently show no key hints.
+- [ ] **Debug preview key**: switch the preview to session state (`meta/`, `state/`) plus all `FZF_*`
+      variables (design.md, "Debugging").
+- [ ] **`fzx debug attach [sid]`**: wrap fzfg's `fzf-repl` (resources/fzfg/cmd/fzf-repl) against the
+      session's `fzf.sock`.
+- [ ] **Menu ordering by use**: sort entries by `stats.tsv` (recent and frequent first), maybe a
+      "recent" group on top.
+- [ ] **git**: commit-to-files drill-down (ctrl-o on a commit lists its changed files with per-file diff),
+      fetch, commit/amend in `execute`, blame preview, worktrees. Discard/restore stays opt-in only.
+- [ ] **More modules ported from the old attempts** (resources/): docker management (start/stop/remove,
+      not just logs), tmux sessions/panes (fzfmenu/widgets/tmux), apt packages, man pages, histdb,
+      network (lsof/netstat/avahi), mpd (fzf/modules/music/fmpc), colors, web search (gh/stackoverflow),
+      jq/awk repl (fzfmenu/ref/mods/repl.sh).
+- [ ] **Shell integration**: zsh widgets that run a module and insert its output into the command line
+      (files on ctrl-t, git branches, ps pids), and an install target (`just install`: symlink `bin/fzx`
+      into ~/.local/bin).
+- [ ] **Sessions module**: a picker over `fzx debug ls` that resumes a kept or running session from
+      another terminal.
+
+## Issues and limitations found
+
+- [ ] **Undocumented fzf behaviour we depend on**: `become()` inside a `--popup` runs in the original
+      terminal, so every launch re-requests the popup (`fzx::_placement`). Observed on fzf 0.74 (devel);
+      re-check on every fzf upgrade with the popup test in design.md's popout notes.
+- [ ] **Log rotation**: `$XDG_STATE_HOME/fzx/fzx.log` is never rotated or pruned; add it to `fzx gc`
+      like the stats file.
+- [ ] **Summary cache is keyed by directory only**: git summaries (ahead/behind, changes) stay stale for
+      up to `FZX_SUMMARY_TTL` (5m) after a commit or stage. Key git entries on repo state (HEAD, index
+      mtime) instead.
+- [ ] **grep mode stats noise**: every keystroke in `files:grep` records a `source reload` row; consider
+      recording live-search reloads as their own event or not at all.
+- [ ] **`files` alt-up**: each parent directory becomes a new child session instead of reusing an existing
+      ancestor in the tree; harmless (cleaned on exit) but deep trees and long labels.
+- [ ] **`persist=none` sources have no item count** in stats (output streams straight to fzf).
+- [ ] **Exit row missing** when the terminal is killed (SIGHUP); the dead tree is swept by gc but the run
+      never gets an `exit` stat.
+- [ ] **Stats prune** can drop rows appended while the file is being rewritten.
+- [ ] **`fzx stats` needs `strftime` in awk** (gawk, or mawk 1.3.4+).
+- [ ] **Bash scoping**: functions returning through a variable name use `_`-prefixed locals; a caller
+      variable with the same `_` name is still shadowed. Keep caller variable names un-prefixed.
+- [ ] **Menu `applicable` runs synchronously** for every entry on every open; one slow check slows the
+      menu. Log per-module timing, or time-box it like summaries.
+- [ ] **Untested against the real thing**: docker (stubbed only), systemd start/stop/enable (stubbed
+      systemctl and sudo), Zellij popups (tmux only).
+- [ ] **No linting**: shellcheck is not installed here; the scripts have never been linted. Add it, and a
+      CI job (GitHub Actions) that runs shellcheck and `bats test`.
+- [ ] **Slow suite**: `bats test` takes ~2 minutes serially; `bats -j` needs GNU parallel (this machine has
+      the moreutils `parallel`).
+
+## Suggestions outside this repo
+
+- [ ] `~/.fzf/.fzfrc`: drop `--delimiter='\s+\s*'` (empties `{1}` on lines starting with whitespace;
+      modules work around it), move the `load:transform-prompt(...)` bind into fzx config (it runs on every
+      load and is replaced by fzx's cursor restore), `alt-g:last` instead of `alt-g:top` + `alt-g:+up`.
+- [ ] `prettypath` prints icons as literal `\u{f0f6}` text instead of glyphs.
+- [ ] Global `~/.claude/CLAUDE.md` says to run `npm run test` before commits; this repo uses `just test`
+      (bats). A wording like "run the project's test command" fits all repos.
