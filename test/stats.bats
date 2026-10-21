@@ -107,7 +107,9 @@ kept_session() {
   [ "$(rows mode | tr '\n' ',')" = "counter one - one>two,counter two - two>three:restart," ]
 }
 
-@test "navigation records resume, back, back:none and popout" {
+@test "navigation records resume, back, back:none and placement changes" {
+  mkdir -p "$FZX_CONFIG_DIR"
+  echo 'FZX_PLACEMENTS=(inline popup)' >> "$FZX_CONFIG_DIR/config.sh"
   kept_session
   "$FZX" _cb nav resume > /dev/null
   "$FZX" _cb nav back > /dev/null
@@ -116,7 +118,7 @@ kept_session() {
   local child
   child="$("$FZX" _cb nav goto counter --x)"
   FZX_SESSION="${child##* }" "$FZX" _cb nav back > /dev/null
-  [ "$(rows nav | cut -d' ' -f4 | tr '\n' ',')" = "resume,back:none,popout:out,popout:in,goto:counter,back," ]
+  [ "$(rows nav | cut -d' ' -f4 | tr '\n' ',')" = "resume,back:none,placement:popup,placement:inline,goto:counter,back," ]
 }
 
 @test "previews are not recorded" {

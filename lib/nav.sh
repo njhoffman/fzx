@@ -151,7 +151,7 @@ fzx::nav_sort() {
   fzx::_nav_apply sort "$sort"
 }
 
-# fzx::nav <resume | restart | back | popout | goto <module[:mode]> [module args...] | entry <module>#<n>>
+# fzx::nav <resume | restart | back | placement [next|prev|P] | goto <module[:mode]> [module args...] | entry <module>#<n>>
 # Saves the query and cursor position of the current session, then prints become() into the target.
 fzx::nav() {
   local action="${1:-}"
@@ -171,7 +171,9 @@ fzx::nav() {
       fzx::_nav_become "$FZX_SESSION"
       ;;
     back) fzx::_nav_back ;;
-    popout) fzx::_nav_popout ;;
+    placement) fzx::_nav_placement "$@" ;;
+    # the old name of the placement key's action
+    popout) fzx::_nav_placement next ;;
     goto) fzx::_nav_goto "$@" ;;
     entry) fzx::_nav_entry "$@" ;;
     *)
@@ -203,27 +205,44 @@ fzx::_nav_back() {
   fi
 }
 
-# toggle the session tree between inline and a tmux/Zellij floating pane, then restart into it
-fzx::_nav_popout() {
-  local root root_dir popup=""
-  if [[ -z "${TMUX:-}" && -z "${ZELLIJ:-}" ]]; then
-    fzx::log info "nav popout: not inside tmux or Zellij"
+# fzx::_nav_placement [next|prev|PLACEMENT]: move the session tree to the next placement of FZX_PLACEMENTS
+# that can run here. Between inline and popup the current screen restarts through become() (every launch
+# asks for the popup again). Into or out of a split pane fzf cannot move by itself: the fzf on screen
+# aborts with state/relaunch on the root, and the owner launches the screen again in the new placement.
+fzx::_nav_placement() {
+  local target="${1:-next}" root root_dir current="" avail=() p i n idx=-1 next=""
+  fzx::require config run
+  fzx::config_load "$FZX_MODULE_DIR" "$FZX_MODULE"
+  fzx::meta_get root root || root="$FZX_SESSION"
+  root_dir="$FZX_SESSIONS_DIR/$root"
+  fzx::_kv_get "$root_dir/state/placement" current || current=inline
+  for p in "${FZX_PLACEMENTS[@]}"; do
+    fzx::placement_ok "$p" && avail+=("$p")
+  done
+  n="${#avail[@]}"
+  for ((i = 0; i < n; i++)); do
+    [[ "${avail[i]}" == "$current" ]] && idx="$i"
+  done
+  case "$target" in
+    next) ((n)) && next="${avail[(idx + 1) % n]}" ;;
+    prev) ((n)) && next="${avail[(idx - 1 + n) % n]}" ;;
+    *) fzx::placement_ok "$target" && next="$target" ;;
+  esac
+  if [[ -z "$next" || "$next" == "$current" ]]; then
+    fzx::log info "nav placement: nowhere to go from $current (FZX_PLACEMENTS: ${FZX_PLACEMENTS[*]})"
+    _FZX_STAT=(nav - placement:none)
     printf 'bell'
     return 0
   fi
-  fzx::meta_get root root || root="$FZX_SESSION"
-  root_dir="$FZX_SESSIONS_DIR/$root"
-  fzx::_kv_get "$root_dir/state/popup" popup || :
-  if [[ -n "$popup" ]]; then
-    rm -f -- "$root_dir/state/popup"
-    fzx::log info "nav popout: back inline"
-    _FZX_STAT=(nav - popout:in)
+  if [[ "$next" == inline ]]; then rm -f -- "$root_dir/state/placement"; else fzx::_kv_set "$root_dir/state/placement" "$next"; fi
+  fzx::log info "nav placement: $current -> $next"
+  _FZX_STAT=(nav - "placement:$next")
+  if [[ "$current" == split:* || "$next" == split:* ]]; then
+    fzx::_kv_set "$root_dir/state/relaunch" 1
+    printf 'abort'
   else
-    fzx::_kv_set "$root_dir/state/popup" default
-    fzx::log info "nav popout: into a popup"
-    _FZX_STAT=(nav - popout:out)
+    fzx::_nav_become "$FZX_SESSION"
   fi
-  fzx::_nav_become "$FZX_SESSION"
 }
 
 # go to the n-th entry of a module's manifest (what the menu opens)

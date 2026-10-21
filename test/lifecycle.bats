@@ -166,6 +166,12 @@ run_with_load() {
   [ "$status" -eq 2 ]
 }
 
+# the placement cycle without split panes (whether tmux is installed must not matter)
+two_placements() {
+  mkdir -p "$FZX_CONFIG_DIR"
+  echo 'FZX_PLACEMENTS=(inline popup)' > "$FZX_CONFIG_DIR/config.sh"
+}
+
 @test "popout outside tmux/Zellij rings the bell and changes nothing" {
   "$FZX" --keep -m counter
   local sid
@@ -177,19 +183,21 @@ run_with_load() {
 }
 
 @test "popout toggles the tree's placement and restarts the current session" {
+  two_placements
   "$FZX" --keep -m counter
   local sid dir
   sid="$(basename "$(session_dirs)")"
   dir="$FZX_RUNTIME_DIR/sessions/$sid"
   TMUX=fake FZF_QUERY=abc FZX_SESSION="$sid" run "$FZX" _cb nav popout
   [ "$output" = "become:$FZX --resume $sid" ]
-  [ "$(< "$dir/state/popup")" = default ]
+  [ "$(< "$dir/state/placement")" = popup ]
   [ "$(< "$dir/state/query")" = abc ]
   TMUX=fake FZX_SESSION="$sid" run "$FZX" _cb nav popout
-  [ ! -f "$dir/state/popup" ]
+  [ ! -f "$dir/state/placement" ]
 }
 
 @test "popout from a child restarts the child; placement lives on the root" {
+  two_placements
   "$FZX" --keep -m counter
   local root child
   root="$(basename "$(session_dirs)")"
@@ -197,11 +205,12 @@ run_with_load() {
   child="${child##* }"
   TMUX=fake FZX_SESSION="$child" run "$FZX" _cb nav popout
   [ "$output" = "become:$FZX --resume $child" ]
-  [ "$(< "$FZX_RUNTIME_DIR/sessions/$root/state/popup")" = default ]
-  [ ! -f "$FZX_RUNTIME_DIR/sessions/$child/state/popup" ]
+  [ "$(< "$FZX_RUNTIME_DIR/sessions/$root/state/placement")" = popup ]
+  [ ! -f "$FZX_RUNTIME_DIR/sessions/$child/state/placement" ]
 }
 
 @test "every launch in a popped-out tree asks for the popup, children included" {
+  two_placements
   "$FZX" --keep -m counter
   local root child
   root="$(basename "$(session_dirs)")"
@@ -230,7 +239,7 @@ run_with_load() {
   run "$FZX" -m counter --popup
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " != *" --popup"* ]]
-  grep -q 'popup requested outside tmux/Zellij' "$LOG"
+  grep -q 'placement popup is not available here' "$LOG"
 }
 
 @test "FZX_POPUP_OPTS from config sets the default placement" {
@@ -243,5 +252,5 @@ run_with_load() {
 
 @test "the popout key is bound" {
   run "$FZX" -m counter
-  [ "$(fzf_bind ctrl-space)" = "ctrl-space:transform:$FZX _cb nav popout" ]
+  [ "$(fzf_bind ctrl-space)" = "ctrl-space:transform:$FZX _cb nav placement next" ]
 }

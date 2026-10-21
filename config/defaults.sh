@@ -23,6 +23,13 @@ declare -gA FZX_KEYS=(
 # placement used when popping out into a tmux/Zellij floating pane (fzf --popup syntax)
 FZX_POPUP_OPTS="center,80%"
 
+# what the placement key (ctrl-space, FZX_KEYS[popout]) cycles through; entries that cannot run here are
+# skipped (popup needs tmux or Zellij, split needs tmux):
+#   inline              in the calling terminal
+#   popup[:OPTS]        a floating pane (fzf --popup syntax; plain "popup" uses FZX_POPUP_OPTS)
+#   split:DIR[,SIZE]    a tmux split pane: DIR up, down, left or right; SIZE lines, columns or a percentage
+FZX_PLACEMENTS=(inline popup "split:down,40%")
+
 # what happens to loaded data (set per module in its config.sh; users can override per module):
 #   none         no cache: every load runs the source
 #   session      cache for the life of the session tree, deleted when fzx exits

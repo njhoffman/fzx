@@ -44,9 +44,9 @@ Design questions for these are in `docs/components.md` (decided; what is built i
 - [x] **Actions menu and default action** (p1) [feature]: action rows with flags (silent, foreground,
       become/print, reload, restart, confirm, default), built-ins copy/copy-line/view, the `ctrl-\` menu as a
       child `actions` module; module action keys moved from FZX_KEYS into the tables.
-- [ ] **Placement toggle: inline / popup / tmux split** (p1) [feature]: a key cycling through configured
-      placements, including fzf-tmux split panes (-d/-u/-l/-r with width/height/position), which `--popup`
-      cannot do; needs the owner relaunch again (fzf-tmux runs fzf in another pane). Ref: fzf-rsc/fzfp.
+- [x] **Placement toggle: inline / popup / tmux split** (p1) [feature]: ctrl-space cycles `FZX_PLACEMENTS`
+      (inline, popup[:OPTS], split:DIR[,SIZE]); `--split`; splits through the owner's own tmux pane (not
+      fzf-tmux, which drops the environment), with a relaunch loop for moves into and out of a split.
 - [x] **Header components and styles** (p2) [feature]: `FZX_HEADER_STYLE` minimal/bubble/triangle/none,
       pill colors, `FZX_HEADER_POSITION` footer/header (merged with the module's header).
 - [x] **Prompt icon per module with a loading state** (p2) [feature]: `FZX_ICON` per module,

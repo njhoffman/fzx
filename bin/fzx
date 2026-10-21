@@ -9,7 +9,7 @@ source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib/core.sh"
 fzx::usage() {
   cat << 'EOF'
 usage: fzx                        open the menu of modules
-       fzx -m|--mode <module[:mode]> [--popup[=OPTS]] [--dry-run] [--keep] [--] [module args...]
+       fzx -m|--mode <module[:mode]> [--popup[=OPTS]|--split[=DIR,SIZE]] [--dry-run] [--keep] [--] [module args...]
        fzx --resume[=SID] [-m :mode] [--dry-run]
        fzx gc [--all]
        fzx stats [--since 90s|5m|2h|7d] [--module NAME] [--raw]
@@ -23,6 +23,8 @@ usage: fzx                        open the menu of modules
       --resume[=SID] restart the interface for an existing session, reusing its cached data
                      (SID defaults to $FZX_SESSION)
       --popup[=OPTS] start in a tmux/Zellij floating pane (fzf --popup syntax, default $FZX_POPUP_OPTS)
+      --split[=DIR,SIZE]
+                     start in a tmux split pane (DIR up|down|left|right, default down,40%)
       --dry-run      print the resolved fzf command instead of running it
       --keep         keep the session directory after exit (until `fzx gc --all`)
   -h, --help         show this help
@@ -79,7 +81,7 @@ main() {
       ;;
   esac
 
-  local module="" resume=0 sid="" dry_run=0 keep="${FZX_KEEP:-0}" popup="" args=()
+  local module="" resume=0 sid="" dry_run=0 keep="${FZX_KEEP:-0}" placement="" args=()
   while (($#)); do
     case "$1" in
       -m | --mode)
@@ -97,10 +99,16 @@ main() {
           shift
         fi
         ;;
-      --popup) popup=default && shift ;;
+      --popup) placement=popup && shift ;;
       --popup=*)
-        popup="${1#*=}"
-        [[ -n "$popup" ]] || popup=default
+        placement="popup${1#--popup=}"
+        [[ "$placement" == popup ]] || placement="popup:${1#--popup=}"
+        shift
+        ;;
+      --split) placement=split:down,40% && shift ;;
+      --split=*)
+        placement="split:${1#--split=}"
+        [[ "$placement" != split: ]] || placement=split:down,40%
         shift
         ;;
       --dry-run) dry_run=1 && shift ;;
@@ -123,7 +131,7 @@ main() {
     [[ -z "$module" || "$module" == :* ]] || fzx::die 2 "--resume takes only a mode (-m :MODE), not a module"
     fzx::run_resume "${sid:-${FZX_SESSION:-}}" "$dry_run" "${module#:}"
   else
-    fzx::run_new "${module:-menu}" "$dry_run" "$keep" "$popup" "${args[@]}"
+    fzx::run_new "${module:-menu}" "$dry_run" "$keep" "$placement" "${args[@]}"
   fi
 }
 

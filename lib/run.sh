@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # run: launch a module in a new session, resume an existing session, or run a module standalone.
 
-# fzx::run_new <module[:mode]> <dry_run> <keep> <popup> [module args...]; the calling process becomes the owner.
-# <popup> is "" (inline), "default" (FZX_POPUP_OPTS) or fzf --popup options.
+# fzx::run_new <module[:mode]> <dry_run> <keep> <placement> [module args...]; the calling process becomes the
+# owner. <placement> is "" (inline) or a FZX_PLACEMENTS entry (popup[:OPTS], split:DIR[,SIZE]).
 fzx::run_new() {
-  local target="$1" dry_run="$2" keep="$3" popup="$4" module mode="" dir
+  local target="$1" dry_run="$2" keep="$3" placement="$4" module mode="" dir
   shift 4
   module="${target%%:*}"
   [[ "$target" == *:* ]] && mode="${target#*:}"
@@ -21,10 +21,20 @@ fzx::run_new() {
   else
     trap 'fzx::_owner_cleanup' EXIT
   fi
-  [[ -n "$popup" ]] && fzx::state_set popup "$popup"
-  local rc
+  [[ -n "$placement" ]] && fzx::state_set placement "$placement"
+  local rc current
   fzx::_launch "$dry_run" "$mode"
   rc=$?
+  # a placement change that fzf cannot make with become() (into or out of a split pane) ends the fzf on
+  # screen and leaves state/relaunch on the root: launch the screen the user was on again, placed anew
+  while ((!dry_run)) && [[ -f "$FZX_SESSIONS_DIR/$_FZX_ROOT_SESSION/state/relaunch" ]]; do
+    rm -f -- "$FZX_SESSIONS_DIR/$_FZX_ROOT_SESSION/state/relaunch"
+    fzx::_kv_get "$FZX_SESSIONS_DIR/$_FZX_ROOT_SESSION/state/current" current || current="$_FZX_ROOT_SESSION"
+    fzx::session_attach "$current" || fzx::session_attach "$_FZX_ROOT_SESSION"
+    fzx::log info "relaunch for a placement change"
+    fzx::_launch 0 ""
+    rc=$?
+  done
   ((dry_run)) || fzx::_stat_exit "$rc"
   return "$rc"
 }
@@ -145,17 +155,39 @@ fzx::_launch() {
 # placement is per session tree (the root's state/popup) and applied on every launch: fzf runs become()
 # from a popup in the original terminal, not inside the popup, so each launch has to ask for the popup
 # again to stay in it (observed with fzf 0.74; see docs/design.md)
-fzx::_placement() {
-  local popup="" root
-  fzx::meta_get root root || root="$FZX_SESSION"
-  fzx::_kv_get "$FZX_SESSIONS_DIR/$root/state/popup" popup || return 0
-  [[ -n "$popup" ]] || return 0
-  if [[ -z "${TMUX:-}" && -z "${ZELLIJ:-}" ]]; then
-    fzx::log warn "popup requested outside tmux/Zellij, running inline"
-    return 0
+# fzx::placement <var>: the tree's placement (root state/placement), "inline" when unset or when it cannot
+# run here
+fzx::placement() {
+  local _p="" _root
+  fzx::meta_get root _root || _root="$FZX_SESSION"
+  fzx::_kv_get "$FZX_SESSIONS_DIR/$_root/state/placement" _p || _p=inline
+  if ! fzx::placement_ok "$_p"; then
+    fzx::log warn "placement $_p is not available here (popup needs tmux or Zellij, split tmux), running inline"
+    _p=inline
   fi
-  [[ "$popup" == default ]] && popup="$FZX_POPUP_OPTS"
-  FZX_OPTS+=("--popup=$popup")
+  printf -v "$1" '%s' "$_p"
+}
+
+# fzx::placement_ok <placement>: it can run in this terminal
+fzx::placement_ok() {
+  case "$1" in
+    inline) return 0 ;;
+    popup | popup:*) [[ -n "${TMUX:-}" || -n "${ZELLIJ:-}" ]] ;;
+    split:*) [[ -n "${TMUX:-}" ]] && command -v tmux > /dev/null ;;
+    *) return 1 ;;
+  esac
+}
+
+# popups are fzf's own --popup, asked for on every launch: become() inside a popup runs in the caller's
+# terminal, so a launch that did not ask again would drop back inline. Splits are made by the owner
+# (fzx::_fzf_split); launches inside the split pane are not the owner and run inline there.
+fzx::_placement() {
+  local p
+  fzx::placement p
+  case "$p" in
+    popup) FZX_OPTS+=("--popup=$FZX_POPUP_OPTS") ;;
+    popup:*) FZX_OPTS+=("--popup=${p#popup:}") ;;
+  esac
 }
 
 fzx::_mode_valid() {
@@ -176,10 +208,59 @@ fzx::_fzf() {
     exec fzf "${FZX_OPTS[@]}" < /dev/null
   fi
   fzx::now_ms start
-  fzx::log info "fzf start module=$FZX_MODULE mode=$FZX_MODE opts=${#FZX_OPTS[@]}"
-  fzf "${FZX_OPTS[@]}" < /dev/null
+  local p=inline
+  [[ -z "${FZX_STANDALONE:-}" ]] && fzx::placement p
+  if [[ "$p" == split:* ]]; then
+    fzx::log info "fzf start in a split ($p) module=$FZX_MODULE mode=$FZX_MODE"
+    fzx::_fzf_split "${p#split:}"
+  else
+    fzx::log info "fzf start module=$FZX_MODULE mode=$FZX_MODE opts=${#FZX_OPTS[@]}"
+    fzf "${FZX_OPTS[@]}" < /dev/null
+  fi
   rc=$?
   fzx::now_ms end
   fzx::log info "fzf exit rc=$rc $((end - start))ms"
+  return "$rc"
+}
+
+# fzx::_fzf_split <DIR[,SIZE]>: run the current session in a new tmux split pane and wait for it; its output
+# becomes ours. fzf-tmux is not used: it passes only TERM and the FZF_* options into the pane, and the
+# callbacks need the whole environment (FZX_SESSION, the directories, module settings). The pane runs
+# `fzx --resume` (not the owner, so it execs fzf, and become() keeps working inside the pane).
+fzx::_fzf_split() {
+  local spec="$1" dir size flags=() pane rc=130 base="$FZX_SESSION_DIR/split" cmd
+  dir="${spec%%,*}"
+  size=""
+  [[ "$spec" == *,* ]] && size="${spec#*,}"
+  case "$dir" in
+    down) flags=(-v) ;;
+    up) flags=(-v -b) ;;
+    right) flags=(-h) ;;
+    left) flags=(-h -b) ;;
+    *)
+      fzx::log error "bad split direction: $dir (up, down, left or right)"
+      printf 'fzx: bad split direction: %s\n' "$dir" >&2
+      return 2
+      ;;
+  esac
+  [[ -n "$size" ]] && flags+=(-l "$size")
+  rm -f -- "$base".out "$base".rc
+  # the pane inherits tmux's environment, not ours: replay our exported variables there
+  export -p | grep -vE '^declare -x (PWD|OLDPWD|SHLVL|TMUX_PANE|_)=' > "$base.env"
+  printf -v cmd 'source %q; export FZX_SPLIT_PANE=1; %q --resume %q > %q; echo $? > %q' \
+    "$base.env" "$FZX_BIN" "$FZX_SESSION" "$base.out" "$base.rc"
+  if ! pane="$(tmux split-window -P -F '#{pane_id}' -c "$PWD" "${flags[@]}" "bash -c $(printf '%q' "$cmd")")"; then
+    fzx::log error "tmux split-window failed, running inline"
+    fzf "${FZX_OPTS[@]}" < /dev/null
+    return
+  fi
+  fzx::log info "split pane $pane"
+  # until the pane reports, or disappears (closed by hand)
+  while [[ ! -s "$base.rc" ]] && tmux list-panes -a -F '#{pane_id}' 2> /dev/null | grep -qxF -- "$pane"; do
+    sleep 0.1
+  done
+  [[ -s "$base.rc" ]] && rc="$(< "$base.rc")"
+  [[ -f "$base.out" ]] && cat -- "$base.out"
+  rm -f -- "$base".out "$base".rc "$base".env
   return "$rc"
 }

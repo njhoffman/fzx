@@ -62,7 +62,8 @@ meta/         one file per key: module, module_dir, cwd, owner_pid, owner_start,
               args (NUL-separated), cache_key, root, parent (children only), keep (--keep);
               rewritten on every launch: modes (NUL-separated), persist
 state/        one file per key, mutable: mode, query, pos (saved before every become()),
-              popup (root only: the tree's placement)
+              placement, relaunch, current (root only: the tree's placement, a pending relaunch
+              for a placement change, the session on screen), fresh (next load runs the source)
 data/<mode>   cached source output, one file per mode
 children/     <hash(module, args)> -> child sid, so navigating to the same target reuses its session
 fzf.sock      fzf --listen socket
@@ -118,18 +119,32 @@ cache. `fzx gc` removes persistent entries older than `FZX_CACHE_MAX_AGE_DAYS` (
 | Mode change | `alt-0` / `alt-9` | `transform(fzx _cb mode next\|prev)`: `change-border-label`, `change-footer`, `reload`; fzf keeps running and keeps the query. When the mode left or entered has the `restart` flag, it restarts instead: `become(fzx --resume <sid> -m :<mode>)` |
 | Go to module/subscreen | module-defined | `transform(fzx _cb nav goto <module[:mode]> [args])`: save query/pos, find or create the child, `become(fzx --resume <child>)` |
 | Back | `alt-left` | `transform(fzx _cb nav back)`: `become` the parent; `bell` at the root |
-| Popout / popin | `ctrl-space` | `transform(fzx _cb nav popout)`: toggle the root's `state/popup`, save query/pos, `become(fzx --resume <sid>)`; `bell` outside tmux/Zellij |
+| Placement | `ctrl-space` | `transform(fzx _cb nav placement next)`: the next `FZX_PLACEMENTS` entry that can run here into the root's `state/placement`, save query/pos; inline/popup: `become(fzx --resume <sid>)`; into or out of a split: `state/relaunch` + `abort`, and the owner relaunches; `bell` when there is nowhere to go |
 
-**Placement** belongs to the session tree (`state/popup` on the root; `fzx -m ps --popup[=OPTS]` starts
-there, default `FZX_POPUP_OPTS=center,80%`) and is applied on **every** launch with fzf's `--popup`
-(tmux 3.3+ or Zellij). This relies on observed fzf 0.74 behaviour that the man page does not describe: a
-popup is two fzf processes, the original one in the caller's terminal and one inside the popup, and
-`become()` from inside the popup is executed by the original one, in the caller's terminal. A launch that
-did not ask for the popup again would therefore drop back inline. If a later fzf runs `become()` inside
-the popup instead, `_placement` must skip `--popup` when already in one.
+**Placement** belongs to the session tree (`state/placement` on the root): `inline`, `popup[:OPTS]` or
+`split:DIR[,SIZE]` (DIR up/down/left/right). `fzx -m ps --popup[=OPTS]` or `--split[=DIR,SIZE]` starts
+there; ctrl-space cycles through `FZX_PLACEMENTS` (default `inline popup split:down,40%`), skipping entries
+that cannot run here (popups need tmux 3.3+ or Zellij, splits tmux).
+
+Popups are fzf's `--popup`, applied on **every** launch. This relies on observed fzf 0.74 behaviour that
+the man page does not describe: a popup is two fzf processes, the original one in the caller's terminal
+and one inside the popup, and `become()` from inside the popup is executed by the original one, in the
+caller's terminal. A launch that did not ask for the popup again would therefore drop back inline. If a
+later fzf runs `become()` inside the popup instead, `_placement` must skip `--popup` when already in one.
+
+Splits are made by the owner (`fzx::_fzf_split`): `tmux split-window -P -F '#{pane_id}' -c $PWD -v|-h [-b]
+[-l SIZE]` running `fzx --resume <sid>` with its output and exit status in `split.out` / `split.rc` in the
+session dir, which the owner polls (every 0.1s; a pane closed by hand counts as an abort) and then prints.
+fzf-tmux is not used: it passes only `TERM` and the `FZF_*` options into the pane, while callbacks need
+the whole environment, so the owner writes `export -p` (minus `PWD`, `TMUX_PANE`, ...) to `split.env` and
+the pane sources it. The pane's fzx is not the owner, so it execs fzf, and `become()` inside a split pane
+runs in that pane (checked with fzf-tmux on fzf 0.74): navigation works there like anywhere else. Only a
+move into or out of a split needs the owner: the placement callback sets `state/relaunch` and prints
+`abort`; when its fzf (or pane) ends, the owner relaunches `state/current` in the new placement, and
+repeats while a relaunch is pending.
 
 Navigation callbacks are `transform`s rather than plain `become`s so they can save `FZF_QUERY` and
-`FZF_POS` first; a launch restores them with `--query` and `--bind 'load:pos(N)+unbind(load)'`. The border
+`FZF_POS` first; a launch restores them with `--query` and `--bind 'result-final:pos(N)+unbind(result-final)'`. The border
 label shows the path from the root (`ps:user > ps:user`) and the footer lists the modes with the active
 one highlighted (only when a module has more than one mode).
 
@@ -366,7 +381,7 @@ Append-only `$XDG_STATE_HOME/fzx/stats.tsv`, one row per event:
 | `cache` | load served from cache | lines | `session`, `persistent` |
 | `action` | module action | items | `<action>:<rc>` |
 | `mode` | mode switch; mode column is the mode switched from | - | `<from>><to>[:restart]` |
-| `nav` | navigation | - | `goto:<target>`, `back`, `back:none`, `resume`, `popout:out\|in` |
+| `nav` | navigation | - | `goto:<target>`, `back`, `back:none`, `resume`, `restart`, `placement:<placement>\|none` |
 
 Previews are not recorded (they run on every focus change; the stats lib is loaded only when a handler
 sets `_FZX_STAT`). The dispatcher writes the row with the duration it already measures, and resolves the
