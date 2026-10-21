@@ -30,6 +30,8 @@ esac
 STUB
   chmod +x "$BATS_TEST_TMPDIR/bin/zoxide" "$BATS_TEST_TMPDIR/bin/fasd"
   export PATH="$BATS_TEST_TMPDIR/bin:$PATH"
+  # a real z.lua on this machine would become the default mode; test/jump.bats stubs one
+  export FZX_DIRS_ZLUA=none
 }
 
 plain() { sed 's/\x1b\[[0-9;]*m//g'; }

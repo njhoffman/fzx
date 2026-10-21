@@ -322,7 +322,7 @@ and settings.
 | `logs` | files (newest first), units, docker | | ctrl-f follow (ctrl-c returns) | path, unit or container id |
 | `systemd` | user, system, failed | | alt-s start, ctrl-x stop, alt-R restart, alt-e enable, alt-d disable, ctrl-l journal, ctrl-e edit | unit names |
 | `git` | status, log, branches, stash (switch in place) | `[--all] [--rev REV] [DIR]` | alt-s stage, alt-u unstage, ctrl-e edit, alt-c switch branch (remote: `--track`), ctrl-o branch to its log | paths, hashes, ref names, stash names |
-| `dirs` | frecent (zoxide), fasd, recent (fasd by access), bookmarks (`FZX_DIRS_BOOKMARKS`), whichever are installed/configured | `[WORDS...]`: zoxide/fasd keywords; with words a single match is printed without the picker (`--select-1 --exit-0`) | ctrl-x forget, ctrl-o browse in files | the directory |
+| `dirs` | zlua (z.lua, `FZX_DIRS_ZLUA`), frecent (zoxide), fasd, recent (fasd by access), bookmarks (`FZX_DIRS_BOOKMARKS`), all (fd over ~), whichever are installed/configured | `[WORDS...]`: zoxide/fasd keywords; with words a single match is printed without the picker (`--select-1 --exit-0`) | ctrl-x forget, ctrl-o browse in files | the directory |
 | `menu` | | | enter opens the entry | entry id |
 | `actions` | | groups of `names args... --fzx--` (built by the actions key) | enter runs the action, then back | |
 
@@ -462,8 +462,22 @@ resolved paths). Default keys, bound in viins, vicmd and emacs unless `FZX_ZSH_N
 | alt-p | `fzx-ps-widget` | insert pids |
 | alt-m | `fzx-menu-widget` | open the menu, insert what it returns |
 
-`fzx-cd [WORDS]` is a function, not a widget: cd to a frecent directory, straight to it when the words
-match one (alias it to `g`). fzf's own ctrl-t, alt-c and ctrl-r are left alone. `just install` symlinks `bin/fzx` into
+`g` and `gg` are functions, not widgets (they cd the shell they run in), over `fzx jump` (lib/jump.sh),
+which prints the directory; `FZX_ZSH_NO_JUMP=1` leaves them undefined:
+
+- `g WORDS`: the best frecent match (dirs `FZX_DIRS_JUMP_MODE`, default its default mode: z.lua, else
+  zoxide). Run again from inside a match, it goes to the match after it, wrapping, so repeating `g foo`
+  steps through the matches with no saved state. A single word that is a directory is taken as is.
+- `gg [WORDS]`: one match cds, several open the picker over them (`--select-1 --exit-0`); no words reuse
+  the last ones (`_FZX_JUMP_LAST`, per shell). `fzx-cd` is the same function.
+- No words (`g`): the picker over every frecent directory. No match: the picker over every directory under
+  ~ (`dirs:all`) with the words as its query.
+- After the cd the destination is shown through prettypath when installed.
+
+They replace `g_func`/`gg_func` (~/.fzf/functions.sh), `fgo` and `_fzf_dirs`. Their fallback walked all of
+~ (430k directories, 43s here); `dirs:all` stops at `FZX_DIRS_ALL_DEPTH` (6) and skips
+`FZX_DIRS_ALL_EXCLUDES` (VCS, cache and package directories) and streams into fzf with the query already
+typed. fzf's own ctrl-t, alt-c and ctrl-r are left alone. `just install` symlinks `bin/fzx` into
 `~/.local/bin` (or `$XDG_BIN_HOME`) and refuses to replace anything that is not a symlink.
 
 ## Piping (later)

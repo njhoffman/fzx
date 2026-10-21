@@ -5,6 +5,7 @@
 # Keys (vi insert and command mode, and emacs) are bound unless FZX_ZSH_NO_BIND=1. Override any of them
 # before sourcing, e.g. FZX_ZSH_KEYS[files]='^Xf'; an empty value leaves that widget unbound.
 # A plain `fzf` (no options, nothing piped in) opens the files module instead, unless FZX_ZSH_NO_FZF=1.
+# g and gg cd to frecent directories (fzx jump), unless FZX_ZSH_NO_JUMP=1.
 
 typeset -gA FZX_ZSH_KEYS
 : ${FZX_ZSH_KEYS[files]=$'\ef'} # insert file paths
@@ -73,14 +74,38 @@ fzx-cd-widget-run() {
 fzx-dirs-widget() { fzx-cd-widget-run -m files:dirs; }
 fzx-jump-widget() { fzx-cd-widget-run -m dirs; }
 
-# fzx-cd [words...]: cd to a frecent directory; with words, a single match is taken without a picker
-# (alias g=fzx-cd for the old g/gg behaviour)
-fzx-cd() {
+# fzx-jump [--pick] [--] [words...]: cd where `fzx jump` says (see lib/jump.sh), then show where that is
+fzx-jump() {
   emulate -L zsh
   local dir
-  dir="$(command "${FZX_ZSH_BIN:-fzx}" -m dirs "$@" < /dev/tty | head -n 1)"
-  [[ -n "$dir" ]] && builtin cd -- "$dir"
+  dir="$(command "${FZX_ZSH_BIN:-fzx}" jump "$@" < /dev/tty)" || return
+  [[ -n "$dir" && -d "$dir" ]] || return 1
+  builtin cd -- "$dir" || return
+  if (($+commands[prettypath])); then
+    print -r -- "$PWD" | prettypath --stat_file=false --format='  %icon% %dir%%name%'
+  else
+    print -r -- "  ${PWD/#$HOME/~}"
+  fi
 }
+
+# g [words...]: the best frecent match; again from inside a match, the next one (so repeating `g foo`
+# steps through them). No words, or no match: a picker (no match: every directory under ~, words as the
+# query). gg [words...]: one match cds, several open a picker over them; no words reuse the last ones.
+typeset -ga _FZX_JUMP_LAST
+fzx-cd() {
+  emulate -L zsh
+  (($#)) || set -- "${_FZX_JUMP_LAST[@]}"
+  (($#)) && _FZX_JUMP_LAST=("$@")
+  fzx-jump --pick -- "$@"
+}
+if [[ "${FZX_ZSH_NO_JUMP:-0}" != 1 ]]; then
+  # the function keyword: an alias of the same name (an older g) would otherwise break the definition
+  function g {
+    (($#)) && _FZX_JUMP_LAST=("$@")
+    fzx-jump -- "$@"
+  }
+  function gg { fzx-cd "$@"; }
+fi
 
 # fzf: with no options and nothing piped in, the files module (prettypath icons when installed) instead
 # of fzf's own walker; prints what it prints. Anything else is the real fzf.

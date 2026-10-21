@@ -14,6 +14,7 @@ usage: fzx                        open the menu of modules
        fzx gc [--all]
        fzx stats [--since 90s|5m|2h|7d] [--module NAME] [--raw]
        fzx config [-m MODULE]
+       fzx jump [--pick] [--] [WORDS...]   the directory g / gg cd into (shell/fzx.zsh)
        fzx keys [KEY...]          keys in use (KEYs as fzx's, your fzf binds, fzf's defaults) and free keys
        fzx builtin copy|copy-line|view|confirm [ARGS...]
        fzx debug ls | tail [SID] | attach [SID] | state [SID] [N] | send ACTION [SID]
@@ -45,6 +46,12 @@ main() {
       shift
       fzx::require log session debug
       fzx::debug "$@"
+      return
+      ;;
+    jump)
+      shift
+      fzx::require log jump
+      fzx::jump "$@"
       return
       ;;
     keys)

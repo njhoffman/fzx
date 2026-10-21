@@ -13,6 +13,8 @@ lint:
     files=()
     while IFS= read -r -d '' f; do
       case "$f" in
+        # reference material (untracked), not fzx's code
+        resources/*) ;;
         *.sh | *.bash | bin/fzx) files+=("$f") ;;
         */components.tsv) [[ -x "$f" ]] && files+=("$f") ;;
       esac

@@ -77,8 +77,14 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 
 ### Shell and navigation
 
-- [x] **dirs** (p1) [module]: frecent/fasd/recent/bookmarks modes, ctrl-x forget, ctrl-o files; `fzx-cd
-      [words]` (single match jumps: the g/gg idea) and the alt-j widget.
+- [x] **dirs** (p1) [module]: zlua/frecent/fasd/recent/bookmarks/all modes, ctrl-x forget, ctrl-o files;
+      the alt-j widget.
+- [x] **g / gg** (p1) [feature]: `fzx jump` behind zsh `g`/`gg` (replaces ~/.fzf g_func/gg_func, fgo,
+      _fzf_dirs): best match, the next one when already in a match, pickers for no words / several / none.
+- [ ] **Drop the old g/gg aliases** (p1) [chore]: ~/.fzf/aliases.zsh aliases g and gg to g_func/gg_func;
+      an alias wins over the fzx.zsh functions, so remove those two lines (v stays until fzx has a v).
+- [ ] **v: open frecent files** (p2) [feature]: v_func (~/.fzf/functions.sh) over fzx: fasd -f / nvim's
+      file_frecency.sqlite3, edit straight away under FZX max matches, else a picker.
 - [ ] **history** (p1) [module]: zsh-histdb history with per-directory and per-session modes, run/insert/delete.
       Refs: ref/mods/histdb.{sh,zsh}, system/fzf.histdb.zsh, system/fzhistory*.
       Has: sqlite3, ~/.histdb/zsh-history.db. Missing: atuin (not needed).
@@ -157,9 +163,12 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       db first, it is locked while the browser runs). Refs: chrome/{history,bookmarks}.sh,
       vendors/widgets/fzf-chrome-history.sh, fzf-bookmarks.{sh,rb}. Has: google-chrome, firefox, sqlite3.
       Missing: buku (chrome/buku*.sh, fzf-scripts/fzbuku).
-- [ ] **music** (p2) [module]: mpd library, playlists and queue (play, add, remove) with cover/info preview.
-      Refs: widgets/audio/{fz-mpc,fzmp,fmui/*}, fzf/modules/music/fmpc, fzf-scripts/fzmp.
-      Has: mpc, mpd, ncmpcpp.
+- [ ] **music** (p2) [module]: a navigable interface to mpc or musicman (~/ghq/github.com/njhoffman/musicman,
+      its cli/), moving forward and back between areas (artists -> albums -> tracks, queue, playlists) as
+      child sessions, so back and the cached lists come from the session tree. Play, add, remove as action
+      rows; cover/info preview. Earlier attempts in resources/: fzf/modules/music/fmpc,
+      fzfmenu/proto-widgets/audio/{fz-mpc,mpc.sh,fmui/mpc.sh}, fzfmenu/ref/mods/mpc.sh,
+      fzf-rsc/modules/audio/fz-mpc. Has: mpc, mpd, ncmpcpp.
 - [ ] **ssh** (p3) [module]: hosts from ~/.ssh/config and known_hosts, connect or scp. Refs: vendors/widgets/
       fzf-exec-ssh, system/fzscp, fzf-scripts/sshget. Has: ssh, scp, rsync. No ~/.ssh/config here.
 - [ ] **tasks-personal** (p3) [module]: taskwarrior tasks and calcurse appointments. Has: task, calcurse.

@@ -19,8 +19,11 @@ dirs::opts() {
     --preview "$(fzx::cb preview '{1}')"
     "--preview-window=right,50%,nohidden"
   )
-  # query words given: jump straight to a single match, quit quietly on none (the old g/gg idea)
-  ((${#FZX_ARGS[@]})) && FZX_OPTS+=(--select-1 --exit-0)
+  # query words given: jump straight to a single match, quit quietly on none. The all mode lists every
+  # directory, so there the words are the fzf query instead (g's fallback picker).
+  if ((${#FZX_ARGS[@]})); then
+    if [[ "$FZX_MODE" == all ]]; then FZX_OPTS+=("--query=${FZX_ARGS[*]}"); else FZX_OPTS+=(--select-1 --exit-0); fi
+  fi
   if fzx::in_session; then
     fzx::bind "${FZX_KEYS[dirs.files]}" "transform:$(fzx::cb nav goto files '{1}')" "browse the directory's files"
   fi

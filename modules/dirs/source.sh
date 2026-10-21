@@ -1,7 +1,44 @@
 #!/usr/bin/env bash
 # dirs source. Lines are "absolute path<TAB>display", best match first.
-# Mode from $FZX_MODE: frecent (zoxide), fasd (fasd frecency), recent (fasd, by last access),
-# bookmarks (FZX_DIRS_BOOKMARKS). Module args are query words, passed to zoxide/fasd as keywords.
+# Mode from $FZX_MODE: zlua (z.lua frecency), frecent (zoxide), fasd (fasd frecency), recent (fasd, by
+# last access), bookmarks (FZX_DIRS_BOOKMARKS), all (every directory under ~, by fd). Module args are query
+# words, passed to z.lua/zoxide/fasd as keywords (the all mode ignores them; they become the fzf query).
+
+# dirs::zlua <var>: the z.lua script (FZX_DIRS_ZLUA, or found in the usual places), or fail
+dirs::zlua() {
+  local _s="${FZX_DIRS_ZLUA:-}" _c
+  [[ "$_s" == none ]] && return 1
+  if [[ -z "$_s" ]]; then
+    for _c in "${ZLUA_SCRIPT:-}" "$HOME"/.zinit/plugins/*z.lua/z.lua "$HOME"/.local/share/zinit/plugins/*z.lua/z.lua \
+      "$HOME/.local/share/z.lua/z.lua"; do
+      [[ -n "$_c" && -f "$_c" ]] && { _s="$_c"; break; }
+    done
+  fi
+  [[ -n "$_s" && -f "$_s" ]] || return 1
+  printf -v "$1" '%s' "$_s"
+}
+
+# fd is packaged as fdfind on Debian/Ubuntu
+dirs::has_fd() { command -v fd > /dev/null || command -v fdfind > /dev/null; }
+dirs::fd() {
+  if command -v fd > /dev/null; then command fd "$@"; else command fdfind "$@"; fi
+}
+
+# dirs::all: every directory under ~ as "path<TAB>display", streamed (fd found them: no existence check)
+dirs::all() {
+  local args=(--hidden --follow --one-file-system --type d --color=never) ex dim=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" rst=$'\e[0m'
+  [[ -n "${FZX_DIRS_ALL_DEPTH:-}" ]] && args+=(--max-depth "$FZX_DIRS_ALL_DEPTH")
+  for ex in "${FZX_DIRS_ALL_EXCLUDES[@]}"; do args+=(--exclude "$ex"); done
+  fzx::require pretty
+  if fzx::pretty_on; then
+    dirs::fd "${args[@]}" . "$HOME" | fzx::pretty "$HOME"
+  else
+    dirs::fd "${args[@]}" . "$HOME" | awk -v home="$HOME/" -v dim="$dim" -v rst="$rst" '
+      { path = $0; sub(/\/$/, "", path); rel = substr(path, 1, length(home)) == home ? substr(path, length(home) + 1) : path
+        n = split(rel, parts, "/"); printf "%s\t%s%s%s%s\n", path, dim, substr(rel, 1, length(rel) - length(parts[n])), rst, parts[n] }'
+  fi
+  return "${PIPESTATUS[0]}"
+}
 
 # dirs::format: "score<TAB>path" lines -> "path<TAB>display" (missing directories dropped)
 dirs::format() {
@@ -35,7 +72,22 @@ dirs::format() {
 
 # dirs::source [query words...]
 dirs::source() {
+  local zl
+  # already "path<TAB>display", and too long for the existence check below
+  if [[ "${FZX_MODE:-}" == all ]]; then
+    dirs::all
+    return
+  fi
   case "${FZX_MODE:-frecent}" in
+    zlua)
+      if ! dirs::zlua zl; then
+        printf 'dirs: z.lua not found (set FZX_DIRS_ZLUA)\n' >&2
+        return 2
+      fi
+      # z.lua lists the best match last
+      command "$FZX_DIRS_ZLUA_LUA" "$zl" -l "$@" | tac |
+        awk '{ s = $1; sub(/^ *[^ ]+ +/, ""); printf "%s\t%s\n", (s < 10 ? sprintf("%.1f", s) : sprintf("%.0f", s)), $0 }'
+      ;;
     frecent)
       command zoxide query --list --score -- "$@" |
         awk '{ s = $1; sub(/^ *[^ ]+ +/, ""); printf "%s\t%s\n", (s < 10 ? sprintf("%.1f", s) : sprintf("%.0f", s)), $0 }'
