@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# recent components, computed: only the sources that exist (see lib/components.sh for the table format)
+dir="$(dirname "$(readlink -f "$0")")"
+source "${FZX_ROOT:-$dir/../..}/lib/core.sh"
+fzx::require log config
+fzx::config_load "$dir" recent
+nvim=0
+if [[ -f "$FZX_RECENT_NVIM_DB" ]] && command -v sqlite3 > /dev/null; then
+  nvim=1
+  printf 'mode\tnvim\t-\tfiles opened in nvim (telescope-frecency)\tdefault\n'
+fi
+command -v fasd > /dev/null && printf 'mode\tfasd\t-\tfrecent files (fasd)\t%s\n' "$( ((nvim)) && echo - || echo default)"
+# shellcheck disable=SC2016  # $EDITOR is text in the description
+printf 'action\tedit\tctrl-e\topen in $EDITOR\tforeground\n'
+exit 0

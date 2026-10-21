@@ -5,7 +5,7 @@
 # Keys (vi insert and command mode, and emacs) are bound unless FZX_ZSH_NO_BIND=1. Override any of them
 # before sourcing, e.g. FZX_ZSH_KEYS[files]='^Xf'; an empty value leaves that widget unbound.
 # A plain `fzf` (no options, nothing piped in) opens the files module instead, unless FZX_ZSH_NO_FZF=1.
-# g and gg cd to frecent directories (fzx jump), unless FZX_ZSH_NO_JUMP=1.
+# g and gg cd to frecent directories, v opens frecent files (fzx jump), unless FZX_ZSH_NO_JUMP=1.
 
 typeset -gA FZX_ZSH_KEYS
 : ${FZX_ZSH_KEYS[files]=$'\ef'} # insert file paths
@@ -105,6 +105,22 @@ if [[ "${FZX_ZSH_NO_JUMP:-0}" != 1 ]]; then
     fzx-jump -- "$@"
   }
   function gg { fzx-cd "$@"; }
+
+  # v [words...]: open the frecent files matching the words in $EDITOR: all of them up to
+  # FZX_RECENT_JUMP_MAX, a picker over more; no words, the picker over every recent file; no match, the
+  # files picker on this directory. A path given as is opens straight away.
+  function v {
+    emulate -L zsh
+    local files f
+    files=("${(@f)$(command "${FZX_ZSH_BIN:-fzx}" jump --files -- "$@" < /dev/tty)}")
+    files=(${files:#})
+    ((${#files})) || return 1
+    for f in "${files[@]}"; do
+      print -r -- $'  \e[38;5;8;3m'"${f/#$HOME/~}"$'\e[0m'
+    done
+    print -r -- $'  \e[38;5;8m('"${#files}"$' file(s) to edit)\e[0m'
+    ${=${EDITOR:-nvim}} -- "${files[@]}"
+  }
 fi
 
 # fzf: with no options and nothing piped in, the files module (prettypath icons when installed) instead

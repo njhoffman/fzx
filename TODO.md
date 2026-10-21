@@ -60,7 +60,7 @@ Design questions for these are in `docs/components.md` (decided; what is built i
       files and dirs displays (ids stay plain paths); a bare `fzf` at a terminal opens the files module
       (`shell/fzx.zsh`, opt out with `FZX_ZSH_NO_FZF=1`).
 - [x] **Sort cycling** (p3) [feature]: `sort` rows, `FZX_SORT`, f11/f12; ps sorts by cpu/mem/age/pid.
-- [ ] **files: recent files mode** (p2) [feature]: `fasd -f` most recently used files (fzf-rsc README's
+- [x] **files: recent files mode** (p2) [feature] (the recent module): `fasd -f` most recently used files (fzf-rsc README's
       Ctrl+u MRU).
 - [ ] **files: search and replace from grep mode** (p3) [feature]: preview and apply a replacement over the
       matches (fzfmenu files/sad).
@@ -81,10 +81,10 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       the alt-j widget.
 - [x] **g / gg** (p1) [feature]: `fzx jump` behind zsh `g`/`gg` (replaces ~/.fzf g_func/gg_func, fgo,
       _fzf_dirs): best match, the next one when already in a match, pickers for no words / several / none.
-- [ ] **Drop the old g/gg aliases** (p1) [chore]: ~/.fzf/aliases.zsh aliases g and gg to g_func/gg_func;
-      an alias wins over the fzx.zsh functions, so remove those two lines (v stays until fzx has a v).
-- [ ] **v: open frecent files** (p2) [feature]: v_func (~/.fzf/functions.sh) over fzx: fasd -f / nvim's
-      file_frecency.sqlite3, edit straight away under FZX max matches, else a picker.
+- [x] **Drop the old g/gg/v** (p1) [chore]: aliases removed from ~/.fzf/aliases.zsh; g_func, gg_func, v_func,
+      their helpers and tests removed from ~/.fzf (backup: ~/.local/backup/fzf-before-fzx-2026-10-21).
+- [x] **v: open frecent files** (p2) [feature]: the recent module (telescope-frecency's sqlite, fasd) behind
+      `fzx jump --files` and zsh `v`; `fzx --query` for the files fallback.
 - [ ] **history** (p1) [module]: zsh-histdb history with per-directory and per-session modes, run/insert/delete.
       Refs: ref/mods/histdb.{sh,zsh}, system/fzf.histdb.zsh, system/fzhistory*.
       Has: sqlite3, ~/.histdb/zsh-history.db. Missing: atuin (not needed).
@@ -231,5 +231,5 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       (fzx could drop its prefix-strip awk); `-0` input; LuaJIT; the cli_spec still expects dev-3.
 - [ ] **Global CLAUDE.md test command** (p3) [docs]: `~/.claude/CLAUDE.md` says to run `npm run test` before
       commits; this repo uses `just test` (bats). "Run the project's test command" fits all repos.
-- [ ] **Source the zsh widgets** (p1) [chore]: add `source ~/ghq/github.com/njhoffman/fzx/shell/fzx.zsh` to the
+- [x] **Source the zsh widgets** (p1) [chore]: add `source ~/ghq/github.com/njhoffman/fzx/shell/fzx.zsh` to the
       zsh config in ~/.shell so alt-f/d/g/p/m work.

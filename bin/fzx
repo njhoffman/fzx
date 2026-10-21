@@ -9,7 +9,7 @@ source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib/core.sh"
 fzx::usage() {
   cat << 'EOF'
 usage: fzx                        open the menu of modules
-       fzx -m|--mode <module[:mode]> [--popup[=OPTS]|--split[=DIR,SIZE]] [--dry-run] [--keep] [--] [module args...]
+       fzx -m|--mode <module[:mode]> [--popup[=OPTS]|--split[=DIR,SIZE]] [--query=Q] [--dry-run] [--keep] [--] [module args...]
        fzx --resume[=SID] [-m :mode] [--dry-run]
        fzx gc [--all]
        fzx stats [--since 90s|5m|2h|7d] [--module NAME] [--raw]
@@ -26,6 +26,7 @@ usage: fzx                        open the menu of modules
       --popup[=OPTS] start in a tmux/Zellij floating pane (fzf --popup syntax, default $FZX_POPUP_OPTS)
       --split[=DIR,SIZE]
                      start in a tmux split pane (DIR up|down|left|right, default down,40%)
+      --query=QUERY  start with QUERY typed in
       --dry-run      print the resolved fzf command instead of running it
       --keep         keep the session directory after exit (until `fzx gc --all`)
   -h, --help         show this help
@@ -117,6 +118,11 @@ main() {
         placement="split:${1#--split=}"
         [[ "$placement" != split: ]] || placement=split:down,40%
         shift
+        ;;
+      --query=*) _FZX_START_QUERY="${1#--query=}" && shift ;;
+      --query)
+        _FZX_START_QUERY="${2-}"
+        shift 2 || shift
         ;;
       --dry-run) dry_run=1 && shift ;;
       --keep) keep=1 && shift ;;

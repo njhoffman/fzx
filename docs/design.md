@@ -323,6 +323,7 @@ and settings.
 | `systemd` | user, system, failed | | alt-s start, ctrl-x stop, alt-R restart, alt-e enable, alt-d disable, ctrl-l journal, ctrl-e edit | unit names |
 | `git` | status, log, branches, stash (switch in place) | `[--all] [--rev REV] [DIR]` | alt-s stage, alt-u unstage, ctrl-e edit, alt-c switch branch (remote: `--track`), ctrl-o branch to its log | paths, hashes, ref names, stash names |
 | `dirs` | zlua (z.lua, `FZX_DIRS_ZLUA`), frecent (zoxide), fasd, recent (fasd by access), bookmarks (`FZX_DIRS_BOOKMARKS`), all (fd over ~), whichever are installed/configured | `[WORDS...]`: zoxide/fasd keywords; with words a single match is printed without the picker (`--select-1 --exit-0`) | ctrl-x forget, ctrl-o browse in files | the directory |
+| `recent` | nvim (telescope-frecency's `file_frecency.sqlite3`, scored by its count and recency weights), fasd | `[WORDS...]`: each in order in the path, ignoring case; with words a single match is printed | ctrl-e edit, ctrl-o browse the directory | paths |
 | `menu` | | | enter opens the entry | entry id |
 | `actions` | | groups of `names args... --fzx--` (built by the actions key) | enter runs the action, then back | |
 
@@ -473,8 +474,12 @@ which prints the directory; `FZX_ZSH_NO_JUMP=1` leaves them undefined:
 - No words (`g`): the picker over every frecent directory. No match: the picker over every directory under
   ~ (`dirs:all`) with the words as its query.
 - After the cd the destination is shown through prettypath when installed.
+- `v [WORDS]` (`fzx jump --files`, the recent module): opens every match in `$EDITOR` up to
+  `FZX_RECENT_JUMP_MAX` (10), listing them first; more open the picker over them; no words, the picker over
+  every recent file; no match, the files picker on `$PWD` with the words as its query (`fzx --query`). A
+  path given as is opens straight away.
 
-They replace `g_func`/`gg_func` (~/.fzf/functions.sh), `fgo` and `_fzf_dirs`. Their fallback walked all of
+They replace `g_func`/`gg_func`/`v_func` (~/.fzf/functions.sh, now removed), `fgo` and `_fzf_dirs`. Their fallback walked all of
 ~ (430k directories, 43s here); `dirs:all` stops at `FZX_DIRS_ALL_DEPTH` (6) and skips
 `FZX_DIRS_ALL_EXCLUDES` (VCS, cache and package directories) and streams into fzf with the query already
 typed. fzf's own ctrl-t, alt-c and ctrl-r are left alone. `just install` symlinks `bin/fzx` into

@@ -22,6 +22,8 @@ fzx::run_new() {
     trap 'fzx::_owner_cleanup' EXIT
   fi
   [[ -n "$placement" ]] && fzx::state_set placement "$placement"
+  # --query: the first launch restores it like a query saved before become()
+  [[ -n "${_FZX_START_QUERY:-}" ]] && fzx::state_set query "$_FZX_START_QUERY"
   local rc current
   fzx::_launch "$dry_run" "$mode"
   rc=$?
