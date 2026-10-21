@@ -232,4 +232,8 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [ ] **Global CLAUDE.md test command** (p3) [docs]: `~/.claude/CLAUDE.md` says to run `npm run test` before
       commits; this repo uses `just test` (bats). "Run the project's test command" fits all repos.
 - [x] **Source the zsh widgets** (p1) [chore]: add `source ~/ghq/github.com/njhoffman/fzx/shell/fzx.zsh` to the
-      zsh config in ~/.shell so alt-f/d/g/p/m work.
+      zsh config in ~/.shell (zsh/_postloader); done 2026-10-21.
+- [ ] **Widget keys that fit** (p2) [chore]: the alt-f/d/j/g/p/m defaults took over the user's alt-f
+      (edit-command-line), alt-d (_close-shell) and alt-g (Telescope projects) in ~/.shell/zsh/keymaps.zsh, so
+      the postloader sets FZX_ZSH_NO_BIND=1 (widgets defined, unbound). Pick free keys (`fzx keys` lists
+      fzf's side; zsh's `bindkey -M viins` the shell's) and set FZX_ZSH_KEYS, or bind by hand.
