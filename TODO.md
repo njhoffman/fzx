@@ -66,8 +66,36 @@ Design questions for these are in `docs/components.md` (decided; what is built i
       matches (fzfmenu files/sad).
 - [ ] **Completion integration** (p3) [feature]: `**<TAB>` completion (`_fzf_complete_<cmd>`) backed by fzx
       modules for kill, ssh, docker, systemctl, git (fzf-rsc/completions).
-- [ ] **Theme presets** (p3) [feature]: the 182 base16 fzf schemes in fzf-rsc/colors as `FZX_FZF_COLORS`
-      presets, and a themes module previewing them live.
+- [ ] **Theme selector** (p2) [feature]: a themes module (or `fzx theme`) listing every color setting, fzf's
+      `--color` keys and fzx's `FZX_COLORS`, with their current values; pick one, change it interactively, and
+      see it in a live sample fzf launched with the new colors; save to the user config.
+- [ ] **Theme presets** (p3) [feature]: presets generated from common color schemes (the 182 base16 schemes
+      in fzf-rsc/colors as a start), browsable and previewed in the theme selector.
+- [ ] **Styled menu previews** (p2) [feature]: the menu's preview of an entry is plain text now; give it color
+      and layout (title, the entry's description, its summary, the module's modes and keys).
+- [ ] **Responsive preview layout** (p1) [feature]: on fzf's `resize` event (and at start), pick the preview
+      window from the size: e.g. the menu's preview below the list until the terminal is 180 columns wide,
+      then beside it; hidden when too small. Per-module breakpoints in config (something like
+      `FZX_PREVIEW_LAYOUTS=("0:hidden" "80:down,50%" "180:right,55%")`), applied with change-preview-window.
+- [ ] **Preview layouts for every module** (p2) [chore]: once the above exists, tune each module from its
+      content: how long its lines are, how many there usually are (a handful of items and a big preview: do
+      not spend height on the list), and what the screen is for (logs: a narrow list, a large preview).
+      Decide when the preview starts hidden. Then make it part of the module contract (design.md, CLAUDE.md)
+      so new modules come with their layouts.
+- [ ] **Popup geometry per module** (p2) [feature]: popup size and position from the module's content and
+      purpose, measured against the whole tmux window (`#{window_width}`/`#{window_height}`), not the
+      calling pane, since the popup covers split panes. Per-module settings like the preview layouts.
+- [ ] **Resize the popup with the window** (p3) [feature]: on `resize`, recompute the popup geometry; fzf
+      cannot resize a running popup, so this likely means a relaunch (become with the new --popup options).
+- [ ] **Placement key ctrl-^** (p1) [feature]: move the placement cycle from ctrl-space to ctrl-^ (what
+      ctrl-6 sends) and order it inline -> tmux split -> tmux popup. fzx-only on purpose: plain fzf cannot
+      switch placements, so it does not belong in ~/.fzf/.fzfrc.
+- [ ] **TODO.md report** (p2) [feature]: in the module that lists projects/repos (the repos candidate, or
+      tasks), read each repo's TODO.md and show its open items by priority in the preview, with counts in
+      the list (reusing ~/.shell/scripts/todo-status's parsing).
+- [ ] **Preview script upgrade** (p2) [feature] (~/.fzf/core/preview.sh): handle more file types, and report
+      which detector and renderer it chose (to fzx's log, or a debug header) so it is clear why content
+      looks the way it does. The same detection then serves piping (below): what kind of content is piped in.
 
 ## Module candidates
 
