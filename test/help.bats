@@ -58,6 +58,8 @@ help_text() {
   run "$BATS_TEST_DIRNAME/../modules/ps/module.sh"
   run help_text
   [ "${lines[0]}" = "ps keys" ]
+  # the bindings part, before the keys page (which lists fzf's own alt-left and free keys)
+  output="${output%%keys in use*}"
   [[ "$output" == *"ctrl-x"* && "$output" != *"ctrl-o"* && "$output" != *"alt-left"* ]]
 }
 
@@ -77,4 +79,32 @@ help_text() {
   local hints
   fzx::key_hints hints
   [ "$hints" = "alt-a do a  alt-b do b" ]
+}
+
+@test "f1 ends with the keys page: the screen's keys as fzx's, the user's binds, fzf's defaults, free keys" {
+  printf '%s\n' "# comment --bind 'ctrl-t:nope'" "--bind 'ctrl-t:toggle-all,alt-z:first'" \
+    "--bind=\"ctrl-r:change-preview-window(a,b|c)\"" > "$BATS_TEST_TMPDIR/fzfrc"
+  FZF_DEFAULT_OPTS_FILE="$BATS_TEST_TMPDIR/fzfrc" FZF_DEFAULT_OPTS="--bind f9:abort" run "$FZX" -m ps
+  FZF_DEFAULT_OPTS_FILE="$BATS_TEST_TMPDIR/fzfrc" FZF_DEFAULT_OPTS="--bind f9:abort" run help_text
+  output="${output#*keys in use}"
+  [[ "$output" =~ $'\n'\ \ ctrl-t\ +yours\ +toggle-all ]]
+  [[ "$output" =~ $'\n'\ \ alt-z\ +yours\ +first ]]
+  [[ "$output" =~ $'\n'\ \ f9\ +yours\ +abort ]]
+  # fzx's own keys win over the user's and fzf's
+  [[ "$output" =~ $'\n'\ \ ctrl-r\ +fzx\ +\(yours:\ change-preview-window\(a,b\|c\)\) ]]
+  [[ "$output" =~ $'\n'\ \ ctrl-x\ +fzx ]]
+  [[ "$output" =~ $'\n'\ \ ctrl-a\ +fzf\ +beginning-of-line ]]
+  [[ "$output" != *nope* && "$output" != *"  start "* ]]
+  local free
+  free="$(printf '%s\n' "$output" | grep '^  ctrl  ')"
+  [[ " $free " != *" ctrl-t "* && " $free " != *" ctrl-x "* && " $free " != *" ctrl-h "* && " $free " == *" ctrl-v "* ]]
+}
+
+@test "fzx keys: synonyms fold into one name; continuation lines and double quotes parse" {
+  printf '%s\n' "--bind 'return:accept' \\" "  --bind \"bs:kill-line\"" > "$BATS_TEST_TMPDIR/fzfrc"
+  FZF_DEFAULT_OPTS_FILE="$BATS_TEST_TMPDIR/fzfrc" FZF_DEFAULT_OPTS= run "$FZX" keys shift-tab
+  output="$(printf '%s' "$output" | sed 's/\x1b\[[0-9;]*m//g')"
+  [[ "$output" =~ $'\n'\ \ enter\ +yours\ +accept ]]
+  [[ "$output" =~ $'\n'\ \ bspace\ +yours\ +kill-line ]]
+  [[ "$output" =~ $'\n'\ \ btab\ +fzx ]]
 }

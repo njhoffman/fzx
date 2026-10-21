@@ -245,7 +245,14 @@ into `change-header(...)`. Standalone runs show the line too.
 f1 runs `show-preview+preview:printf ...` with every recorded binding (the module's, then fzx's) and the
 modes; the text is embedded in the binding, so help needs no callback and works standalone. Moving the
 cursor returns to the normal preview. Descriptions must not contain `{...}`, which fzf would substitute.
-`fzx::key_hints <var>` turns the module's bindings into a header (systemd uses it). Non-key events
+After the bindings and the component rows (modes, toggles, sort orders, actions) comes the keys page,
+`fzx keys <keys this screen binds>` (lib/keys.sh, also runnable on its own): every key in use, as fzx's,
+the user's (`--bind` in `FZF_DEFAULT_OPTS_FILE` and `FZF_DEFAULT_OPTS`) or fzf's defaults (a static table
+from the fzf 0.74 man page), the first winning and what it shadows in parentheses, then the free ctrl,
+alt, alt-shift and function keys. The options are split into shell words by an awk tokenizer (quotes,
+escapes, continuations, comments; nothing is evaluated) and fzf's key synonyms are folded (`return` is
+`enter`, `bs` is `bspace`). It runs only when f1 is pressed (~70ms).
+`fzx::key_hints <var>` turns the module's bindings into a header. Non-key events
 (`start`, `change`, `load`) still use plain `--bind`. It builds command strings through `fzx::cb <verb> [fzf
 placeholders]`, which resolves differently depending on how the module was launched:
 

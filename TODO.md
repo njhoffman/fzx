@@ -54,9 +54,8 @@ Design questions for these are in `docs/components.md` (decided; what is built i
       cursor restore moved to `result-final`.
 - [x] **Event tracing** (p2) [feature]: `FZX_TRACE=start,load,...|all` logs events through a bg-transform
       callback with the `FZF_*` state.
-- [ ] **Help: every module parameter and free keys** (p2) [feature]: f1 lists modes, toggles, actions and
-      sort keys besides bindings; parse FZF_DEFAULT_OPTS / FZF_DEFAULT_OPTS_FILE binds to show which keys are
-      taken and which are free (fzf-rsc bindkeys data has a key list).
+- [x] **Help: every module parameter and free keys** (p2) [feature]: f1 lists the component rows, then
+      `fzx keys`: keys in use (fzx, the user's FZF_DEFAULT_OPTS(_FILE) binds, fzf defaults) and free keys.
 - [ ] **prettypath for files and dirs** (p2) [feature]: icons and colors from prettypath in the files and
       dirs displays (after the glyph bug below); and for plain fzf with no piped input: fzx as the
       default file lister, prettypath-formatted.

@@ -188,9 +188,17 @@ fzx::_help_bind() {
       lines+=("$(printf '  %-12s %-12s %s' "$_n" "$_key" "${_desc#-}")")
     done < <(fzx::comp_rows "$_kind" 2> /dev/null)
   done
-  lines+=("" "${d}any cursor movement returns to the normal preview$r")
+  lines+=("" "${d}any cursor movement returns to the normal preview$r" "")
   printf -v cmd '%q ' "${lines[@]:1}"
-  FZX_OPTS+=(--bind "${FZX_KEYS[help]}:show-preview+preview:printf '%s\\n' $cmd")
+  # then every key in use and the free ones (lib/keys.sh), from the keys this screen binds
+  local i bound=("${FZX_KEYS[help]}") keys
+  for ((i = 1; i < ${#FZX_OPTS[@]}; i++)); do
+    [[ "${FZX_OPTS[i - 1]}" == --bind ]] || continue
+    key="${FZX_OPTS[i]%%:*}"
+    [[ " ${FZX_TRACE_EVENTS[*]} " == *" $key "* ]] || bound+=("$key")
+  done
+  printf -v keys '%q ' "$FZX_BIN" keys "${bound[@]}"
+  FZX_OPTS+=(--bind "${FZX_KEYS[help]}:show-preview+preview:printf '%s\\n' $cmd; $keys")
 }
 
 # fzx::opts_build <module>; expects config loaded, module.sh sourced, FZX_MODES and FZX_MODE set
