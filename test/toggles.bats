@@ -51,7 +51,7 @@ kept() {
 @test "toggle flips in place: new footer, reload; unknown toggles fail with 2" {
   kept
   FZX_SESSION="$SID" run "$FZX" _cb toggle big
-  [[ "$output" == "change-border-label( counter:one )+change-footer("*")+reload:$FZX _cb load" ]]
+  [[ "$output" == "change-border-label( counter:one )+change-footer("*")+reload($FZX _cb load)" ]]
   [ "$(< "$DIR/state/toggles")" = "" ]
   FZX_SESSION="$SID" run "$FZX" _cb toggle hidden
   [ "$(< "$DIR/state/toggles")" = hidden ]

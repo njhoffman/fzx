@@ -4,6 +4,9 @@
 # shellcheck disable=SC2034  # settings here are read by lib/ and the module
 declare -gA FZX_KEYS
 
+# prompt icon (Nerd Font); FZX_ICON="" keeps fzf's own prompt
+FZX_ICON=""
+
 FZX_KEYS[files.into]=ctrl-o  # browse the directory under the cursor (a file's own directory)
 FZX_KEYS[files.up]=alt-up    # browse the parent directory
 

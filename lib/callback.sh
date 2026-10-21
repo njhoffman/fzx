@@ -46,6 +46,7 @@ fzx::callback() {
       fzx::require nav
       fzx::_cb_actions fzx::nav "$@"
       ;;
+    trace) fzx::_cb_trace "$@" ;;
     debug)
       fzx::require debug
       fzx::debug_preview "$@"
@@ -60,7 +61,7 @@ fzx::callback() {
 
   fzx::now_ms end
   local level=info
-  [[ "$verb" == preview ]] && level=debug
+  [[ "$verb" == preview || "$verb" == trace ]] && level=debug
   ((rc == 0)) || level=error
   fzx::log "$level" "cb $verb${*:+ $*} rc=$rc $((end - start))ms"
   if ((${#_FZX_STAT[@]})); then
@@ -204,6 +205,12 @@ fzx::_cb_source() {
     fi
   fi
   return 0
+}
+
+# fzx::_cb_trace <event>: log an fzf event with what fzf exports about it (FZX_TRACE); prints no action
+fzx::_cb_trace() {
+  fzx::log info "event ${1:-?} query=${FZF_QUERY@Q} pos=${FZF_POS:-} matches=${FZF_MATCH_COUNT:-}/${FZF_TOTAL_COUNT:-}" \
+    "selected=${FZF_SELECT_COUNT:-} size=${FZF_COLUMNS:-}x${FZF_LINES:-} key=${FZF_KEY:-} action=${FZF_ACTION:-}"
 }
 
 # fzx::_cb_action <name> [args...]: an action row of the table (confirm first when flagged; built-ins from

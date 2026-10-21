@@ -59,7 +59,7 @@ setup() {
 @test "core binds: start loads, reload key reruns the source, soft reload resumes, back" {
   run "$FZX" -m counter
   [ "$(fzf_bind start)" = "start:reload:$FZX _cb load" ]
-  [ "$(fzf_bind ctrl-r)" = "ctrl-r:reload:$FZX _cb source" ]
+  [ "$(fzf_bind ctrl-r)" = "ctrl-r:reload($FZX _cb source)" ]
   [ "$(fzf_bind alt-r)" = "alt-r:transform:$FZX _cb nav resume" ]
   [ "$(fzf_bind alt-left)" = "alt-left:transform:$FZX _cb nav back" ]
   read_fzf_args
@@ -77,7 +77,7 @@ setup() {
   mkdir -p "$FZX_CONFIG_DIR"
   echo 'FZX_KEYS[reload_hard]=ctrl-g' > "$FZX_CONFIG_DIR/config.sh"
   run "$FZX" -m counter
-  [ "$(fzf_bind ctrl-g)" = "ctrl-g:reload:$FZX _cb source" ]
+  [ "$(fzf_bind ctrl-g)" = "ctrl-g:reload($FZX _cb source)" ]
   run fzf_bind ctrl-r
   [ "$status" -eq 1 ]
 }
@@ -217,16 +217,16 @@ setup() {
   run "$FZX" --resume "$sid"
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " == *" --query=my query "* ]]
-  [ "$(fzf_bind load)" = "load:pos(5)+unbind(load)" ]
+  [ "$(fzf_bind result-final)" = "result-final:pos(5)+unbind(result-final)" ]
 }
 
-@test "--resume does not bind load when the cursor was on the first line" {
+@test "--resume does not restore the cursor when it was on the first line" {
   "$FZX" --keep -m counter
   local dir
   dir="$(session_dirs)"
   printf '1' > "$dir/state/pos"
   run "$FZX" --resume "${dir##*/}"
-  run fzf_bind load
+  run fzf_bind result-final
   [ "$status" -eq 1 ]
 }
 

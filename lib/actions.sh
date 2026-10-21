@@ -86,7 +86,9 @@ fzx::_action_bind_string() {
   if [[ "$_flags" == *,restart,* ]] && fzx::in_session; then
     _act+="+transform($(fzx::cb nav restart))"
   elif [[ "$_flags" == *,reload,* || "$_flags" == *,restart,* ]]; then
-    _act+="+reload($(fzx::cb source))"
+    local _reload
+    fzx::reload_action "$(fzx::cb source)" _reload
+    _act+="+$_reload"
   fi
   printf -v "$3" '%s' "$_act"
 }

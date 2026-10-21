@@ -4,6 +4,9 @@
 # shellcheck disable=SC2034  # settings here are read by lib/ and the module
 declare -gA FZX_KEYS
 
+# prompt icon (Nerd Font); FZX_ICON="" keeps fzf's own prompt
+FZX_ICON=""
+
 FZX_KEYS[git.into]=ctrl-o   # branches: open the branch's log
 
 # commits listed in log mode

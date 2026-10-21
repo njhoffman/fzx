@@ -49,10 +49,11 @@ Design questions for these are in `docs/components.md` (decided; what is built i
       cannot do; needs the owner relaunch again (fzf-tmux runs fzf in another pane). Ref: fzf-rsc/fzfp.
 - [x] **Header components and styles** (p2) [feature]: `FZX_HEADER_STYLE` minimal/bubble/triangle/none,
       pill colors, `FZX_HEADER_POSITION` footer/header (merged with the module's header).
-- [ ] **Prompt icon per module with a loading state** (p2) [feature]: `start` sets the dim "loading" prompt,
-      `load` the bold "loaded" one (the old `actions.sh load` idea), composed with the cursor-restore load bind.
-- [ ] **Event tracing** (p2) [feature]: `FZX_TRACE=start,load,resize,result,focus,change` binds those events to
-      a cheap callback that logs them (with `FZF_*` values) for `fzx debug tail`.
+- [x] **Prompt icon per module with a loading state** (p2) [feature]: `FZX_ICON` per module,
+      `FZX_PROMPT`/`FZX_PROMPT_LOADING` templates and colors; reloads switch to loading, `load` back; the
+      cursor restore moved to `result-final`.
+- [x] **Event tracing** (p2) [feature]: `FZX_TRACE=start,load,...|all` logs events through a bg-transform
+      callback with the `FZF_*` state.
 - [ ] **Help: every module parameter and free keys** (p2) [feature]: f1 lists modes, toggles, actions and
       sort keys besides bindings; parse FZF_DEFAULT_OPTS / FZF_DEFAULT_OPTS_FILE binds to show which keys are
       taken and which are free (fzf-rsc bindkeys data has a key list).

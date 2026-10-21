@@ -238,7 +238,7 @@ stub_systemctl() {
 @test "systemd: every action key is bound and listed in the header" {
   stub_fzf
   run "$FZX" -m systemd
-  [ "$(fzf_bind alt-R)" = "alt-R:execute($FZX _cb action restart {+1})+reload($FZX _cb source)" ]
+  [[ "$(fzf_bind alt-R)" == "alt-R:execute($FZX _cb action restart {+1})+change-prompt("*")+reload($FZX _cb source)" ]]
   [ "$(fzf_bind ctrl-l)" = "ctrl-l:execute($FZX _cb action journal {+1})" ]
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " == *" --header=alt-s start  ctrl-x stop  alt-R restart  alt-e enable  alt-d disable  ctrl-l journal  ctrl-e edit "* ]]

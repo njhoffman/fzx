@@ -131,7 +131,7 @@ setup() {
   [ "$(< "$BATS_TEST_TMPDIR/fzf.mode")" = user ]
   [ "$(fzf_bind start)" = "start:reload:$dir/source.sh --ppid 1" ]
   [ "$(fzf_flag --preview)" = "$dir/preview.sh {1}" ]
-  [ "$(fzf_bind ctrl-x)" = "ctrl-x:execute-silent($dir/actions.sh term {+1})+reload($dir/source.sh --ppid 1)" ]
+  [[ "$(fzf_bind ctrl-x)" == "ctrl-x:execute-silent($dir/actions.sh term {+1})+change-prompt("*")+reload($dir/source.sh --ppid 1)" ]]
   for key in alt-r alt-left alt-0 ctrl-o; do
     run fzf_bind "$key"
     [ "$status" -eq 1 ]
@@ -157,7 +157,7 @@ setup() {
   run "$FZX" -m ps
   [ "$status" -eq 0 ]
   [ "$(fzf_flag --preview)" = "$FZX _cb preview {1}" ]
-  [ "$(fzf_bind ctrl-x)" = "ctrl-x:execute-silent($FZX _cb action term {+1})+reload($FZX _cb source)" ]
+  [[ "$(fzf_bind ctrl-x)" == "ctrl-x:execute-silent($FZX _cb action term {+1})+change-prompt("*")+reload($FZX _cb source)" ]]
   [ "$(fzf_bind ctrl-o)" = "ctrl-o:transform:$FZX _cb nav goto ps --ppid {1}" ]
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " != *" --no-sort "* ]]
@@ -168,7 +168,7 @@ setup() {
   fzx::session_create ps "$PS_DIR"
   printf '%s\0' user all tree > "$FZX_SESSION_DIR/meta/modes"
   run "$FZX" _cb mode next
-  [[ "$output" == change-border-label*reload:* ]]
+  [[ "$output" == change-border-label*reload\(* ]]
   run "$FZX" _cb mode next
   [ "$output" = "become:$FZX --resume $FZX_SESSION -m :tree" ]
 }

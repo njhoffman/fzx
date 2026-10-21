@@ -124,7 +124,7 @@ set_modes() {
   run "$FZX" _cb mode next
   [ "$status" -eq 0 ]
   [ "$(< "$FZX_SESSION_DIR/state/mode")" = two ]
-  [[ "$output" == "change-border-label( counter:two )+change-footer("*")+reload:$FZX _cb load" ]]
+  [[ "$output" == "change-border-label( counter:two )+change-footer("*")+reload($FZX _cb load)" ]]
   run "$FZX" _cb mode next
   [ "$(< "$FZX_SESSION_DIR/state/mode")" = one ]
   run "$FZX" _cb mode prev

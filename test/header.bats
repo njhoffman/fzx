@@ -63,7 +63,7 @@ line_for() {
   local sid
   sid="$(basename "$(session_dirs)")"
   FZX_SESSION="$sid" run "$FZX" _cb mode next
-  [ "$output" = "change-border-label( counter:two )+transform-header($FZX _cb header)+reload:$FZX _cb load" ]
+  [ "$output" = "change-border-label( counter:two )+transform-header($FZX _cb header)+reload($FZX _cb load)" ]
   FZX_SESSION="$sid" run "$FZX" _cb header
   [[ "${lines[0]}" == *one*two*three* ]]
   [ "${lines[1]}" = "mode:one" ]

@@ -285,7 +285,8 @@ resolved config: the callback loads the layers just before the first module func
 | `FZX_COLORS` | `mode_active`, `mode_inactive`, `menu_target`, `menu_summary`, `dim` | SGR parameters for what fzx draws itself |
 | `FZX_FZF_COLORS` | empty | passed as `--color` when set; empty keeps the user's fzf theme |
 | `FZX_HISTORY` | `1` | per-module `--history=$XDG_STATE_HOME/fzx/history/<module>`; `0` leaves fzf's history alone |
-| `FZX_PERSIST`, `FZX_POPUP_OPTS`, `FZX_STATS`, `FZX_SUMMARY_TTL`, ... | | see their sections |
+| `FZX_ICON`, `FZX_PROMPT`, `FZX_PROMPT_LOADING` | icon per module (Nerd Font), `{icon} ` | the prompt: `{icon}` in `FZX_COLORS[prompt_loading]` from start until `load`, then `[prompt_loaded]`; every reload (ctrl-r, mode/toggle/sort switches, reload actions) goes back to loading first. A blank prompt (`FZX_ICON=""`) keeps fzf's own prompt and binds nothing. `)` is dropped (it would end `change-prompt(...)`) |
+| `FZX_PERSIST`, `FZX_POPUP_OPTS`, `FZX_STATS`, `FZX_SUMMARY_TTL`, `FZX_TRACE`, ... | | see their sections |
 
 `fzx config [-m MODULE]` prints the layers that were loaded and the resolved keys, colors, base options
 and settings.
@@ -323,6 +324,14 @@ prompt; list parsing forces `SYSTEMD_COLORS=0` because users commonly export it.
   Kept outside the session dir so it survives cleanup. Level via `FZX_LOG_LEVEL` (debug|info|warn|error).
 - Callbacks that answer with fzf actions (`transform`, `mode`, `nav`) log what they print at debug level
   (`actions: become:...`), so what fzf was told to do is visible in `fzx debug tail`.
+- `FZX_TRACE=start,load,resize` (or `all`; also settable in the environment for one run) logs fzf events
+  at info level: `event resize query='..' pos=3 matches=2/9 selected=0 size=80x24 key= action=`. Each is a
+  `bg-transform(fzx _cb trace EVENT)` prepended to the event's own binding (fzf keeps one per event, and a
+  colon-form action such as `start:reload:...` must stay last). `focus` and `change` start a process per
+  cursor move or keystroke, so tracing is off by default.
+- The cursor restore after `become()` binds `result-final:pos(N)+unbind(result-final)`, not `load`:
+  `result-final` fires once the reloaded list is complete (not for the empty stdin before `start`), and
+  `load` stays free for the prompt, which needs it on every reload.
 - `fzx debug ls` lists sessions with module:mode, parent, owner and whether the owner is alive;
   `fzx debug tail [sid]` follows the log (all, or one session).
 - Each session listens on `fzf.sock`. `fzx debug attach [SID]` is an interactive prompt against it (curl

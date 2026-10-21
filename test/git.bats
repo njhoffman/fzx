@@ -172,13 +172,13 @@ prev() { FZX_MODE="$1" "$GIT_DIR_MOD/preview.sh" -- "$2" | sed 's/\x1b\[[0-9;]*m
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " == *" --header=repo  main  ↑1 ↓0 origin/main "* ]]
   [ "$(fzf_flag --preview)" = "$FZX _cb preview $REPO -- {1}" ]
-  [ "$(fzf_bind alt-s)" = "alt-s:execute($FZX _cb action stage $REPO -- {+1})+reload($FZX _cb source)" ]
+  [[ "$(fzf_bind alt-s)" == "alt-s:execute($FZX _cb action stage $REPO -- {+1})+change-prompt("*")+reload($FZX _cb source)" ]]
   [ "$(fzf_bind alt-c)" = "alt-c:execute($FZX _cb action switch $REPO -- {+1})+transform($FZX _cb nav restart)" ]
   load_libs log session
   fzx::session_create git "$GIT_DIR_MOD" "$REPO"
   printf '%s\0' status log branches stash > "$FZX_SESSION_DIR/meta/modes"
   run "$FZX" _cb mode next
-  [[ "$output" == change-border-label*reload:* ]]
+  [[ "$output" == change-border-label*reload\(* ]]
 }
 
 @test "under fzx: ctrl-o on a branch opens its log as a child; elsewhere it does nothing" {

@@ -25,6 +25,50 @@ fzx::cb() {
   printf '%s' "${cmd% }"
 }
 
+# fzx::prompt <loaded|loading> <var>: FZX_PROMPT / FZX_PROMPT_LOADING with the icon colored for that
+# state; empty when the prompt is blank (fzf's own prompt is kept and no prompt actions are bound)
+fzx::prompt() {
+  local _t _c _icon=""
+  if [[ "$1" == loading ]]; then _t="${FZX_PROMPT_LOADING:-$FZX_PROMPT}" _c="${FZX_COLORS[prompt_loading]:-}"
+  else _t="${FZX_PROMPT:-}" _c="${FZX_COLORS[prompt_loaded]:-}"; fi
+  [[ -n "${FZX_ICON:-}" ]] && _icon=$'\e['"${_c}m$FZX_ICON"$'\e[0m'
+  _t="${_t//\{icon\}/$_icon}"
+  # ")" would end change-prompt(...) early
+  _t="${_t//)/}"
+  [[ "$_t" =~ [^[:space:]] ]] || _t=""
+  printf -v "$2" '%s' "$_t"
+}
+
+# fzx::reload_action <command> <var>: reload(command), switching the prompt to its loading form first
+# (the load event switches it back)
+fzx::reload_action() {
+  local _p
+  fzx::prompt loading _p
+  printf -v "$2" '%sreload(%s)' "${_p:+change-prompt($_p)+}" "$1"
+}
+
+# fzx::_trace_binds: FZX_TRACE events log through a bg-transform callback, prepended to the event's own
+# binding (fzf keeps one binding per event; a colon-form action has to stay last)
+FZX_TRACE_EVENTS=(start load resize result result-final focus change one zero multi jump backward-eof)
+fzx::_trace_binds() {
+  local events=() ev i found cb
+  [[ -n "${FZX_TRACE:-}" ]] && fzx::in_session || return 0
+  if [[ "$FZX_TRACE" == all ]]; then events=("${FZX_TRACE_EVENTS[@]}"); else IFS=', ' read -ra events <<< "$FZX_TRACE"; fi
+  for ev in "${events[@]}"; do
+    [[ " ${FZX_TRACE_EVENTS[*]} " == *" $ev "* ]] || { fzx::log warn "FZX_TRACE: unknown event $ev"; continue; }
+    cb="bg-transform($(fzx::cb trace "$ev"))"
+    found=0
+    for ((i = ${#FZX_OPTS[@]} - 1; i > 0; i--)); do
+      if [[ "${FZX_OPTS[i - 1]}" == --bind && "${FZX_OPTS[i]}" == "$ev:"* ]]; then
+        FZX_OPTS[i]="$ev:$cb+${FZX_OPTS[i]#"$ev:"}"
+        found=1
+        break
+      fi
+    done
+    ((found)) || FZX_OPTS+=(--bind "$ev:$cb")
+  done
+}
+
 # fzx::component_line <var>: modes (when there is more than one), toggles and the sort key as one line in
 # FZX_HEADER_STYLE, active ones highlighted; empty when the module has none of them or the style is none
 # (locals _-prefixed: they would shadow the caller's variable)
@@ -160,8 +204,15 @@ fzx::opts_build() {
     mkdir -p -- "$FZX_STATE_DIR/history"
     FZX_OPTS+=("--history=$FZX_STATE_DIR/history/$module")
   fi
+  local prompt loading act
+  fzx::prompt loaded prompt
+  fzx::prompt loading loading
+  # start in the loading form; load (every reload, not just the first) switches to the loaded one
+  [[ -n "$loading" ]] && FZX_OPTS+=("--prompt=$loading")
+  [[ -n "$prompt" ]] && FZX_OPTS+=(--bind "load:change-prompt($prompt)")
   FZX_OPTS+=(--bind "start:reload:$(fzx::cb load)")
-  fzx::bind "${FZX_KEYS[reload_hard]}" "reload:$(fzx::cb source)" "reload: run the source again"
+  fzx::reload_action "$(fzx::cb source)" act
+  fzx::bind "${FZX_KEYS[reload_hard]}" "$act" "reload: run the source again"
 
   if fzx::in_session; then
     fzx::session_label label
@@ -197,8 +248,9 @@ fzx::opts_build() {
     fi
     # restore what the previous interface of this session saved before become()
     fzx::state_get query query && [[ -n "$query" ]] && FZX_OPTS+=("--query=$query")
+    # result-final: once the list is complete (load is the prompt's); then it unbinds itself
     fzx::state_get pos pos && [[ "$pos" =~ ^[0-9]+$ ]] && ((pos > 1)) &&
-      FZX_OPTS+=(--bind "load:pos($pos)+unbind(load)")
+      FZX_OPTS+=(--bind "result-final:pos($pos)+unbind(result-final)")
   else
     FZX_OPTS+=("--border-label= $module${FZX_MODE:+:$FZX_MODE} ")
   fi
@@ -224,6 +276,7 @@ fzx::opts_build() {
   fi
   FZX_HELP+=("fzx"$'\t'"${FZX_KEYS[help]}"$'\t'"this help")
   fzx::_help_bind "$module"
+  fzx::_trace_binds
 }
 
 # put the component line in the footer, or in the header above the module's own header (which is kept

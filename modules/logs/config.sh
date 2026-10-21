@@ -4,6 +4,9 @@
 # shellcheck disable=SC2034  # settings here are read by lib/ and the module
 declare -gA FZX_KEYS
 
+# prompt icon (Nerd Font); FZX_ICON="" keeps fzf's own prompt
+FZX_ICON=""
+
 
 # named log files; missing or unreadable ones are skipped
 declare -gA FZX_LOGS_FILES=(

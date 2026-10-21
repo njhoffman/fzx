@@ -4,6 +4,9 @@
 # shellcheck disable=SC2034  # settings here are read by lib/ and the module
 declare -gA FZX_KEYS
 
+# prompt icon (Nerd Font); FZX_ICON="" keeps fzf's own prompt
+FZX_ICON=""
+
 FZX_KEYS[dirs.files]=ctrl-o  # browse the directory in the files module
 
 # named directories for the bookmarks mode (name -> path); the mode is offered when this is not empty
