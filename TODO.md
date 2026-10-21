@@ -143,8 +143,15 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [ ] **github** (p2) [module]: issues and PRs (view, checkout, comment, close), repo search, notifications.
       Refs: vendors/widgets/fzf-github-*, ref/mods/ghs.sh, websearch/ghs.json, search_repo.json.
       Has: gh.
-- [ ] **tasks** (p2) [module]: project task runners: just recipes, make targets, package.json scripts, with run in
-      execute. Refs: vendors/completers/{make,npm,yarn}.zsh, list.md "asynctasks". Has: just, make, pnpm.
+- [ ] **tasks** (p2) [module]: every chosen project's tasks in one list, named `project:task`
+      (`musicman:build`, `musicman:run`, `audit:lint`), run with execute; this list is the default view.
+      - A second view lists the repos found with task definitions (scan ghq/~/git for Makefile, justfile,
+        package.json scripts, and similar: Taskfile.yml, Cargo aliases, pyproject scripts); the preview shows
+        that repo's definitions, and selecting toggles whether its tasks join the default list.
+      - The chosen projects persist (state outside the session, e.g. $FZX_STATE_DIR/tasks/projects) and the scan
+        is cached (`cache:<ttl>`), since walking every repo is slow.
+      - Task preview: the definition itself (the make target's rule, the just recipe, the npm script line).
+      Refs: vendors/completers/{make,npm,yarn}.zsh, list.md "asynctasks". Has: just, make, pnpm.
 - [ ] **repl** (p2) [module]: live jq/awk/sed/grep/sh filter over a file with the result in the preview
       (`change:reload`). Refs: ref/mods/repl.sh + repl-data, development/fzr-*, fzf/_scratch/repl.*.
       Has: jq, awk, sed. Missing: yq (fzr-yq mode).
