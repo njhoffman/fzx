@@ -85,6 +85,9 @@ FZX_HEADER_STYLE=minimal
 # where it goes: footer, or header (merged with a header the module sets itself)
 FZX_HEADER_POSITION=footer
 
+# icons and colors from prettypath in the files and dirs lists: auto (when it is installed), 1 or 0
+FZX_PRETTY="${FZX_PRETTY:-auto}"
+
 # passed to fzf as --color when set (e.g. "dark,hl:208,border:240"); empty keeps the user's fzf colors
 FZX_FZF_COLORS=""
 

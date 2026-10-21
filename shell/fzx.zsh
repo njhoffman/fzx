@@ -4,6 +4,7 @@
 #
 # Keys (vi insert and command mode, and emacs) are bound unless FZX_ZSH_NO_BIND=1. Override any of them
 # before sourcing, e.g. FZX_ZSH_KEYS[files]='^Xf'; an empty value leaves that widget unbound.
+# A plain `fzf` (no options, nothing piped in) opens the files module instead, unless FZX_ZSH_NO_FZF=1.
 
 typeset -gA FZX_ZSH_KEYS
 : ${FZX_ZSH_KEYS[files]=$'\ef'} # insert file paths
@@ -80,6 +81,18 @@ fzx-cd() {
   dir="$(command "${FZX_ZSH_BIN:-fzx}" -m dirs "$@" < /dev/tty | head -n 1)"
   [[ -n "$dir" ]] && builtin cd -- "$dir"
 }
+
+# fzf: with no options and nothing piped in, the files module (prettypath icons when installed) instead
+# of fzf's own walker; prints what it prints. Anything else is the real fzf.
+if [[ "${FZX_ZSH_NO_FZF:-0}" != 1 ]]; then
+  fzf() {
+    if (($# == 0)) && [[ -t 0 ]]; then
+      command "${FZX_ZSH_BIN:-fzx}" -m files
+    else
+      command fzf "$@"
+    fi
+  }
+fi
 
 () {
   local name

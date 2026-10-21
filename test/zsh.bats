@@ -56,3 +56,19 @@ zsh_run() {
   [[ "${lines[0]}" != *fzx-files-widget* ]]
   [ "${lines[1]}" = 6 ]
 }
+
+@test "fzf with no options at a terminal opens the files module; anything else is the real fzf" {
+  stub_fzf
+  printf '#!/usr/bin/env bash\necho "fzx $*"\n' > "$BATS_TEST_TMPDIR/bin/fakefzx"
+  chmod +x "$BATS_TEST_TMPDIR/bin/fakefzx"
+  local pre="FZX_ZSH_BIN='$BATS_TEST_TMPDIR/bin/fakefzx'; source '$ZSH_INT'"
+  # a terminal on stdin (script gives the command a pty)
+  run script -qec "zsh -f -i -c \"$pre; fzf\"" /dev/null
+  [[ "$output" == *"fzx -m files"* ]]
+  STUB_FZF_OUT=real run zsh -f -i -c "$pre; fzf --height 3 < /dev/null" 2> /dev/null
+  [ "$output" = real ]
+  STUB_FZF_OUT=real run zsh -f -i -c "$pre; echo a | fzf" 2> /dev/null
+  [ "$output" = real ]
+  run script -qec "zsh -f -i -c \"FZX_ZSH_NO_FZF=1; $pre; whence -w fzf\"" /dev/null
+  [[ "$output" == *"fzf: command"* ]]
+}

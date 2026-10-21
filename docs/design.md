@@ -335,6 +335,12 @@ another directory acts on that repository, standalone too. Failed actions wait f
 visible. Menu entries apply only inside a work tree (stash only when stashes exist); summaries report
 changes, commits ahead/behind the upstream (no fetch), branch counts and stashes. `FZX_GIT_DIFF_FILTER`
 (e.g. `delta --paging=never`) is applied to preview diffs. There is no discard/restore key on purpose.
+`files` (files and dirs modes) and `dirs` decorate their display column with prettypath icons and colors
+when `FZX_PRETTY` is `auto` (the default; on when `prettypath` is installed) or `1` (lib/pretty.sh): paths go
+in absolute (prettypath drops relative ones), `--stat_file=false`, the base directory is cut from the
+shown directory, and dirs joins the result back to its scores by path. About 150µs per path, streamed.
+`shell/fzx.zsh` also defines `fzf`: with no options and a terminal on stdin it runs `fzx -m files`,
+otherwise the real fzf (`FZX_ZSH_NO_FZF=1` before sourcing leaves fzf alone).
 `systemd` runs actions on system units through sudo when not root, bound with `execute` so sudo can
 prompt; list parsing forces `SYSTEMD_COLORS=0` because users commonly export it.
 

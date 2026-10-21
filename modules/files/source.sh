@@ -39,6 +39,12 @@ files::source() {
     files | dirs)
       local type=f
       [[ "$mode" == dirs ]] && type=d
+      fzx::require pretty
+      if fzx::pretty_on; then
+        files::fd --type "$type" --hidden --follow --exclude .git --color=never --absolute-path . "$FILES_BASE" |
+          fzx::pretty "$FILES_BASE"
+        return "${PIPESTATUS[0]}"
+      fi
       files::fd --type "$type" --hidden --follow --exclude .git --color=never --absolute-path . "$FILES_BASE" |
         awk -v base="$FILES_BASE/" -v dim="$dim" -v rst="$rst" '
           { path = $0; sub(/\/$/, "", path); rel = substr(path, 1, length(base)) == base ? substr(path, length(base) + 1) : path
@@ -68,4 +74,9 @@ files::source() {
   esac
 }
 
-[[ "${BASH_SOURCE[0]}" == "$0" ]] && files::source "$@"
+[[ "${BASH_SOURCE[0]}" == "$0" ]] && {
+  source "$(dirname "${BASH_SOURCE[0]}")/../../lib/core.sh"
+  fzx::require log config
+  fzx::config_load "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" files
+  files::source "$@"
+}

@@ -56,9 +56,9 @@ Design questions for these are in `docs/components.md` (decided; what is built i
       callback with the `FZF_*` state.
 - [x] **Help: every module parameter and free keys** (p2) [feature]: f1 lists the component rows, then
       `fzx keys`: keys in use (fzx, the user's FZF_DEFAULT_OPTS(_FILE) binds, fzf defaults) and free keys.
-- [ ] **prettypath for files and dirs** (p2) [feature]: icons and colors from prettypath in the files and
-      dirs displays (after the glyph bug below); and for plain fzf with no piped input: fzx as the
-      default file lister, prettypath-formatted.
+- [x] **prettypath for files and dirs** (p2) [feature]: `FZX_PRETTY=auto|1|0` (lib/pretty.sh) decorates the
+      files and dirs displays (ids stay plain paths); a bare `fzf` at a terminal opens the files module
+      (`shell/fzx.zsh`, opt out with `FZX_ZSH_NO_FZF=1`).
 - [x] **Sort cycling** (p3) [feature]: `sort` rows, `FZX_SORT`, f11/f12; ps sorts by cpu/mem/age/pid.
 - [ ] **files: recent files mode** (p2) [feature]: `fasd -f` most recently used files (fzf-rsc README's
       Ctrl+u MRU).
@@ -210,10 +210,13 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       (`prompt:39:regular`), so a tool's `--prompt` now wins; `alt-g:last`. Left for fzx (optional): the
       ps source no longer needs left-aligned PIDs for `{1}`, and the cursor-restore `load:pos(...)` bind
       no longer competes with a global load bind.
-- [ ] **prettypath glyphs** (p2) [bug]: prints icons as literal `\u{f0f6}` text instead of glyphs (blocks the
-      prettypath integration above). Found so far: it runs under Lua 5.1 (luarocks), which has no `\u{...}`
-      escapes; the text `u{` is in neither ~/git/prettypath nor the installed rock, so the escape is built at
-      runtime somewhere; the installed rock also lacks override_materialicons/override_webicons.
+- [x] **prettypath glyphs** (p2) [bug]: no longer reproduces (2026-10-21): the installed dev-4 rock prints
+      real glyphs (U+F0F6 as EF 83 B6) in UTF-8 and C locales.
+- [ ] **prettypath drops relative paths** (p2) [bug] (in ~/git/prettypath, not fzx): `parse_path` only
+      matches paths starting with `/`, so a relative path gives nil, `string.gsub` errors, and the `pcall`
+      in bin/prettypath.lua swallows it: `echo lib/x.sh | prettypath` prints nothing. Same function: `$HOME`
+      is used as an unescaped Lua pattern and replaced anywhere in the directory, not only as a prefix
+      (`^./` has the same unescaped `.`). fzx passes absolute paths, so it is not affected.
 - [ ] **Global CLAUDE.md test command** (p3) [docs]: `~/.claude/CLAUDE.md` says to run `npm run test` before
       commits; this repo uses `just test` (bats). "Run the project's test command" fits all repos.
 - [ ] **Source the zsh widgets** (p1) [chore]: add `source ~/ghq/github.com/njhoffman/fzx/shell/fzx.zsh` to the

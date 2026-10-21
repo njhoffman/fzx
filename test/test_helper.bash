@@ -13,6 +13,8 @@ setup_fzx() {
   export FZX_CACHE_DIR="$BATS_TEST_TMPDIR/cache"
   export FZX_MODULE_PATH="$BATS_TEST_DIRNAME/fixtures/modules:$FZX_REPO/modules"
   export FZX_LOG_LEVEL=debug
+  # prettypath may or may not be installed; test/pretty.bats turns it on with a stub
+  export FZX_PRETTY=0
   export COUNTER_FILE="$BATS_TEST_TMPDIR/counter"
   LOG="$FZX_STATE_DIR/fzx.log"
 }
