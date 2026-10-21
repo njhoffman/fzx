@@ -212,11 +212,14 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       no longer competes with a global load bind.
 - [x] **prettypath glyphs** (p2) [bug]: no longer reproduces (2026-10-21): the installed dev-4 rock prints
       real glyphs (U+F0F6 as EF 83 B6) in UTF-8 and C locales.
-- [ ] **prettypath drops relative paths** (p2) [bug] (in ~/git/prettypath, not fzx): `parse_path` only
-      matches paths starting with `/`, so a relative path gives nil, `string.gsub` errors, and the `pcall`
-      in bin/prettypath.lua swallows it: `echo lib/x.sh | prettypath` prints nothing. Same function: `$HOME`
-      is used as an unescaped Lua pattern and replaced anywhere in the directory, not only as a prefix
-      (`^./` has the same unescaped `.`). fzx passes absolute paths, so it is not affected.
+- [x] **prettypath bugs** (p2) [bug] (fixed in ~/git/prettypath, 2026-10-21): `%` stripped from every token
+      (ids too), lines dropped silently on any error, relative/top-level/trailing-slash paths rejected,
+      `$HOME` as a pattern, `--stat_file=false` ignored, literal words in `--format` taken as tokens. fzx
+      probes for an old version and routes the affected paths around it.
+- [ ] **prettypath follow-ups** (p3) [chore] (~/git/prettypath): `require("prettypath")` from other Lua
+      code parses the host's `arg`; `pretty_dir`/`pretty_file` return nothing; the rockspec misses
+      override_materialicons/override_webicons; `force_256` unused; `NO_COLOR`/`--color`; `--base DIR`
+      (fzx could drop its prefix-strip awk); `-0` input; LuaJIT; the cli_spec still expects dev-3.
 - [ ] **Global CLAUDE.md test command** (p3) [docs]: `~/.claude/CLAUDE.md` says to run `npm run test` before
       commits; this repo uses `just test` (bats). "Run the project's test command" fits all repos.
 - [ ] **Source the zsh widgets** (p1) [chore]: add `source ~/ghq/github.com/njhoffman/fzx/shell/fzx.zsh` to the

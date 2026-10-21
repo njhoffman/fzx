@@ -338,7 +338,11 @@ changes, commits ahead/behind the upstream (no fetch), branch counts and stashes
 `files` (files and dirs modes) and `dirs` decorate their display column with prettypath icons and colors
 when `FZX_PRETTY` is `auto` (the default; on when `prettypath` is installed) or `1` (lib/pretty.sh): paths go
 in absolute (prettypath drops relative ones), `--stat_file=false`, the base directory is cut from the
-shown directory, and dirs joins the result back to its scores by path. About 150µs per path, streamed.
+shown directory, and dirs joins the result back to its scores by path (a path missing from the result
+keeps a plain display). Older prettypath versions strip `%` from `%path%` (the id) and drop paths
+directly under `/`; `fzx::pretty_sound` probes the installed one once per binary (path and mtime, cached in
+`$FZX_CACHE_DIR/prettypath/`), and with an old one those paths skip prettypath. About 13µs per path with
+the fixed prettypath (20k paths in 0.26s), streamed.
 `shell/fzx.zsh` also defines `fzf`: with no options and a terminal on stdin it runs `fzx -m files`,
 otherwise the real fzf (`FZX_ZSH_NO_FZF=1` before sourcing leaves fzf alone).
 `systemd` runs actions on system units through sudo when not root, bound with `execute` so sudo can

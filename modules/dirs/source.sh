@@ -8,11 +8,15 @@ dirs::format() {
   local dim=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" rst=$'\e[0m' in
   fzx::require pretty
   if fzx::pretty_on; then
-    # prettypath decorates the paths; joined back to their scores by path, in the input's order
+    # prettypath decorates the paths; joined back to their scores by path, in the input's order (by path,
+    # not by line: an older prettypath can drop lines)
     in="$(cat)"
     [[ -n "$in" ]] || return 0
     awk -F'\t' -v dim="$dim" -v rst="$rst" 'NR == FNR { shown[$1] = $2; next }
-      { path = $2; sub(/\/$/, "", path); if (path in shown) printf "%s\t%s%7s%s  %s\n", path, dim, $1, rst, shown[path] }' \
+      { path = $2; sub(/\/$/, "", path)
+        # a path prettypath did not return (an older version drops some) keeps a plain display
+        disp = (path in shown) ? shown[path] : "  " path
+        printf "%s\t%s%7s%s  %s\n", path, dim, $1, rst, disp }' \
       <(cut -f2 <<< "$in" | fzx::pretty) - <<< "$in" |
       while IFS= read -r line; do
         [[ -d "${line%%$'\t'*}" ]] && printf '%s\n' "$line"
