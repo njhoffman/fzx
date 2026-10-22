@@ -71,8 +71,18 @@ Design questions for these are in `docs/components.md` (decided; what is built i
       see it in a live sample fzf launched with the new colors; save to the user config.
 - [ ] **Theme presets** (p3) [feature]: presets generated from common color schemes (the 182 base16 schemes
       in fzf-rsc/colors as a start), browsable and previewed in the theme selector.
-- [ ] **Styled menu previews** (p2) [feature]: the menu's preview of an entry is plain text now; give it color
-      and layout (title, the entry's description, its summary, the module's modes and keys).
+- [ ] **Styled menu previews** (p2) [feature]: the menu's preview of each module entry is plain text now; give it
+      color and layout (title, the entry's description, its summary, the module's modes and keys).
+- [ ] **Version in the help** (p3) [feature]: show fzx's version (a VERSION file or `git describe`; there are
+      no tags yet) at the top of the f1 page, and in `fzx --version`.
+- [ ] **Escape goes back** (p1) [feature]: esc (and ctrl-c?) exits only on the root screen; on a child screen
+      it goes back to the parent, like alt-left. Bind esc to a nav callback that prints `abort` at the root.
+- [ ] **Keys from i3, tmux and autokey** (p2) [feature]: scan ~/.config/i3/config, ~/.config/tmux/tmux.conf
+      (root table, -n binds) and ~/.config/autokey for keys they take before fzf sees them; show them in f1 as
+      their own section, highlighted differently, and keep them out of the free keys. A setting chooses
+      whether a remapped key is shown as what it is remapped to or as the original key.
+- [ ] **Key name style** (p3) [feature]: a setting for full key names (`ctrl-x`) or short ones / glyphs
+      (`^X`, `⌃X`, `⌥`), after what-key.nvim (~/git/what-key.nvim, ~/.config/nvim/lua/configs/what-key).
 - [ ] **Responsive preview layout** (p1) [feature]: on fzf's `resize` event (and at start), pick the preview
       window from the size: e.g. the menu's preview below the list until the terminal is 180 columns wide,
       then beside it; hidden when too small. Per-module breakpoints in config (something like
@@ -90,9 +100,12 @@ Design questions for these are in `docs/components.md` (decided; what is built i
 - [ ] **Placement key ctrl-^** (p1) [feature]: move the placement cycle from ctrl-space to ctrl-^ (what
       ctrl-6 sends) and order it inline -> tmux split -> tmux popup. fzx-only on purpose: plain fzf cannot
       switch placements, so it does not belong in ~/.fzf/.fzfrc.
-- [ ] **TODO.md report** (p2) [feature]: in the module that lists projects/repos (the repos candidate, or
-      tasks), read each repo's TODO.md and show its open items by priority in the preview, with counts in
-      the list (reusing ~/.shell/scripts/todo-status's parsing).
+- [ ] **todos** (p2) [module]: scan all projects (ghq, ~/git) for TODO.md files in the format Claude Code keeps
+      (`- [ ] **Title** (pN) [category]: ...`, the format of this file) and itemize every open item across them:
+      project, priority, category, title; sorted by priority, filterable by project/category (modes or
+      toggles), the item's full text in the preview, enter opens it in the editor at its line. Files not in
+      that format are skipped. Reuse ~/.shell/scripts/todo-status's parsing. The repos/tasks modules can show
+      a project's counts from the same scan.
 - [ ] **Preview script upgrade** (p2) [feature] (~/.fzf/core/preview.sh): handle more file types, and report
       which detector and renderer it chose (to fzx's log, or a debug header) so it is clear why content
       looks the way it does. The same detection then serves piping (below): what kind of content is piped in.
@@ -171,11 +184,14 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [ ] **github** (p2) [module]: issues and PRs (view, checkout, comment, close), repo search, notifications.
       Refs: vendors/widgets/fzf-github-*, ref/mods/ghs.sh, websearch/ghs.json, search_repo.json.
       Has: gh.
-- [ ] **tasks** (p2) [module]: every chosen project's tasks in one list, named `project:task`
-      (`musicman:build`, `musicman:run`, `audit:lint`), run with execute; this list is the default view.
-      - A second view lists the repos found with task definitions (scan ghq/~/git for Makefile, justfile,
-        package.json scripts, and similar: Taskfile.yml, Cargo aliases, pyproject scripts); the preview shows
-        that repo's definitions, and selecting toggles whether its tasks join the default list.
+- [ ] **tasks** (p2) [module]: project scripts, named `project:task` (`musicman:build`, `musicman:run`,
+      `audit:lint`), run with execute. Three modes:
+      - all: every task found in the git repos (scan ghq/~/git for Makefile, justfile, package.json scripts,
+        and similar: Taskfile.yml, Cargo aliases, pyproject scripts);
+      - repos: every task of the selected repos;
+      - selected: the selected tasks of the selected repos (the default view).
+      - A repos view lists the repos found with task definitions; the preview shows that repo's definitions,
+        and selecting toggles the repo in or out; tasks are selected the same way from the other modes.
       - The chosen projects persist (state outside the session, e.g. $FZX_STATE_DIR/tasks/projects) and the scan
         is cached (`cache:<ttl>`), since walking every repo is slow.
       - Task preview: the definition itself (the make target's rule, the just recipe, the npm script line).
@@ -216,6 +232,12 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 
 ## Issues and limitations found
 
+- [ ] **ctrl-f / ctrl-b stay scroll keys** (p1) [bug]: the user's fzf options use ctrl-f/ctrl-b for half-page
+      scrolling; logs binds follow to ctrl-f (and files/git use ctrl-e, which is the user's become(nvim)). Move
+      logs' follow elsewhere, and keep a list of reserved keys (scrolling, the user's core fzf keys) that
+      modules may not take; the f1 "over yours" notes show where this happens.
+- [ ] **ps colors** (p2) [feature]: color the ps list (user, high cpu/mem, state, the command name apart from
+      its arguments) and its preview.
 - [ ] **Undocumented fzf behaviour we depend on** (p2) [test]: `become()` inside a `--popup` runs in the original
       terminal, so every launch re-requests the popup (`fzx::_placement`). Observed on fzf 0.74 (devel);
       re-check on every fzf upgrade with the popup test in design.md's popout notes.
