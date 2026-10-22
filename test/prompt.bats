@@ -29,9 +29,9 @@ R=$'\e[0m'
   conf 'FZX_ICON=X'
   run "$FZX" -m counter
   read_fzf_args
-  [[ " ${FZF_ARGS[*]} " == *" --prompt=${L}X$R "* ]]
-  [ "$(fzf_bind load)" = "load:change-prompt(${H}X$R )" ]
-  [ "$(fzf_bind ctrl-r)" = "ctrl-r:change-prompt(${L}X$R )+reload($FZX _cb source)" ]
+  [[ " ${FZF_ARGS[*]} " == *" --prompt=${L}X$R  "* ]]
+  [ "$(fzf_bind load)" = "load:change-prompt(${H}X$R  )" ]
+  [ "$(fzf_bind ctrl-r)" = "ctrl-r:change-prompt(${L}X$R  )+reload($FZX _cb source)" ]
 }
 
 @test "templates and colors come from config; ')' is dropped; a blank prompt turns it off" {
@@ -60,10 +60,10 @@ R=$'\e[0m'
   dir="$(session_dirs)"
   sid="${dir##*/}"
   FZX_SESSION="$sid" run "$FZX" _cb mode next
-  [[ "$output" == *"+change-prompt(${L}X$R )+reload($FZX _cb load)" ]]
+  [[ "$output" == *"+change-prompt(${L}X$R  )+reload($FZX _cb load)" ]]
   printf '4' > "$dir/state/pos"
   run "$FZX" --resume "$sid"
-  [ "$(fzf_bind load)" = "load:change-prompt(${H}X$R )" ]
+  [ "$(fzf_bind load)" = "load:change-prompt(${H}X$R  )" ]
   [ "$(fzf_bind result-final)" = "result-final:pos(4)+unbind(result-final)" ]
 }
 

@@ -163,42 +163,30 @@ fzx::key_hints() {
   printf -v "$1" '%s' "$_hints"
 }
 
-# the help key: show-preview, then a preview command that prints every recorded binding. The text is
-# part of the binding itself, so help needs no callback and works standalone as well.
+# the help key: show-preview, then `fzx keys` with every recorded binding and component row as arguments
+# (lib/keys.sh draws the page), so help needs no callback and works standalone as well
 fzx::_help_bind() {
-  local module="$1" entry scope _s key desc last="" lines=() cmd b=$'\e[1m' r=$'\e[0m'
-  local d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m"
-  for scope in "$module" fzx; do
-    last=""
-    for entry in "${FZX_HELP[@]}"; do
-      IFS=$'\t' read -r _s key desc <<< "$entry"
-      [[ "$_s" == "$scope" ]] || continue
-      [[ -n "$last" ]] || lines+=("" "$b$scope keys$r")
-      last=1
-      lines+=("$(printf '  %-12s %s' "$key" "$desc")")
-    done
+  local module="$1"
+  local entry args=("m:$module") seen=" " i key keys _k _n _key _desc _fl
+  for entry in "${FZX_HELP[@]}"; do
+    args+=("k:$entry")
+    key="${entry#*$'\t'}"
+    seen+="${key%%$'\t'*} "
   done
-  # components from the table: modes (and, as they are added, toggles, sort keys, actions)
-  local _kind _row _k _n _key _desc _fl _title
-  for _kind in mode toggle sort action; do
-    _title=""
-    while IFS=$'\t' read -r _k _n _key _desc _fl; do
-      [[ -n "$_title" ]] || { _title=1; lines+=("" "$b${_kind}s$r"); }
-      [[ "$_key" == - ]] && _key=""
-      lines+=("$(printf '  %-12s %-12s %s' "$_n" "$_key" "${_desc#-}")")
-    done < <(fzx::comp_rows "$_kind" 2> /dev/null)
-  done
-  lines+=("" "${d}any cursor movement returns to the normal preview$r" "")
-  printf -v cmd '%q ' "${lines[@]:1}"
-  # then every key in use and the free ones (lib/keys.sh), from the keys this screen binds
-  local i bound=("${FZX_KEYS[help]}") keys
+  # keys bound with a plain --bind (no fzx::bind, so no description) are the module's own
   for ((i = 1; i < ${#FZX_OPTS[@]}; i++)); do
     [[ "${FZX_OPTS[i - 1]}" == --bind ]] || continue
     key="${FZX_OPTS[i]%%:*}"
-    [[ " ${FZX_TRACE_EVENTS[*]} " == *" $key "* ]] || bound+=("$key")
+    [[ " ${FZX_TRACE_EVENTS[*]} " == *" $key "* || "$seen" == *" $key "* ]] && continue
+    args+=("k:$module"$'\t'"$key"$'\t')
+    seen+="$key "
   done
-  printf -v keys '%q ' "$FZX_BIN" keys "${bound[@]}"
-  FZX_OPTS+=(--bind "${FZX_KEYS[help]}:show-preview+preview:printf '%s\\n' $cmd; $keys")
+  while IFS=$'\t' read -r _k _n _key _desc _fl; do
+    args+=("c:$_k"$'\t'"$_n"$'\t'"$_key"$'\t'"${_desc#-}")
+  done < <(fzx::comp_rows mode 2> /dev/null; fzx::comp_rows toggle 2> /dev/null; fzx::comp_rows sort 2> /dev/null
+    fzx::comp_rows action 2> /dev/null)
+  printf -v keys '%q ' "$FZX_BIN" keys "${args[@]}"
+  FZX_OPTS+=(--bind "${FZX_KEYS[help]}:show-preview+preview:$keys")
 }
 
 # fzx::opts_build <module>; expects config loaded, module.sh sourced, FZX_MODES and FZX_MODE set

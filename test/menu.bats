@@ -17,6 +17,12 @@ menu_session() {
   fzx::session_create menu "$MENU_DIR"
 }
 
+# summaries from the fixture modules only: the real ones run real tools (zoxide can block for half a
+# minute on an unreachable mount), which these tests must not depend on
+fixture_modules() {
+  export FZX_MODULE_PATH="$BATS_TEST_DIRNAME/fixtures/modules"
+}
+
 # menu lines without colors, as "id|display"
 plain_lines() {
   "$FZX" _cb source | sed 's/\x1b\[[0-9;]*m//g; s/\t/|/'
@@ -75,6 +81,7 @@ plain_lines() {
 }
 
 @test "refresh: writes stale summaries, asks for one reload, then is quiet" {
+  fixture_modules
   menu_session
   run "$FZX" _cb transform refresh
   [ "$output" = "reload:$FZX _cb source" ]
@@ -87,6 +94,7 @@ plain_lines() {
 }
 
 @test "refresh: summaries older than FZX_SUMMARY_TTL are recomputed" {
+  fixture_modules
   menu_session
   "$FZX" _cb transform refresh > /dev/null
   find "$FZX_CACHE_DIR/summary" -name 'counter#0' -exec touch -d '10 minutes ago' {} +
@@ -96,6 +104,7 @@ plain_lines() {
 }
 
 @test "refresh: summaries are per directory" {
+  fixture_modules
   menu_session
   "$FZX" _cb transform refresh > /dev/null
   cd "$BATS_TEST_TMPDIR"
@@ -105,12 +114,14 @@ plain_lines() {
 }
 
 @test "refresh: entries that do not apply are not summarized" {
+  fixture_modules
   menu_session
   COUNTER_HIDE_TWO=1 "$FZX" _cb transform refresh > /dev/null
   [ "$(< "$COUNTER_FILE.summaries")" = counter ]
 }
 
 @test "refresh: a slow summary is cut off at FZX_SUMMARY_TIMEOUT and cached empty" {
+  fixture_modules
   menu_session
   local start=$EPOCHSECONDS
   COUNTER_SUMMARY_SLEEP=10 FZX_SUMMARY_TIMEOUT=1 run "$FZX" _cb transform refresh
@@ -122,6 +133,7 @@ plain_lines() {
 }
 
 @test "refresh: a failing summary is cached empty and not retried within the ttl" {
+  fixture_modules
   menu_session
   COUNTER_SUMMARY_FAIL=1 "$FZX" _cb transform refresh > /dev/null
   COUNTER_SUMMARY_FAIL=1 "$FZX" _cb transform refresh > /dev/null

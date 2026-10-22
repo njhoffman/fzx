@@ -113,14 +113,38 @@ fzx::user_binds() {
     }'
 }
 
-# fzx::keys_page [bound key...]: keys in use (fzx's, given as arguments, then the user's, then fzf's
-# defaults; the first that binds a key wins) and the free ones
+# fzx::keys_page [ENTRY...]: the shortcuts page (the help key, f1). Each ENTRY is one of
+#   m:MODULE                              the screen's module (its section title)
+#   k:SCOPE<TAB>KEY<TAB>DESCRIPTION       a key the screen binds; SCOPE is the module's name or "fzx"
+#   c:KIND<TAB>NAME<TAB>KEY<TAB>DESC      a component row (mode, toggle, sort, action)
+#   KEY                                   a key fzx binds, without a description (`fzx keys ctrl-r` by hand)
+# Sections: this screen's keys, fzx's keys, the global keys (the user's FZF_DEFAULT_OPTS(_FILE) binds, then
+# fzf's defaults; the first that binds a key wins), the components, then the free keys. A key fzx takes
+# over from a global binding says what it shadows.
 fzx::keys_page() {
-  local -A fzx=() user=() def=() all=()
-  local k a name b=$'\e[1m' r=$'\e[0m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m"
-  for k in "$@"; do
-    fzx::key_name "$k" name
-    fzx[$name]=1 all[$name]=1
+  local -A user=() def=() all=() mine=()
+  local module="" entry k a name scope desc width rows_mod=() rows_fzx=() comps=()
+  local r=$'\e[0m' b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m"
+  local cap=$'\e['"${FZX_COLORS[help_key]:-1;38;5;223;48;5;236}m"
+  width="${FZF_PREVIEW_COLUMNS:-${COLUMNS:-80}}"
+  for entry in "$@"; do
+    case "$entry" in
+      m:*) module="${entry#m:}" ;;
+      c:*) comps+=("${entry#c:}") ;;
+      k:*)
+        IFS=$'\t' read -r scope k desc <<< "${entry#k:}"
+        fzx::key_name "$k" name
+        [[ -n "${mine[$name]:-}" ]] && continue
+        mine[$name]="$scope" all[$name]=1
+        if [[ "$scope" == fzx ]]; then rows_fzx+=("$name"$'\t'"$desc"); else rows_mod+=("$name"$'\t'"$desc"); fi
+        ;;
+      *)
+        fzx::key_name "$entry" name
+        [[ -n "${mine[$name]:-}" ]] && continue
+        mine[$name]=fzx all[$name]=1
+        rows_fzx+=("$name"$'\t')
+        ;;
+    esac
   done
   while IFS=$'\t' read -r k a; do
     [[ -n "$k" ]] || continue
@@ -131,30 +155,90 @@ fzx::keys_page() {
     def[$k]="$a" all[$k]=1
   done <<< "$FZX_FZF_DEFAULT_BINDS"
 
-  printf '%skeys in use%s %s(fzx, then yours, then fzf'"'"'s defaults: the first one wins)%s\n' "$b" "$r" "$d" "$r"
-  local what under
-  while IFS= read -r k; do
-    under=""
-    if [[ -n "${fzx[$k]:-}" ]]; then
-      what="" under="${user[$k]+yours: ${user[$k]}}"
-      [[ -n "${def[$k]:-}" ]] && under+="${under:+, }fzf: ${def[$k]}"
-      printf '  %-14s %-6s' "$k" fzx
-    elif [[ -n "${user[$k]+set}" ]]; then
-      what="${user[$k]}" under="${def[$k]:+fzf: ${def[$k]}}"
-      printf '  %-14s %-6s' "$k" yours
-    else
-      what="${def[$k]}"
-      printf '  %-14s %-6s' "$k" fzf
+  # _keys_title <color key> <title> <subtitle>
+  _keys_title() {
+    local c=$'\e['"${FZX_COLORS[$1]:-1}m"
+    printf '\n%s▌ %s%s  %s%s%s\n' "$c" "$2" "$r" "$d" "$3" "$r"
+  }
+  # _keys_row <key> <description> [note] [tag]: a keycap, an optional source tag ("yours", "fzf"), the
+  # description and the dim note (what it shadows), cut to the preview's width
+  _keys_row() {
+    local key="$1" text="$2" note="${3:-}" tag="${4:-}" room
+    room=$((width - 19 - (${#tag} ? 7 : 0)))
+    ((room < 20)) && room=20
+    # the note gives way first (down to 12 columns), then the description
+    if [[ -n "$note" ]]; then
+      local fit=$((room - ${#text} - 2))
+      ((fit < 12)) && fit=12
+      ((${#note} > fit)) && note="${note:0:fit-1}…"
+      ((${#text} + ${#note} + 2 > room)) && text="${text:0:room-${#note}-3}…"
+      note="  $d$note$r"
     fi
-    # long actions (inline scripts) are cut to keep one line per key
-    ((${#what} > 60)) && what="${what:0:57}..."
-    ((${#under} > 60)) && under="${under:0:57}..."
-    printf ' %s%s\n' "$what" "${under:+${what:+ }$d($under)$r}"
+    ((${#text} > room)) && text="${text:0:room-1}…"
+    case "$tag" in
+      yours) tag=$'\e['"${FZX_COLORS[help_global]:-1}m"'yours '"$r " ;;
+      fzf) tag="${d}fzf   $r " ;;
+    esac
+    printf '  %s %-12s %s %s%s%s\n' "$cap" "$key" "$r" "$tag" "$text" "$note"
+  }
+  # what a fzx key takes over from the global bindings
+  _keys_shadow() {
+    local key="$1"
+    if [[ -n "${user[$key]+set}" ]]; then
+      printf 'over yours: %.30s' "${user[$key]}"
+    elif [[ -n "${def[$key]:-}" ]]; then
+      printf 'over fzf: %s' "${def[$key]}"
+    fi
+  }
+
+  local row
+  if ((${#rows_mod[@]})); then
+    _keys_title help_module "${module:-this screen}" "this screen's keys"
+    for row in "${rows_mod[@]}"; do
+      IFS=$'\t' read -r k desc <<< "$row"
+      _keys_row "$k" "${desc:--}" "$(_keys_shadow "$k")"
+    done
+  fi
+  if ((${#rows_fzx[@]})); then
+    _keys_title help_fzx fzx "every fzx screen"
+    for row in "${rows_fzx[@]}"; do
+      IFS=$'\t' read -r k desc <<< "$row"
+      _keys_row "$k" "${desc:--}" "$(_keys_shadow "$k")"
+    done
+  fi
+
+  _keys_title help_global global "your fzf options, then fzf's defaults"
+  local what src
+  while IFS= read -r k; do
+    [[ -n "${mine[$k]:-}" ]] && continue
+    if [[ -n "${user[$k]+set}" ]]; then
+      what="${user[$k]}" src=""
+      [[ -n "${def[$k]:-}" && "${def[$k]}" != "$what" ]] && src="over fzf: ${def[$k]}"
+      _keys_row "$k" "$what" "$src" yours
+    else
+      _keys_row "$k" "${def[$k]}" "" fzf
+    fi
   done < <(printf '%s\n' "${!all[@]}" | LC_ALL=C sort)
 
+  # the components: names, their keys in brackets; the action menu reaches actions without keys
+  if ((${#comps[@]})); then
+    _keys_title help_module components "modes, toggles, sort orders, actions"
+    local kind line=""
+    for kind in mode toggle sort action; do
+      line=""
+      for row in "${comps[@]}"; do
+        IFS=$'\t' read -r k name a desc <<< "$row"
+        [[ "$k" == "$kind" ]] || continue
+        line+="${line:+  }$name"
+        [[ -n "$a" && "$a" != - ]] && line+=" ${d}[$a]$r"
+      done
+      [[ -n "$line" ]] && printf '  %s%-8s%s %s\n' "$b" "${kind}s" "$r" "$line"
+    done
+  fi
+
   # ctrl-h/i/m/[ are bspace/tab/enter/esc to the terminal, so they are not offered
-  local group keys c line
-  printf '\n%sfree keys%s\n' "$b" "$r"
+  local group keys c
+  _keys_title help_free free "not bound by fzx, your options or fzf"
   for group in ctrl alt alt-shift fn; do
     case "$group" in
       ctrl) keys=(ctrl-{a..z}) ;;
@@ -167,6 +251,7 @@ fzx::keys_page() {
       [[ "$c" == ctrl-[him] || -n "${all[$c]:-}" ]] && continue
       line+="${line:+ }$c"
     done
-    printf '  %-10s %s\n' "$group" "${line:-none}"
+    printf '  %s%-10s%s %s\n' "$b" "$group" "$r" "$(printf '%s' "${line:-none}" | fold -s -w "$((width > 30 ? width - 14 : 16))" | sed '2,$s/^/             /')"
   done
+  printf '\n  %sany cursor movement returns to the normal preview%s\n' "$d" "$r"
 }

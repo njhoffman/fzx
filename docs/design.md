@@ -257,16 +257,18 @@ into `change-header(...)`. Standalone runs show the line too.
 
 `<name>::opts` appends to the `FZX_OPTS` array. Key bindings go through
 `fzx::bind <key> <action> <description>`, which records them for the help key (f1, `FZX_KEYS[help]`):
-f1 runs `show-preview+preview:printf ...` with every recorded binding (the module's, then fzx's) and the
-modes; the text is embedded in the binding, so help needs no callback and works standalone. Moving the
+f1 runs `show-preview+preview:fzx keys ...` with every recorded binding (`k:SCOPE<TAB>KEY<TAB>DESC`), the
+component rows (`c:...`) and the module's name as arguments; lib/keys.sh draws the page, so help needs no
+callback and works standalone. Sections, each under a colored title: this screen's keys (the module's
+bindings, including component keys and action rows), fzx's keys (every fzx screen), the global keys (the
+user's `--bind`s from `FZF_DEFAULT_OPTS_FILE` and `FZF_DEFAULT_OPTS`, then fzf's defaults from a static
+table of the fzf 0.74 man page; the first that binds a key wins), the components (modes, toggles, sort
+orders, actions with their keys), then the free ctrl, alt, alt-shift and function keys. Keys are keycaps
+(`FZX_COLORS[help_key]`); a key fzx takes over from a global binding says what it shadows ("over yours:
+...", "over fzf: ..."); lines are cut to `FZF_PREVIEW_COLUMNS`. The user's options are split into shell words
+by an awk tokenizer (quotes, escapes, continuations, comments; nothing is evaluated) and fzf's key synonyms
+are folded (`return` is `enter`, `bs` is `bspace`). It runs only when f1 is pressed (~70ms). Moving the
 cursor returns to the normal preview. Descriptions must not contain `{...}`, which fzf would substitute.
-After the bindings and the component rows (modes, toggles, sort orders, actions) comes the keys page,
-`fzx keys <keys this screen binds>` (lib/keys.sh, also runnable on its own): every key in use, as fzx's,
-the user's (`--bind` in `FZF_DEFAULT_OPTS_FILE` and `FZF_DEFAULT_OPTS`) or fzf's defaults (a static table
-from the fzf 0.74 man page), the first winning and what it shadows in parentheses, then the free ctrl,
-alt, alt-shift and function keys. The options are split into shell words by an awk tokenizer (quotes,
-escapes, continuations, comments; nothing is evaluated) and fzf's key synonyms are folded (`return` is
-`enter`, `bs` is `bspace`). It runs only when f1 is pressed (~70ms).
 `fzx::key_hints <var>` turns the module's bindings into a header. Non-key events
 (`start`, `change`, `load`) still use plain `--bind`. It builds command strings through `fzx::cb <verb> [fzf
 placeholders]`, which resolves differently depending on how the module was launched:

@@ -116,8 +116,10 @@ fzx::menu_refresh() {
         fzx::_summary_run "$name" "$i" "$file" "$results" &
       done
       wait
-    )
+    ) &
   done < <(fzx::menu_modules)
+  # every module at once: slow summaries of different modules overlap instead of adding up
+  wait
   local n
   n="$(wc -l < "$results")"
   rm -f -- "$results"

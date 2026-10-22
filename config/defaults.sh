@@ -41,7 +41,7 @@ FZX_CACHE_MAX_AGE_DAYS=7
 
 # menu entry summaries are cached per directory for this many seconds, and each may run this long
 FZX_SUMMARY_TTL=300
-FZX_SUMMARY_TIMEOUT=3
+FZX_SUMMARY_TIMEOUT="${FZX_SUMMARY_TIMEOUT:-3}"
 
 # usage statistics in $FZX_STATE_DIR/stats.tsv (see `fzx stats`); 0 turns recording off
 FZX_STATS="${FZX_STATS:-1}"
@@ -63,6 +63,12 @@ declare -gA FZX_COLORS=(
   [menu_target]="38;5;110"
   [menu_summary]="38;5;244"
   [dim]="38;5;244"
+  # the shortcuts page (f1): keycaps, and the section titles for this screen, fzx, global and free keys
+  [help_key]="1;38;5;223;48;5;236"
+  [help_module]="1;38;5;45"
+  [help_fzx]="1;38;5;213"
+  [help_global]="1;38;5;110"
+  [help_free]="1;38;5;114"
   # the prompt icon once the list is loaded, and while it loads
   [prompt_loaded]="38;5;45;1"
   [prompt_loading]="38;5;240"
@@ -72,8 +78,8 @@ declare -gA FZX_COLORS=(
 # [prompt_loading] while the list loads. A prompt that is empty or blank leaves fzf's own prompt alone,
 # so with no icon nothing changes. Prompts cannot contain ")".
 FZX_ICON=""
-FZX_PROMPT="{icon} "
-FZX_PROMPT_LOADING="{icon} "
+FZX_PROMPT="{icon}  "
+FZX_PROMPT_LOADING="{icon}  "
 
 # fzf events logged (info level) with the query, cursor, counts and size, e.g. "start,load,resize" or
 # "all"; focus and change start a process per keystroke or cursor move, so tracing is off by default

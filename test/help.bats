@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# f1 help: bindings recorded by fzx::bind, printed by a preview command embedded in the f1 binding
+# f1 help: the shortcuts page (fzx keys), from the bindings fzx::bind records and the component rows
 
 load test_helper
 
@@ -16,18 +16,37 @@ help_text() {
   bash -c "$cmd" | sed 's/\x1b\[[0-9;]*m//g'
 }
 
-@test "f1 shows the module's keys, then fzx's, then the modes" {
+# one section of the page ("▌ NAME  subtitle" up to the next title), from $output
+section() {
+  printf '%s\n' "$output" | awk -v t="▌ $1 " 'index($0, t) == 1 { on = 1; next } /^▌ / { on = 0 } on'
+}
+
+@test "f1: this screen's keys, then fzx's, then the global ones, the components and the free keys" {
   run "$FZX" -m ps
   run help_text
-  [ "${lines[0]}" = "ps keys" ]
-  [[ "$output" =~ $'\n'\ \ ctrl-x\ +action:\ send\ SIGTERM ]]
-  [[ "$output" =~ $'\n'\ \ ctrl-o\ +open\ the\ children ]]
-  [[ "$output" =~ $'\n'\ \ alt-k\ +toggle:\ show\ kernel\ threads ]]
-  [[ "$output" == *$'\n'"fzx keys"$'\n'*"  ctrl-r       reload: run the source again"* ]]
-  [[ "$output" == *"  alt-left     back to the previous screen"* ]]
-  [[ "$output" == *"  f1           this help"* ]]
-  [[ "$output" == *$'\nmodes\n  user'*"your processes, busiest first"* ]]
-  [[ "$output" == *"  tree"*"process tree"* ]]
+  local titles
+  titles="$(printf '%s\n' "$output" | grep '^▌' | cut -d' ' -f2 | tr '\n' ' ')"
+  [ "$titles" = "ps fzx global components free " ]
+  run section ps
+  [[ "$output" =~ ctrl-x\ +action:\ send\ SIGTERM ]]
+  [[ "$output" =~ ctrl-o\ +open\ the\ children ]]
+  [[ "$output" =~ alt-k\ +toggle:\ show\ kernel\ threads ]]
+  [[ "$output" != *ctrl-r* ]]
+}
+
+@test "f1: fzx's keys, with what they take over from fzf; components list names and keys" {
+  run "$FZX" -m ps
+  run help_text
+  local all="$output"
+  run section fzx
+  [[ "$output" =~ ctrl-r\ +reload:\ run\ the\ source\ again ]]
+  [[ "$output" =~ alt-left\ +back\ to\ the\ previous\ screen\ +over\ fzf:\ backward-word ]]
+  [[ "$output" =~ f1\ +this\ help ]]
+  output="$all"
+  run section components
+  [[ "$output" == *"modes    user  all  tree"* ]]
+  [[ "$output" == *"toggles  kernel [alt-k]"* ]]
+  [[ "$output" == *"actions  term [ctrl-x]  kill"* ]]
 }
 
 @test "rebinding a key changes both the binding and the help" {
@@ -57,15 +76,18 @@ help_text() {
 @test "standalone modules have help too, without session-only keys" {
   run "$BATS_TEST_DIRNAME/../modules/ps/module.sh"
   run help_text
-  [ "${lines[0]}" = "ps keys" ]
-  # the bindings part, before the keys page (which lists fzf's own alt-left and free keys)
-  output="${output%%keys in use*}"
-  [[ "$output" == *"ctrl-x"* && "$output" != *"ctrl-o"* && "$output" != *"alt-left"* ]]
+  local all="$output"
+  run section ps
+  [[ "$output" == *"ctrl-x"* && "$output" != *"ctrl-o"* ]]
+  output="$all"
+  run section fzx
+  [[ "$output" != *"alt-left"* ]]
 }
 
 @test "a module without modes lists no modes" {
   COUNTER_MODES="" run "$FZX" -m counter
   run help_text
+  run section components
   [[ "$output" != *modes* ]]
 }
 
@@ -81,20 +103,24 @@ help_text() {
   [ "$hints" = "alt-a do a  alt-b do b" ]
 }
 
-@test "f1 ends with the keys page: the screen's keys as fzx's, the user's binds, fzf's defaults, free keys" {
+@test "f1: global keys are the user's binds, then fzf's defaults; fzx's own win; free keys" {
   printf '%s\n' "# comment --bind 'ctrl-t:nope'" "--bind 'ctrl-t:toggle-all,alt-z:first'" \
     "--bind=\"ctrl-r:change-preview-window(a,b|c)\"" > "$BATS_TEST_TMPDIR/fzfrc"
   FZF_DEFAULT_OPTS_FILE="$BATS_TEST_TMPDIR/fzfrc" FZF_DEFAULT_OPTS="--bind f9:abort" run "$FZX" -m ps
   FZF_DEFAULT_OPTS_FILE="$BATS_TEST_TMPDIR/fzfrc" FZF_DEFAULT_OPTS="--bind f9:abort" run help_text
-  output="${output#*keys in use}"
-  [[ "$output" =~ $'\n'\ \ ctrl-t\ +yours\ +toggle-all ]]
-  [[ "$output" =~ $'\n'\ \ alt-z\ +yours\ +first ]]
-  [[ "$output" =~ $'\n'\ \ f9\ +yours\ +abort ]]
-  # fzx's own keys win over the user's and fzf's
-  [[ "$output" =~ $'\n'\ \ ctrl-r\ +fzx\ +\(yours:\ change-preview-window\(a,b\|c\)\) ]]
-  [[ "$output" =~ $'\n'\ \ ctrl-x\ +fzx ]]
-  [[ "$output" =~ $'\n'\ \ ctrl-a\ +fzf\ +beginning-of-line ]]
-  [[ "$output" != *nope* && "$output" != *"  start "* ]]
+  local all="$output"
+  run section global
+  [[ "$output" =~ ctrl-t\ +yours\ +toggle-all ]]
+  [[ "$output" =~ alt-z\ +yours\ +first ]]
+  [[ "$output" =~ f9\ +yours\ +abort ]]
+  [[ "$output" =~ ctrl-a\ +fzf\ +beginning-of-line ]]
+  # taken by fzx (ctrl-r) or the module (ctrl-x): not listed as global
+  [[ "$output" != *" ctrl-r "* && "$output" != *" ctrl-x "* && "$output" != *nope* && "$output" != *" start "* ]]
+  output="$all"
+  run section fzx
+  [[ "$output" =~ ctrl-r\ +reload:\ run\ the\ source\ again\ +over\ yours:\ change-preview ]]
+  output="$all"
+  run section free
   local free
   free="$(printf '%s\n' "$output" | grep '^  ctrl  ')"
   [[ " $free " != *" ctrl-t "* && " $free " != *" ctrl-x "* && " $free " != *" ctrl-h "* && " $free " == *" ctrl-v "* ]]
@@ -104,7 +130,8 @@ help_text() {
   printf '%s\n' "--bind 'return:accept' \\" "  --bind \"bs:kill-line\"" > "$BATS_TEST_TMPDIR/fzfrc"
   FZF_DEFAULT_OPTS_FILE="$BATS_TEST_TMPDIR/fzfrc" FZF_DEFAULT_OPTS= run "$FZX" keys shift-tab
   output="$(printf '%s' "$output" | sed 's/\x1b\[[0-9;]*m//g')"
-  [[ "$output" =~ $'\n'\ \ enter\ +yours\ +accept ]]
-  [[ "$output" =~ $'\n'\ \ bspace\ +yours\ +kill-line ]]
-  [[ "$output" =~ $'\n'\ \ btab\ +fzx ]]
+  [[ "$output" =~ enter\ +yours\ +accept ]]
+  [[ "$output" =~ bspace\ +yours\ +kill-line ]]
+  run section fzx
+  [[ "$output" == *"btab"* ]]
 }
