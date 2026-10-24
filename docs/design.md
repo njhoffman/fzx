@@ -307,6 +307,7 @@ resolved config: the callback loads the layers just before the first module func
 |---|---|---|
 | `FZX_FZF_OPTS` | `--ansi --with-shell='bash -c'` | base fzf options for every module |
 | `FZX_KEYS` | core: `reload_hard` ctrl-r, `reload_soft` alt-r, `mode_next` alt-0, `mode_prev` alt-9, `back` alt-left, `escape` esc, `popout` ctrl-space, `actions` ctrl-\\ | module navigation keys are `<module>.<name>` (`ps.children`, `files.into`), set in the module's `config.sh`; action keys are in the action rows of `components.tsv` |
+| `FZX_RESERVED_KEYS` | ctrl-f ctrl-b ctrl-u ctrl-w ctrl-g alt-g ctrl-p ctrl-n up down alt-b alt-f scroll-up scroll-down | keys modules may not bind (the user's scrolling and query editing); `fzx::bind` skips a module binding on one and logs a warning. fzx's own keys are not checked. Modules may still take keys the user binds elsewhere (ctrl-e edit replaces the user's `become(nvim)` with a per-module editor action) |
 | `FZX_COLORS` | `mode_active`, `mode_inactive`, `menu_target`, `menu_summary`, `dim` | SGR parameters for what fzx draws itself |
 | `FZX_FZF_COLORS` | empty | passed as `--color` when set; empty keeps the user's fzf theme |
 | `FZX_HISTORY` | `1` | per-module `--history=$XDG_STATE_HOME/fzx/history/<module>`; `0` leaves fzf's history alone |
@@ -322,7 +323,7 @@ and settings.
 |---|---|---|---|---|
 | `ps` | user, all, tree | `--ppid PID` | ctrl-x SIGTERM, kill (SIGKILL, confirm; menu only), ctrl-o children | pids |
 | `files` | files, dirs, grep (as you type) | `[DIR]` | ctrl-e edit, ctrl-o into directory, alt-up parent | absolute paths (`path:line` in grep) |
-| `logs` | files (newest first), units, docker | | ctrl-f follow (ctrl-c returns) | path, unit or container id |
+| `logs` | files (newest first), units, docker | | alt-F follow (ctrl-c returns) | path, unit or container id |
 | `systemd` | user, system, failed | | alt-s start, ctrl-x stop, alt-R restart, alt-e enable, alt-d disable, ctrl-l journal, ctrl-e edit | unit names |
 | `git` | status, log, branches, stash (switch in place) | `[--all] [--rev REV] [DIR]` | alt-s stage, alt-u unstage, ctrl-e edit, alt-c switch branch (remote: `--track`), ctrl-o branch to its log | paths, hashes, ref names, stash names |
 | `dirs` | zlua (z.lua, `FZX_DIRS_ZLUA`), frecent (zoxide), fasd, recent (fasd by access), bookmarks (`FZX_DIRS_BOOKMARKS`), all (fd over ~), whichever are installed/configured | `[WORDS...]`: zoxide/fasd keywords; with words a single match is printed without the picker (`--select-1 --exit-0`) | ctrl-x forget, ctrl-o browse in files | the directory |

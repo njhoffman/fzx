@@ -142,8 +142,13 @@ fzx::_component_pills() {
 
 # fzx::bind <key> <action> <description>: add a key binding and record it for the help key (f1).
 # Bindings made while the module's opts hook runs are listed as the module's, the rest as fzx's.
+# A module's binding on a key in FZX_RESERVED_KEYS is skipped.
 fzx::bind() {
   local _e
+  if [[ "${_FZX_BIND_SCOPE:-fzx}" != fzx && " ${FZX_RESERVED_KEYS[*]} " == *" $1 "* ]]; then
+    fzx::log warn "key $1 is reserved (FZX_RESERVED_KEYS); not bound for ${_FZX_BIND_SCOPE}: $3"
+    return 0
+  fi
   for _e in "${FZX_HELP[@]}"; do
     [[ "$_e" == *$'\t'"$1"$'\t'* ]] &&
       fzx::log warn "key $1 is bound twice (${_e##*$'\t'} / $3); the later binding wins"

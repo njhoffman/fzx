@@ -147,9 +147,9 @@ Design questions for these are in `docs/components.md` (decided; what is built i
       action and `fzx::bind` (lib/opts.sh) records the joined string as one help row, so f1, the free keys
       and the "bound twice" check do not see the individual keys. Allow lists in `FZX_KEYS` and split them
       in `fzx::bind`.
-- [ ] **ctrl-backspace goes back** (p3) [feature]: bind it with alt-left (depends on the item above). Check
-      what the terminal sends: many send ctrl-h or the plain backspace code, which fzf cannot tell apart
-      from backspace, and it would then stop deleting query characters.
+- [ ] **ctrl-backspace goes back** (p3) [feature]: bind it with alt-left (depends on the item above). fzf knows
+      `ctrl-bspace` (default: backward-delete-char), but check what the terminal sends: many send ctrl-h or
+      plain backspace for it, and binding those would stop backspace deleting query characters.
 - [ ] **FZX_ variables in the debug views** (p3) [feature]: the preview debug screen (alt-_) and f2 show
       `FZF_*` only in places; list every `FZX_*` parameter in both.
 - [ ] **fzf sandbox** (p2) [feature]: a mode for trying fzf options live: a target fzf started with `--listen`,
@@ -291,10 +291,10 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 
 ## Issues and limitations found
 
-- [ ] **ctrl-f / ctrl-b stay scroll keys** (p1) [bug]: the user's fzf options use ctrl-f/ctrl-b for half-page
-      scrolling; logs binds follow to ctrl-f (and files/git use ctrl-e, which is the user's become(nvim)). Move
-      logs' follow elsewhere, and keep a list of reserved keys (scrolling, the user's core fzf keys) that
-      modules may not take; the f1 "over yours" notes show where this happens.
+- [x] **ctrl-f / ctrl-b stay scroll keys** (p1) [bug]: logs' follow moved to alt-F; `FZX_RESERVED_KEYS`
+      (scrolling and query editing) makes `fzx::bind` skip a module binding on one, with a log warning, and
+      test/fzx.bats fails if any shipped module mode binds one. ctrl-e edit stays a deliberate override of
+      the user's become(nvim).
 - [ ] **ps colors** (p2) [feature]: color the ps list (user, high cpu/mem, state, the command name apart from
       its arguments) and its preview. Port from ~/.fzf/modules/processes.sh; the preview shows colorful,
       detailed process information (not just the ps line).

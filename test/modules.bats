@@ -181,7 +181,7 @@ CFG
 @test "logs: opts bind follow and accept the target" {
   stub_fzf
   run "$FZX" -m logs:units
-  [ "$(fzf_bind ctrl-f)" = "ctrl-f:execute($FZX _cb action follow {1} {2})" ]
+  [ "$(fzf_bind alt-F)" = "alt-F:execute($FZX _cb action follow {1} {2})" ]
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " == *" --accept-nth=2 "* ]]
 }

@@ -97,6 +97,34 @@ setup() {
   [ "$status" -eq 1 ]
 }
 
+@test "a module binding on a reserved key is skipped and logged; fzx's own keys are not checked" {
+  mkdir -p "$FZX_CONFIG_DIR"
+  printf 'FZX_KEYS[ps.children]=ctrl-f\nFZX_KEYS[back]=ctrl-b\n' > "$FZX_CONFIG_DIR/config.sh"
+  run "$FZX" -m ps
+  [ "$status" -eq 0 ]
+  ! fzf_bind ctrl-f
+  [ "$(fzf_bind ctrl-b)" = "ctrl-b:transform:$FZX _cb nav back" ]
+  grep -q "key ctrl-f is reserved (FZX_RESERVED_KEYS); not bound for ps" "$LOG"
+  # emptied, modules may take it
+  printf 'FZX_KEYS[ps.children]=ctrl-f\nFZX_RESERVED_KEYS=()\n' > "$FZX_CONFIG_DIR/config.sh"
+  run "$FZX" -m ps
+  [[ "$(fzf_bind ctrl-f)" == "ctrl-f:transform:$FZX _cb nav goto ps --ppid"* ]]
+}
+
+@test "no shipped module binds a reserved key in any of its modes" {
+  local dir m mode modes
+  for dir in "$FZX_REPO"/modules/*/; do
+    m="$(basename "$dir")"
+    [[ "$m" == actions ]] && continue
+    modes="$(awk '$1 == "mode" { print $2 }' "$dir/components.tsv" 2> /dev/null)"
+    for mode in ${modes:-""}; do
+      run "$FZX" -m "$m${mode:+:$mode}"
+    done
+  done
+  run grep "is reserved (FZX_RESERVED_KEYS)" "$LOG"
+  [ "$status" -eq 1 ] || { echo "$output"; false; }
+}
+
 @test "a failing <module>::opts fails with 1 without running fzf" {
   COUNTER_OPTS_FAIL=1 run "$FZX" -m counter
   [ "$status" -eq 1 ]

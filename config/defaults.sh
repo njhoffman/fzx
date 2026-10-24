@@ -21,6 +21,11 @@ declare -gA FZX_KEYS=(
   [actions]="ctrl-\\"
 )
 
+# keys modules may not take: scrolling and query editing in the user's fzf options. A module binding on one
+# of these is skipped with a warning in the log (fzx's own keys are not checked); drop a key from the list
+# to let modules have it
+FZX_RESERVED_KEYS=(ctrl-f ctrl-b ctrl-u ctrl-w ctrl-g alt-g ctrl-p ctrl-n up down alt-b alt-f scroll-up scroll-down)
+
 # placement used when popping out into a tmux/Zellij floating pane (fzf --popup syntax)
 FZX_POPUP_OPTS="center,80%"
 

@@ -6,6 +6,19 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-24
+
+### Added
+
+- `FZX_RESERVED_KEYS`: keys that modules may not bind. The default list is the scrolling and
+  query-editing keys from your fzf options (ctrl-f, ctrl-b, ctrl-u, ctrl-w, ctrl-g, alt-g, ctrl-p,
+  ctrl-n, up, down, alt-b, alt-f and the scroll events). A module binding on one of these is skipped,
+  and a warning is written to the log.
+
+### Changed
+
+- logs: follow moved from ctrl-f to alt-F, so ctrl-f half-page scrolling works in the logs module.
+
 ## [0.1.0] - 2026-10-24
 
 First versioned release, covering everything built so far.
@@ -37,5 +50,6 @@ First versioned release, covering everything built so far.
   `just install`.
 - shellcheck linting (`just lint`) and a CI workflow.
 
-[Unreleased]: https://github.com/njhoffman/fzx/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/njhoffman/fzx/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/njhoffman/fzx/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/njhoffman/fzx/releases/tag/v0.1.0
