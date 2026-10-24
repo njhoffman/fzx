@@ -73,8 +73,8 @@ Design questions for these are in `docs/components.md` (decided; what is built i
       in fzf-rsc/colors as a start), browsable and previewed in the theme selector.
 - [ ] **Styled menu previews** (p2) [feature]: the menu's preview of each module entry is plain text now; give it
       color and layout (title, the entry's description, its summary, the module's modes and keys).
-- [ ] **Version in the help** (p3) [feature]: show fzx's version (a VERSION file or `git describe`; there are
-      no tags yet) at the top of the f1 page, and in `fzx --version`.
+- [ ] **Version in the help** (p3) [feature]: show fzx's version (the top-level VERSION file, now 0.1.0; tagged
+      v0.1.0) at the top of the f1 page, and in `fzx --version`.
 - [x] **Escape goes back** (p1) [feature]: esc exits only on the root screen; on a child screen
       it goes back to the parent, like alt-left. Configurable via `FZX_KEYS[escape]`; ctrl-c keeps aborting.
 - [ ] **Keys from i3, tmux and autokey** (p2) [feature]: scan ~/.config/i3/config, ~/.config/tmux/tmux.conf

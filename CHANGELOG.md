@@ -1,0 +1,41 @@
+# Changelog
+
+All notable changes to fzx are recorded here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
+[Semantic Versioning](https://semver.org/).
+
+## [Unreleased]
+
+## [0.1.0] - 2026-10-24
+
+First versioned release, covering everything built so far.
+
+### Added
+
+- Core: `fzx -m <module>` runs fzf with a module's source, preview and actions. A session tree keeps the
+  query and cursor of each screen. Modes switch with alt-0 / alt-9, and alt-left goes back to the previous
+  screen.
+- Esc goes back to the previous screen and quits only at the root (`FZX_KEYS[escape]`). Ctrl-C still aborts.
+- Placements: ctrl-space cycles between inline, tmux popup and tmux split.
+- Components declared in each module's `components.tsv`: modes, toggles, sort orders (f11 / f12) and
+  actions, plus an actions menu (ctrl-\\). The header line comes in minimal, bubble or triangle style.
+- The menu: lists modules from their manifests, hides the ones that don't apply here, and shows cached
+  summaries.
+- Modules: `ps`, `files` (with grep mode), `logs`, `systemd`, `git` (status, log, branches, stash),
+  `dirs` (zlua, zoxide, fasd, recent, bookmarks), `recent` (frecent files), `tmux` (sessions, windows,
+  panes, pane capture of urls/paths/words/hashes/ips, buffers, and browsers for keys, options, formats,
+  styles and hooks) and `youtube` (yt-dlp search with recent searches; play, audio, browser and mp3).
+- Layered config: fzx defaults, then the module's `config.sh`, then `~/.config/fzx/config.sh`, then
+  per-module user config. `fzx config` shows the resolved result.
+- Help and debugging: f1 lists every binding, the free keys and the component rows. f2 shows session
+  state. `fzx debug tail`, `attach`, `state` and `send` work over the session's fzf socket.
+  `FZX_TRACE` logs fzf events.
+- Persist policies, session garbage collection (`fzx gc`), usage statistics (`fzx stats`) and a prompt
+  icon with a loading state.
+- prettypath icons and colors on file and directory lists (`FZX_PRETTY`).
+- Shell integration: zsh widgets (`shell/fzx.zsh`), `g` / `gg` / `v` through `fzx jump`, and
+  `just install`.
+- shellcheck linting (`just lint`) and a CI workflow.
+
+[Unreleased]: https://github.com/njhoffman/fzx/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/njhoffman/fzx/releases/tag/v0.1.0
