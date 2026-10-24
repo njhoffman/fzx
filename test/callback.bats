@@ -177,6 +177,25 @@ set_modes() {
   [ "$output" = bell ]
 }
 
+@test "nav escape: aborts at the root and returns to the immediate parent from descendants" {
+  local root="$FZX_SESSION" child grandchild
+  run "$FZX" _cb nav escape
+  [ "$status" -eq 0 ]
+  [ "$output" = abort ]
+  run "$FZX" _cb nav goto counter --child
+  child="${output##* }"
+  FZX_SESSION="$child" run "$FZX" _cb nav goto counter --grandchild
+  grandchild="${output##* }"
+  FZF_QUERY='saved child query' FZF_POS=3 FZX_SESSION="$grandchild" run "$FZX" _cb nav escape
+  [ "$status" -eq 0 ]
+  [ "$output" = "become:$FZX --resume $child" ]
+  [ "$(cat "$FZX_RUNTIME_DIR/sessions/$grandchild/state/query")" = 'saved child query' ]
+  [ "$(cat "$FZX_RUNTIME_DIR/sessions/$grandchild/state/pos")" = 3 ]
+  FZX_SESSION="$child" run "$FZX" _cb nav escape
+  [ "$status" -eq 0 ]
+  [ "$output" = "become:$FZX --resume $root" ]
+}
+
 @test "nav goto: creates a child linked to its parent and the root" {
   local parent="$FZX_SESSION" owner
   owner="$(< "$FZX_SESSION_DIR/meta/owner_pid")"

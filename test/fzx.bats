@@ -62,9 +62,24 @@ setup() {
   [ "$(fzf_bind ctrl-r)" = "ctrl-r:reload($FZX _cb source)" ]
   [ "$(fzf_bind alt-r)" = "alt-r:transform:$FZX _cb nav resume" ]
   [ "$(fzf_bind alt-left)" = "alt-left:transform:$FZX _cb nav back" ]
+  [ "$(fzf_bind esc)" = "esc:transform:$FZX _cb nav escape" ]
+  ! fzf_bind ctrl-c
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " == *" --listen=$FZX_RUNTIME_DIR/sessions/"*"/fzf.sock "* ]]
   [[ " ${FZF_ARGS[*]} " == *" --with-shell=bash -c "* ]]
+}
+
+@test "the Escape key can be remapped; standalone keeps fzf's Escape behavior" {
+  mkdir -p "$FZX_CONFIG_DIR"
+  printf 'FZX_KEYS[escape]=ctrl-q\n' > "$FZX_CONFIG_DIR/config.sh"
+  run "$FZX" -m ps
+  [ "$status" -eq 0 ]
+  [ "$(fzf_bind ctrl-q)" = "ctrl-q:transform:$FZX _cb nav escape" ]
+  ! fzf_bind esc
+  run "$FZX_REPO/modules/ps/module.sh"
+  [ "$status" -eq 0 ]
+  ! fzf_bind ctrl-q
+  ! fzf_bind esc
 }
 
 @test "module opts are appended after the core opts" {

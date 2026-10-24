@@ -151,7 +151,7 @@ fzx::nav_sort() {
   fzx::_nav_apply sort "$sort"
 }
 
-# fzx::nav <resume | restart | back | placement [next|prev|P] | goto <module[:mode]> [module args...] | entry <module>#<n>>
+# fzx::nav <resume | restart | back | escape | placement [next|prev|P] | goto <module[:mode]> [module args...] | entry <module>#<n>>
 # Saves the query and cursor position of the current session, then prints become() into the target.
 fzx::nav() {
   local action="${1:-}"
@@ -171,6 +171,7 @@ fzx::nav() {
       fzx::_nav_become "$FZX_SESSION"
       ;;
     back) fzx::_nav_back ;;
+    escape) fzx::_nav_back abort ;;
     placement) fzx::_nav_placement "$@" ;;
     # the old name of the placement key's action
     popout) fzx::_nav_placement next ;;
@@ -192,7 +193,7 @@ fzx::_nav_become() {
   printf 'become:%s' "$cmd"
 }
 
-# resume the parent session; at the root there is nowhere to go
+# Resume the parent session; optional root action (Escape aborts, back rings the bell).
 fzx::_nav_back() {
   local parent
   if fzx::meta_get parent parent && [[ -d "$FZX_SESSIONS_DIR/$parent/meta" ]]; then
@@ -200,8 +201,12 @@ fzx::_nav_back() {
     _FZX_STAT=(nav - back)
     fzx::_nav_become "$parent"
   else
-    _FZX_STAT=(nav - back:none)
-    printf 'bell'
+    if [[ "${1:-bell}" == abort ]]; then
+      _FZX_STAT=(nav - abort)
+    else
+      _FZX_STAT=(nav - back:none)
+    fi
+    printf '%s' "${1:-bell}"
   fi
 }
 

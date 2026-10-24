@@ -14,6 +14,7 @@ declare -gA FZX_KEYS=(
   [sort_next]=f12
   [sort_prev]=f11
   [back]=alt-left
+  [escape]=esc
   [popout]=ctrl-space
   [help]=f1
   [debug]=f2

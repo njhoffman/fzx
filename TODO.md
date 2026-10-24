@@ -75,8 +75,8 @@ Design questions for these are in `docs/components.md` (decided; what is built i
       color and layout (title, the entry's description, its summary, the module's modes and keys).
 - [ ] **Version in the help** (p3) [feature]: show fzx's version (a VERSION file or `git describe`; there are
       no tags yet) at the top of the f1 page, and in `fzx --version`.
-- [ ] **Escape goes back** (p1) [feature]: esc (and ctrl-c?) exits only on the root screen; on a child screen
-      it goes back to the parent, like alt-left. Bind esc to a nav callback that prints `abort` at the root.
+- [x] **Escape goes back** (p1) [feature]: esc exits only on the root screen; on a child screen
+      it goes back to the parent, like alt-left. Configurable via `FZX_KEYS[escape]`; ctrl-c keeps aborting.
 - [ ] **Keys from i3, tmux and autokey** (p2) [feature]: scan ~/.config/i3/config, ~/.config/tmux/tmux.conf
       (root table, -n binds) and ~/.config/autokey for keys they take before fzf sees them; show them in f1 as
       their own section, highlighted differently, and keep them out of the free keys. A setting chooses

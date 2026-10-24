@@ -119,6 +119,7 @@ cache. `fzx gc` removes persistent entries older than `FZX_CACHE_MAX_AGE_DAYS` (
 | Mode change | `alt-0` / `alt-9` | `transform(fzx _cb mode next\|prev)`: `change-border-label`, `change-footer`, `reload`; fzf keeps running and keeps the query. When the mode left or entered has the `restart` flag, it restarts instead: `become(fzx --resume <sid> -m :<mode>)` |
 | Go to module/subscreen | module-defined | `transform(fzx _cb nav goto <module[:mode]> [args])`: save query/pos, find or create the child, `become(fzx --resume <child>)` |
 | Back | `alt-left` | `transform(fzx _cb nav back)`: `become` the parent; `bell` at the root |
+| Escape | `esc` (`FZX_KEYS[escape]`) | `transform(fzx _cb nav escape)`: `become` the parent; `abort` at the root. Ctrl-C keeps fzf's abort behavior. Standalone modules keep fzf's Escape behavior. |
 | Placement | `ctrl-space` | `transform(fzx _cb nav placement next)`: the next `FZX_PLACEMENTS` entry that can run here into the root's `state/placement`, save query/pos; inline/popup: `become(fzx --resume <sid>)`; into or out of a split: `state/relaunch` + `abort`, and the owner relaunches; `bell` when there is nowhere to go |
 
 **Placement** belongs to the session tree (`state/placement` on the root): `inline`, `popup[:OPTS]` or
@@ -305,7 +306,7 @@ resolved config: the callback loads the layers just before the first module func
 | Setting | Default | Meaning |
 |---|---|---|
 | `FZX_FZF_OPTS` | `--ansi --with-shell='bash -c'` | base fzf options for every module |
-| `FZX_KEYS` | core: `reload_hard` ctrl-r, `reload_soft` alt-r, `mode_next` alt-0, `mode_prev` alt-9, `back` alt-left, `popout` ctrl-space, `actions` ctrl-\\ | module navigation keys are `<module>.<name>` (`ps.children`, `files.into`), set in the module's `config.sh`; action keys are in the action rows of `components.tsv` |
+| `FZX_KEYS` | core: `reload_hard` ctrl-r, `reload_soft` alt-r, `mode_next` alt-0, `mode_prev` alt-9, `back` alt-left, `escape` esc, `popout` ctrl-space, `actions` ctrl-\\ | module navigation keys are `<module>.<name>` (`ps.children`, `files.into`), set in the module's `config.sh`; action keys are in the action rows of `components.tsv` |
 | `FZX_COLORS` | `mode_active`, `mode_inactive`, `menu_target`, `menu_summary`, `dim` | SGR parameters for what fzx draws itself |
 | `FZX_FZF_COLORS` | empty | passed as `--color` when set; empty keeps the user's fzf theme |
 | `FZX_HISTORY` | `1` | per-module `--history=$XDG_STATE_HOME/fzx/history/<module>`; `0` leaves fzf's history alone |
@@ -394,7 +395,7 @@ Append-only `$XDG_STATE_HOME/fzx/stats.tsv`, one row per event:
 | `cache` | load served from cache | lines | `session`, `persistent` |
 | `action` | module action | items | `<action>:<rc>` |
 | `mode` | mode switch; mode column is the mode switched from | - | `<from>><to>[:restart]` |
-| `nav` | navigation | - | `goto:<target>`, `back`, `back:none`, `resume`, `restart`, `placement:<placement>\|none` |
+| `nav` | navigation | - | `goto:<target>`, `back`, `back:none`, `abort` (Escape at the root), `resume`, `restart`, `placement:<placement>\|none` |
 
 Previews are not recorded (they run on every focus change; the stats lib is loaded only when a handler
 sets `_FZX_STAT`). The dispatcher writes the row with the duration it already measures, and resolves the
