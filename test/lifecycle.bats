@@ -252,5 +252,5 @@ two_placements() {
 
 @test "the popout key is bound" {
   run "$FZX" -m counter
-  [ "$(fzf_bind ctrl-space)" = "ctrl-space:transform:$FZX _cb nav placement next" ]
+  [ "$(fzf_bind 'ctrl-^')" = "ctrl-^:transform:$FZX _cb nav placement next" ]
 }

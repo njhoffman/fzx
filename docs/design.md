@@ -120,12 +120,23 @@ cache. `fzx gc` removes persistent entries older than `FZX_CACHE_MAX_AGE_DAYS` (
 | Go to module/subscreen | module-defined | `transform(fzx _cb nav goto <module[:mode]> [args])`: save query/pos, find or create the child, `become(fzx --resume <child>)` |
 | Back | `alt-left` | `transform(fzx _cb nav back)`: `become` the parent; `bell` at the root |
 | Escape | `esc` (`FZX_KEYS[escape]`) | `transform(fzx _cb nav escape)`: `become` the parent; `abort` at the root. Ctrl-C keeps fzf's abort behavior. Standalone modules keep fzf's Escape behavior. |
-| Placement | `ctrl-space` | `transform(fzx _cb nav placement next)`: the next `FZX_PLACEMENTS` entry that can run here into the root's `state/placement`, save query/pos; inline/popup: `become(fzx --resume <sid>)`; into or out of a split: `state/relaunch` + `abort`, and the owner relaunches; `bell` when there is nowhere to go |
+| Placement | `ctrl-^` | `transform(fzx _cb nav placement next)`: the next `FZX_PLACEMENTS` entry that can run here into the root's `state/placement`, save query/pos; inline/popup: `become(fzx --resume <sid>)`; into or out of a tmux pane (split, float): `state/relaunch` + `abort`, and the owner relaunches; `bell` when there is nowhere to go |
 
-**Placement** belongs to the session tree (`state/placement` on the root): `inline`, `popup[:OPTS]` or
-`split:DIR[,SIZE]` (DIR up/down/left/right). `fzx -m ps --popup[=OPTS]` or `--split[=DIR,SIZE]` starts
-there; ctrl-space cycles through `FZX_PLACEMENTS` (default `inline popup split:down,40%`), skipping entries
-that cannot run here (popups need tmux 3.3+ or Zellij, splits tmux).
+**Placement** belongs to the session tree (`state/placement` on the root): `inline`, `popup[:OPTS]`,
+`split:DIR[,SIZE]` (DIR up/down/left/right) or `float[:OPTS]`. `fzx -m ps --popup[=OPTS]`,
+`--split[=DIR,SIZE]` or `--float[=OPTS]` starts there; ctrl-^ cycles through `FZX_PLACEMENTS` (default
+`inline split:down,40% popup float`), skipping entries that cannot run here (popups need tmux 3.3+ or
+Zellij, splits tmux, floats a tmux with `new-pane`).
+
+Floats are floating tmux panes (`tmux new-pane`), made by the owner like splits (`fzx::_fzf_pane`), not
+fzf's `--popup`: inside one, `become()` keeps working as in a split. OPTS use the `--popup` syntax
+(`[center|top|bottom|left|right][,W[%]][,H[%]]`, default `FZX_FLOAT_OPTS`), resolved to cells against the
+window's size, since `new-pane` places a pane by its top-left corner.
+
+With `FZF_TMUX` set (fzf's shell integration setting, not `0`) and inside tmux, a new run without a
+placement flag starts where `FZF_TMUX_OPTS` points, read in fzf-tmux syntax: `-p[W[,H]]` (and `-w`/`-h`)
+a popup, `-d`/`-u`/`-l`/`-r` `[SIZE]` a split; no options, or none recognised, a popup (fzf's own
+widgets default to `-d 40%`). Only the start: the placement key still cycles from there.
 
 Popups are fzf's `--popup`, applied on **every** launch. This relies on observed fzf 0.74 behaviour that
 the man page does not describe: a popup is two fzf processes, the original one in the caller's terminal
@@ -306,13 +317,13 @@ resolved config: the callback loads the layers just before the first module func
 | Setting | Default | Meaning |
 |---|---|---|
 | `FZX_FZF_OPTS` | `--ansi --with-shell='bash -c'` | base fzf options for every module |
-| `FZX_KEYS` | core: `reload_hard` ctrl-r, `reload_soft` alt-r, `mode_next` alt-0, `mode_prev` alt-9, `back` alt-left, `escape` esc, `popout` ctrl-space, `actions` ctrl-\\ | module navigation keys are `<module>.<name>` (`ps.children`, `files.into`), set in the module's `config.sh`; action keys are in the action rows of `components.tsv` |
+| `FZX_KEYS` | core: `reload_hard` ctrl-r, `reload_soft` alt-r, `mode_next` alt-0, `mode_prev` alt-9, `back` alt-left, `escape` esc, `popout` ctrl-^, `actions` ctrl-\\ | module navigation keys are `<module>.<name>` (`ps.children`, `files.into`), set in the module's `config.sh`; action keys are in the action rows of `components.tsv` |
 | `FZX_RESERVED_KEYS` | ctrl-f ctrl-b ctrl-u ctrl-w ctrl-g alt-g ctrl-p ctrl-n up down alt-b alt-f scroll-up scroll-down | keys modules may not bind (the user's scrolling and query editing); `fzx::bind` skips a module binding on one and logs a warning. fzx's own keys are not checked. Modules may still take keys the user binds elsewhere (ctrl-e edit replaces the user's `become(nvim)` with a per-module editor action) |
 | `FZX_COLORS` | `mode_active`, `mode_inactive`, `menu_target`, `menu_summary`, `dim` | SGR parameters for what fzx draws itself |
 | `FZX_FZF_COLORS` | empty | passed as `--color` when set; empty keeps the user's fzf theme |
 | `FZX_HISTORY` | `1` | per-module `--history=$XDG_STATE_HOME/fzx/history/<module>`; `0` leaves fzf's history alone |
 | `FZX_ICON`, `FZX_PROMPT`, `FZX_PROMPT_LOADING` | icon per module (Nerd Font), `{icon} ` | the prompt: `{icon}` in `FZX_COLORS[prompt_loading]` from start until `load`, then `[prompt_loaded]`; every reload (ctrl-r, mode/toggle/sort switches, reload actions) goes back to loading first. A blank prompt (`FZX_ICON=""`) keeps fzf's own prompt and binds nothing. `)` is dropped (it would end `change-prompt(...)`) |
-| `FZX_PERSIST`, `FZX_POPUP_OPTS`, `FZX_STATS`, `FZX_SUMMARY_TTL`, `FZX_TRACE`, ... | | see their sections |
+| `FZX_PERSIST`, `FZX_POPUP_OPTS`, `FZX_FLOAT_OPTS`, `FZX_STATS`, `FZX_SUMMARY_TTL`, `FZX_TRACE`, ... | | see their sections |
 
 `fzx config [-m MODULE]` prints the layers that were loaded and the resolved keys, colors, base options
 and settings.

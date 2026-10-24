@@ -97,9 +97,8 @@ Design questions for these are in `docs/components.md` (decided; what is built i
       calling pane, since the popup covers split panes. Per-module settings like the preview layouts.
 - [ ] **Resize the popup with the window** (p3) [feature]: on `resize`, recompute the popup geometry; fzf
       cannot resize a running popup, so this likely means a relaunch (become with the new --popup options).
-- [ ] **Placement key ctrl-^** (p1) [feature]: move the placement cycle from ctrl-space to ctrl-^ (what
-      ctrl-6 sends) and order it inline -> tmux split -> tmux popup. fzx-only on purpose: plain fzf cannot
-      switch placements, so it does not belong in ~/.fzf/.fzfrc.
+- [x] **Placement key ctrl-^** (p1) [feature]: `FZX_KEYS[popout]` is ctrl-^ and the cycle is inline -> split ->
+      popup -> float. fzx-only on purpose: plain fzf cannot switch placements.
 - [ ] **todos** (p2) [module]: scan all projects (ghq, ~/git) for TODO.md files in the format Claude Code keeps
       (`- [ ] **Title** (pN) [category]: ...`, the format of this file) and itemize every open item across them:
       project, priority, category, title; sorted by priority, filterable by project/category (modes or
@@ -126,11 +125,14 @@ Design questions for these are in `docs/components.md` (decided; what is built i
       only or disables the sort keys.
 - [ ] **logs: age dots** (p3) [feature]: a colored dot per log entry showing how recently it was modified
       (the user has this in one of their scripts; get its path to reuse the colors and thresholds).
-- [ ] **tmux floating panes** (p2) [feature]: support tmux floating panes as a placement next to popups and
-      splits (check which tmux version provides them and gate on it).
-- [ ] **FZF_TMUX forces tmux placement** (p2) [feature]: when `FZF_TMUX` (and `FZF_TMUX_OPTS`) is set, launch
-      through fzf-tmux / `--tmux` with those values; whether it is a split or a popup is decided by the
-      variables given (`-d`/`-u`/`-l`/`-r` split, `-p` popup), defaulting to a popup.
+- [x] **tmux floating panes** (p2) [feature]: `float[:OPTS]` placement and `--float[=OPTS]` (tmux `new-pane`,
+      gated on `tmux list-commands new-pane`; tmux next-3.9 here), run by the owner like splits
+      (`fzx::_fzf_pane`); OPTS in fzf's --popup syntax, `FZX_FLOAT_OPTS`, resolved to cells by
+      `fzx::float_geometry`.
+- [x] **FZF_TMUX picks the starting placement** (p2) [feature]: with `FZF_TMUX` set inside tmux, a new run with
+      no placement flag starts where `FZF_TMUX_OPTS` points (fzf-tmux syntax: `-p[W[,H]]`/`-w`/`-h` popup,
+      `-d`/`-u`/`-l`/`-r [SIZE]` split, else popup); fzx's own panes rather than fzf-tmux, so callbacks keep
+      the environment. The placement key still cycles from there.
 - [ ] **Copy feedback in the footer** (p3) [feature]: replace the copy notify-send (fzx actions and ctrl-y/alt-y
       in ~/.fzf/.fzfrc) with a footer message that pops in and clears itself:
       `enter:execute-silent(...)+bell`, `+transform-footer(echo Copied {})`, `+bg-cancel+bg-transform-footer(sleep 1)`.
@@ -334,6 +336,10 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       caller variable with the same `_` name is still shadowed. Keep caller variable names un-prefixed.
 - [ ] **Slow suite** (p3) [test]: `bats test` takes ~2 minutes serially; `bats -j` needs GNU parallel (this
       machine has the moreutils `parallel`).
+- [ ] **Float is two cells smaller than a popup** (p3) [bug]: for the same spec (`center,80%` in a 200x49
+      window) the fzf popup's content is 160x39 and the float's is 158x37, because `fzx::float_geometry` gives
+      new-pane the outer size and the border takes a cell on each side. Add the border to the size (clamped
+      to the window) so cycling popup -> float does not shrink the list.
 
 ## Suggestions outside this repo
 

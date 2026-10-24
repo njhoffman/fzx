@@ -6,6 +6,22 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-24
+
+### Added
+
+- `float` placement: fzx runs in a floating tmux pane (`tmux new-pane`, which needs a tmux that has it).
+  Start there with `--float[=OPTS]`; OPTS use fzf's `--popup` syntax, and the default is
+  `FZX_FLOAT_OPTS` (`center,80%`).
+- `FZF_TMUX` / `FZF_TMUX_OPTS` (the variables fzf's shell integration reads) now choose where a new
+  fzx run starts inside tmux: `-p` gives a popup, `-d` / `-u` / `-l` / `-r` a split, and anything else
+  a popup. A `--popup`, `--split` or `--float` flag overrides them.
+
+### Changed
+
+- The placement key is now ctrl-^ (it was ctrl-space). The default cycle is inline, split, popup,
+  float.
+
 ## [0.2.0] - 2026-10-24
 
 ### Added
@@ -50,6 +66,7 @@ First versioned release, covering everything built so far.
   `just install`.
 - shellcheck linting (`just lint`) and a CI workflow.
 
-[Unreleased]: https://github.com/njhoffman/fzx/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/njhoffman/fzx/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/njhoffman/fzx/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/njhoffman/fzx/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/njhoffman/fzx/releases/tag/v0.1.0

@@ -4,7 +4,7 @@ Decisions: 1 B (tables, executable allowed), 2 environment variables, 3 a child 
 4 build fzf-tmux splits after checking `become()` in a split, 5 `minimal` in the footer, 6 a `fzf` shell
 function. All of it is built (`docs/design.md`): tables, toggles and sort, header styles, actions, the prompt
 icon, event tracing, the keys page, placements with splits, prettypath. The
-`popout` built-in action was dropped: ctrl-space already does it, and the placement cycle replaces it.
+`popout` built-in action was dropped: the placement key (ctrl-space then, ctrl-^ now) already does it, and the placement cycle replaces it.
 
 PLAN.md (2026-10-20) asks for fzfmenu's reusable pieces in fzx: modes, toggles, actions (with an actions
 menu and a default action), sort keys, header components with styles, per-module prompt icons with a

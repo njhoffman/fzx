@@ -242,7 +242,7 @@ fzx::_nav_placement() {
   if [[ "$next" == inline ]]; then rm -f -- "$root_dir/state/placement"; else fzx::_kv_set "$root_dir/state/placement" "$next"; fi
   fzx::log info "nav placement: $current -> $next"
   _FZX_STAT=(nav - "placement:$next")
-  if [[ "$current" == split:* || "$next" == split:* ]]; then
+  if fzx::placement_pane "$current" || fzx::placement_pane "$next"; then
     fzx::_kv_set "$root_dir/state/relaunch" 1
     printf 'abort'
   else

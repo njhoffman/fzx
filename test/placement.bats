@@ -1,5 +1,6 @@
 #!/usr/bin/env bats
-# placements: the cycle through FZX_PLACEMENTS, --split, the owner's split pane and its relaunch loop
+# placements: the cycle through FZX_PLACEMENTS, --split/--float, the owner's tmux panes, the relaunch loop and
+# FZF_TMUX
 
 load test_helper
 
@@ -11,14 +12,17 @@ setup() {
   mkdir -p "$FZX_CONFIG_DIR"
 }
 
-# stub tmux: split-window runs the pane's command in the background and prints a pane id; list-panes
-# lists that pane while the command runs (never, with $BATS_TEST_TMPDIR/closed). Calls go to tmux.calls.
+# stub tmux: split-window and new-pane run the pane's command in the background and print a pane id;
+# list-panes lists that pane while the command runs (never, with $BATS_TEST_TMPDIR/closed); the window is
+# 200x50; list-commands fails with $STUB_TMUX_OLD (a tmux without new-pane). Calls go to tmux.calls.
 stub_tmux() {
   cat > "$BATS_TEST_TMPDIR/bin/tmux" << 'STUB'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "$BATS_TEST_TMPDIR/tmux.calls"
 case "$1" in
-  split-window)
+  list-commands) [[ -z "${STUB_TMUX_OLD:-}" ]] || exit 1 ;;
+  display-message) echo "200 50" ;;
+  split-window | new-pane)
     sh -c "${!#}" > /dev/null 2>&1 < /dev/null &
     echo "$!" > "$BATS_TEST_TMPDIR/pane.pid"
     echo %9
@@ -39,21 +43,35 @@ kept() {
   DIR="$FZX_RUNTIME_DIR/sessions/$SID"
 }
 
-@test "the cycle: inline -> popup restarts through become; into and out of a split the owner relaunches" {
+@test "the cycle: inline -> split -> popup -> float; into and out of a tmux pane the owner relaunches" {
   kept
-  FZX_SESSION="$SID" run "$FZX" _cb nav placement next
-  [ "$output" = "become:$FZX --resume $SID" ]
-  [ "$(< "$DIR/state/placement")" = popup ]
-  [ ! -f "$DIR/state/relaunch" ]
-  FZX_SESSION="$SID" run "$FZX" _cb nav placement next
-  [ "$output" = abort ]
-  [ "$(< "$DIR/state/placement")" = split:down,40% ]
-  [ -f "$DIR/state/relaunch" ]
-  rm "$DIR/state/relaunch"
+  local p
+  for p in split:down,40% popup float; do
+    FZX_SESSION="$SID" run "$FZX" _cb nav placement next
+    [ "$output" = abort ]
+    [ "$(< "$DIR/state/placement")" = "$p" ]
+    [ -f "$DIR/state/relaunch" ]
+    rm "$DIR/state/relaunch"
+  done
   FZX_SESSION="$SID" run "$FZX" _cb nav placement next
   [ "$output" = abort ]
   [ ! -f "$DIR/state/placement" ]
   [ -f "$DIR/state/relaunch" ]
+  # between inline and a popup, become() restarts in place
+  echo 'FZX_PLACEMENTS=(inline popup)' > "$FZX_CONFIG_DIR/config.sh"
+  rm "$DIR/state/relaunch"
+  FZX_SESSION="$SID" run "$FZX" _cb nav placement next
+  [ "$output" = "become:$FZX --resume $SID" ]
+  [ ! -f "$DIR/state/relaunch" ]
+}
+
+@test "float: skipped by the cycle on a tmux without new-pane" {
+  echo 'FZX_PLACEMENTS=(inline float)' > "$FZX_CONFIG_DIR/config.sh"
+  kept
+  STUB_TMUX_OLD=1 FZX_SESSION="$SID" run "$FZX" _cb nav placement next
+  [ "$output" = bell ]
+  STUB_TMUX_OLD=1 TMUX=fake run "$FZX" -m counter --float
+  grep -q 'placement float is not available here' "$LOG"
 }
 
 @test "the cycle skips what cannot run here; prev and a named placement; no move rings the bell" {
@@ -81,6 +99,72 @@ kept() {
   rm -rf "$FZX_RUNTIME_DIR/sessions"
   kept --popup=top,40%
   [ "$(< "$DIR/state/placement")" = popup:top,40% ]
+  rm -rf "$FZX_RUNTIME_DIR/sessions"
+  kept --float
+  [ "$(< "$DIR/state/placement")" = float ]
+  rm -rf "$FZX_RUNTIME_DIR/sessions"
+  kept --float=right,40%
+  [ "$(< "$DIR/state/placement")" = float:right,40% ]
+}
+
+@test "float: the owner runs the session in a floating pane, placed in cells from the --popup syntax" {
+  STUB_FZF_OUT=picked run "$FZX" -m counter --float
+  [ "$status" -eq 0 ]
+  [ "$output" = picked ]
+  # FZX_FLOAT_OPTS center,80% of a 200x50 window
+  grep -q -- "^new-pane -P -F #{pane_id} -c $PWD -x 160 -y 40 -X 20 -Y 5 " "$BATS_TEST_TMPDIR/tmux.calls"
+  grep -q 'fzf exec module=counter' "$LOG"
+  [ -z "$(session_dirs)" ]
+  rm "$BATS_TEST_TMPDIR/tmux.calls"
+  run "$FZX" -m counter --float=bottom,30%
+  grep -q -- "^new-pane .* -x 200 -y 15 -X 0 -Y 35 " "$BATS_TEST_TMPDIR/tmux.calls"
+  run "$FZX" -m counter --float=sideways
+  [ "$status" -eq 2 ]
+}
+
+@test "float geometry: positions and sizes like fzf's --popup" {
+  load_libs log run
+  local g
+  fzx::float_geometry center,80% 200 50 g && [ "$g" = "-x 160 -y 40 -X 20 -Y 5" ]
+  fzx::float_geometry "" 200 50 g && [ "$g" = "-x 100 -y 25 -X 50 -Y 12" ]
+  fzx::float_geometry right,40% 200 50 g && [ "$g" = "-x 80 -y 50 -X 120 -Y 0" ]
+  fzx::float_geometry left,30 200 50 g && [ "$g" = "-x 30 -y 50 -X 0 -Y 0" ]
+  fzx::float_geometry top,80%,40% 200 50 g && [ "$g" = "-x 160 -y 20 -X 20 -Y 0" ]
+  fzx::float_geometry center,300,90%,border-native 200 50 g && [ "$g" = "-x 200 -y 45 -X 0 -Y 2" ]
+  ! fzx::float_geometry middle,50% 200 50 g
+}
+
+@test "FZF_TMUX: FZF_TMUX_OPTS in fzf-tmux syntax picks the starting placement" {
+  load_libs log run
+  local p
+  _fzf_tmux() { p=""; FZF_TMUX=1 FZF_TMUX_OPTS="$1" fzx::placement_from_fzf_tmux p; }
+  _fzf_tmux "" && [ "$p" = popup ]
+  _fzf_tmux "-p" && [ "$p" = popup ]
+  _fzf_tmux "-p80%,60%" && [ "$p" = popup:center,80%,60% ]
+  _fzf_tmux "-p 70%" && [ "$p" = popup:center,70% ]
+  _fzf_tmux "-p -w 90% -h 50%" && [ "$p" = popup:center,90%,50% ]
+  _fzf_tmux "-d40%" && [ "$p" = split:down,40% ]
+  _fzf_tmux "-d 30" && [ "$p" = split:down,30 ]
+  _fzf_tmux "-u" && [ "$p" = split:up,50% ]
+  _fzf_tmux "-r 40%" && [ "$p" = split:right,40% ]
+  _fzf_tmux "-l25%" && [ "$p" = split:left,25% ]
+  _fzf_tmux "--bogus" && [ "$p" = popup ]
+  # off, or outside tmux
+  ! FZF_TMUX=0 fzx::placement_from_fzf_tmux p
+  ! FZF_TMUX="" fzx::placement_from_fzf_tmux p
+  ! TMUX="" FZF_TMUX=1 fzx::placement_from_fzf_tmux p
+}
+
+@test "FZF_TMUX: a new run starts there; a placement flag wins; resumes are untouched" {
+  FZF_TMUX=1 FZF_TMUX_OPTS="-d 30%" kept
+  [ "$(< "$DIR/state/placement")" = split:down,30% ]
+  rm -rf "$FZX_RUNTIME_DIR/sessions"
+  FZF_TMUX=1 FZF_TMUX_OPTS="-d 30%" kept --float
+  [ "$(< "$DIR/state/placement")" = float ]
+  rm -rf "$FZX_RUNTIME_DIR/sessions"
+  kept
+  FZF_TMUX=1 run "$FZX" --resume "$SID"
+  [ ! -f "$DIR/state/placement" ]
 }
 
 @test "split: the owner runs the session in a tmux pane with its environment and prints its result" {

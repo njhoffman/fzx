@@ -15,7 +15,7 @@ declare -gA FZX_KEYS=(
   [sort_prev]=f11
   [back]=alt-left
   [escape]=esc
-  [popout]=ctrl-space
+  [popout]="ctrl-^"
   [help]=f1
   [debug]=f2
   [actions]="ctrl-\\"
@@ -26,15 +26,20 @@ declare -gA FZX_KEYS=(
 # to let modules have it
 FZX_RESERVED_KEYS=(ctrl-f ctrl-b ctrl-u ctrl-w ctrl-g alt-g ctrl-p ctrl-n up down alt-b alt-f scroll-up scroll-down)
 
-# placement used when popping out into a tmux/Zellij floating pane (fzf --popup syntax)
+# placement of a popup (fzf's --popup on tmux/Zellij) and of a floating tmux pane (tmux new-pane), both in
+# fzf's --popup syntax: [center|top|bottom|left|right][,W[%]][,H[%]]
 FZX_POPUP_OPTS="center,80%"
+FZX_FLOAT_OPTS="center,80%"
 
-# what the placement key (ctrl-space, FZX_KEYS[popout]) cycles through; entries that cannot run here are
-# skipped (popup needs tmux or Zellij, split needs tmux):
+# what the placement key (ctrl-^, FZX_KEYS[popout]) cycles through; entries that cannot run here are
+# skipped (popup needs tmux or Zellij, split needs tmux, float needs a tmux with new-pane). With FZF_TMUX
+# set (fzf's shell integration setting), FZF_TMUX_OPTS (fzf-tmux syntax) picks where fzx starts:
+# -p[W[,H]] a popup, -d/-u/-l/-r [SIZE] a split, anything else a popup; --popup/--split/--float win:
 #   inline              in the calling terminal
-#   popup[:OPTS]        a floating pane (fzf --popup syntax; plain "popup" uses FZX_POPUP_OPTS)
+#   popup[:OPTS]        an fzf popup (--popup syntax; plain "popup" uses FZX_POPUP_OPTS)
 #   split:DIR[,SIZE]    a tmux split pane: DIR up, down, left or right; SIZE lines, columns or a percentage
-FZX_PLACEMENTS=(inline popup "split:down,40%")
+#   float[:OPTS]        a floating tmux pane (plain "float" uses FZX_FLOAT_OPTS)
+FZX_PLACEMENTS=(inline "split:down,40%" popup float)
 
 # what happens to loaded data (set per module in its config.sh; users can override per module):
 #   none         no cache: every load runs the source

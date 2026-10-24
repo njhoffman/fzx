@@ -24,6 +24,12 @@ changing lib/ or adding a module).
 - Tests are isolated through `setup_fzx` (runtime, state, config and cache dirs under `$BATS_TEST_TMPDIR`).
 - Verify UI changes live in a detached tmux server (`tmux -L <name>`); drive popups through the session's
   `fzf.sock`, since `send-keys` only reaches the pane underneath.
+- Live checks that need an attached client (popups) must not use `script ... < /dev/zero`: it floods the client
+  with NUL (ctrl-space) keystrokes and once pegged the CPU until a hard reboot. Attach from a second detached
+  server (`tmux -L outer new-session -d "env -u TMUX tmux -L <name> attach"`) and run the whole check under
+  `systemd-run --user --wait --pipe --collect -p CPUQuota=50% -p MemoryMax=1G -p RuntimeMaxSec=60`, so the
+  cgroup, daemonized tmux servers included, is killed when it ends. Keep the runtime dir path short: the
+  fzf.sock path must stay under 108 characters.
 
 ## Roadmap and known issues
 

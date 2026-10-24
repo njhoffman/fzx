@@ -2,7 +2,7 @@
 # run: launch a module in a new session, resume an existing session, or run a module standalone.
 
 # fzx::run_new <module[:mode]> <dry_run> <keep> <placement> [module args...]; the calling process becomes the
-# owner. <placement> is "" (inline) or a FZX_PLACEMENTS entry (popup[:OPTS], split:DIR[,SIZE]).
+# owner. <placement> is "" (inline) or a FZX_PLACEMENTS entry (popup[:OPTS], split:DIR[,SIZE], float[:OPTS]).
 fzx::run_new() {
   local target="$1" dry_run="$2" keep="$3" placement="$4" module mode="" dir
   shift 4
@@ -27,7 +27,7 @@ fzx::run_new() {
   local rc current
   fzx::_launch "$dry_run" "$mode"
   rc=$?
-  # a placement change that fzf cannot make with become() (into or out of a split pane) ends the fzf on
+  # a placement change that fzf cannot make with become() (into or out of a tmux pane) ends the fzf on
   # screen and leaves state/relaunch on the root: launch the screen the user was on again, placed anew
   while ((!dry_run)) && [[ -f "$FZX_SESSIONS_DIR/$_FZX_ROOT_SESSION/state/relaunch" ]]; do
     rm -f -- "$FZX_SESSIONS_DIR/$_FZX_ROOT_SESSION/state/relaunch"
@@ -164,7 +164,7 @@ fzx::placement() {
   fzx::meta_get root _root || _root="$FZX_SESSION"
   fzx::_kv_get "$FZX_SESSIONS_DIR/$_root/state/placement" _p || _p=inline
   if ! fzx::placement_ok "$_p"; then
-    fzx::log warn "placement $_p is not available here (popup needs tmux or Zellij, split tmux), running inline"
+    fzx::log warn "placement $_p is not available here (popup needs tmux or Zellij, split tmux, float tmux with new-pane), running inline"
     _p=inline
   fi
   printf -v "$1" '%s' "$_p"
@@ -176,8 +176,52 @@ fzx::placement_ok() {
     inline) return 0 ;;
     popup | popup:*) [[ -n "${TMUX:-}" || -n "${ZELLIJ:-}" ]] ;;
     split:*) [[ -n "${TMUX:-}" ]] && command -v tmux > /dev/null ;;
+    float | float:*) [[ -n "${TMUX:-}" ]] && tmux list-commands new-pane > /dev/null 2>&1 ;;
     *) return 1 ;;
   esac
+}
+
+# fzx::placement_pane <placement>: it runs in a tmux pane the owner makes (moving into or out of one needs a
+# relaunch, become() cannot do it)
+fzx::placement_pane() {
+  [[ "$1" == split:* || "$1" == float || "$1" == float:* ]]
+}
+
+# fzx::placement_from_fzf_tmux <var>: the starting placement FZF_TMUX asks for (fzf's shell integration
+# setting), from FZF_TMUX_OPTS in fzf-tmux syntax: -p[W[,H]] (with -w W / -h H) a popup, -d/-u/-l/-r [SIZE]
+# a split down/up/left/right; nothing recognised, or no options, a popup. Fails when FZF_TMUX is off or
+# this is not inside tmux.
+fzx::placement_from_fzf_tmux() {
+  local _var="$1" _o _opts=() _p="" _w="" _h="" _i _val
+  [[ -n "${FZF_TMUX:-}" && "${FZF_TMUX}" != 0 && -n "${TMUX:-}" ]] || return 1
+  read -ra _opts <<< "${FZF_TMUX_OPTS:-}"
+  for ((_i = 0; _i < ${#_opts[@]}; _i++)); do
+    _o="${_opts[_i]}"
+    _val="${_o:2}"
+    # a value may follow as its own word: -d 40%, -p 80%,60%
+    if [[ -z "$_val" && "${_opts[_i + 1]:-}" =~ ^[0-9] ]]; then
+      _val="${_opts[_i + 1]}"
+      ((_i++))
+    fi
+    case "$_o" in
+      -p*)
+        _p=popup _w="${_val%%,*}"
+        [[ "$_val" == *,* ]] && _h="${_val#*,}"
+        ;;
+      -w*) _w="$_val" ;;
+      -h*) _h="$_val" ;;
+      -d*) _p="split:down,${_val:-50%}" ;;
+      -u*) _p="split:up,${_val:-50%}" ;;
+      -l*) _p="split:left,${_val:-50%}" ;;
+      -r*) _p="split:right,${_val:-50%}" ;;
+      *) fzx::log debug "FZF_TMUX_OPTS: $_o ignored" ;;
+    esac
+  done
+  if [[ -z "$_p" || "$_p" == popup ]]; then
+    _p=popup
+    [[ -n "$_w" ]] && _p="popup:center,$_w${_h:+,$_h}"
+  fi
+  printf -v "$_var" '%s' "$_p"
 }
 
 # popups are fzf's own --popup, asked for on every launch: become() inside a popup runs in the caller's
@@ -215,6 +259,9 @@ fzx::_fzf() {
   if [[ "$p" == split:* ]]; then
     fzx::log info "fzf start in a split ($p) module=$FZX_MODULE mode=$FZX_MODE"
     fzx::_fzf_split "${p#split:}"
+  elif [[ "$p" == float || "$p" == float:* ]]; then
+    fzx::log info "fzf start in a floating pane ($p) module=$FZX_MODULE mode=$FZX_MODE"
+    fzx::_fzf_float "${p#float}"
   else
     fzx::log info "fzf start module=$FZX_MODULE mode=$FZX_MODE opts=${#FZX_OPTS[@]}"
     fzf "${FZX_OPTS[@]}" < /dev/null
@@ -225,12 +272,9 @@ fzx::_fzf() {
   return "$rc"
 }
 
-# fzx::_fzf_split <DIR[,SIZE]>: run the current session in a new tmux split pane and wait for it; its output
-# becomes ours. fzf-tmux is not used: it passes only TERM and the FZF_* options into the pane, and the
-# callbacks need the whole environment (FZX_SESSION, the directories, module settings). The pane runs
-# `fzx --resume` (not the owner, so it execs fzf, and become() keeps working inside the pane).
+# fzx::_fzf_split <DIR[,SIZE]>: run the current session in a new tmux split pane (fzx::_fzf_pane)
 fzx::_fzf_split() {
-  local spec="$1" dir size flags=() pane rc=130 base="$FZX_SESSION_DIR/split" cmd
+  local spec="$1" dir size flags=()
   dir="${spec%%,*}"
   size=""
   [[ "$spec" == *,* ]] && size="${spec#*,}"
@@ -246,17 +290,79 @@ fzx::_fzf_split() {
       ;;
   esac
   [[ -n "$size" ]] && flags+=(-l "$size")
+  fzx::_fzf_pane split-window "${flags[@]}"
+}
+
+# fzx::_fzf_float <:OPTS|"">: run the current session in a new floating tmux pane (tmux new-pane), placed
+# like fzf's --popup: [center|top|bottom|left|right][,W[%]][,H[%]], default FZX_FLOAT_OPTS
+fzx::_fzf_float() {
+  local spec="${1#:}" geo ww wh
+  [[ -n "$spec" ]] || spec="${FZX_FLOAT_OPTS:-center,80%}"
+  if ! read -r ww wh < <(tmux display-message -p '#{window_width} #{window_height}' 2> /dev/null) ||
+    ! fzx::float_geometry "$spec" "$ww" "$wh" geo; then
+    fzx::log error "bad float options or no window size: $spec"
+    printf 'fzx: bad float options: %s\n' "$spec" >&2
+    return 2
+  fi
+  # shellcheck disable=SC2086  # geo is "-x W -y H -X X -Y Y", numbers only
+  fzx::_fzf_pane new-pane $geo
+}
+
+# fzx::float_geometry <spec> <window width> <window height> <var>: new-pane's "-x W -y H -X X -Y Y" in cells
+# for a spec in fzf's --popup syntax. One size is both sides at the center, the width on the left or
+# right (full height) and the height at the top or bottom (full width).
+fzx::float_geometry() {
+  local _spec="$1" _ww="$2" _wh="$3" _pos=center _sizes=() _t _w _h _x _y
+  local IFS=,
+  for _t in $_spec; do
+    case "$_t" in
+      center | top | bottom | left | right) _pos="$_t" ;;
+      border-native | "") ;;
+      *[0-9] | *[0-9]%) _sizes+=("$_t") ;;
+      *) return 1 ;;
+    esac
+  done
+  unset IFS
+  case "$_pos:${#_sizes[@]}" in
+    *:0) _w=50% _h=50% ;;
+    center:1) _w="${_sizes[0]}" _h="${_sizes[0]}" ;;
+    left:1 | right:1) _w="${_sizes[0]}" _h=100% ;;
+    top:1 | bottom:1) _w=100% _h="${_sizes[0]}" ;;
+    *) _w="${_sizes[0]}" _h="${_sizes[1]}" ;;
+  esac
+  [[ "$_w" == *% ]] && _w=$((_ww * ${_w%\%} / 100))
+  [[ "$_h" == *% ]] && _h=$((_wh * ${_h%\%} / 100))
+  ((_w > _ww)) && _w="$_ww"
+  ((_h > _wh)) && _h="$_wh"
+  _x=$(((_ww - _w) / 2)) _y=$(((_wh - _h) / 2))
+  case "$_pos" in
+    left) _x=0 ;;
+    right) _x=$((_ww - _w)) ;;
+    top) _y=0 ;;
+    bottom) _y=$((_wh - _h)) ;;
+  esac
+  printf -v "$4" -- '-x %s -y %s -X %s -Y %s' "$_w" "$_h" "$_x" "$_y"
+}
+
+# fzx::_fzf_pane <tmux command> [flags...]: run the current session in the tmux pane that command makes
+# (split-window, new-pane) and wait for it; its output becomes ours. fzf-tmux is not used: it passes only
+# TERM and the FZF_* options into the pane, and the callbacks need the whole environment (FZX_SESSION, the
+# directories, module settings). The pane runs `fzx --resume` (not the owner, so it execs fzf, and become()
+# keeps working inside the pane).
+fzx::_fzf_pane() {
+  local tmux_cmd="$1" pane rc=130 base="$FZX_SESSION_DIR/split" cmd
+  shift
   rm -f -- "$base".out "$base".rc
   # the pane inherits tmux's environment, not ours: replay our exported variables there
   export -p | grep -vE '^declare -x (PWD|OLDPWD|SHLVL|TMUX_PANE|_)=' > "$base.env"
   printf -v cmd 'source %q; export FZX_SPLIT_PANE=1; %q --resume %q > %q; echo $? > %q' \
     "$base.env" "$FZX_BIN" "$FZX_SESSION" "$base.out" "$base.rc"
-  if ! pane="$(tmux split-window -P -F '#{pane_id}' -c "$PWD" "${flags[@]}" "bash -c $(printf '%q' "$cmd")")"; then
-    fzx::log error "tmux split-window failed, running inline"
+  if ! pane="$(tmux "$tmux_cmd" -P -F '#{pane_id}' -c "$PWD" "$@" "bash -c $(printf '%q' "$cmd")")"; then
+    fzx::log error "tmux $tmux_cmd failed, running inline"
     fzf "${FZX_OPTS[@]}" < /dev/null
     return
   fi
-  fzx::log info "split pane $pane"
+  fzx::log info "$tmux_cmd pane $pane"
   # until the pane reports, or disappears (closed by hand)
   while [[ ! -s "$base.rc" ]] && tmux list-panes -a -F '#{pane_id}' 2> /dev/null | grep -qxF -- "$pane"; do
     sleep 0.1
