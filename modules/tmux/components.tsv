@@ -1,0 +1,38 @@
+# kind  name  key  description  flags
+mode  sessions   -  tmux sessions                         default
+mode  windows    -  windows across all sessions           -
+mode  panes      -  panes across all sessions             -
+mode  lines      -  pane capture: nonempty lines          -
+mode  urls       -  pane capture: URLs                    -
+mode  paths      -  pane capture: paths (may include line numbers)  -
+mode  words      -  pane capture: words and identifiers   -
+mode  hashes     -  pane capture: hexadecimal hashes      -
+mode  ips        -  pane capture: IPv4 addresses          -
+mode  buffers    -  paste buffers                         -
+mode  keys       -  key bindings in every table           -
+mode  commands   -  command signatures                   -
+mode  options    -  server, session, window and pane options  -
+mode  variables  -  format variables and current values  -
+mode  styles     -  style options                         -
+mode  formats    -  format templates with rendered samples  -
+mode  status     -  rendered status-left and status-right   -
+mode  hooks      -  hooks by scope                         -
+toggle  visible  alt-v  capture only the visible viewport (including copy mode)  -
+toggle  changed  alt-d  keys/options/hooks: only changes and local overrides    -
+toggle  unassigned  alt-u  keys: show free keys in the selected table           -
+toggle  empty    alt-e  variables: include empty documented values             -
+toggle  short    alt-c  commands: show names and aliases only                   -
+action  switch  alt-s   switch to session, window or pane (attach outside tmux)  become
+action  kill    ctrl-x  kill session, window, pane or delete buffer            foreground,reload,confirm
+action  rename  alt-n   rename session, window or pane title                  foreground,reload
+action  move    alt-m   move window to session or pane to another pane        foreground,reload
+action  swap    -       swap two windows or panes                             foreground,reload
+action  link    -       link window into another session                      foreground,reload
+action  mark    -       mark selected pane                                    silent,reload
+action  paste   alt-p   paste buffer or captured text into the origin pane    silent
+action  next-session  -  switch to the next session matching the prefix        become
+action  prev-session  -  switch to the previous session matching the prefix    become
+action  theme-main    -  apply the main theme to the selected session           foreground,reload
+action  theme-float   -  apply the floating theme to the selected session       foreground,reload
+action  scratch       -  open the scratch popup shell                          foreground
+action  nvim-layout   -  open the nvim editor and log layout                     foreground

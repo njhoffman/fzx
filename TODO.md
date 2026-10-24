@@ -144,10 +144,14 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 
 ### tmux and desktop
 
-- [ ] **tmux** (p1) [module]: sessions, windows and panes (switch, kill, rename, move), pane capture with URL,
+- [x] **tmux** (p1) [module]: sessions, windows and panes (switch, kill, rename, move), pane capture with URL,
       path and line extraction (tmux-butler/quetty patterns), paste buffers. Refs: widgets/tmux/*
       (ftsess, ftwind, ftpane, tmux-butler, quetty, tmux-url, fzf.tmux-capture*), proto-widgets/tmux/*.
-      Has: tmux.
+      Has: tmux. Implemented with window/session/server capture scopes, viewport toggle, words/hashes/IPs,
+      reference browsers from tmux.* aliases, link/swap/mark actions. Usage and remaining ideas: docs/tmux.md.
+      Styled reference tables/previews, key notes/defaults/free keys, scoped hooks/options/overrides,
+      variable aliases/descriptions, rendered styles/formats/status and offline samples; alias actions
+      for next/previous sessions, themes, scratch popup and nvim layout.
 - [ ] **i3** (p3) [module]: windows and workspaces (focus, move), scratchpads. Refs: list.md "i3". Has: i3-msg.
 - [ ] **displays** (p3) [module]: xrandr outputs and modes. Has: xrandr.
 - [ ] **fonts** (p3) [module]: fc-list families with a sample preview. Has: fc-list.
