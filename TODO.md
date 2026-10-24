@@ -109,6 +109,54 @@ Design questions for these are in `docs/components.md` (decided; what is built i
 - [ ] **Preview script upgrade** (p2) [feature] (~/.fzf/core/preview.sh): handle more file types, and report
       which detector and renderer it chose (to fzx's log, or a debug header) so it is clear why content
       looks the way it does. The same detection then serves piping (below): what kind of content is piped in.
+- [ ] **Previewer command setting** (p2) [feature]: an env variable / config value for the syntax viewer command
+      line (preferred: `nvimpager -c`; default `bat`), plus per-file-type viewers (e.g. a map of glob or mime
+      to command). The logic belongs in the preview script (above), with fzx passing the setting through.
+- [ ] **Preferred finder and grepper** (p2) [feature]: config values for the file/directory finder and the
+      grepper (the user wants `fdfind` and `ripgrep`). In grep mode, a toggle between the query driving the
+      grepper (reload per keystroke) and filtering the grepped results within fzf; show which one is active
+      (the grep term moves to the header label or after the prompt) and freeze the grep term while in fzf
+      search mode (switch back to edit it). A key that puts the grepper/finder arguments into the prompt,
+      enter applies them; show the current arguments in the preview's top line or a label.
+- [ ] **Multiline toggle for grep** (p3) [feature]: a key in `files:grep` that toggles multiline matching
+      (`rg -U --multiline-dotall`) and reloads.
+- [ ] **Sort by column in every module** (p2) [feature]: sort rows for as many modules as possible (not just
+      ps), and highlight the sorted column with `change-nth` plus `--color nth:regular,fg:dim`. ps:tree
+      does not sort (it sets `--no-sort` and the tree order must hold); decide whether tree sorts siblings
+      only or disables the sort keys.
+- [ ] **logs: age dots** (p3) [feature]: a colored dot per log entry showing how recently it was modified
+      (the user has this in one of their scripts; get its path to reuse the colors and thresholds).
+- [ ] **tmux floating panes** (p2) [feature]: support tmux floating panes as a placement next to popups and
+      splits (check which tmux version provides them and gate on it).
+- [ ] **FZF_TMUX forces tmux placement** (p2) [feature]: when `FZF_TMUX` (and `FZF_TMUX_OPTS`) is set, launch
+      through fzf-tmux / `--tmux` with those values; whether it is a split or a popup is decided by the
+      variables given (`-d`/`-u`/`-l`/`-r` split, `-p` popup), defaulting to a popup.
+- [ ] **Copy feedback in the footer** (p3) [feature]: replace the copy notify-send (fzx actions and ctrl-y/alt-y
+      in ~/.fzf/.fzfrc) with a footer message that pops in and clears itself:
+      `enter:execute-silent(...)+bell`, `+transform-footer(echo Copied {})`, `+bg-cancel+bg-transform-footer(sleep 1)`.
+- [ ] **All keys list** (p3) [feature]: a key that opens fzf's `--keys` names (every key fzf knows, one per
+      line) in their own fzf screen, marking the bound ones with their action.
+- [ ] **Keys grid in f1** (p2) [feature]: an alternate keys layout grouped by modifier prefix, like the free keys
+      section (`ctrl-  up down left right home end`, `shift-  ...`), with the used ones highlighted; shift-f1
+      opens it instead of the usual page.
+- [ ] **Components at the top of the keys page** (p3) [feature]: move the components section of the f1
+      keybindings preview to the top.
+- [ ] **Actions menu key toggles back** (p2) [feature]: pressing the actions menu key while in the actions
+      menu returns to the screen it was opened from.
+- [ ] **Several keys per action** (p2) [feature]: fzf takes `key1,key2:action`, but `FZX_KEYS` holds one key per
+      action and `fzx::bind` (lib/opts.sh) records the joined string as one help row, so f1, the free keys
+      and the "bound twice" check do not see the individual keys. Allow lists in `FZX_KEYS` and split them
+      in `fzx::bind`.
+- [ ] **ctrl-backspace goes back** (p3) [feature]: bind it with alt-left (depends on the item above). Check
+      what the terminal sends: many send ctrl-h or the plain backspace code, which fzf cannot tell apart
+      from backspace, and it would then stop deleting query characters.
+- [ ] **FZX_ variables in the debug views** (p3) [feature]: the preview debug screen (alt-_) and f2 show
+      `FZF_*` only in places; list every `FZX_*` parameter in both.
+- [ ] **fzf sandbox** (p2) [feature]: a mode for trying fzf options live: a target fzf started with `--listen`,
+      the sandbox picks options to change and actions to send (POST to the socket), and reads the target's
+      event log (a bind on each event writing to a file) to show what fired. Options that cannot change at
+      runtime need a wrapper that relaunches the target. A walkthrough mode that steps through fzf's
+      CHANGELOG and runs its code examples.
 
 ## Module candidates
 
@@ -227,8 +275,15 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [ ] **ssh** (p3) [module]: hosts from ~/.ssh/config and known_hosts, connect or scp. Refs: vendors/widgets/
       fzf-exec-ssh, system/fzscp, fzf-scripts/sshget. Has: ssh, scp, rsync. No ~/.ssh/config here.
 - [ ] **tasks-personal** (p3) [module]: taskwarrior tasks and calcurse appointments. Has: task, calcurse.
-- [ ] **media** (p3) [module]: YouTube search and play (ytfzf already covers it; a thin module over yt-dlp + mpv).
+- [x] **media** (p3) [module]: YouTube search and play: the youtube module (yt-dlp search with a cache and
+      recent searches; play, audio, browser and mp3 actions).
       Has: ytfzf, yt-dlp, mpv.
+- [ ] **youtube follow-ups** (p2) [module] (modules/youtube): thumbnails in the preview; after a
+      result is chosen, list its formats (`yt-dlp <url> --list-formats`) to pick the download from, with an
+      `mp3` entry that downloads the mp4 (`-t mp4`), extracts the audio
+      (`ffmpeg -i video.mp4 -vn -c:a libmp3lame -q:a 2 audio.mp3`) and removes the mp4. The current mp3
+      action uses `yt-dlp -x --audio-format mp3`, which already does this in one step; keep it unless the
+      two-step path is needed.
 - [ ] **web search** (p3) [module]: DuckDuckGo, GitHub, Stack Overflow queries opening in the browser.
       Refs: fz-surfraw.sh, fzf-scripts/ddgsearch, ref/mods/stack.sh, wiki.sh. Missing: surfraw.
 - [ ] **emoji** (p3) [module]: emoji and gitmoji picker, copy or insert. Refs: fz-emoji.sh, other/fz-gitmoji.
@@ -241,7 +296,12 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       logs' follow elsewhere, and keep a list of reserved keys (scrolling, the user's core fzf keys) that
       modules may not take; the f1 "over yours" notes show where this happens.
 - [ ] **ps colors** (p2) [feature]: color the ps list (user, high cpu/mem, state, the command name apart from
-      its arguments) and its preview.
+      its arguments) and its preview. Port from ~/.fzf/modules/processes.sh; the preview shows colorful,
+      detailed process information (not just the ps line).
+- [x] **youtube tests failing** (p1) [bug] (2026-10-24): the module's scalar settings were assigned
+      unconditionally in its config.sh, so FZX_YOUTUBE_RESULTS / _HISTORY_MAX from the environment were ignored
+      (now `${VAR:-default}`, like config/defaults.sh); the search-failure test counted the stderr message
+      as a row; the no-ffmpeg test set PATH to the stubs only, so `env bash` itself was not found (127).
 - [ ] **Undocumented fzf behaviour we depend on** (p2) [test]: `become()` inside a `--popup` runs in the original
       terminal, so every launch re-requests the popup (`fzx::_placement`). Observed on fzf 0.74 (devel);
       re-check on every fzf upgrade with the popup test in design.md's popout notes.
@@ -258,6 +318,11 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       systemctl and sudo), Zellij popups (tmux only).
 - [ ] **grep mode stats noise** (p3) [bug]: every keystroke in `files:grep` records a `source reload` row;
       record live-search reloads as their own event or not at all.
+- [ ] **Query-driven sources share the mode cache** (p2) [bug]: `files` is `cache:5m`, so every `files:grep`
+      keystroke writes its hits through to the persistent entry for the mode (`fzx::_cb_persistent_path`
+      keys on module, args, cwd and mode, not the query). A new `files:grep` launch within 5 minutes starts
+      with the previous query's hits under an empty prompt. Fix: a per-mode persist override (`none` for
+      query-driven modes), or key the entry on `FZF_QUERY` when the mode is `--disabled`.
 - [ ] **`files` alt-up** (p3) [bug]: each parent directory becomes a new child session instead of reusing an
       existing ancestor in the tree; harmless (cleaned on exit) but deep trees and long labels.
 - [ ] **`persist=none` sources have no item count** (p3) [bug] in stats (output streams straight to fzf).

@@ -1,0 +1,6 @@
+# youtube components: kind  name  key  description  flags (see lib/components.sh)
+mode  search  -  search YouTube (enter runs the query)  default
+action  play     ctrl-o  play in mpv (detached)                     silent
+action  audio    alt-a   play the audio in this terminal (q returns)  foreground
+action  browser  alt-o   open in the browser                        silent
+action  mp3      alt-m   save as mp3 (yt-dlp and ffmpeg)            foreground
