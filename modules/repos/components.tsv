@@ -1,0 +1,13 @@
+# kind  name  key  description  flags
+mode    all       -  every repository                                      default
+mode    mine      -  repositories you own (FZX_REPOS_OWNERS)               -
+mode    changed   -  with uncommitted changes                              -
+mode    unsynced  -  ahead of or behind the upstream                       -
+mode    todos     -  with open TODO.md items                               -
+sort    recent    -  last commit, newest first                             default
+sort    name      -  by name                                               -
+action  edit      ctrl-e  open the repository in $EDITOR                   foreground
+action  fetch     -       git fetch the selected repositories              foreground,reload
+action  pull      -       git pull --ff-only the selected repositories     foreground,reload
+action  browse    alt-w   open the remote in the browser                   silent
+action  rescan    -       scan every repository again now                  foreground,reload

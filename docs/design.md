@@ -362,6 +362,7 @@ and settings.
 | `recent` | nvim (telescope-frecency's `file_frecency.sqlite3`, scored by its count and recency weights), fasd | `[WORDS...]`: each in order in the path, ignoring case; with words a single match is printed | ctrl-e edit, ctrl-o browse the directory | paths |
 | `tmux` | sessions, windows, panes; capture: lines, urls, paths, words, hashes, ips; buffers; keys, commands, options, variables, styles, formats, status, hooks | `--pane %N`, `--scope pane|window|session|all`, `--table`, `--option-scope`, `--user-only`, `--builtin-only`, `--prefix`, `--options-file`, `--data-file` | alt-s switch/attach, ctrl-o capture, ctrl-x kill (confirm), alt-n rename, alt-m move, alt-p paste; toggles: viewport/changed/free/empty/short; actions: link/swap/mark, next/prev session, theme, scratch, nvim | plain IDs/text; colored display and hidden metadata; see [tmux](tmux.md) |
 | `history` | session, directory, host (default), global (zsh-histdb); toggle failed; sort recent/frequent | `[WORDS...]`: the starting query | alt-enter run (exit status 10), ctrl-x forget (confirm), alt-e failed only | the command (multi-line kept) |
+| `repos` | all, mine, changed, unsynced, todos; sort recent/name | | ctrl-o git module, alt-o files, ctrl-e edit, alt-w browse; actions: fetch, pull (`--ff-only`), rescan | the repository path |
 | `menu` | | | enter opens the entry | entry id |
 | `actions` | | groups of `names args... --fzx--` (built by the actions key) | enter runs the action, then back | |
 
@@ -392,6 +393,14 @@ logical `$PWD` (what histdb stores) and the resolved path, `LIKE` escaped with `
 host's latest session). The widget (ctrl-r, `FZX_ZSH_KEYS[history]`) starts in the mode of the shell's
 `SHELL_HISTORY_SCOPE`, replaces the line with the result and accepts it when fzx exits 10 (the run action).
 Delete removes every run and the command row, as histdb's `--forget` does. `FZX_PERSIST=none`.
+`repos` lists `ghq list -p` plus repositories under `FZX_REPOS_ROOTS` (resolved, so `~/git` links into ghq
+collapse) and joins them with `$FZX_CACHE_DIR/repos/status` (`path, branch, changed, ahead, behind, last commit,
+open TODO items`). The list itself takes ~40ms; `git status` over 300 repositories takes ~15s even in
+parallel (a few large checkouts dominate), so the scan is `start:+bg-transform(fzx _cb transform refresh)`:
+at most once per `FZX_REPOS_TTL`, `FZX_REPOS_JOBS` at a time under `nice`, each status limited to
+`FZX_REPOS_TIMEOUT`, one scan at a time (a lock directory), and a reload only when the cache changed. fetch
+and pull rescan just their repositories. The mine mode's owners default to git's `github.user`, `ghq.user`,
+then gh's `hosts.yml` (no network). The zsh widget (alt-r, `FZX_ZSH_KEYS[repos]`) cds into the result.
 `systemd` runs actions on system units through sudo when not root, bound with `execute` so sudo can
 prompt; list parsing forces `SYSTEMD_COLORS=0` because users commonly export it.
 

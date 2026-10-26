@@ -54,7 +54,7 @@ zsh_run() {
   [ "${lines[2]}" = '"^[d" fzx-dirs-widget' ]
   run zsh -f -i -c "FZX_ZSH_NO_BIND=1 source '$ZSH_INT'; bindkey -M viins '^[f'; zle -l | grep -c '^fzx-'" 2> /dev/null
   [[ "${lines[0]}" != *fzx-files-widget* ]]
-  [ "${lines[1]}" = 7 ]
+  [ "${lines[1]}" = 8 ]
 }
 
 @test "fzf with no options at a terminal opens the files module; anything else is the real fzf" {

@@ -6,6 +6,18 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-26
+
+### Added
+
+- repos module: your git repositories (ghq's, and any under `FZX_REPOS_ROOTS`) with branch, uncommitted
+  changes, commits ahead/behind, open TODO.md items and the age of the last commit. The list opens at
+  once from the last scan, and a background scan refreshes it. Modes: all, mine, changed, unsynced
+  (ahead or behind), todos; sort by last commit or name. The preview shows status, recent commits and
+  the open TODO items by priority. ctrl-o opens the git module on the repository, alt-o its files,
+  ctrl-e your editor, alt-w the remote in the browser; fetch and pull work on several at once. alt-r in
+  zsh cds into the chosen repository.
+
 ## [0.6.0] - 2026-10-26
 
 ### Added

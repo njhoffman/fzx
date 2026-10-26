@@ -15,6 +15,7 @@ typeset -gA FZX_ZSH_KEYS
 : ${FZX_ZSH_KEYS[ps]=$'\ep'}    # insert pids
 : ${FZX_ZSH_KEYS[menu]=$'\em'}  # open the menu, insert what it returns
 : ${FZX_ZSH_KEYS[history]='^R'}  # histdb history: replace the line (alt-enter runs it)
+: ${FZX_ZSH_KEYS[repos]=$'\er'} # cd into a git repository (repos module)
 
 # fzx-format: selection lines on stdin -> one shell-quoted word each, space-separated; paths under the
 # current directory become relative (the directory itself becomes "."). Both the logical $PWD and its
@@ -101,6 +102,7 @@ fzx-cd-widget-run() {
 
 fzx-dirs-widget() { fzx-cd-widget-run -m files:dirs; }
 fzx-jump-widget() { fzx-cd-widget-run -m dirs; }
+fzx-repos-widget() { fzx-cd-widget-run -m repos; }
 
 # fzx-jump [--pick] [--] [words...]: cd where `fzx jump` says (see lib/jump.sh), then show where that is
 fzx-jump() {
@@ -165,12 +167,12 @@ fi
 
 () {
   local name
-  for name in files dirs jump git ps menu history; do
+  for name in files dirs jump git ps menu history repos; do
     zle -N "fzx-$name-widget"
   done
   [[ "${FZX_ZSH_NO_BIND:-0}" == 1 ]] && return
   local map
-  for name in files dirs jump git ps menu history; do
+  for name in files dirs jump git ps menu history repos; do
     [[ -n "${FZX_ZSH_KEYS[$name]}" ]] || continue
     for map in emacs viins vicmd; do
       bindkey -M "$map" "${FZX_ZSH_KEYS[$name]}" "fzx-$name-widget"

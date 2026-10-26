@@ -177,9 +177,8 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       `fzx jump --files` and zsh `v`; `fzx --query` for the files fallback.
 - [x] **history** (p1) [module]: modules/history over zsh-histdb (session/directory/host/global, failed toggle,
       recent/frequent sort, last-run preview, insert/run/copy/forget); ctrl-r widget in shell/fzx.zsh.
-- [ ] **repos** (p1) [module]: ghq repositories with git summary (branch, dirty, ahead/behind) and cd/open;
-      repo groups. Refs: list.md "repos", vendors/widgets/fzf-git-change-repository, fzf-scripts/gitup.
-      Has: ghq, git.
+- [x] **repos** (p1) [module]: modules/repos (ghq + FZX_REPOS_ROOTS, cached status scanned in the background,
+      modes all/mine/changed/unsynced/todos, fetch/pull/browse/edit, git and files hand-offs); alt-r cd widget.
 - [ ] **env** (p3) [module]: environment variables and shell parameters with values. Refs: system/fzf.params.zsh,
       vendors/completers/env.zsh. Has: everything (shell builtins).
 - [ ] **keybindings** (p3) [module]: zsh bindkey maps and tmux bindings, searchable with descriptions.
