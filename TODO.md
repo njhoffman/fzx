@@ -229,9 +229,8 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 
 ### Development
 
-- [ ] **docker** (p1) [module]: containers, images, volumes, networks with start/stop/rm/exec/logs actions; logs
-      already exist in `logs:docker`. Refs: widgets/docker/* (fzd-*), docker/docker-fzf,
-      vendors/widgets/fzf-docker-*, fzf-scripts/dkr. Has: docker.
+- [x] **docker** (p1) [module]: modules/docker (containers, images, volumes, networks, compose; start/stop/restart/
+      kill/remove/exec/logs/inspect/run/pull/prune per mode; previews per kind).
 - [ ] **github** (p2) [module]: issues and PRs (view, checkout, comment, close), repo search, notifications.
       Refs: vendors/widgets/fzf-github-*, ref/mods/ghs.sh, websearch/ghs.json, search_repo.json.
       Has: gh.

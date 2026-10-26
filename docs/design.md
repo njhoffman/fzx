@@ -363,6 +363,7 @@ and settings.
 | `tmux` | sessions, windows, panes; capture: lines, urls, paths, words, hashes, ips; buffers; keys, commands, options, variables, styles, formats, status, hooks | `--pane %N`, `--scope pane|window|session|all`, `--table`, `--option-scope`, `--user-only`, `--builtin-only`, `--prefix`, `--options-file`, `--data-file` | alt-s switch/attach, ctrl-o capture, ctrl-x kill (confirm), alt-n rename, alt-m move, alt-p paste; toggles: viewport/changed/free/empty/short; actions: link/swap/mark, next/prev session, theme, scratch, nvim | plain IDs/text; colored display and hidden metadata; see [tmux](tmux.md) |
 | `history` | session, directory, host (default), global (zsh-histdb); toggle failed; sort recent/frequent | `[WORDS...]`: the starting query | alt-enter run (exit status 10), ctrl-x forget (confirm), alt-e failed only | the command (multi-line kept) |
 | `repos` | all, mine, changed, unsynced, todos; sort recent/name | | ctrl-o git module, alt-o files, ctrl-e edit, alt-w browse; actions: fetch, pull (`--ff-only`), rescan | the repository path |
+| `docker` | containers (running first), images, volumes, networks, compose; toggle running | | alt-s start/up, ctrl-x stop/down, alt-R restart, alt-x remove (confirm), alt-e exec a shell, ctrl-l follow logs, alt-i inspect; actions: kill, run (image), pull, prune | ids (volume and project names) |
 | `menu` | | | enter opens the entry | entry id |
 | `actions` | | groups of `names args... --fzx--` (built by the actions key) | enter runs the action, then back | |
 
@@ -401,6 +402,11 @@ at most once per `FZX_REPOS_TTL`, `FZX_REPOS_JOBS` at a time under `nice`, each 
 `FZX_REPOS_TIMEOUT`, one scan at a time (a lock directory), and a reload only when the cache changed. fetch
 and pull rescan just their repositories. The mine mode's owners default to git's `github.user`, `ghq.user`,
 then gh's `hosts.yml` (no network). The zsh widget (alt-r, `FZX_ZSH_KEYS[repos]`) cds into the result.
+`docker` actions check the mode they run in and refuse the ones that do not apply (exec on an image) rather
+than guess; compose projects are addressed by name (`docker compose -p`). Image previews read config fields
+through `index` and lists through `range`: docker 28 returns maps and `[]interface {}` there, where a missing
+key is an error and `join` fails. exec tries `FZX_DOCKER_SHELLS` in order. The menu shows docker entries
+only when the daemon answers within 2 seconds.
 `systemd` runs actions on system units through sudo when not root, bound with `execute` so sudo can
 prompt; list parsing forces `SYSTEMD_COLORS=0` because users commonly export it.
 

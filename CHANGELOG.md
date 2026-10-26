@@ -6,6 +6,17 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-26
+
+### Added
+
+- docker module: containers (running first, state colored), images (dangling ones dim), volumes (unused
+  ones dim), networks and compose projects. alt-s starts (compose: up -d), ctrl-x stops (compose: down),
+  alt-R restarts, alt-x removes, alt-e opens a shell in the container (the first of zsh, bash, ash, sh),
+  ctrl-l follows the logs, alt-i shows docker inspect; kill, run (an image), pull and prune are in the
+  actions menu. The preview shows a container's state, ports, mounts, networks and latest logs, an
+  image's details, users and layers, a volume's or network's containers, a project's services.
+
 ## [0.7.0] - 2026-10-26
 
 ### Added

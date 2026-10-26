@@ -1,0 +1,18 @@
+# kind  name  key  description  flags
+mode    containers  -  containers, running first                         default
+mode    images      -  images (dangling ones dim)                        -
+mode    volumes     -  volumes (unused ones dim)                         -
+mode    networks    -  networks                                          -
+mode    compose     -  compose projects                                  -
+toggle  running     alt-a  containers: only running ones                 -
+action  start       alt-s   start containers / compose up -d             reload
+action  stop        ctrl-x  stop containers / compose down               reload
+action  restart     alt-R   restart containers / compose restart         reload
+action  kill        -       kill containers (SIGKILL)                    confirm,reload
+action  remove      alt-x   remove containers, images, volumes or networks (forced)  confirm,reload
+action  exec        alt-e   a shell in the container (zsh, bash, ash, sh)  foreground
+action  logs        ctrl-l  follow the logs (ctrl-c returns) / compose logs  foreground
+action  inspect     alt-i   docker inspect in the pager                  foreground
+action  run         -       images: docker run -it --rm with a shell     foreground
+action  pull        -       images and compose projects: pull            foreground,reload
+action  prune       -       remove dangling images, unused volumes or networks, stopped containers  confirm,reload
