@@ -64,6 +64,8 @@ capture_fixture() {
 
 @test "tmux: reference modes read installed commands, bindings, options and variables" {
   local mode
+  # hooks lists only set hooks, and the empty test server has none
+  tmux set-hook -g after-new-window 'display-message hook-test'
   for mode in commands keys options variables styles formats status hooks; do
     run src "$mode"
     [ "$status" -eq 0 ]
@@ -406,4 +408,50 @@ DATA
   [[ "$output" == *'_cb transform capture'* ]]
   run fzf_flag --preview
   [[ "$output" == *'--scope window -- {1} {2} {3}' ]]
+}
+
+@test "tmux: hooks list only set hooks unless the empty toggle is on" {
+  tmux set-hook -g after-new-window 'display-message hook-test'
+  run src hooks
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'after-new-window'*'hook-test'* ]]
+  [[ "$output" != *'after-bind-key'* ]]
+  FZX_TOGGLES=empty run src hooks
+  [[ "$output" == *'after-bind-key'* ]]
+}
+
+@test "tmux: formats leave out keyword options named *-format" {
+  tmux set-option -s extended-keys-format csi-u 2> /dev/null || skip "this tmux has no extended-keys-format"
+  run src formats
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'window-status-format'* && "$output" != *'extended-keys-format'* ]]
+}
+
+@test "tmux: command reference has no wrapped signature or hyphenation breaks" {
+  local line id display metadata
+  line="$(src commands | rg '^split-window\t')"
+  IFS=$'\t' read -r id display metadata <<< "$line"
+  FZX_MODE=commands run "$TMUX_MOD/preview.sh" -- "$id" "$display" "$metadata"
+  [ "$status" -eq 0 ]
+  local reference="${output#*REFERENCE}"
+  [[ "$reference" == *'Create a new pane'* ]]
+  [[ "$reference" != *'(alias:'* && "$reference" != *$'‐ '* ]]
+}
+
+@test "tmux: nvim opens a reference list as plain text and refuses other screens" {
+  export FZX_TMUX_NVIM="$BATS_TEST_TMPDIR/nvim" NVIM_COPY="$BATS_TEST_TMPDIR/nvim.copy"
+  cat > "$FZX_TMUX_NVIM" <<'NVIM'
+#!/usr/bin/env bash
+printf '%s\n' "$@" > "$NVIM_COPY.args"
+cp -- "${@: -1}" "$NVIM_COPY"
+NVIM
+  chmod +x "$FZX_TMUX_NVIM"
+  run act commands nvim --
+  [ "$status" -eq 0 ]
+  grep -q '^split-window ' "$NVIM_COPY"
+  ! grep -q $'\e' "$NVIM_COPY"
+  grep -qx 'setlocal buftype=nofile filetype=tmux' "$NVIM_COPY.args"
+  run act sessions nvim --
+  [ "$status" -eq 2 ]
+  [[ "$output" == *'reference lists'* ]]
 }

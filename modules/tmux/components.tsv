@@ -20,7 +20,7 @@ mode  hooks      -  hooks by scope                         -
 toggle  visible  alt-v  capture only the visible viewport (including copy mode)  -
 toggle  changed  alt-d  keys/options/hooks: only changes and local overrides    -
 toggle  unassigned  alt-u  keys: show free keys in the selected table           -
-toggle  empty    alt-e  variables: include empty documented values             -
+toggle  empty    alt-e  variables and hooks: include empty values               -
 toggle  short    alt-c  commands: show names and aliases only                   -
 action  switch  alt-s   switch to session, window or pane (attach outside tmux)  become
 action  kill    ctrl-x  kill session, window, pane or delete buffer            foreground,reload,confirm
@@ -36,3 +36,4 @@ action  theme-main    -  apply the main theme to the selected session           
 action  theme-float   -  apply the floating theme to the selected session       foreground,reload
 action  scratch       -  open the scratch popup shell                          foreground
 action  nvim-layout   -  open the nvim editor and log layout                     foreground
+action  nvim          -  reference lists: open the whole list in nvim (ft=tmux)   foreground

@@ -6,6 +6,26 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-26
+
+### Added
+
+- tmux: an `nvim` action (actions menu) opens the current reference list (keys, commands, options,
+  variables, styles, formats, status, hooks) as plain text in nvim with tmux syntax, like the
+  `tmux.*` helpers' `--nvim`.
+
+### Changed
+
+- tmux hooks lists only the hooks that are set; `alt-e` (the empty toggle) includes the unset ones.
+- tmux options, styles and hooks load faster: every scope comes from one tmux call.
+
+### Fixed
+
+- tmux formats no longer lists `extended-keys-format`, which is a keyword option, not a template.
+- tmux command and option references no longer start with a leftover piece of the signature or the
+  `(alias: ...)` line, and words the manual hyphenated across lines are joined again.
+- tmux formats and status expanded every template twice.
+
 ## [0.4.0] - 2026-10-26
 
 ### Added

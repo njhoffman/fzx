@@ -335,6 +335,11 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       caller variable with the same `_` name is still shadowed. Keep caller variable names un-prefixed.
 - [ ] **Slow suite** (p3) [test]: `bats test` takes ~2 minutes serially; `bats -j` needs GNU parallel (this
       machine has the moreutils `parallel`).
+- [ ] **tmux formats screen is slow** (p3) [perf]: `fzx -m tmux:formats` takes 1-7s on the main server: one
+      `display-message` per template (21 here), each running the status line's `#(...)` jobs. Joining the
+      templates into one `display-message` mis-splits (tmux's parser runs across them), and a `;` command
+      sequence of display-messages also came back short; find out why (modules/tmux/reference.py
+      `tmux_sequence`), or skip `#(...)` when rendering samples.
 - [ ] **Float is two cells smaller than a popup** (p3) [bug]: for the same spec (`center,80%` in a 200x49
       window) the fzf popup's content is 160x39 and the float's is 158x37, because `fzx::float_geometry` gives
       new-pane the outer size and the border takes a cell on each side. Add the border to the size (clamped

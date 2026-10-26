@@ -25,7 +25,8 @@ Keys show their table, key, note, command and `*` changed / `+` repeat markers. 
 the current binding with the installed tmux defaults. `--table` accepts comma-separated tables
 (`prefix`, `root`, `copy-mode`, `copy-mode-vi`, custom tables), or `all` (the default).
 
-Options and hooks show server, global session/window and local session/window/pane scopes. Local
+Options and hooks show server, global session/window and local session/window/pane scopes; hooks list
+only the hooks that are set (`alt-e` includes the unset ones), as `tmux.options -H` does. Local
 overrides carry a `*`; the preview includes the parent value. `--option-scope` selects `server`,
 `global-session`, `global-window`, `session`, `window`, `pane`, or `all`. `--user-only` / `--builtin-only`
 filter user options. The `changed` toggle shows local differences and additions.
@@ -49,9 +50,9 @@ and `#S`/`#W`-style substitutions). Using both avoids querying the live server f
 | alt-v | Toggle capture of only the visible viewport (also in copy mode) |
 | alt-d | Keys/options/hooks: show only changes |
 | alt-u | Keys: show unassigned keys in the selected table (prefix when all tables are selected) |
-| alt-e | Variables: include empty documented values |
+| alt-e | Variables and hooks: include empty values |
 | alt-c | Commands: switch between full signatures and short names/aliases |
-| ctrl-\ | Actions menu, including link/swap/mark, next/previous session, themes, scratch popup and nvim layout |
+| ctrl-\ | Actions menu, including link/swap/mark, next/previous session, themes, scratch popup, nvim layout and nvim (the whole reference list in nvim) |
 | ctrl-r | Refresh from tmux |
 
 Actions apply to their corresponding modes. Switch, rename, move, swap, link and mark use the first
@@ -71,7 +72,10 @@ Configure `FZX_TMUX_LINES` and `FZX_TMUX_SCOPE` in the module's user config. The
 is `FZX_MODE=urls modules/tmux/module.sh --pane %3`.
 
 Reference formatting uses Python 3's standard library. Descriptions come from the installed tmux
-manual, cached by its path and modification time. Key defaults come from a private server with an
+manual (rendered 400 columns wide so signatures stay on one line, with hyphenation breaks joined), cached
+by its path and modification time. Options and hooks for every scope come from one tmux client call.
+Formats and status expand each template with its own `display-message`, which also runs the
+template's `#(...)` jobs on the server, so these two screens are the slowest. Key defaults come from a private server with an
 empty config, cached by binary/version. Colors can be overridden in user config through
 the `FZX_COLORS` roles `tmux_name`, `tmux_value`, `tmux_scope`, `tmux_key`, `tmux_changed`,
 `tmux_dim`, `tmux_title` and `tmux_flag`. For example, `FZX_COLORS[tmux_name]='38;5;81'`.
@@ -81,6 +85,7 @@ the `FZX_COLORS` roles `tmux_name`, `tmux_value`, `tmux_scope`, `tmux_key`, `tmu
 | Shell helper | Module equivalent |
 |---|---|
 | `tmux.keys` | keys mode, table filter, notes, modified/default comparison, free keys |
+| `tmux.* --nvim` | nvim action: the current reference list as plain text in nvim (`ft=tmux`, `FZX_TMUX_NVIM`) |
 | `tmux.commands` | commands mode, full/short toggle, documented preview |
 | `tmux.options` | options and hooks modes, scopes, user-only filtering and parent comparisons |
 | `tmux.variables` | variables mode with aliases, descriptions and empty-value toggle |

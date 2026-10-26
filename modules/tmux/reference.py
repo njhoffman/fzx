@@ -107,12 +107,13 @@ def manual():
     path = (
         Path(located.stdout.strip().splitlines()[0]) if located.stdout.strip() else None
     )
-    stamp = "v1:" + str(path)
+    stamp = "v2:" + str(path)
     if path and path.exists():
         stamp += ":" + str(path.stat().st_mtime_ns)
 
     def build():
-        env = os.environ | {"MANWIDTH": "120", "MANPAGER": "cat", "PAGER": "cat"}
+        # wide enough that command signatures stay on their heading line and groff rarely hyphenates
+        env = os.environ | {"MANWIDTH": "400", "MANPAGER": "cat", "PAGER": "cat"}
         result = subprocess.run(
             ["man", "tmux"], env=env, capture_output=True, text=True, check=False
         )
@@ -150,6 +151,8 @@ def documentation(name):
     rest = data["text"][match.end() :]
     end = re.search(r"\n(?: {7}\S|[A-Z][A-Z ]+$)", rest, re.MULTILINE)
     block = rest[: end.start()] if end else rest
+    block = re.sub(r"^\s+\(alias: [^)]*\)\s*$", "", block, flags=re.MULTILINE)
+    block = re.sub(r"\u2010\n\s+", "", block)
     return "\n\n".join(" ".join(p.split()) for p in block.split("\n\n") if p.strip())
 
 
@@ -377,17 +380,38 @@ def assignments(path):
     return result
 
 
+# printed between the outputs of a tmux command sequence
+SEQUENCE_SEPARATOR = "FZXSEPARATOR7f3a"
+
+
+def tmux_sequence(commands, optional=False):
+    """Run several tmux commands in one client call (one server round trip) and return each one's
+    output. A failing command ends a tmux sequence early, so then each runs on its own."""
+    argv = []
+    for command in commands:
+        if argv:
+            argv += [";", "display-message", "-p", SEQUENCE_SEPARATOR, ";"]
+        argv += command
+    result = subprocess.run(["tmux", *argv], text=True, capture_output=True, check=False)
+    parts = result.stdout.split(SEQUENCE_SEPARATOR + "\n")
+    if result.returncode == 0 and len(parts) == len(commands):
+        return parts
+    return [tmux(*command, optional=optional) for command in commands]
+
+
 def option_data(args, hooks=False):
     if args.options_file:
         return {"file": assignments(args.options_file)}
-    data = {}
-    for scope, flags in SCOPES.items():
-        if hooks and scope == "server":
-            continue
-        pane = target(args.pane) if scope in ("session", "window", "pane") else []
-        command = "show-hooks" if hooks else "show-options"
-        data[scope] = parse_options(tmux(command, *flags, *pane, optional=hooks))
-    return data
+    command = "show-hooks" if hooks else "show-options"
+    scopes = [scope for scope in SCOPES if not (hooks and scope == "server")]
+    outputs = tmux_sequence(
+        [
+            [command, *SCOPES[scope], *(target(args.pane) if scope in ("session", "window", "pane") else [])]
+            for scope in scopes
+        ],
+        optional=hooks,
+    )
+    return {scope: parse_options(output) for scope, output in zip(scopes, outputs)}
 
 
 def unquote(value):
@@ -474,6 +498,10 @@ def swatches(value):
     return "  ".join(result)
 
 
+# options named *-format that take a keyword, not a format template
+NOT_TEMPLATES = {"extended-keys-format"}
+
+
 def expand_format(value, args):
     if not args.data_file:
         return tmux("display-message", "-p", *target(args.pane), "--", value).rstrip(
@@ -507,6 +535,7 @@ def options(args, mode):
         "window": "global-window",
         "pane": "global-window",
     }
+    selected = []
     for scope, values in data.items():
         if args.option_scope != "all" and scope != args.option_scope:
             continue
@@ -521,8 +550,9 @@ def options(args, mode):
                 continue
             if mode == "styles" and not re.search(r"-style(?:\[|$)", name):
                 continue
-            if mode == "formats" and not (
-                "-format" in name or name in ("status-left", "status-right")
+            if mode == "formats" and (
+                name in NOT_TEMPLATES
+                or not ("-format" in name or name in ("status-left", "status-right"))
             ):
                 continue
             if mode == "status" and name not in ("status-left", "status-right"):
@@ -531,56 +561,66 @@ def options(args, mode):
             changed = scope in parents and inherited.get(name) != raw
             if "changed" in TOGGLES and not changed:
                 continue
-            value = unquote(raw)
-            metadata = {
-                "scope": scope,
-                "value": value,
-                "raw": raw,
-                "inherited": unquote(inherited[name]) if override else None,
-                "changed": changed,
-                "hook": hooks,
-            }
-            decorated = syntax(value)
-            if mode == "styles":
-                decorated = (
-                    style(value)
-                    + " Sample "
-                    + RESET
-                    + "  "
-                    + swatches(value)
-                    + "  "
-                    + syntax(value)
-                )
-            elif mode in ("formats", "status"):
-                rendered = expand_format(value, args)
-                base_name = (
-                    name + "-style"
-                    if name in ("status-left", "status-right")
-                    else name.replace("-format", "-style")
-                )
-                base = next(
+            # most hooks are unset: list the set ones unless the empty toggle asks for all
+            if hooks and not raw and "empty" not in TOGGLES:
+                continue
+            selected.append((scope, name, raw, inherited, override, changed))
+    rendered_all = (
+        [expand_format(unquote(item[2]), args) for item in selected]
+        if mode in ("formats", "status")
+        else []
+    )
+    for index, (scope, name, raw, inherited, override, changed) in enumerate(selected):
+        value = unquote(raw)
+        metadata = {
+            "scope": scope,
+            "value": value,
+            "raw": raw,
+            "inherited": unquote(inherited[name]) if override else None,
+            "changed": changed,
+            "hook": hooks,
+        }
+        decorated = syntax(value)
+        if mode == "styles":
+            decorated = (
+                style(value)
+                + " Sample "
+                + RESET
+                + "  "
+                + swatches(value)
+                + "  "
+                + syntax(value)
+            )
+        elif mode in ("formats", "status"):
+            rendered = rendered_all[index]
+            base_name = (
+                name + "-style"
+                if name in ("status-left", "status-right")
+                else name.replace("-format", "-style")
+            )
+            base = next(
+                (
+                    data[s][base_name]
+                    for s in reversed(list(data))
+                    if base_name in data[s]
+                ),
+                "",
+            )
+            if name in ("status-left", "status-right"):
+                status_base = next(
                     (
-                        data[s][base_name]
+                        data[s]["status-style"]
                         for s in reversed(list(data))
-                        if base_name in data[s]
+                        if "status-style" in data[s]
                     ),
                     "",
                 )
-                if name in ("status-left", "status-right"):
-                    status_base = next(
-                        (
-                            data[s]["status-style"]
-                            for s in reversed(list(data))
-                            if "status-style" in data[s]
-                        ),
-                        "",
-                    )
-                    base = unquote(status_base) + "," + unquote(base)
-                metadata |= {"rendered": rendered, "base_style": unquote(base)}
-                decorated = sample(rendered, base) + "  " + paint(value, "dim")
-            mark = paint("*" if override else "+" if changed else " ", "changed")
-            display = f"{paint(('[' + scope + ']').ljust(18), 'scope')} {mark} {paint(name.ljust(40), 'name')} {decorated}"
-            row(name, display, metadata)
+                base = unquote(status_base) + "," + unquote(base)
+            metadata |= {"rendered": rendered, "base_style": unquote(base)}
+            decorated = sample(rendered, base) + "  " + paint(value, "dim")
+        mark = paint("*" if override else "+" if changed else " ", "changed")
+        display = f"{paint(('[' + scope + ']').ljust(18), 'scope')} {mark} {paint(name.ljust(40), 'name')} {decorated}"
+        row(name, display, metadata)
 
 
 def commands(args):

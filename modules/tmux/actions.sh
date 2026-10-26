@@ -53,6 +53,19 @@ tmux::cycle_session() {
   fi
 }
 
+# the whole reference list of a mode as plain text in nvim with tmux syntax (the tmux.* helpers' --nvim)
+tmux::reference_nvim() {
+  local mode="$1" file
+  case "$mode" in
+    keys | commands | options | variables | styles | formats | status | hooks) ;;
+    *) printf 'tmux: nvim opens the reference lists (keys, commands, options, ...), not %s\n' "$mode" >&2; return 2 ;;
+  esac
+  file="$(mktemp "${TMPDIR:-/tmp}/fzx-tmux-$mode.XXXXXX")" || return
+  tmux::reference list "$mode" | cut -f2 | sed $'s/\e\\[[0-9;]*m//g' > "$file"
+  "${FZX_TMUX_NVIM:-nvim}" -c 'setlocal buftype=nofile filetype=tmux' -- "$file"
+  rm -f -- "$file"
+}
+
 # Actions receive the original module args, --, then selected IDs.
 tmux::action() {
   local action="${1:-}" mode="${FZX_MODE:-sessions}" id value target
@@ -62,6 +75,7 @@ tmux::action() {
     next-session | prev-session) tmux::cycle_session "$action"; return ;;
     scratch) tmux::helper popup-shell.sh; return ;;
     nvim-layout) tmux::helper nvim-layout.sh; return ;;
+    nvim) tmux::reference_nvim "$mode"; return ;;
     theme-main | theme-float)
       target="$TMUX_TARGET_PANE"
       case "$mode" in
