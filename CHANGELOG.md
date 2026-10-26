@@ -6,6 +6,27 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-26
+
+### Added
+
+- Responsive preview: `FZX_PREVIEW_LAYOUTS` picks the preview window from the terminal width, at start and
+  on every resize. Entries are `MINCOLS:SPEC` in `--preview-window` syntax; an empty SPEC is the module's
+  own layout and `hidden` hides the preview. The default puts the preview under the list below 120
+  columns; the menu keeps it under the list until 180 columns, then beside it. A preview you hid by hand
+  stays hidden when the layout changes (toggling it back shows the new layout), also across mode changes
+  and restarts. Set per module in its config.sh; `FZX_PREVIEW_LAYOUTS=()` turns it off.
+
+### Changed
+
+- The menu's preview is now shown from the start (it used to follow a `hidden` default from your fzf
+  options).
+
+### Fixed
+
+- `FZX_TRACE=start` no longer replaces an event binding a module appends to (it dropped the menu's
+  initial load); trace callbacks are now appended to the event's bindings.
+
 ## [0.3.0] - 2026-10-24
 
 ### Added

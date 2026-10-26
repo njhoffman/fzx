@@ -73,24 +73,25 @@ R=$'\e[0m'
   [[ " ${FZF_ARGS[*]} " == *" --prompt="* ]]
 }
 
-@test "trace: listed events get a bg-transform first, new events their own binding" {
+@test "trace: listed events append a bg-transform to the event's bindings" {
+  conf 'FZX_PREVIEW_LAYOUTS=()'
   FZX_TRACE=start,load,resize run "$FZX" -m counter
-  [ "$(fzf_bind start)" = "start:bg-transform($FZX _cb trace start)+reload:$FZX _cb load" ]
-  [ "$(fzf_bind resize)" = "resize:bg-transform($FZX _cb trace resize)" ]
-  # counter has no prompt, so load had no binding of its own
-  [ "$(fzf_bind load)" = "load:bg-transform($FZX _cb trace load)" ]
+  [ "$(fzf_binds start)" = "start:reload:$FZX _cb load
+start:+bg-transform:$FZX _cb trace start" ]
+  [ "$(fzf_binds resize)" = "resize:+bg-transform:$FZX _cb trace resize" ]
+  [ "$(fzf_binds load)" = "load:+bg-transform:$FZX _cb trace load" ]
   run fzf_bind focus
   [ "$status" -eq 1 ]
 }
 
 @test "trace: all events, unknown names warned about, nothing standalone" {
   FZX_TRACE=all run "$FZX" -m counter
-  [[ "$(fzf_bind focus)" == "focus:bg-transform($FZX _cb trace focus)"* ]]
-  [[ "$(fzf_bind result-final)" == "result-final:bg-transform("* ]]
+  [ "$(fzf_bind focus)" = "focus:+bg-transform:$FZX _cb trace focus" ]
+  [[ "$(fzf_binds result-final)" == *"result-final:+bg-transform:$FZX _cb trace result-final"* ]]
   FZX_TRACE=nope run "$FZX" -m counter
   grep -q "FZX_TRACE: unknown event nope" "$LOG"
   FZX_TRACE=start run "$FZX_REPO/test/fixtures/modules/counter/module.sh"
-  [[ "$(fzf_bind start)" != *trace* ]]
+  [[ "$(fzf_binds start)" != *trace* ]]
 }
 
 @test "trace callback: logs the event with fzf's state and prints no action" {

@@ -38,6 +38,7 @@ fzx::nav_mode() {
   if fzx::comp_flag mode "$current" restart || fzx::comp_flag mode "$mode" restart; then
     fzx::state_set query "${FZF_QUERY:-}"
     fzx::state_set pos 1
+    fzx::require layout && fzx::layout_save
     fzx::log info "mode $current -> $mode (restart)"
     _FZX_STAT=(mode - "$current>$mode:restart" "$current")
     fzx::_nav_become "$FZX_SESSION" "$mode"
@@ -90,6 +91,7 @@ fzx::_nav_apply() {
   if fzx::comp_flag "$kind" "$name" restart; then
     fzx::state_set query "${FZF_QUERY:-}"
     fzx::state_set pos 1
+    fzx::require layout && fzx::layout_save
     fzx::_nav_become "$FZX_SESSION"
     return
   fi
@@ -152,12 +154,14 @@ fzx::nav_sort() {
 }
 
 # fzx::nav <resume | restart | back | escape | placement [next|prev|P] | goto <module[:mode]> [module args...] | entry <module>#<n>>
-# Saves the query and cursor position of the current session, then prints become() into the target.
+# Saves the query, cursor position and a hand-hidden preview of the current session, then prints become()
+# into the target.
 fzx::nav() {
   local action="${1:-}"
   shift
   fzx::state_set query "${FZF_QUERY:-}"
   fzx::state_set pos "${FZF_POS:-1}"
+  fzx::require layout && fzx::layout_save
 
   case "$action" in
     resume)

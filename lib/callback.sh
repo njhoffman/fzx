@@ -2,7 +2,7 @@
 # callback: handlers behind `fzx _cb <verb>`, invoked by fzf binds. Keep the load path minimal:
 # preview runs on every focus change, so it loads only log and session.
 
-# fzx::callback <load|source|preview|action|transform|mode|nav> [args...]
+# fzx::callback <load|source|preview|action|transform|mode|nav|layout> [args...]
 # transform <name> [args]: <module>::transform from actions.sh, which prints fzf actions
 # Handlers describe their stats row in _FZX_STAT=(event count detail [mode]); preview never does.
 fzx::callback() {
@@ -47,6 +47,10 @@ fzx::callback() {
       fzx::_cb_actions fzx::nav "$@"
       ;;
     trace) fzx::_cb_trace "$@" ;;
+    layout)
+      fzx::require layout
+      fzx::_cb_actions fzx::layout "$@"
+      ;;
     debug)
       fzx::require debug
       fzx::debug_preview "$@"

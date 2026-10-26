@@ -60,10 +60,13 @@ on the command line and therefore win where they overlap.
 ```
 meta/         one file per key: module, module_dir, cwd, owner_pid, owner_start, started_ms,
               args (NUL-separated), cache_key, root, parent (children only), keep (--keep);
-              rewritten on every launch: modes (NUL-separated), persist
+              rewritten on every launch: modes (NUL-separated), persist, preview_layouts
+              (tab-separated)
 state/        one file per key, mutable: mode, query, pos (saved before every become()),
               placement, relaunch, current (root only: the tree's placement, a pending relaunch
-              for a placement change, the session on screen), fresh (next load runs the source)
+              for a placement change, the session on screen), fresh (next load runs the source),
+              layout (the FZX_PREVIEW_LAYOUTS entry applied last), preview_hidden (a preview
+              hidden by hand, saved before every become())
 data/<mode>   cached source output, one file per mode
 children/     <hash(module, args)> -> child sid, so navigating to the same target reuses its session
 fzf.sock      fzf --listen socket
@@ -323,7 +326,25 @@ resolved config: the callback loads the layers just before the first module func
 | `FZX_FZF_COLORS` | empty | passed as `--color` when set; empty keeps the user's fzf theme |
 | `FZX_HISTORY` | `1` | per-module `--history=$XDG_STATE_HOME/fzx/history/<module>`; `0` leaves fzf's history alone |
 | `FZX_ICON`, `FZX_PROMPT`, `FZX_PROMPT_LOADING` | icon per module (Nerd Font), `{icon} ` | the prompt: `{icon}` in `FZX_COLORS[prompt_loading]` from start until `load`, then `[prompt_loaded]`; every reload (ctrl-r, mode/toggle/sort switches, reload actions) goes back to loading first. A blank prompt (`FZX_ICON=""`) keeps fzf's own prompt and binds nothing. `)` is dropped (it would end `change-prompt(...)`) |
+| `FZX_PREVIEW_LAYOUTS` | `0:down,50%,border-top` `120:` (menu: `0:down,50%,border-top` `180:right,40%`) | the preview window by terminal width, see below; `()` turns it off |
 | `FZX_PERSIST`, `FZX_POPUP_OPTS`, `FZX_FLOAT_OPTS`, `FZX_STATS`, `FZX_SUMMARY_TTL`, `FZX_TRACE`, ... | | see their sections |
+
+**Responsive preview.** `FZX_PREVIEW_LAYOUTS` entries are `MINCOLS:SPEC`; the entry with the largest
+MINCOLS that is at most `$FZF_COLUMNS` applies, through `change-preview-window(SPEC)`. SPEC is in
+`--preview-window` syntax and, as fzf does for that action, sits on top of the module's own
+`--preview-window`: an empty SPEC is the module's own layout, `hidden` hides it, and any other SPEC shows the
+preview (fzf: a spec without `hidden` shows it, even over a default that hides it). opts_build keeps the
+entries in `meta/preview_layouts` and appends `start:+transform(fzx _cb layout start)` and
+`resize:+transform(fzx _cb layout resize)`, so the callback loads no config (about 6ms). Width only: fzf's
+native `<SIZE(ALT)` alternative is one breakpoint measured on the preview itself, so it cannot express a
+hidden tier plus two positions. Sessions only: standalone runs keep the module's layout.
+
+A resize within the same entry prints nothing, so a manual toggle stays. When the entry changes and the
+preview is hidden (`FZF_PREVIEW_COLUMNS` is empty; fzf 0.74 exports it only while the preview shows) but the
+last entry showed it, the user hid it: the new SPEC is applied with `,hidden`, so toggling it back shows the
+new layout. A preview shown by hand (the last entry hid it) stays when the new entry also hides it. Across
+`become()` the navigation callbacks save a hand-hidden preview in `state/preview_hidden`, and the next
+`start` applies the entry with `,hidden`.
 
 `fzx config [-m MODULE]` prints the layers that were loaded and the resolved keys, colors, base options
 and settings.

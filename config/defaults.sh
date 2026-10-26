@@ -41,6 +41,12 @@ FZX_FLOAT_OPTS="center,80%"
 #   float[:OPTS]        a floating tmux pane (plain "float" uses FZX_FLOAT_OPTS)
 FZX_PLACEMENTS=(inline "split:down,40%" popup float)
 
+# the preview window by terminal width: "MINCOLS:SPEC" entries, the one with the largest MINCOLS that fits
+# applies (on start and on every resize, through change-preview-window). SPEC is in --preview-window
+# syntax on top of the module's own --preview-window; empty means the module's own, "hidden" hides it. A
+# preview hidden by hand stays hidden across breakpoints. Set per module in its config.sh; () turns it off.
+FZX_PREVIEW_LAYOUTS=("0:down,50%,border-top" "120:")
+
 # what happens to loaded data (set per module in its config.sh; users can override per module):
 #   none         no cache: every load runs the source
 #   session      cache for the life of the session tree, deleted when fzx exits

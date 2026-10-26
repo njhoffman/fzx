@@ -62,6 +62,16 @@ fzf_bind() {
   return 1
 }
 
+# every value following a `--bind` that starts with "<key>:", one per line, in order
+fzf_binds() {
+  local i
+  read_fzf_args
+  for ((i = 0; i < ${#FZF_ARGS[@]} - 1; i++)); do
+    [[ "${FZF_ARGS[i]}" == --bind && "${FZF_ARGS[i + 1]}" == "$1:"* ]] && printf '%s\n' "${FZF_ARGS[i + 1]}"
+  done
+  return 0
+}
+
 # value following a flag given as a separate arg (e.g. --preview)
 fzf_flag() {
   local i

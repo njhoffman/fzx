@@ -47,26 +47,34 @@ fzx::reload_action() {
   printf -v "$2" '%sreload(%s)' "${_p:+change-prompt($_p)+}" "$1"
 }
 
-# fzx::_trace_binds: FZX_TRACE events log through a bg-transform callback, prepended to the event's own
-# binding (fzf keeps one binding per event; a colon-form action has to stay last)
+# fzx::_trace_binds: FZX_TRACE events log through a bg-transform callback, appended to the event's own
+# binding with fzf's "event:+action" form
 FZX_TRACE_EVENTS=(start load resize result result-final focus change one zero multi jump backward-eof)
 fzx::_trace_binds() {
-  local events=() ev i found cb
+  local events=() ev
   [[ -n "${FZX_TRACE:-}" ]] && fzx::in_session || return 0
   if [[ "$FZX_TRACE" == all ]]; then events=("${FZX_TRACE_EVENTS[@]}"); else IFS=', ' read -ra events <<< "$FZX_TRACE"; fi
   for ev in "${events[@]}"; do
     [[ " ${FZX_TRACE_EVENTS[*]} " == *" $ev "* ]] || { fzx::log warn "FZX_TRACE: unknown event $ev"; continue; }
-    cb="bg-transform($(fzx::cb trace "$ev"))"
-    found=0
-    for ((i = ${#FZX_OPTS[@]} - 1; i > 0; i--)); do
-      if [[ "${FZX_OPTS[i - 1]}" == --bind && "${FZX_OPTS[i]}" == "$ev:"* ]]; then
-        FZX_OPTS[i]="$ev:$cb+${FZX_OPTS[i]#"$ev:"}"
-        found=1
-        break
-      fi
-    done
-    ((found)) || FZX_OPTS+=(--bind "$ev:$cb")
+    FZX_OPTS+=(--bind "$ev:+bg-transform:$(fzx::cb trace "$ev")")
   done
+}
+
+# fzx::_layout_binds: FZX_PREVIEW_LAYOUTS into the session meta (the layout callback reads it there) and
+# the start/resize callbacks that apply it; invalid entries are logged and skipped
+fzx::_layout_binds() {
+  local e valid=() joined
+  fzx::in_session && ((${#FZX_PREVIEW_LAYOUTS[@]})) || return 0
+  for e in "${FZX_PREVIEW_LAYOUTS[@]}"; do
+    if [[ "$e" =~ ^[0-9]+: && "$e" != *$'\t'* ]]; then valid+=("$e"); else fzx::log warn "FZX_PREVIEW_LAYOUTS: bad entry ${e@Q} (want MINCOLS:SPEC)"; fi
+  done
+  ((${#valid[@]})) || return 0
+  printf -v joined '%s\t' "${valid[@]}"
+  fzx::meta_set preview_layouts "${joined%$'\t'}"
+  FZX_OPTS+=(
+    --bind "start:+transform:$(fzx::cb layout start)"
+    --bind "resize:+transform:$(fzx::cb layout resize)"
+  )
 }
 
 # fzx::component_line <var>: modes (when there is more than one), toggles and the sort key as one line in
@@ -278,6 +286,7 @@ fzx::opts_build() {
   fi
   FZX_HELP+=("fzx"$'\t'"${FZX_KEYS[help]}"$'\t'"this help")
   fzx::_help_bind "$module"
+  fzx::_layout_binds
   fzx::_trace_binds
 }
 

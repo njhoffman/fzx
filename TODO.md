@@ -83,10 +83,9 @@ Design questions for these are in `docs/components.md` (decided; what is built i
       whether a remapped key is shown as what it is remapped to or as the original key.
 - [ ] **Key name style** (p3) [feature]: a setting for full key names (`ctrl-x`) or short ones / glyphs
       (`^X`, `⌃X`, `⌥`), after what-key.nvim (~/git/what-key.nvim, ~/.config/nvim/lua/configs/what-key).
-- [ ] **Responsive preview layout** (p1) [feature]: on fzf's `resize` event (and at start), pick the preview
-      window from the size: e.g. the menu's preview below the list until the terminal is 180 columns wide,
-      then beside it; hidden when too small. Per-module breakpoints in config (something like
-      `FZX_PREVIEW_LAYOUTS=("0:hidden" "80:down,50%" "180:right,55%")`), applied with change-preview-window.
+- [x] **Responsive preview layout** (p1) [feature]: `FZX_PREVIEW_LAYOUTS=("MINCOLS:SPEC" ...)` (lib/layout.sh),
+      applied on start/resize by `fzx _cb layout`; hand-hidden previews stay hidden across breakpoints and
+      become(). Default `0:down,50%,border-top 120:`, menu `... 180:right,40%`.
 - [ ] **Preview layouts for every module** (p2) [chore]: once the above exists, tune each module from its
       content: how long its lines are, how many there usually are (a handful of items and a big preview: do
       not spend height on the list), and what the screen is for (logs: a narrow list, a large preview).
