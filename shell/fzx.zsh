@@ -14,6 +14,7 @@ typeset -gA FZX_ZSH_KEYS
 : ${FZX_ZSH_KEYS[git]=$'\eg'}   # insert paths, a hash or a branch from the git module
 : ${FZX_ZSH_KEYS[ps]=$'\ep'}    # insert pids
 : ${FZX_ZSH_KEYS[menu]=$'\em'}  # open the menu, insert what it returns
+: ${FZX_ZSH_KEYS[history]='^R'}  # histdb history: replace the line (alt-enter runs it)
 
 # fzx-format: selection lines on stdin -> one shell-quoted word each, space-separated; paths under the
 # current directory become relative (the directory itself becomes "."). Both the logical $PWD and its
@@ -54,6 +55,33 @@ fzx-files-widget() { fzx-insert -m files; }
 fzx-git-widget() { fzx-insert -m git; }
 fzx-ps-widget() { fzx-insert -m ps; }
 fzx-menu-widget() { fzx-insert; }
+
+# fzx-history-widget: the history module in the scope of the shell's history navigation
+# (SHELL_HISTORY_SCOPE: directory, session, else this host), seeded with what is typed. The chosen command
+# replaces the line; alt-enter (exit status 10) runs it. HISTDB_SESSION tells the session mode which
+# session this shell is.
+fzx-history-widget() {
+  emulate -L zsh
+  setopt pipefail no_aliases
+  local out mode rc query=()
+  [[ -n "$LBUFFER" ]] && query=(-- "$LBUFFER")
+  case "${SHELL_HISTORY_SCOPE:-}" in
+    directory | session) mode="$SHELL_HISTORY_SCOPE" ;;
+    *) mode=host ;;
+  esac
+  out="$(FZX_HISTDB_SESSION="${HISTDB_SESSION:-}" command "${FZX_ZSH_BIN:-fzx}" -m "history:$mode" \
+    "${query[@]}" < /dev/tty)"
+  rc=$?
+  if [[ -n "$out" ]]; then
+    BUFFER="$out"
+    CURSOR=$#BUFFER
+  fi
+  if ((rc == 10)) && [[ -n "$out" ]]; then
+    zle accept-line
+  else
+    zle reset-prompt
+  fi
+}
 
 # fzx-cd-widget-run <fzx args...>: cd into the directory fzx prints, through accept-line (like fzf's
 # alt-c), so the cd is in history and prompt hooks run
@@ -137,12 +165,12 @@ fi
 
 () {
   local name
-  for name in files dirs jump git ps menu; do
+  for name in files dirs jump git ps menu history; do
     zle -N "fzx-$name-widget"
   done
   [[ "${FZX_ZSH_NO_BIND:-0}" == 1 ]] && return
   local map
-  for name in files dirs jump git ps menu; do
+  for name in files dirs jump git ps menu history; do
     [[ -n "${FZX_ZSH_KEYS[$name]}" ]] || continue
     for map in emacs viins vicmd; do
       bindkey -M "$map" "${FZX_ZSH_KEYS[$name]}" "fzx-$name-widget"

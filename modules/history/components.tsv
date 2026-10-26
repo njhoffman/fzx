@@ -1,0 +1,12 @@
+# kind  name  key  description  flags
+mode    session    -  this shell session (histdb session from the zsh widget)  -
+mode    directory  -  run in this directory or below                         -
+mode    host       -  run on this machine                                    default
+mode    global     -  every machine in the database                          -
+toggle  failed     alt-e  only commands whose last run failed                -
+sort    recent     -  most recently run first                                default
+sort    frequent   -  most often run first                                   -
+action  insert     -       put the command on the command line               default,print
+action  run        alt-enter  run the command (the zsh widget accepts the line)  print
+action  copy       -       copy the commands                                 silent
+action  delete     ctrl-x  forget every run of the selected commands         confirm,reload

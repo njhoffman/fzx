@@ -175,9 +175,8 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       their helpers and tests removed from ~/.fzf (backup: ~/.local/backup/fzf-before-fzx-2026-10-21).
 - [x] **v: open frecent files** (p2) [feature]: the recent module (telescope-frecency's sqlite, fasd) behind
       `fzx jump --files` and zsh `v`; `fzx --query` for the files fallback.
-- [ ] **history** (p1) [module]: zsh-histdb history with per-directory and per-session modes, run/insert/delete.
-      Refs: ref/mods/histdb.{sh,zsh}, system/fzf.histdb.zsh, system/fzhistory*.
-      Has: sqlite3, ~/.histdb/zsh-history.db. Missing: atuin (not needed).
+- [x] **history** (p1) [module]: modules/history over zsh-histdb (session/directory/host/global, failed toggle,
+      recent/frequent sort, last-run preview, insert/run/copy/forget); ctrl-r widget in shell/fzx.zsh.
 - [ ] **repos** (p1) [module]: ghq repositories with git summary (branch, dirty, ahead/behind) and cd/open;
       repo groups. Refs: list.md "repos", vendors/widgets/fzf-git-change-repository, fzf-scripts/gitup.
       Has: ghq, git.

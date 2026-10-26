@@ -6,6 +6,17 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-26
+
+### Added
+
+- history module: your zsh-histdb history, one row per command with when it last ran, how often, and
+  failed runs in red. Modes: this shell session, this directory (and below), this machine, every machine;
+  alt-e shows only failed commands, f11/f12 sort by recency or frequency. The preview shows the whole
+  command, its last run (status, duration, directory, host) and the directories it ran in. Enter puts the
+  command on the line, alt-enter runs it, ctrl-x forgets it. The zsh integration binds it to ctrl-r,
+  starting in your `SHELL_HISTORY_SCOPE` with what you typed as the query.
+
 ## [0.5.0] - 2026-10-26
 
 ### Added
