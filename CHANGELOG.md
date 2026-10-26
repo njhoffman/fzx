@@ -6,6 +6,18 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-26
+
+### Added
+
+- todos module: the open items of TODO.md files (the format Claude Code keeps), from this repository or
+  from every repository, sorted by urgency (overdue, priority, due date) or file order, with the item's
+  card (priority, category, due date and details rendered as markdown) in the preview. ctrl-d marks an
+  item done (refused if the file changed under it), ctrl-e opens it in your editor at its line, ctrl-y
+  copies titles, alt-y the lines, alt-d shows completed items too. Enter prints
+  `TODO.md:LINE ☐  (Pn) [category] Title` lines; `--paste PANE` pastes them into a tmux pane instead,
+  as todo-fzf does for /todo-pop.
+
 ## [0.8.0] - 2026-10-26
 
 ### Added

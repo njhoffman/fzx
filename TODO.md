@@ -98,12 +98,11 @@ Design questions for these are in `docs/components.md` (decided; what is built i
       cannot resize a running popup, so this likely means a relaunch (become with the new --popup options).
 - [x] **Placement key ctrl-^** (p1) [feature]: `FZX_KEYS[popout]` is ctrl-^ and the cycle is inline -> split ->
       popup -> float. fzx-only on purpose: plain fzf cannot switch placements.
-- [ ] **todos** (p2) [module]: scan all projects (ghq, ~/git) for TODO.md files in the format Claude Code keeps
-      (`- [ ] **Title** (pN) [category]: ...`, the format of this file) and itemize every open item across them:
-      project, priority, category, title; sorted by priority, filterable by project/category (modes or
-      toggles), the item's full text in the preview, enter opens it in the editor at its line. Files not in
-      that format are skipped. Reuse ~/.shell/scripts/todo-status's parsing. The repos/tasks modules can show
-      a project's counts from the same scan.
+- [x] **todos** (p2) [module]: modules/todos (here/all, done toggle, urgency/file sort, card preview,
+      done/edit/copy, `--paste PANE`), todo-fzf's features with its own parser (matches `todo-status -l`).
+- [ ] **todo-fzf delegates to fzx todos** (p2) [chore]: point ~/.shell/scripts/todo-fzf and /todo-pop at
+      `fzx -m todos [--paste PANE]` so there is one implementation. Waiting on another session's todo-fzf
+      bug fix (2026-10-26); do not change todo-fzf until it lands.
 - [ ] **Preview script upgrade** (p2) [feature] (~/.fzf/core/preview.sh): handle more file types, and report
       which detector and renderer it chose (to fzx's log, or a debug header) so it is clear why content
       looks the way it does. The same detection then serves piping (below): what kind of content is piped in.

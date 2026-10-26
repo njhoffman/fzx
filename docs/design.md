@@ -364,6 +364,7 @@ and settings.
 | `history` | session, directory, host (default), global (zsh-histdb); toggle failed; sort recent/frequent | `[WORDS...]`: the starting query | alt-enter run (exit status 10), ctrl-x forget (confirm), alt-e failed only | the command (multi-line kept) |
 | `repos` | all, mine, changed, unsynced, todos; sort recent/name | | ctrl-o git module, alt-o files, ctrl-e edit, alt-w browse; actions: fetch, pull (`--ff-only`), rescan | the repository path |
 | `docker` | containers (running first), images, volumes, networks, compose; toggle running | | alt-s start/up, ctrl-x stop/down, alt-R restart, alt-x remove (confirm), alt-e exec a shell, ctrl-l follow logs, alt-i inspect; actions: kill, run (image), pull, prune | ids (volume and project names) |
+| `todos` | here (this repository's TODO.md), all (every repository's); toggle done; sort urgency/file | `[--paste PANE] [QUERY...]` | ctrl-d done, ctrl-e edit at the line, ctrl-y copy titles, alt-y copy lines | `TODO.md:LINE ☐  (Pn) [category] Title` per item (with `--paste`, pasted into the pane) |
 | `menu` | | | enter opens the entry | entry id |
 | `actions` | | groups of `names args... --fzx--` (built by the actions key) | enter runs the action, then back | |
 
@@ -407,6 +408,11 @@ than guess; compose projects are addressed by name (`docker compose -p`). Image 
 through `index` and lists through `range`: docker 28 returns maps and `[]interface {}` there, where a missing
 key is an error and `join` fails. exec tries `FZX_DOCKER_SHELLS` in order. The menu shows docker entries
 only when the daemon answers within 2 seconds.
+`todos` parses the TODO.md format itself (todo-status's rules: bold lead as the title, `(pN)` with p2 the
+default, the first known `[category]`, extended by a `Categories:` line, `(due YYYY-MM-DD)`, continuation
+lines, fenced blocks skipped) and matches `todo-status -l` on open items. Its id is `file\x1fline\x1ftitle`:
+done (ctrl-d) checks the box only while that line still holds the open item with that title (todo-fzf
+keeps a file snapshot for the same purpose), rewriting through a temporary file with the mode kept.
 `systemd` runs actions on system units through sudo when not root, bound with `execute` so sudo can
 prompt; list parsing forces `SYSTEMD_COLORS=0` because users commonly export it.
 

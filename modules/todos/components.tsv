@@ -1,0 +1,11 @@
+# kind  name  key  description  flags
+mode    here     -  the TODO.md of this repository                        default
+mode    all      -  the TODO.md of every repository (ghq, FZX_TODOS_ROOTS)   -
+toggle  done     alt-d  completed items too                               -
+sort    urgency  -  open first, then overdue, priority, due date, file order  default
+sort    file     -  file order                                            -
+action  edit     ctrl-e  open the item in $EDITOR at its line             foreground,reload
+action  done     ctrl-d  mark the item done                               silent,reload
+action  paste    -       paste the lines into the tmux pane given by --paste  print
+action  copy       ctrl-y  copy the titles                              silent,builtin
+action  copy-line  alt-y   copy the lines (TODO.md:LINE ☐  (Pn) [category] Title)  silent,builtin
