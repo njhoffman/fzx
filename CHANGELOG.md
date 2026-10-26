@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-10-26
+
+### Changed
+
+- docker: ctrl-l on several containers follows their logs together, each line prefixed with the
+  container's name in its own color. The run action asks for the run options (default: interactive,
+  removed on exit, this directory mounted at /work) and a command (default: a shell).
+
 ## [0.9.0] - 2026-10-26
 
 ### Added

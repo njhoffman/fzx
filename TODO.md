@@ -158,6 +158,27 @@ Design questions for these are in `docs/components.md` (decided; what is built i
       runtime need a wrapper that relaunches the target. A walkthrough mode that steps through fzf's
       CHANGELOG and runs its code examples.
 
+- [ ] **ps: trace, open files, root processes** (p2) [feature]: from fzf.top.zsh/fztop: strace/ltrace actions
+      (errors only, all calls; foreground, ctrl-c returns), the process's open files (lsof -p; or ctrl-o into
+      the network module once it exists), and term/kill through sudo for other users' processes (systemd's
+      sudo pattern). Refs: widgets/system/fzf.top.zsh, fzf.lsof.zsh, fzf-rsc/modules/system/fztop.
+- [ ] **systemd: unit kinds and states** (p2) [feature]: inactive/disabled/static units (list-unit-files) as a
+      toggle, timers (next/last run) and sockets as modes, a reload action, sort by state or name. Refs:
+      widgets/system/fzf.systemd.zsh (toggles system/user/inactive), fzf-rsc/modules/system/fzsystemd (sysz).
+- [ ] **logs: colored previews** (p3) [feature]: ccze -A or grcat (conf.tail) over log files and journals (both
+      installed here), and a unit's `systemctl status` above its journal in the units preview; the preview
+      window in follow mode. Refs: widgets/system/logs/logs.preview.sh, logs.fzf.sh.
+- [ ] **files: toggles, sort, images** (p2) [feature]: toggles for hidden files and ignored files (fd --no-ignore;
+      today hidden is always on), newest-first sort by mtime, image previews with chafa or viu (installed;
+      overlaps the preview script upgrade). Refs: proto-widgets/files.sh, fzf-rsc/modules/fz-rg.ueberzug.sh.
+- [ ] **dirs: bookmark from the list** (p3) [feature]: add and remove bookmarks with keys (fzf-marks' mark/unmark),
+      kept in a file under FZX_STATE_DIR instead of only FZX_DIRS_BOOKMARKS in config. Ref: fzf-marks.plugin.zsh.
+- [ ] **tmux follow-ups** (p3) [feature]: Codex's list in docs/tmux.md: snippet history (snippetdb), edit the text
+      before pasting, open URLs from the urls mode (tmux-url), IPv6 extraction, marked-pane round trips, and
+      running a binding from the keys list (run-binding; today rows are never executed, by design).
+- [ ] **docker: exec a command** (p3) [feature]: fzf-runinc: exec a typed command (not a shell) in the container,
+      output kept on screen; and docker system df as the images/volumes summary. Ref: fzf-rsc/modules/docker.
+
 ## Module candidates
 
 Built from the reference repos in `resources/` (fzfmenu widgets, proto-widgets, vendored widgets and

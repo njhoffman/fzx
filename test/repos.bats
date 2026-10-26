@@ -125,8 +125,9 @@ repos_fn() {
   run "$REPOS/actions.sh" fetch "$A"
   [ "$status" -eq 0 ]
   [[ "$output" == *fetched* ]]
-  run src
-  [[ "${lines[0]}" == *'↑1 ↓2'* ]]
+  # alpha's row by name: its last commit can share a second with gamma's, so the order can vary
+  run bash -c "FZX_MODE=all '$REPOS/source.sh' | grep 'me/alpha' | sed 's/\x1b\[[0-9;]*m//g'"
+  [[ "$output" == *'↑1 ↓2'* ]]
   run "$REPOS/actions.sh" fetch "$BATS_TEST_TMPDIR"
   [ "$status" -eq 2 ]
 }

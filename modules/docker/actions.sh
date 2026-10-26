@@ -28,6 +28,23 @@ docker::exec() {
   command docker exec -it "$1" sh
 }
 
+# docker::logs_merged <container...>: follow several containers at once, each line prefixed with its
+# container's name in its own color (docker-fzf's dla); ctrl-c stops them all
+docker::logs_merged() {
+  local id name i=0 pids=() colors=(81 114 222 175 117 215)
+  for id in "$@"; do
+    name="$(command docker inspect --format '{{.Name}}' "$id" 2> /dev/null)"
+    name="${name#/}"
+    command docker logs -f --tail "${FZX_DOCKER_LOG_LINES:-40}" "$id" 2>&1 |
+      sed -u "s/^/$(printf '\e[38;5;%sm' "${colors[i % 6]}")[${name//\//_}]$(printf '\e[0m') /" &
+    pids+=("$!")
+    i=$((i + 1))
+  done
+  printf '\e[2mfollowing %s containers (ctrl-c returns)\e[0m\n' "$#"
+  wait "${pids[@]}" 2> /dev/null
+  kill "${pids[@]}" 2> /dev/null
+}
+
 # docker::action <action> <id...>
 docker::action() {
   local action="${1:-}" mode="${FZX_MODE:-containers}" id rc=0
@@ -47,10 +64,14 @@ docker::action() {
     remove:networks) command docker network rm "$@" ;;
     exec:containers) docker::exec "$1" ;;
     logs:containers)
-      printf '\e[2mdocker logs -f %s (ctrl-c returns)\e[0m\n' "$1"
       # ctrl-c ends the follow, not fzx
       trap : INT
-      command docker logs -f --tail "${FZX_DOCKER_LOG_LINES:-40}" "$1"
+      if (($# == 1)); then
+        printf '\e[2mdocker logs -f %s (ctrl-c returns)\e[0m\n' "$1"
+        command docker logs -f --tail "${FZX_DOCKER_LOG_LINES:-40}" "$1"
+      else
+        docker::logs_merged "$@"
+      fi
       trap - INT
       ;;
     logs:compose)
@@ -65,10 +86,19 @@ docker::action() {
         ${PAGER:-less -R}
       ;;
     run:images)
-      printf '\e[2mdocker run -it --rm %s (exit returns)\e[0m\n' "$1"
-      # shellcheck disable=SC2016  # $s is the container shell's
-      command docker run -it --rm --entrypoint sh "$1" -c 'for s in zsh bash ash sh; do command -v $s > /dev/null && exec $s; done' ||
-        docker::wait
+      local opts cmd
+      # runc's prompts: the run options (this directory mounted at /work by default), then the command
+      # (empty: the first shell the image has)
+      read -r -e -p $'\e[1mdocker run options:\e[0m ' -i "-it --rm -v $PWD:/work -w /work" opts < /dev/tty || return 0
+      read -r -e -p $'\e[1mcommand (empty: a shell):\e[0m ' cmd < /dev/tty || return 0
+      read -ra opts <<< "$opts"
+      if [[ -n "$cmd" ]]; then
+        command docker run "${opts[@]}" "$1" sh -c "$cmd" || docker::wait
+      else
+        # shellcheck disable=SC2016  # $s is the container shell's
+        command docker run "${opts[@]}" --entrypoint sh "$1" -c 'for s in zsh bash ash sh; do command -v $s > /dev/null && exec $s; done' ||
+          docker::wait
+      fi
       ;;
     pull:images)
       for id in "$@"; do

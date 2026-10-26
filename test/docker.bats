@@ -96,3 +96,17 @@ act() { FZX_MODE="$1" "$DOCKER/actions.sh" "${@:2}"; }
   [[ "$(fzf_bind alt-s)" == *'_cb action start'* ]]
   [[ "$(fzf_bind alt-x)" == *'confirm'*'remove'* || "$(fzf_bind alt-x)" == *'_cb action remove'* ]]
 }
+
+@test "logs of several containers: merged, each line prefixed with its container's name" {
+  # inspect gives the name, logs prints two lines and ends
+  cat > "$BATS_TEST_TMPDIR/bin/docker" << STUB
+#!/usr/bin/env bash
+case "\$1" in
+  inspect) echo "/name-\${@: -1}" ;;
+  logs) printf 'line one of %s\nline two of %s\n' "\${@: -1}" "\${@: -1}" ;;
+esac
+STUB
+  run bash -c "FZX_MODE=containers '$DOCKER/actions.sh' logs c1 c2 | sed 's/\x1b\[[0-9;]*m//g' | sort"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'[name-c1] line one of c1'* && "$output" == *'[name-c2] line two of c2'* ]]
+}
