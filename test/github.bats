@@ -19,8 +19,22 @@ setup() {
 printf '%s\n' "$*" >> "$BATS_TEST_TMPDIR/gh.calls"
 args=("$@")
 [[ "$1" == -H ]] && args=("${@:3}")
-[[ "${args[0]}" == api && "${args[1]}" == -H ]] && args=(api "${args[@]:3}")
+# api: the path is the first argument that is not an option (or an option's value)
+if [[ "${args[0]}" == api ]]; then
+  rest=() method=GET
+  for ((i = 1; i < ${#args[@]}; i++)); do
+    case "${args[i]}" in
+      -H | --jq) ((i++)) ;;
+      -X) method="${args[i + 1]}"; ((i++)) ;;
+      -i | --paginate | --slurp) ;;
+      *) rest+=("${args[i]}") ;;
+    esac
+  done
+  args=(api "${rest[@]}")
+fi
 case "${args[0]} ${args[1]}" in
+  "repo fork") ;;
+  "repo view") [[ -n "${STUB_GH_HERE:-}" ]] && echo "here: 2 PRs, 5 issues" || exit 1 ;;
   "auth token") echo tok ;;
   "search repos" | "search code")
     printf '%s\n' "${args[@]}" > "$BATS_TEST_TMPDIR/gh.search"
@@ -28,6 +42,14 @@ case "${args[0]} ${args[1]}" in
     if [[ "${args[1]}" == repos ]]; then cat "$BATS_TEST_TMPDIR/repos.json"; else cat "$BATS_TEST_TMPDIR/code.json"; fi
     ;;
   "api rate_limit") echo "searches left: 29/30, code 9/10 (per minute)" ;;
+  "api emojis") printf '{"cherry_blossom":"https://x/emoji/unicode/1f338.png?v8","atom":"https://x/emoji/atom.png?v8"}\n' ;;
+  "api notifications?per_page=50") [[ " $* " == *" --jq "* ]] && echo "3 unread" ;;
+  "api user/starred?per_page=1")
+    printf 'HTTP/2.0 200 OK\nLink: <https://api.github.com/user/starred?per_page=1&page=2>; rel="next", <https://api.github.com/user/starred?per_page=1&page=14>; rel="last"\n\n[]\n' ;;
+  "api user/repos?"* | "api users/"* | "api user/starred?per_page=100")
+    [[ -n "${STUB_GH_FAIL:-}" ]] && { echo "HTTP 401: Bad credentials" >&2; exit 1; }
+    cat "$BATS_TEST_TMPDIR/rest.json" ;;
+  "api user/starred/"*) echo "$method ${args[1]}" >> "$BATS_TEST_TMPDIR/star.calls" ;;
   "api "*)
     path="${args[1]}"
     case "$path" in
@@ -74,6 +96,17 @@ JSON
   "textMatches":[{"fragment":"# fzx::bind adds a key\nfzx::bind() {","matches":[{"indices":[2,11],"text":"fzx::bind"},{"indices":[23,32],"text":"fzx::bind"}]}]},
  {"path":"README.md","sha":"bbbb","url":"https://github.com/o/r/blob/0123456789abcdef0123456789abcdef01234567/README.md",
   "repository":{"nameWithOwner":"o/r"},"textMatches":[{"fragment":"one","matches":[{"indices":[0,3],"text":"one"}]}]}]
+JSON
+  # gh api --paginate --slurp: an array of pages
+  cat > "$BATS_TEST_TMPDIR/rest.json" << 'JSON'
+[[{"full_name":"me/priv","html_url":"https://github.com/me/priv","description":"mine :cherry_blossom: and :atom:","language":"Shell",
+   "stargazers_count":1,"forks_count":0,"open_issues_count":2,"watchers_count":1,"pushed_at":"2026-10-01T00:00:00Z",
+   "created_at":"2020-01-01T00:00:00Z","archived":false,"fork":false,"private":true,"license":null,"homepage":null,
+   "default_branch":"main","visibility":"private"}],
+ [{"full_name":"me/forked","html_url":"https://github.com/me/forked","description":null,"language":null,
+   "stargazers_count":0,"forks_count":0,"open_issues_count":0,"watchers_count":0,"pushed_at":"2026-09-01T00:00:00Z",
+   "created_at":"2020-01-01T00:00:00Z","archived":false,"fork":true,"private":false,"license":{"name":"MIT License"},
+   "homepage":"","default_branch":"master","visibility":"public"}]]
 JSON
   cat > "$BATS_TEST_TMPDIR/tree.json" << 'JSON'
 {"sha":"t","truncated":false,"tree":[
@@ -297,4 +330,146 @@ searches() { grep -c '^search ' "$BATS_TEST_TMPDIR/gh.calls" 2> /dev/null || ech
   [ "$(cat x.sh)" = "contents of x.sh?ref=main" ]
   run zsh -f -c "FZX_ZSH_NO_GITHUB=1 FZX_ZSH_NO_BIND=1; source '$zint'; whence ghs"
   [ "$status" -ne 0 ]
+}
+
+@test "mine and starred: every page, in a search's fields; --owner; cached; a failure is shown" {
+  run src mine ""
+  [ "$status" -eq 0 ]
+  [ "${#lines[@]}" -eq 2 ]
+  [[ "${lines[0]}" == https://github.com/me/priv$'\t'repo$'\t'me/priv$'\t'*/github/list/mine.json$'\t'0$'\t'* ]]
+  [[ "${lines[1]}" == *$'\t'1$'\t'*"me/forked "* ]]
+  grep -q 'user/repos?per_page=100&affiliation=owner&sort=pushed' "$BATS_TEST_TMPDIR/gh.calls"
+  [ "$(command jq -r '.[0].isPrivate, .[1].isFork, .[1].license.name' "$FZX_CACHE_DIR/github/list/mine.json" | tr '\n' ' ')" = "true true MIT License " ]
+  run src mine ""
+  [ "$(grep -c 'user/repos' "$BATS_TEST_TMPDIR/gh.calls")" -eq 1 ]
+  run src mine "" --owner someone
+  grep -q 'users/someone/repos?per_page=100&sort=pushed' "$BATS_TEST_TMPDIR/gh.calls"
+  [ -f "$FZX_CACHE_DIR/github/list/mine-someone.json" ]
+  run src starred ""
+  [ "${#lines[@]}" -eq 2 ]
+  STUB_GH_FAIL=1 FZX_GITHUB_CACHE_TTL=0 run src starred ""
+  [ "$status" -eq 1 ]
+  [[ "$output" == *$'\t'error$'\t'*"cannot list starred: HTTP 401: Bad credentials"* ]]
+}
+
+@test "toggles: private or public only, sources or forks only; both of a pair, everything" {
+  local t
+  run src mine ""
+  for t in "private:me/priv" "public:me/forked" "sources:me/priv" "forks:me/forked"; do
+    FZX_TOGGLES="${t%%:*}" run src mine ""
+    [ "${#lines[@]}" -eq 1 ] && [[ "${lines[0]}" == "https://github.com/${t#*:}"$'\t'* ]]
+  done
+  FZX_TOGGLES="private public forks sources" run src mine ""
+  [ "${#lines[@]}" -eq 2 ]
+  FZX_TOGGLES="private forks" run src mine ""
+  [ -z "$output" ]
+}
+
+@test "emoji: GitHub's shortcodes as their characters, in rows and the preview; its own ones kept" {
+  run src mine ""
+  [[ "${lines[0]}" == *"mine 🌸 and :atom:" ]]
+  FZX_GITHUB_MARKDOWN=cat run "$GH_DIR/preview.sh" https://github.com/me/priv repo me/priv "$FZX_CACHE_DIR/github/list/mine.json" 0
+  [[ "$output" == *"mine 🌸 and :atom:"* && "$output" == *"visibility  private"* ]]
+  [ "$(grep -c '^api emojis' "$BATS_TEST_TMPDIR/gh.calls")" -eq 1 ]
+}
+
+@test "code: qualifiers alone ask for words and spend no search; fzx::bind is a word" {
+  run src code "repo:o/r "
+  [[ "$output" == *$'\t'error$'\t'*"type the words to look for with repo:o/r, enter searches" ]]
+  [ "$(searches)" -eq 0 ]
+  run src code "repo:o/r fzx::bind"
+  [ "$(searches)" -eq 1 ]
+}
+
+@test "search: an empty answer is shown but asked again next time" {
+  printf '[]\n' > "$BATS_TEST_TMPDIR/repos.json"
+  run src repos "nothing"
+  [ -z "$output" ]
+  run src repos "nothing"
+  [ "$(searches)" -eq 2 ]
+}
+
+@test "actions: star, unstar in starred (the stars list fetched again), fork, settings" {
+  source "$GH_DIR/actions.sh" || :
+  src starred "" > /dev/null
+  FZX_MODE=repos github::action star -- https://github.com/o/r "https://github.com/o/r/blob/$SHA/x" https://github.com/p/q
+  [ "$(cat "$BATS_TEST_TMPDIR/star.calls" | tr '\n' '|')" = "PUT user/starred/o/r|PUT user/starred/p/q|" ]
+  [ ! -f "$FZX_CACHE_DIR/github/list/starred.json" ]
+  FZX_MODE=starred github::action star -- https://github.com/o/r
+  [ "$(tail -1 "$BATS_TEST_TMPDIR/star.calls")" = "DELETE user/starred/o/r" ]
+  github::action fork -- https://github.com/o/r
+  grep -qx 'repo fork o/r --clone=false' "$BATS_TEST_TMPDIR/gh.calls"
+  github::action settings -- "https://github.com/o/r/tree/$SHA/lib"
+  [ "$(tail -1 "$BATS_TEST_TMPDIR/open.calls")" = https://github.com/o/r/settings ]
+}
+
+@test "under fzx: mine accepts on enter; ctrl-t filters and back; enter while filtering" {
+  load_libs log session
+  fzx::session_create github "$GH_DIR"
+  fzx::state_set mode mine
+  FZF_QUERY="x" run "$FZX" _cb transform enter -- https://github.com/me/priv repo me/priv
+  [ "$output" = accept ]
+  run "$FZX" _cb transform filter -- https://github.com/me/priv repo me/priv
+  [ -z "$output" ]
+  fzx::state_set mode code
+  fzx::state_set github_query_code "needle"
+  run "$FZX" _cb transform filter -- u code o/r
+  # (the header holds parentheses: another delimiter pair)
+  [[ "$output" == "enable-search+change-query()+change-header[filtering the results of: needle (ctrl-t searches again)]" ]]
+  [ "$(cat "$FZX_SESSION_DIR/state/github_filter_code")" = 1 ]
+  FZF_QUERY="lib" run "$FZX" _cb transform enter -- u code o/r
+  [ "$output" = accept ]
+  FZF_QUERY="old" run "$FZX" _cb transform enter -- "old query" search code
+  [[ "$output" == "disable-search+change-query(old query)+change-header["*"]+"*"reload("*"_cb source)" ]]
+  [ -z "$(cat "$FZX_SESSION_DIR/state/github_filter_code")" ]
+  run "$FZX" _cb transform filter -- u code o/r
+  run "$FZX" _cb transform filter -- u code o/r
+  [[ "$output" == "disable-search+change-query(needle)+change-header["*"reload("*"_cb load)" ]]
+}
+
+@test "under fzx: alt-p narrows a code search to the repository, or opens code mode on it" {
+  load_libs log session
+  fzx::session_create github "$GH_DIR"
+  fzx::state_set mode code
+  FZF_QUERY="needle repo:x/y  lang:sh" run "$FZX" _cb transform narrow -- u code o/r
+  [[ "$output" == "disable-search+change-query(needle lang:sh repo:o/r)+change-header["*"reload("* ]]
+  fzx::state_set mode repos
+  # no modes recorded (a launch records them): nothing to switch to, the query stays
+  FZF_QUERY="fzf" run "$FZX" _cb transform narrow -- https://github.com/o/r repo o/r
+  [ -z "$output" ]
+  printf '%s\0' repos code mine starred > "$FZX_SESSION_DIR/meta/modes"
+  FZF_QUERY="fzf" run "$FZX" _cb transform narrow -- https://github.com/o/r repo o/r
+  [[ "$output" == "change-query(repo:o/r )+change-border-label("*"reload("* ]]
+  [ "$(cat "$FZX_SESSION_DIR/state/mode")" = code ]
+  run "$FZX" _cb transform narrow -- recent search repos
+  [ -z "$output" ]
+}
+
+@test "f2: the module's debug section lists every rate limit; modules without one get none" {
+  load_libs log session
+  fzx::session_create github "$GH_DIR"
+  run bash -c '"$0" _cb debug | sed "s/\x1b\[[0-9;]*m//g"' "$FZX"
+  [[ "$output" == *"github (github::debug)"$'\n'"  searches left: 29/30"* ]]
+  fzx::session_create ps "$FZX_REPO/modules/ps"
+  run bash -c '"$0" _cb debug | sed "s/\x1b\[[0-9;]*m//g"' "$FZX"
+  [[ "$output" == *"state/"* && "$output" != *"::debug)"* ]]
+  ! grep -q "not defined" "$LOG"
+}
+
+@test "menu: four entries; summaries for repos (parts in parallel), code, mine (from its list) and starred" {
+  load_libs log config menu
+  cat > "$STUBS/curl" << 'STUB'
+#!/usr/bin/env bash
+echo '{"status":{"indicator":"minor","description":"Partial outage"}}'
+STUB
+  chmod +x "$STUBS/curl"
+  fzx::menu_entries github "$GH_DIR"
+  [ "${FZX_ENTRY_TARGETS[*]}" = "github github:code github:mine github:starred" ]
+  STUB_GH_HERE=1 run github::summary github
+  [ "$output" = "GitHub: Partial outage · here: 2 PRs, 5 issues · 3 unread · searches left: 29/30, code 9/10 (per minute)" ]
+  run github::summary github:starred
+  [ "$output" = "14 stars" ]
+  src mine "" > /dev/null
+  run github::summary github:mine
+  [ "$output" = "2 repositories, 1 private" ]
 }

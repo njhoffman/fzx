@@ -1,20 +1,23 @@
 #!/usr/bin/env bash
 # github source, through gh. repos and code search GitHub for $FZF_QUERY (on enter, github::transform; not
-# as you type), or list the mode's recent searches when the query is empty; tree lists a repository's files.
+# as you type), or list the mode's recent searches when the query is empty; mine and starred list your
+# repositories and stars (filtered by fzf as usual); tree lists a repository's files.
 # Lines are 6 tab-separated fields, the last one displayed; the first is a github.com URL wherever there is
 # one, so the actions take any row:
-#   repo:    url    repo    owner/name  search file  index  display
+#   repo:    url    repo    owner/name  list file    index  display   (repos, mine, starred)
 #   code:    url    code    owner/name  search file  index  display
 #   blob:    url    blob    owner/name  sha:size     path   display   (tree: a file)
 #   tree:    url    tree    owner/name  -            path   display   (tree: a directory)
 #   recent:  query  search  mode        -            -      display   (enter searches it again)
 #   error:   text   error   -           -            -      display   (the search failed)
-# Searches are kept as gh's JSON in $FZX_CACHE_DIR/github/search/<mode> for FZX_GITHUB_CACHE_TTL; trees and
-# file contents by their sha. Under fzx the query each mode's list shows is in state/github_query_<mode>.
-# Mode from $FZX_MODE: repos, code, tree (`--repo OWNER/REPO [--ref REF]`).
+# Searches are kept as gh's JSON in $FZX_CACHE_DIR/github/search/<mode> for FZX_GITHUB_CACHE_TTL, your
+# repositories and stars in $FZX_CACHE_DIR/github/list (the same fields as a search), trees and file
+# contents by their sha. Under fzx the query each mode's list shows is in state/github_query_<mode>.
+# Mode from $FZX_MODE: repos, code, mine (`--owner NAME`: that user's or organization's), starred, tree
+# (`--repo OWNER/REPO [--ref REF]`). Toggles (every repository list): private, public, sources, forks.
 
 GITHUB_REPO_FIELDS="fullName,url,description,language,stargazersCount,forksCount,openIssuesCount,watchersCount"
-GITHUB_REPO_FIELDS+=",pushedAt,createdAt,isArchived,isFork,license,homepage,defaultBranch,visibility,size"
+GITHUB_REPO_FIELDS+=",pushedAt,createdAt,isArchived,isFork,isPrivate,license,homepage,defaultBranch,visibility,size"
 GITHUB_CODE_FIELDS="path,repository,sha,textMatches,url"
 
 # github::trim <text> <var>: without leading and trailing whitespace
@@ -25,13 +28,14 @@ github::trim() {
   printf -v "$2" '%s' "$_t"
 }
 
-# github::args [--repo OWNER/REPO] [--ref REF] [--]: GITHUB_REPO and GITHUB_REF (default HEAD, the
-# default branch)
+# github::args [--repo OWNER/REPO] [--ref REF] [--owner NAME] [--]: GITHUB_REPO, GITHUB_REF (default HEAD,
+# the default branch) and GITHUB_OWNER (mine: whose repositories; empty, yours)
 github::args() {
-  declare -g GITHUB_REPO="" GITHUB_REF=HEAD
+  declare -g GITHUB_REPO="" GITHUB_REF=HEAD GITHUB_OWNER=""
   while (($#)); do
     case "$1" in
       --repo) GITHUB_REPO="${2:-}" && shift 2 ;;
+      --owner) GITHUB_OWNER="${2:-}" && shift 2 ;;
       --ref) GITHUB_REF="${2:-HEAD}" && shift 2 ;;
       --) shift; break ;;
       *) printf 'github: unknown argument: %s\n' "$1" >&2; return 2 ;;
@@ -152,6 +156,64 @@ github::search() {
   fi
   rm -f -- "$_tmp.err"
   mv -f -- "$_tmp" "$_file"
+  # GitHub's search sometimes answers with nothing for a query that has results: an empty answer is shown
+  # but counts as stale, so the next search asks again
+  [[ "$(command jq length -- "$_file")" == 0 ]] && touch -d @0 -- "$_file"
+  return 0
+}
+
+# github::emojis <var>: a JSON object of GitHub's emoji shortcodes ("cherry_blossom") and their characters,
+# from `gh api emojis` (image URLs named by code points; GitHub's own, like "atom", have none), cached
+# without expiry; "{}" when it cannot be had
+github::emojis() {
+  local _f="$FZX_CACHE_DIR/github/emojis.json"
+  if ! github::cached "$_f" github::_emojis > /dev/null 2>&1; then
+    printf -v "$1" '%s' "{}"
+    return 0
+  fi
+  printf -v "$1" '%s' "$(< "$_f")"
+}
+github::_emojis() {
+  command gh api emojis | command jq -c '
+    def hex: reduce (ascii_downcase | explode[]) as $c (0; . * 16 + (if $c >= 97 then $c - 87 else $c - 48 end));
+    with_entries(select(.value | test("/unicode/")) | .value |= (capture("unicode/(?<h>[0-9a-f-]+)\\.png").h | split("-") | map(hex) | implode))'
+}
+
+# github::list_file <mode> <var>: the cache file of a list (mine per owner)
+github::list_file() {
+  printf -v "$2" '%s/github/list/%s%s.json' "$FZX_CACHE_DIR" "$1" "${GITHUB_OWNER:+-$GITHUB_OWNER}"
+}
+
+# github::list <mine|starred> <var>: the list's JSON file in a search's fields, from the cache while it is
+# younger than FZX_GITHUB_CACHE_TTL, else from gh (written only on success); on failure gh's message is in
+# GITHUB_ERROR
+github::list() {
+  local _file _tmp
+  declare -g GITHUB_ERROR=""
+  github::list_file "$1" _file
+  printf -v "$2" '%s' "$_file"
+  github::fresh "$_file" "${FZX_GITHUB_CACHE_TTL:-1h}" && return 0
+  mkdir -p -- "${_file%/*}" || return
+  _tmp="$_file.$BASHPID"
+  # REST, a page of 100 at a time (gh repo list's GraphQL takes several times as long)
+  local _path='user/starred?per_page=100'
+  if [[ "$1" == mine ]]; then
+    _path='user/repos?per_page=100&affiliation=owner&sort=pushed'
+    [[ -n "$GITHUB_OWNER" ]] && _path="users/$GITHUB_OWNER/repos?per_page=100&sort=pushed"
+  fi
+  command gh api --paginate --slurp "$_path" 2> "$_tmp.err" |
+    command jq '[add // [] | .[] | {fullName: .full_name, url: .html_url, description, language,
+      stargazersCount: .stargazers_count, forksCount: .forks_count, openIssuesCount: .open_issues_count,
+      watchersCount: .watchers_count, pushedAt: .pushed_at, createdAt: .created_at, isArchived: .archived,
+      isFork: .fork, isPrivate: .private, license: (if .license then {name: .license.name} else null end),
+      homepage, defaultBranch: .default_branch, visibility}]' > "$_tmp"
+  if [[ ${PIPESTATUS[0]} -ne 0 || ! -s "$_tmp" ]]; then
+    GITHUB_ERROR="$(tr '\n' ' ' < "$_tmp.err")"
+    rm -f -- "$_tmp" "$_tmp.err"
+    return 1
+  fi
+  rm -f -- "$_tmp.err"
+  mv -f -- "$_tmp" "$_file"
 }
 
 # github::language_icons: awk -v options with a Nerd Font icon per language (nerd style only)
@@ -160,7 +222,8 @@ github::language_icons() {
   printf -- '-v\nlangs=%s\n' 'Lua= Go= Python= Rust= Shell= JavaScript= TypeScript= C= C++= Ruby= Vim_Script= Java= HTML= CSS= Nix= Elixir= Haskell= Swift= Kotlin= PHP= Markdown= Dockerfile='
 }
 
-# github::repo_rows <file>: a repository search's rows
+# github::repo_rows <file>: a repository list's rows. The toggles keep private or public repositories only,
+# sources or forks only (both of a pair, or neither: all); the index stays the one in the file
 github::repo_rows() {
   local o=$'\e['"${FZX_COLORS[github_owner]:-38;5;244}m" n=$'\e['"${FZX_COLORS[github_name]:-1;38;5;75}m"
   local s=$'\e['"${FZX_COLORS[github_star]:-38;5;220}m" c=$'\e['"${FZX_COLORS[github_count]:-38;5;250}m"
@@ -169,9 +232,19 @@ github::repo_rows() {
   fzx::require icons
   fzx::icon_vars star fork issue archived repo
   mapfile -t langs < <(github::language_icons)
-  command jq -r --arg file "$1" 'to_entries[] | .key as $i | .value |
+  local emojis on=" ${FZX_TOGGLES:-} "
+  github::emojis emojis
+  command jq -r --arg file "$1" --argjson e "$emojis" \
+    --argjson priv "$([[ "$on" == *" private "* ]] && echo true || echo false)" \
+    --argjson pub "$([[ "$on" == *" public "* ]] && echo true || echo false)" \
+    --argjson src "$([[ "$on" == *" sources "* ]] && echo true || echo false)" \
+    --argjson frk "$([[ "$on" == *" forks "* ]] && echo true || echo false)" '
+    def keep(a; b; v): (a == b) or (if a then v else (v | not) end);
+    to_entries[] | .key as $i | .value |
+    select(keep($priv; $pub; .isPrivate == true) and keep($frk; $src; .isFork == true)) |
     [.url, "repo", .fullName, $file, $i, .language // "", .stargazersCount, .forksCount, .openIssuesCount,
-     (now - ((.pushedAt // .createdAt) | fromdateiso8601) | floor), .isArchived, (.description // "")]
+     (now - ((.pushedAt // .createdAt) | fromdateiso8601) | floor), .isArchived,
+     ((.description // "") | gsub(":(?<n>[a-z0-9_+-]+):"; $e[.n] // ":\(.n):"))]
     | map(tostring | gsub("[\t\r\n]+"; " ")) | join("\t")' -- "$1" |
     awk -F'\t' -v OFS='\t' "${FZX_ICON_VARS[@]}" "${langs[@]}" -v o="$o" -v n="$n" -v s="$s" -v c="$c" -v d="$d" -v r="$r" '
       BEGIN { k = split(langs, l, " "); for (i = 1; i <= k; i++) { split(l[i], kv, "="); gsub(/_/, " ", kv[1]); icon[kv[1]] = kv[2] } }
@@ -292,6 +365,11 @@ github::split_ref() {
   GH_PATH="${rest#"${parts[0]}"}" GH_PATH="${GH_PATH#/}"
 }
 
+# github::search_header <var>: the search modes' header
+github::search_header() {
+  printf -v "$1" '%s' "type a search (GitHub qualifiers work: language:go stars:>100), enter runs it"
+}
+
 # --- the list
 
 # github::recent <mode>: the mode's recent searches
@@ -313,6 +391,16 @@ github::source() {
       github::tree_rows
       return
       ;;
+    mine | starred)
+      github::args "$@" || return
+      if ! github::list "$mode" file; then
+        printf 'github: cannot list %s: %s\n' "$mode" "$GITHUB_ERROR" >&2
+        printf '%s\terror\t-\t-\t-\t%scannot list %s:%s %s\n' "$GITHUB_ERROR" "$red" "$mode" "$r" "$GITHUB_ERROR"
+        return 1
+      fi
+      github::repo_rows "$file"
+      return
+      ;;
     repos | code) ;;
     *)
       printf 'github: unknown mode: %s\n' "$mode" >&2
@@ -323,6 +411,17 @@ github::source() {
   if [[ -z "$query" ]]; then
     github::recent "$mode"
     github::_searched "$mode" ""
+    return 0
+  fi
+  # a code search needs words to look for: qualifiers alone (alt-p's "repo:o/r") list arbitrary files and
+  # spend one of the 10 code searches a minute
+  local words=() w terms=0
+  github::words "$query" words
+  # a qualifier is name:value (fzx::bind is a word to look for)
+  for w in "${words[@]}"; do [[ "$w" =~ ^-?[A-Za-z][A-Za-z_-]*:[^:] ]] || terms=1; done
+  if [[ "$mode" == code ]] && ((!terms)); then
+    printf '%s\terror\t-\t-\t-\t  type the words to look for with %s, enter searches\n' "add search words to: $query" "$query"
+    github::_searched "$mode" "$query"
     return 0
   fi
   if ! github::search "$mode" "$query" file; then

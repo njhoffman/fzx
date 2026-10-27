@@ -9,17 +9,22 @@ FZX_ICON=""
 
 # the menu's icons for modes that open different lists
 declare -gA FZX_ICON_MODES
+FZX_ICON_MODES[starred]=""
 FZX_ICON_MODES[code]=""
 # the icon's color in the menu
 FZX_COLORS[github_icon]="38;5;255"
 FZX_COLORS[github_icon_code]="38;5;177"
+FZX_COLORS[github_icon_starred]="38;5;220"
 
-FZX_KEYS[github.into]=ctrl-o # repos, code: browse the repository's files
+FZX_KEYS[github.into]=ctrl-o   # repos, code, mine, starred: browse the repository's files
+FZX_KEYS[github.narrow]=alt-p  # code: search only the repository under the cursor; the others: its code
+FZX_KEYS[github.filter]=ctrl-t # repos, code: filter the results with fzf instead of searching, and back
 
 # results per search (gh search --limit, at most 100 for code)
 FZX_GITHUB_LIMIT="${FZX_GITHUB_LIMIT:-100}"
-# a search is served from $FZX_CACHE_DIR/github/search for this long (90, 90s, 5m, 2h, 1d); file
-# contents and trees are cached by their sha and never expire (`fzx gc` clears the cache)
+# a search, your repositories and your stars are served from $FZX_CACHE_DIR/github for this long (90,
+# 90s, 5m, 2h, 1d; ctrl-r does not refresh them: star/unstar does, or `fzx gc`); file contents and trees
+# are cached by their sha and never expire
 FZX_GITHUB_CACHE_TTL="${FZX_GITHUB_CACHE_TTL:-1h}"
 # recent searches per mode, kept in $FZX_STATE_DIR/github/history-<mode>
 FZX_GITHUB_HISTORY_MAX="${FZX_GITHUB_HISTORY_MAX:-200}"

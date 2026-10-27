@@ -35,15 +35,16 @@ github::limits() {
 
 # github::preview_repo <search file> <index>
 github::preview_repo() {
-  local b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m' repo pushed readme
+  local b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m' repo pushed readme emojis
   [[ -n "${NO_COLOR+x}" ]] && b="" d="" r=""
-  command jq -r --argjson i "$2" --arg b "$b" --arg d "$d" --arg r "$r" '.[$i] |
+  github::emojis emojis
+  command jq -r --argjson i "$2" --arg b "$b" --arg d "$d" --arg r "$r" --argjson e "$emojis" '.[$i] |
     def row(k; v): if (v // "") == "" then empty else "\($d)\(k)\($r)  \(v)" end;
     "\($b)\(.fullName)\($r)\(if .isArchived then "  \($d)archived\($r)" else "" end)\(if .isFork then "  \($d)fork\($r)" else "" end)",
-    (.description // ""), "",
+    ((.description // "") | gsub(":(?<n>[a-z0-9_+-]+):"; $e[.n] // ":\(.n):")), "",
     row("language  "; .language),
     row("stars     "; .stargazersCount), row("forks     "; .forksCount), row("issues    "; .openIssuesCount),
-    row("license   "; .license.name), row("homepage  "; .homepage), row("branch    "; .defaultBranch),
+    row("visibility"; .visibility), row("license   "; .license.name), row("homepage  "; .homepage), row("branch    "; .defaultBranch),
     row("created   "; .createdAt[0:10]), row("pushed    "; .pushedAt[0:10]), row("url       "; .url)' -- "$1"
   IFS=$'\t' read -r repo pushed < <(command jq -r --argjson i "$2" '.[$i] | [.fullName, .pushedAt] | join("\t")' -- "$1")
   # the README of that push: a newer push gets a new copy
@@ -105,6 +106,13 @@ github::preview_tree() {
   printf '%s/\n\n' "$3"
   command jq -r --arg p "$3/" --arg d "$d" --arg r "$r" '.tree[] | select((.path | startswith($p)) and (.path[($p | length):] | contains("/") | not)) |
     if .type == "tree" then "\(.path[($p | length):])/" else "\(.path[($p | length):])  \($d)\(.size) bytes\($r)" end' -- "$file"
+}
+
+# github::debug: the f2 view's module section: every API rate limit (rate_limit itself is free)
+github::debug() {
+  command gh api rate_limit --jq '.resources | to_entries[] |
+    "\(.key)\t\(.value.used)/\(.value.limit) used\tresets \(.value.reset | strflocaltime("%H:%M:%S"))"' 2> /dev/null |
+    column -t -s $'\t'
 }
 
 # github::preview <url|query|text> <kind> [repo] [field 4] [field 5]

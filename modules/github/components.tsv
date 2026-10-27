@@ -1,12 +1,22 @@
 # github components: kind  name  key  description  flags (see lib/components.sh)
 # Searches run on enter (a new query), not as you type: GitHub allows 30 searches a minute, 10 for code.
+# mine and starred are lists fzf filters, so entering or leaving them restarts fzf.
 # Ids are github.com URLs, so every action works on any row: a repository, a file or a directory.
-mode  repos  -  search repositories (GitHub qualifiers in the query: language:go stars:>100)  default
-mode  code   -  search code (qualifiers: repo:o/r language:sh filename:x path:y)              -
-mode  tree   -  the files of a repository (--repo OWNER/REPO [--ref REF])                     hidden
-action  browser  alt-o   open in the browser                                                    silent
-action  clone    alt-c   clone the repository with ghq                                          foreground
-action  fetch    alt-d   repos: clone; code, tree: download the selected files and directories   foreground
-action  edit     ctrl-e  code, tree: open the file in $EDITOR (a read-only copy)                 foreground
-action  web      alt-w   repos, code: open the search on github.com                             silent
-action  copy     ctrl-y  copy the urls                                                          silent,builtin
+mode  repos    -  search repositories (GitHub qualifiers in the query: language:go stars:>100)  default
+mode  code     -  search code (qualifiers: repo:o/r language:sh filename:x path:y)              -
+mode  mine     -  your repositories (--owner NAME: someone else's), last pushed first          restart
+mode  starred  -  the repositories you starred, last starred first                             restart
+mode  tree     -  the files of a repository (--repo OWNER/REPO [--ref REF])                     hidden
+toggle  private  alt-1  private repositories only (with public: both)                          -
+toggle  public   alt-2  public repositories only (with private: both)                          -
+toggle  sources  alt-3  repositories that are not forks (with forks: both)                     -
+toggle  forks    alt-4  forks only (with sources: both)                                        -
+action  browser   alt-o   open in the browser                                                    silent
+action  clone     alt-c   clone the repository with ghq                                          foreground
+action  fetch     alt-d   repos, mine, starred: clone; code, tree: download the selected files and directories  foreground
+action  edit      ctrl-e  code, tree: open the file in $EDITOR (a read-only copy)                 foreground
+action  star      alt-s   repos, code, mine: star the repositories; starred: unstar them          foreground,reload
+action  fork      alt-F   fork the repository to your account (no clone)                         foreground,confirm
+action  settings  alt-e   open the repository's settings page in the browser                     silent
+action  web       alt-w   repos, code: open the search on github.com                             silent
+action  copy      ctrl-y  copy the urls                                                          silent,builtin

@@ -6,6 +6,33 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-10-27
+
+### Added
+
+- github: `mine` (your repositories, or `--owner NAME`'s, last pushed first) and `starred` modes, which fzf
+  filters as you type. Toggles keep private or public repositories, sources or forks only, in every
+  repository list (alt-1 to alt-4).
+- github actions: alt-s stars the selected repositories (unstars them in `starred`), alt-F forks one to
+  your account (asks first), alt-e opens a repository's settings page.
+- github: alt-p searches the code of the repository under the cursor (in code mode it narrows the current
+  search to that repository); ctrl-t filters a search's results with fzf instead of searching, and back.
+- github: GitHub's emoji shortcodes in descriptions show as the emoji.
+- The menu's github entries: GitHub's status when it is not fine, this repository's open PRs and issues,
+  unread notifications and the searches left; how many repositories and stars you have.
+- The debug view (f2) shows a module's own section when its preview.sh defines `<module>::debug`; github
+  lists every API rate limit there.
+
+### Changed
+
+- github: a code query of qualifiers alone (such as alt-p's `repo:o/r`) asks for words to look for instead
+  of spending one of the ten code searches a minute on a list of arbitrary files.
+
+### Fixed
+
+- github: GitHub's search sometimes answers an empty list for a query that has results; an empty answer
+  is no longer kept for an hour.
+
 ## [0.24.0] - 2026-10-27
 
 ### Added

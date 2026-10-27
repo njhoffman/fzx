@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.24.0): the six steps of `docs/design.md` are done. Modules: actions, capture, colors, dirs,
+Status (0.25.0): the six steps of `docs/design.md` are done. Modules: actions, capture, colors, dirs,
 docker, files, git, github, history, keybindings, logs, man, menu, ps, recent, repos, systemd, tmux, todos,
 youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
@@ -178,17 +178,10 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       avahi-browse.sh, ref/mods/avahi.sh, fzf-rsc/completions/system/kill-proc-by-port.zsh.
       Has: ss, netstat, lsof, ip, nmcli, avahi-browse.
 - [ ] **github: issues, PRs, notifications** (p2) [module]: phase 2 of modules/github (search, files and
-      fetch shipped in 0.24.0): issues and PRs of the repository here, or involving you elsewhere (view,
-      checkout, comment, close), and notifications (open, mark read). Refs: vendors/widgets/fzf-github-*,
-      gh-fzf (`gh fzf`), gh-dash's key hints.
-- [ ] **github: your repositories and stars** (p3) [module]: phase 3: `mine` (`gh repo list`, toggles for
-      private, public, sources and forks; actions: its PRs, issues and workflow runs, fork, `gh repo edit`)
-      and `starred` modes; menu summaries for unread notifications and this repository's open PRs and
-      issues; emoji shortcodes in descriptions (`:cherry_blossom:`); GitHub's status
-      (githubstatus.com) in the menu. From gh-gitman's references (api.sh `repo_cmd`, gh-find-code).
-- [ ] **github: search follow-ups** (p3) [feature]: from gh-find-code: a key that narrows a code search to
-      the repository under the cursor (`repo:o/r` added to the query), and a toggle that filters the
-      results with fzf instead of searching; all rate limits (not only search) in the f2 view.
+      fetch in 0.24.0; your repositories, stars and the search follow-ups in 0.25.0): issues and PRs of the
+      repository here, or involving you elsewhere (view, checkout, comment, close), and notifications
+      (open, mark read). Then from any repository row: its PRs, issues and workflow runs (from gh-gitman's
+      api.sh `repo_cmd`). Refs: vendors/widgets/fzf-github-*, gh-fzf (`gh fzf`), gh-dash's key hints.
 - [ ] **shell** (p2) [module]: modes for executables on PATH, aliases and shell functions (man/tldr or
       definition preview, the man module's renderer), and environment variables and parameters with values.
       The function and parameter lists come from zsh, so reuse the keybindings module's dump approach

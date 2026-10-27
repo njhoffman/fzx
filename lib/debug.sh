@@ -237,6 +237,13 @@ fzx::debug_preview() {
     done
   fi
 
+  # the module's own section: <module>::debug from its preview.sh, when it has one
+  # (looked for first: importing a missing function logs an error)
+  if grep -qs "^$FZX_MODULE::debug()" "$FZX_MODULE_DIR/preview.sh" && fzx::_cb_import preview debug 2> /dev/null; then
+    printf '\n%s%s%s %s(%s::debug)%s\n' "$b" "$FZX_MODULE" "$r" "$d" "$FZX_MODULE" "$r"
+    "$FZX_MODULE::debug" 2>&1 | sed 's/^/  /'
+  fi
+
   printf '\n%sfzf%s %s(as exported to this preview)%s\n' "$b" "$r" "$d" "$r"
   while IFS='=' read -r key val; do
     fzx::_debug_row "$key" "$val"

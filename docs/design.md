@@ -170,7 +170,8 @@ modules/<name>/
   module.sh     loader: sources lib/core.sh and source.sh, defines <name>::opts; runnable directly
   components.tsv  optional: modes, toggles, sort orders and actions, one row each; see Modes
   source.sh     defines <name>::source [args]; prints lines. Runnable directly
-  preview.sh    defines <name>::preview <fields>; runnable directly
+  preview.sh    defines <name>::preview <fields>; runnable directly. Optionally <name>::debug: a
+                section of its own in the debug view (f2)
   actions.sh    defines <name>::action <action> <items...> for its action rows; runnable directly
   config.sh     optional overrides of global config
   manifest.sh   optional: menu entries (<name>::manifest) and the <name>::applicable and
@@ -379,7 +380,7 @@ and settings.
 | `history` | session, directory, host (default), global (zsh-histdb); toggle failed; sort recent/frequent | `[WORDS...]`: the starting query | alt-enter run (exit status 10), ctrl-x forget (confirm), alt-e failed only | the command (multi-line kept) |
 | `repos` | all, mine, changed, unsynced, todos; sort recent/name | | ctrl-o git module, alt-o files, ctrl-e edit, alt-w browse; actions: fetch, pull (`--ff-only`), rescan | the repository path |
 | `docker` | containers (running first), images, volumes, networks, compose; toggle running | | alt-s start/up, ctrl-x stop/down, alt-R restart, alt-x remove (confirm), alt-e exec a shell, ctrl-l follow logs, alt-i inspect; actions: kill, run (image), pull, prune | ids (volume and project names) |
-| `github` | repos, code (GitHub search through gh; enter runs the query, GitHub qualifiers in it; an empty query lists the mode's recent searches), tree (hidden: a repository's files at a commit, ctrl-o on a repository or a code hit); searches cached per query (`FZX_GITHUB_CACHE_TTL`), trees and file contents by sha | `[--query Q]`; tree: `--repo OWNER/REPO [--ref REF]` | alt-o browser, alt-c clone (ghq), alt-d fetch (files, directories; a repository is cloned), ctrl-e a read-only copy in $EDITOR, alt-w the search on github.com, ctrl-y copy, ctrl-o files; zsh: `ghs`, `ghsc`, `ghfetch URL [--dest DIR]` | github.com URLs |
+| `github` | repos, code (GitHub search through gh; enter runs the query, GitHub qualifiers in it, a code query of qualifiers alone asks for words; an empty query lists the mode's recent searches; ctrl-t filters the results with fzf instead, and back), mine (yours, or `--owner NAME`'s), starred (both filtered by fzf; entering or leaving them restarts fzf), tree (hidden: a repository's files at a commit); toggles private, public, sources, forks (every repository list; both of a pair or neither: all); searches and lists cached for `FZX_GITHUB_CACHE_TTL`, trees and file contents by sha; GitHub's emoji shortcodes shown as characters; f2 lists every rate limit | `[--query Q]`; mine: `--owner NAME`; tree: `--repo OWNER/REPO [--ref REF]` | alt-o browser, alt-c clone (ghq), alt-d fetch (files, directories; a repository is cloned), ctrl-e a read-only copy in $EDITOR, alt-s star (starred: unstar), alt-F fork (confirm), alt-e settings page, alt-w the search on github.com, ctrl-y copy, ctrl-o files, alt-p code search in the repository (code: narrow the search to it), alt-1..4 toggles; zsh: `ghs`, `ghsc`, `ghfetch URL [--dest DIR]` | github.com URLs |
 | `todos` | here (this repository's TODO.md), all (every repository's); toggle done; sort urgency/file | `[--paste PANE] [QUERY...]` | ctrl-d done, ctrl-e edit at the line, ctrl-y copy titles, alt-y copy lines | `TODO.md:LINE ☐  (Pn) [category] Title` per item (with `--paste`, pasted into the pane) |
 | `menu` | | | enter opens the entry | entry id |
 | `actions` | | groups of `names args... --fzx--` (built by the actions key) | enter runs the action, then back | |
@@ -474,7 +475,8 @@ prompt; list parsing forces `SYSTEMD_COLORS=0` because users commonly export it.
   longer listen. Chosen over wrapping fzfg's Go `fzf-repl`: no build step, same API.
 - The debug key (f2, `FZX_KEYS[debug]`) shows in the preview: session id, path in the tree, owner and
   whether it is alive, every `meta/` and `state/` key, the cached `data/` per mode (lines, age), the
-  persistent cache entry for `cache:` modules, every `FZF_*` variable fzf exported to the preview, and
+  persistent cache entry for `cache:` modules, the module's own section (`<module>::debug` in its
+  preview.sh, when it defines one; github lists every API rate limit), every `FZF_*` variable fzf exported to the preview, and
   the focused line raw (tabs shown as ⇥). Standalone runs show the `FZX_*`/`FZF_*` variables only.
   `fzx::bind` logs a warning when one key is bound twice (the later binding wins in fzf).
 

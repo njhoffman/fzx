@@ -181,6 +181,33 @@ github::action() {
       github::fetch -- "${urls[@]}"
       github::_report $? && github::_pause
       ;;
+    star)
+      # starred: unstar; elsewhere star. The stars list is fetched again afterwards
+      local method=PUT verb=starred
+      [[ "${FZX_MODE:-repos}" == starred ]] && method=DELETE verb=unstarred
+      for u in "${urls[@]}"; do
+        github::parse_url "$u" && [[ " ${repos[*]} " != *" $GH_REPO "* ]] && repos+=("$GH_REPO")
+      done
+      for u in "${repos[@]}"; do
+        command gh api -X "$method" "user/starred/$u" --silent || { github::_report $?; return; }
+        printf '%s %s\n' "$verb" "$u"
+      done
+      local list
+      github::list_file starred list
+      rm -f -- "$list"
+      ;;
+    fork)
+      for u in "${urls[@]}"; do
+        github::parse_url "$u" && [[ " ${repos[*]} " != *" $GH_REPO "* ]] && repos+=("$GH_REPO")
+      done
+      for u in "${repos[@]}"; do
+        command gh repo fork "$u" --clone=false || { github::_report $?; return; }
+      done
+      github::_pause
+      ;;
+    settings)
+      github::parse_url "${urls[0]}" && github::open "https://github.com/$GH_REPO/settings"
+      ;;
     edit)
       if ! github::local "${urls[0]}" file; then
         printf 'github: edit opens a file (code and tree rows)\n'
@@ -196,40 +223,55 @@ github::action() {
   esac
 }
 
-# github::_arg <action> <text>: action(text) with a delimiter pair fzf accepts that text does not close
+# github::_arg <action> <text> [var]: action(text) with a delimiter pair fzf accepts that text does not
+# close, into var when given, else printed
 github::_arg() {
-  local d
-  for d in '()' '[]' '{}' '<>' '~~' '!!' '@@' '##' '$$' '%%' '^^' '&&' '**' ';;' '//' '||'; do
-    [[ "$2" == *"${d:1:1}"* ]] && continue
-    printf '%s%s%s%s' "$1" "${d:0:1}" "$2" "${d:1:1}"
+  local _d _out
+  for _d in '()' '[]' '{}' '<>' '~~' '!!' '@@' '##' '$$' '%%' '^^' '&&' '**' ';;' '//' '||'; do
+    [[ "$2" == *"${_d:1:1}"* ]] && continue
+    _out="$1${_d:0:1}$2${_d:1:1}"
+    if [[ -n "${3:-}" ]]; then printf -v "$3" '%s' "$_out"; else printf '%s' "$_out"; fi
     return 0
   done
   return 1
 }
 
-# github::transform <enter|into> [module args...] -- <first field> <kind> <repo>
-#   enter: searches when the query is new (or reruns the recent search the cursor is on, if nothing new
-#          was typed; a cleared query lists the recent searches again), otherwise accepts the row (prints
-#          its URL)
-#   into:  ctrl-o. A repository or a code hit opens the repository's files (tree) as a child session; a code
-#          hit at the commit GitHub found it in
+# github::transform <enter|into|narrow|filter> [module args...] -- <first field> <kind> <repo>
+#   enter:  searches when the query is new (or reruns the recent search the cursor is on, if nothing new
+#           was typed; a cleared query lists the recent searches again), otherwise accepts the row (prints
+#           its URL). While filtering, and in mine, starred and tree, it accepts
+#   into:   ctrl-o. A repository or a code hit opens the repository's files (tree) as a child session; a
+#           code hit at the commit GitHub found it in
+#   narrow: alt-p. In code, the search again within the repository under the cursor (its repo: qualifier
+#           replacing any other); elsewhere, code mode searching that repository
+#   filter: ctrl-t. In repos and code, fzf filters the results instead of the query searching, and back
+#           (the searched query returns). Filtering is per mode; switching modes in place keeps fzf's
+#           search as it was, so switch back first
 github::transform() {
-  local name="${1:-}" mode="${FZX_MODE:-repos}" query last="" reload q text kind repo sha
+  local name="${1:-}" mode="${FZX_MODE:-repos}" query last="" reload q text kind repo sha filter="" h
   shift
   while (($#)) && [[ "$1" != -- ]]; do shift; done
   (($#)) && shift
   text="${1:-}" kind="${2:-}" repo="${3:-}"
   case "$name" in
     enter)
-      if [[ "$mode" == tree ]]; then
-        [[ "$kind" == blob || "$kind" == tree ]] && printf 'accept'
-        return 0
-      fi
+      case "$kind" in search | error) ;; *) [[ "$mode" =~ ^(tree|mine|starred)$ ]] && { printf 'accept'; return 0; } ;; esac
       github::trim "${FZF_QUERY:-}" query
       fzx::state_get "github_query_$mode" last || last=""
+      fzx::state_get "github_filter_$mode" filter 2> /dev/null || filter=""
       fzx::require opts
       fzx::reload_action "$(fzx::cb source)" reload
-      if [[ "$kind" == search && "$query" == "$last" && -n "$text" ]]; then
+      if [[ -n "$filter" ]]; then
+        # filtering: a row is accepted; a recent search is searched again, back in search mode
+        if [[ "$kind" == search && -n "$text" ]]; then
+          fzx::state_set "github_filter_$mode" ""
+          github::search_header h
+          github::_arg change-query "$text" q || return 0
+          printf 'disable-search+%s+%s+%s' "$q" "$(github::_arg change-header "$h")" "$reload"
+        elif [[ "$kind" == repo || "$kind" == code ]]; then
+          printf 'accept'
+        fi
+      elif [[ "$kind" == search && "$query" == "$last" && -n "$text" ]]; then
         github::_arg change-query "$text" q || return 0
         printf '%s+%s' "$q" "$reload"
       elif [[ "$query" != "$last" ]]; then
@@ -249,6 +291,53 @@ github::transform() {
           ;;
         *) return 0 ;;
       esac
+      ;;
+    narrow)
+      [[ "$kind" == repo || "$kind" == code ]] || return 0
+      fzx::require opts
+      if [[ "$mode" == code ]]; then
+        github::trim "${FZF_QUERY:-}" query
+        fzx::state_set github_filter_code ""
+        # any repo: qualifier gives way to this one
+        q="$(printf '%s' "$query" | sed -E 's/(^| )repo:[^ ]+//g; s/  +/ /g; s/^ +//')"
+        q="${q:+$q }repo:$repo"
+        fzx::reload_action "$(fzx::cb source)" reload
+        github::search_header h
+        github::_arg change-query "$q" q || return 0
+        printf 'disable-search+%s+%s+%s' "$q" "$(github::_arg change-header "$h")" "$reload"
+      else
+        # code mode, searching the repository: in place from repos (the reload sees the new query), through
+        # a restart from mine and starred (which keeps FZF_QUERY as the query)
+        q="repo:$repo "
+        export FZF_QUERY="$q"
+        fzx::require nav
+        github::_arg change-query "$q" text || return 0
+        # through a file, not $(...): nav_mode records its stats in this shell; nothing (a session without
+        # code mode) leaves the query alone
+        local out="" file="$FZX_SESSION_DIR/narrow.$BASHPID"
+        fzx::nav_mode code > "$file"
+        out="$(< "$file")"
+        rm -f -- "$file"
+        [[ -n "$out" ]] && printf '%s+%s' "$text" "$out"
+      fi
+      ;;
+    filter)
+      [[ "$mode" == repos || "$mode" == code ]] || return 0
+      fzx::state_get "github_filter_$mode" filter 2> /dev/null || filter=""
+      fzx::state_get "github_query_$mode" last || last=""
+      if [[ -z "$filter" ]]; then
+        fzx::state_set "github_filter_$mode" 1
+        printf 'enable-search+change-query()+%s' \
+          "$(github::_arg change-header "filtering the results of: ${last:-recent searches} (${FZX_KEYS[github.filter]:-ctrl-t} searches again)")"
+      else
+        fzx::state_set "github_filter_$mode" ""
+        github::search_header h
+        github::_arg change-query "$last" q || q="change-query()"
+        # fzf keeps the filtered matches when search is turned off: the list again, from the session's cache
+        fzx::require opts
+        fzx::reload_action "$(fzx::cb load)" reload
+        printf 'disable-search+%s+%s+%s' "$q" "$(github::_arg change-header "$h")" "$reload"
+      fi
       ;;
     *)
       printf 'github: unknown transform: %s\n' "$name" >&2
