@@ -6,6 +6,18 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-26
+
+### Added
+
+- ps: colored rows, after grc's conf.ps in cool colors: the pid bold purple, the parent pid dim, your user
+  blue, other users cyan, root red; %cpu and %mem by load (dim, green, white, red); rss as K/M/G; the state
+  by kind (running green, disk wait red, zombie on red); the tty cyan; the command's name bold white after
+  its dim directory, options blue, paths light grey, kernel threads cyan, the tree's branches dim.
+  `NO_COLOR` turns it off.
+- ps: the preview is a labelled summary (pid, parent and its name, user, state spelled out, threads, start
+  time, elapsed, cpu, mem, rss, vsz), then the colored command line and the children.
+
 ## [0.11.1] - 2026-10-26
 
 ### Changed

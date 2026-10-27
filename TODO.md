@@ -315,9 +315,9 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       (scrolling and query editing) makes `fzx::bind` skip a module binding on one, with a log warning, and
       test/fzx.bats fails if any shipped module mode binds one. ctrl-e edit stays a deliberate override of
       the user's become(nvim).
-- [ ] **ps colors** (p2) [feature]: color the ps list (user, high cpu/mem, state, the command name apart from
-      its arguments) and its preview. Port from ~/.fzf/modules/processes.sh; the preview shows colorful,
-      detailed process information (not just the ps line).
+- [x] **ps colors** (p2) [feature]: rows colored after grc's conf.ps in the cool palette (pid, user/root, load
+      by %cpu/%mem, rss as K/M/G, state, tty, the command's name, options and paths, kernel threads, tree
+      branches); the preview is a labelled summary, the command line colored, children (0.12.0).
 - [x] **youtube tests failing** (p1) [bug] (2026-10-24): the module's scalar settings were assigned
       unconditionally in its config.sh, so FZX_YOUTUBE_RESULTS / _HISTORY_MAX from the environment were ignored
       (now `${VAR:-default}`, like config/defaults.sh); the search-failure test counted the stderr message

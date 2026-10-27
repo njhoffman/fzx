@@ -7,6 +7,8 @@ PS_DIR="$(readlink -f "$BATS_TEST_DIRNAME/../modules/ps")"
 
 setup() {
   setup_fzx
+  # column positions are checked on the plain text; the colors have their own test
+  export NO_COLOR=1
 }
 
 @test "source: header first, then rows starting with a left-aligned pid" {
@@ -75,8 +77,9 @@ setup() {
 @test "preview: shows details for a live pid" {
   run "$PS_DIR/preview.sh" "$$"
   [ "$status" -eq 0 ]
-  [[ "${lines[0]}" =~ PID.*STARTED ]]
-  [[ "$output" == *"$$"* ]]
+  [[ "${lines[0]}" =~ ^pid\ $$\ +parent\ [0-9]+\ .*user\ [a-z] ]]
+  [[ "${lines[1]}" =~ ^state\ [A-Z].*threads\ [0-9]+.*started.*elapsed ]]
+  [[ "${lines[2]}" =~ ^cpu\ .*%\ +mem\ .*rss\ [0-9.]+[KMG] ]]
 }
 
 @test "preview: lists direct children" {
@@ -88,7 +91,7 @@ setup() {
   done
   run "$PS_DIR/preview.sh" "$parent"
   pkill -P "$parent" sleep
-  [[ "$output" == *$'children:\n  '[0-9]*' sleep'* ]]
+  [[ "$output" == *$'children\n  '[0-9]*' sleep'* ]]
 }
 
 @test "preview: non-numeric input fails, exited pid is reported" {
@@ -192,4 +195,27 @@ setup() {
   [ "$status" -eq 0 ]
   [ "${#lines[@]}" -eq 1 ]
   [[ "${lines[0]}" =~ ^PID ]]
+}
+
+@test "source: colored rows keep the plain text and its alignment; root, state, load and command parts" {
+  # ps's layout: fixed-width columns, COMMAND at the same offset on every line
+  local fmt='%5s %5s %-8s %4s %4s %7s %11s %-4s %-8s %s\n' table
+  table="$(printf "$fmt" PID PPID USER %CPU %MEM RSS ELAPSED STAT TT COMMAND \
+    101 1 root 0.0 0.1 2048 01:00 Ss '?' '/usr/sbin/sshd -D' \
+    202 101 me 75.5 12.0 3145728 02:00 R pts/1 ' \_ /usr/bin/vim --clean notes.md' \
+    303 2 root 0.0 0.0 0 03:00 I '?' '[kworker/0:1]')"
+  run env -u NO_COLOR bash -c "source '$PS_DIR/source.sh'; USER=me ps::color 0 <<< \"\$1\"" _ "$table"
+  [ "$status" -eq 0 ]
+  [ "${#lines[@]}" -eq 3 ]
+  # pid first; root red, sleeping dim, running green, high cpu and mem red, rss as M/G
+  [[ "${lines[1]}" == $'\e[1;38;5;141m101'* && "${lines[1]}" == *$'\e[1;38;5;203mroot'* ]]
+  [[ "${lines[2]}" == *$'\e[1;38;5;48mR'* && "${lines[2]}" == *$'\e[1;38;5;203m75.5'* && "${lines[2]}" == *"3.0G"* ]]
+  # the command: tree branch dim, directory dim, name bold white, options blue
+  [[ "${lines[2]}" == *$'\e[38;5;244m/usr/bin/\e[0m\e[1;38;5;255mvim\e[0m \e[38;5;110m--clean'* ]]
+  local plain
+  plain="$(sed 's/\x1b\[[0-9;]*m//g' <<< "${lines[2]}")"
+  [[ "$plain" =~ ^202\ +101\ me\ +75\.5\ 12\.0\ +3\.0G\ +02:00\ R\ +pts/1\ +\ \\_\ /usr/bin/vim\ --clean\ notes\.md$ ]]
+  # kernel threads (parent 2) only with the toggle; then cyan
+  run env -u NO_COLOR bash -c "source '$PS_DIR/source.sh'; USER=me ps::color 1 <<< \"\$1\" | tail -1" _ "$table"
+  [[ "$output" == *$'\e[38;5;81m[kworker/0:1]'* ]]
 }
