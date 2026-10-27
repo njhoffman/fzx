@@ -6,6 +6,22 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-10-26
+
+### Added
+
+- Icons in rows (`FZX_ICONS`: `nerd`, the default; `unicode` for terminals without a Nerd Font; `none`):
+  the menu shows each module's icon; git status rows an icon for the change (added, modified, deleted,
+  renamed, untracked, conflict); repos the branch and the changed/ahead/behind/todo flags; docker
+  containers and logs the state (running, paused, stopped, created) and kind (file, unit); history a
+  failed icon on commands whose last run failed.
+- docker, history, recent and repos have prompt icons like the other modules.
+
+### Fixed
+
+- The menu loads each module's config before its manifest, so entries that depend on settings show:
+  `recent:fasd` (next to telescope-frecency's files) never did.
+
 ## [0.12.0] - 2026-10-26
 
 ### Added

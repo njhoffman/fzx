@@ -117,6 +117,8 @@ kept() {
 }
 
 @test "ps: kernel threads hidden unless toggled; sort by pid ascends" {
+  # the plain table: the pid then a space, no color codes
+  export NO_COLOR=1
   FZX_MODE=all run "$BATS_TEST_DIRNAME/../modules/ps/source.sh"
   [[ "$output" != *$'\n2 '* ]]
   FZX_MODE=all FZX_TOGGLES=kernel run "$BATS_TEST_DIRNAME/../modules/ps/source.sh"

@@ -16,11 +16,15 @@ docker::source() {
     containers)
       local all=(-a)
       [[ " ${FZX_TOGGLES:-} " == *" running "* ]] && all=()
+      fzx::require icons
+      fzx::icon_vars running paused stopped created
       command docker ps "${all[@]}" --format '{{.ID}}\t{{.State}}\t{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' |
-        awk -F'\t' -v dim="$dim" -v rst="$rst" -v name="$name" -v run="$run" -v pause="$pause" -v stop="$stop" '
+        awk -F'\t' "${FZX_ICON_VARS[@]}" -v dim="$dim" -v rst="$rst" -v name="$name" -v run="$run" -v pause="$pause" -v stop="$stop" '
           { c = ($2 == "running") ? run : ($2 == "paused" || $2 == "restarting") ? pause : stop
+            i = ($2 == "running") ? icon_running : ($2 == "paused" || $2 == "restarting") ? icon_paused : ($2 == "created") ? icon_created : icon_stopped
+            if (i == "") i = "●"
             # running ones first, docker order (newest first) within each group
-            printf "%d\t%s\t%s●%s %s%-28s%s %-34s %s%-24s%s %s%s%s\n", ($2 == "running" ? 0 : 1), $1, c, rst, name, $3, rst, $4, c, $5, rst, dim, $6, rst }' |
+            printf "%d\t%s\t%s%s%s %s%-28s%s %-34s %s%-24s%s %s%s%s\n", ($2 == "running" ? 0 : 1), $1, c, i, rst, name, $3, rst, $4, c, $5, rst, dim, $6, rst }' |
         sort -s -t $'\t' -k1,1 | cut -f2-
       ;;
     images)

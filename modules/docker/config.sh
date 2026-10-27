@@ -4,7 +4,7 @@
 # shellcheck disable=SC2034  # settings here are read by lib/ and the module
 declare -gA FZX_COLORS
 
-# prompt icon (Nerd Font); FZX_ICON="" keeps fzf's own prompt
+# prompt icon (Nerd Font); FZX_ICON="" keeps fzf's own prompt
 FZX_ICON=""
 
 # containers change state under you: read docker on every open

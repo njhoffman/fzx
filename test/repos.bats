@@ -10,6 +10,8 @@ g() { git -c user.name=t -c user.email=t@t -c init.defaultBranch=main "$@" > /de
 
 setup() {
   setup_fzx
+  # the plain Unicode icon set: what the assertions below spell out
+  export FZX_ICONS=unicode
   export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
   G="$BATS_TEST_TMPDIR/ghq"
   mkdir -p "$G/github.com/me" "$G/github.com/other" "$G/gitlab.com/team" "$BATS_TEST_TMPDIR/remotes"
@@ -70,7 +72,7 @@ repos_fn() {
   run repos_fn repos::refresh
   [ "$status" -eq 1 ]
   run src
-  [[ "$output" == *'me/alpha'*'main'*'●1 ↑1 ☐2'* ]]
+  [[ "$output" == *'me/alpha'*'⎇ main'*'● 1 ↑ 1 ☐ 2'* ]]
   # a forced scan that finds nothing new leaves it alone and says so
   run repos_fn repos::refresh force
   [ "$status" -eq 1 ]
@@ -127,7 +129,7 @@ repos_fn() {
   [[ "$output" == *fetched* ]]
   # alpha's row by name: its last commit can share a second with gamma's, so the order can vary
   run bash -c "FZX_MODE=all '$REPOS/source.sh' | grep 'me/alpha' | sed 's/\x1b\[[0-9;]*m//g'"
-  [[ "$output" == *'↑1 ↓2'* ]]
+  [[ "$output" == *'↑ 1 ↓ 2'* ]]
   run "$REPOS/actions.sh" fetch "$BATS_TEST_TMPDIR"
   [ "$status" -eq 2 ]
 }

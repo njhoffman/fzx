@@ -37,9 +37,14 @@ fzx::menu_modules() {
   done | sort
 }
 
-# fzx::menu_entries <module> <dir>: source the manifest and fill FZX_ENTRY_TARGETS/DESCS/ARGS
+# fzx::menu_entries <module> <dir>: load the module's config (its applicable and summary hooks read it, the
+# menu shows its FZX_ICON), source the manifest and fill FZX_ENTRY_TARGETS/DESCS/ARGS. Callers run it in a
+# subshell per module, so one module's settings never reach the next.
 fzx::menu_entries() {
   FZX_ENTRY_TARGETS=() FZX_ENTRY_DESCS=() FZX_ENTRY_ARGS=()
+  fzx::require config
+  FZX_ICON=""
+  fzx::config_load "$2" "$1" 2>> "${FZX_LOG_FILE:-/dev/null}" || return 1
   # shellcheck source=/dev/null
   source "$2/manifest.sh" || return 1
   declare -F "$1::manifest" > /dev/null || return 1
@@ -79,7 +84,7 @@ fzx::menu_lines() {
         fzx::log warn "menu: manifest of $name failed"
         exit 0
       }
-      local i label summary file
+      local i label summary file icon
       for i in "${!FZX_ENTRY_TARGETS[@]}"; do
         fzx::menu_entry_args "$i"
         if declare -F "$name::applicable" > /dev/null &&
@@ -92,8 +97,11 @@ fzx::menu_lines() {
           fzx::summary_path file "$name" "$i"
           [[ -f "$file" ]] && summary="$(< "$file")"
         fi
-        printf '%s\t\e[%sm%-24s\e[0m %-42s \e[%sm%s\e[0m\n' \
-          "$name#$i" "${FZX_COLORS[menu_target]:-0}" "$label" "${FZX_ENTRY_DESCS[i]}" \
+        # the module's prompt icon (a Nerd Font glyph) in front, in the nerd icon style only
+        icon=""
+        [[ "${FZX_ICONS:-nerd}" == nerd ]] && icon="${FZX_ICON:- } "
+        printf '%s\t\e[%sm%s%-24s\e[0m %-42s \e[%sm%s\e[0m\n' \
+          "$name#$i" "${FZX_COLORS[menu_target]:-0}" "$icon" "$label" "${FZX_ENTRY_DESCS[i]}" \
           "${FZX_COLORS[menu_summary]:-0}" "$summary"
       done
     )

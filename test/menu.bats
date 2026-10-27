@@ -54,9 +54,10 @@ plain_lines() {
 @test "source: one line per applicable entry with a stable id" {
   menu_session
   run plain_lines
-  [[ "${lines[0]}" == "counter#0|counter "*"Counter in its first mode"* ]]
-  [[ "${lines[1]}" == 'counter#1|counter:two --x a\ b '*"Counter in mode two"* ]]
-  [[ "$output" == *$'\n'"ps#0|ps "* ]]
+  # the module's icon first (blank: the fixture sets none)
+  [[ "${lines[0]}" == "counter#0|  counter "*"Counter in its first mode"* ]]
+  [[ "${lines[1]}" == 'counter#1|  counter:two --x a\ b '*"Counter in mode two"* ]]
+  [[ "$output" == *$'\n'"ps#0|"?" ps "* ]]
 }
 
 @test "source: applicable hides an entry without renumbering the others" {

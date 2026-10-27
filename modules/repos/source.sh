@@ -58,7 +58,9 @@ repos::source() {
   cache="$(repos::cache_file)"
   [[ -f "$cache" ]] || cache=/dev/null
   [[ "${FZX_MODE:-all}" == mine ]] && owners="$(repos::owners)"
-  repos::list | awk -F'\t' -v OFS='\t' -v cache="$cache" -v mode="${FZX_MODE:-all}" -v sort="${FZX_SORT:-recent}" \
+  fzx::require icons
+  fzx::icon_vars branch changed ahead behind todo
+  repos::list | awk -F'\t' -v OFS='\t' -v cache="$cache" "${FZX_ICON_VARS[@]}" -v mode="${FZX_MODE:-all}" -v sort="${FZX_SORT:-recent}" \
     -v owners=" $owners " -v ghq="${FZX_REPOS_GHQ_ROOT:-$(command ghq root 2> /dev/null)}/" -v home="$HOME/" \
     -v now="$(date +%s)" -v c_name=$'\e['"${FZX_COLORS[repos_name]:-1;38;5;111}m" \
     -v c_dim=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" -v c_branch=$'\e['"${FZX_COLORS[repos_branch]:-38;5;81}m" \
@@ -92,11 +94,13 @@ repos::source() {
       if (mode == "changed" && changed == 0) next
       if (mode == "unsynced" && ahead == 0 && behind == 0) next
       if (mode == "todos" && todos == 0) next
-      flags = (changed ? c_changed "●" changed rst " " : "") (ahead ? c_ahead "↑" ahead rst " " : "") \
-        (behind ? c_behind "↓" behind rst " " : "") (todos ? c_todo "☐" todos rst " " : "")
+      flags = (changed ? c_changed icon_changed " " changed rst " " : "") (ahead ? c_ahead icon_ahead " " ahead rst " " : "") \
+        (behind ? c_behind icon_behind " " behind rst " " : "") (todos ? c_todo icon_todo " " todos rst " " : "")
+      # the branch icon and its space, or as much blank, so the columns after it line up
+      bicon = (branch != "" && icon_branch != "") ? icon_branch " " : (icon_branch != "" ? "  " : "")
       shown = prefix name; pad = 44 - length(shown); if (pad < 1) pad = 1
       bpad = 20 - length(branch); if (bpad < 1) bpad = 1
-      line = dir "\t" c_dim prefix rst c_name name rst sprintf("%" pad "s", "") c_branch branch rst \
+      line = dir "\t" c_dim prefix rst c_name name rst sprintf("%" pad "s", "") c_branch bicon branch rst \
         sprintf("%" bpad "s", "") c_dim sprintf("%4s", age(last)) rst "  " flags
       key = (sort == "name") ? tolower(prefix name) : sprintf("%012d", 999999999999 - (last == "" ? 0 : last))
       print key "\t" line

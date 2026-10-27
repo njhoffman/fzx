@@ -18,8 +18,10 @@ logs::age() {
 }
 
 logs::source_files() {
-  local name path mtime glob
+  local name path mtime glob icon
   local -A seen=() files=()
+  fzx::require icons
+  fzx::icon file icon
   for name in "${!FZX_LOGS_FILES[@]}"; do
     files[$name]="${FZX_LOGS_FILES[$name]}"
   done
@@ -38,28 +40,32 @@ logs::source_files() {
     [[ -f "$path" && -r "$path" && -z "${seen[$path]:-}" ]] || continue
     seen[$path]=1
     mtime="$(stat -c %Y -- "$path")" || continue
-    printf '%s\tfile\t%s\t%s  %-28s \e[38;5;244m%s\e[0m\n' "$mtime" "$path" \
-      "$(logs::age $((EPOCHSECONDS - mtime)))" "$name" "${path/#$HOME/\~}"
+    printf '%s\tfile\t%s\t%s  %s%-28s \e[38;5;244m%s\e[0m\n' "$mtime" "$path" \
+      "$(logs::age $((EPOCHSECONDS - mtime)))" "${icon:+$'\e[38;5;110m'$icon$'\e[0m' }" "$name" "${path/#$HOME/\~}"
   done | sort -t $'\t' -k1,1nr | cut -f2-
 }
 
 logs::source_units() {
-  local manager
+  local manager unit=""
+  fzx::require icons
+  fzx::icon unit unit
   for manager in user system; do
     SYSTEMD_COLORS=0 command systemctl "--$manager" list-units --type=service --state=running,failed \
       --no-legend --plain --no-pager 2> /dev/null |
-      awk -v m="$manager" '
+      awk -v m="$manager" -v glyph="${unit:-●}" '
         { unit = $1; active = $3; desc = ""; for (i = 5; i <= NF; i++) desc = desc (i > 5 ? " " : "") $i
-          icon = active == "failed" ? "\033[31m●\033[0m" : "\033[32m●\033[0m"
+          icon = active == "failed" ? "\033[38;5;203m" glyph "\033[0m" : "\033[38;5;114m" glyph "\033[0m"
           printf "unit-%s\t%s\t%s \033[38;5;244m%-6s\033[0m %-44s \033[38;5;244m%s\033[0m\n", m, unit, icon, m, unit, desc }'
   done
 }
 
 logs::source_docker() {
   command -v docker > /dev/null || return 0
+  fzx::require icons
+  fzx::icon_vars running stopped
   command docker ps -a --format '{{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Status}}' 2> /dev/null |
-    awk -F'\t' '
-      { icon = $4 ~ /^Up/ ? "\033[32m●\033[0m" : "\033[38;5;240m○\033[0m"
+    awk -F'\t' "${FZX_ICON_VARS[@]}" '
+      { icon = $4 ~ /^Up/ ? "\033[38;5;114m" (icon_running == "" ? "●" : icon_running) "\033[0m" : "\033[38;5;240m" (icon_stopped == "" ? "○" : icon_stopped) "\033[0m"
         printf "docker\t%s\t%s %-30s %-34s \033[38;5;244m%s\033[0m\n", $1, icon, $2, $3, $4 }'
 }
 

@@ -142,10 +142,10 @@ FZX_LOGS_FILES=([named]="$BATS_TEST_TMPDIR/named.txt" [missing]=/no/such.log)
 FZX_LOGS_GLOBS=("$BATS_TEST_TMPDIR/logs/*.log")
 CFG
   touch -d '1 hour ago' "$BATS_TEST_TMPDIR/named.txt"
-  run "$MODS/logs/source.sh"
+  FZX_ICONS=unicode run "$MODS/logs/source.sh"
   [ "${#lines[@]}" -eq 3 ]
   [ "$(printf '%s\n' "${lines[@]}" | cut -f1,2 | tr '\t\n' ' |')" = "file $BATS_TEST_TMPDIR/logs/new.log|file $BATS_TEST_TMPDIR/named.txt|file $BATS_TEST_TMPDIR/logs/old.log|" ]
-  [[ "$(printf '%s' "${lines[2]}" | plain)" == *"  2d  old "* ]]
+  [[ "$(printf '%s' "${lines[2]}" | plain)" == *"  2d  ▤ old "* ]]
 }
 
 @test "logs: units mode lists running and failed services of both managers" {

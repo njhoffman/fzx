@@ -66,6 +66,9 @@ history::argv() {
 
 history::source() {
   local where order having="" dim=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" red=$'\e['"${FZX_COLORS[history_failed]:-38;5;203}m" rst=$'\e[0m'
+  local failed
+  fzx::require icons
+  fzx::icon failed failed
   [[ -r "$FZX_HISTDB_FILE" ]] || { printf 'history: no histdb database at %s\n' "$FZX_HISTDB_FILE" >&2; return 2; }
   where="$(history::where "${FZX_MODE:-host}")" || { printf 'history: unknown mode: %s\n' "$FZX_MODE" >&2; return 2; }
   [[ " ${FZX_TOGGLES:-} " == *" failed "* ]] && having="having last_status != 0"
@@ -92,8 +95,10 @@ history::source() {
     group by history.command_id
     $having
     order by $order" |
-    awk -F'\x1f' -v dim="$dim" -v red="$red" -v rst="$rst" '
-      { printf "%s\t%s%8s %5s%s  %s%s%s\n", $1, dim, $5, ($3 > 1 ? $3 "x" : ""), rst, ($4 != 0 ? red : ""), $6, ($4 != 0 ? rst : "") }'
+    awk -F'\x1f' -v dim="$dim" -v red="$red" -v rst="$rst" -v failed="$failed" '
+      # the failed icon (or as much blank) between the count and the command, so commands line up
+      { mark = failed == "" ? "" : ($4 != 0 ? red failed rst " " : "  ")
+        printf "%s\t%s%8s %5s%s  %s%s%s%s\n", $1, dim, $5, ($3 > 1 ? $3 "x" : ""), rst, mark, ($4 != 0 ? red : ""), $6, ($4 != 0 ? rst : "") }'
 }
 
 [[ "${BASH_SOURCE[0]}" == "$0" ]] && {

@@ -42,7 +42,8 @@ src() { FZX_MODE="$1" "$HIST/source.sh" | plain; }
   [ "${#lines[@]}" -eq 4 ]
   # false (30s ago), make test (latest run is id 2), the two-line echo, ls -la
   [[ "${lines[0]}" == 4$'\t'*'false' ]]
-  [[ "${lines[1]}" == 2$'\t'*' 2x  make test' ]]
+  # the failed column: blank on a run that succeeded
+  [[ "${lines[1]}" == 2$'\t'*' 2x    make test' ]]
   [[ "${lines[2]}" == 3$'\t'*'echo one ↵ echo two' ]]
   [[ "${lines[3]}" == 5$'\t'*'ls -la' ]]
   [[ "$output" != *'remote only'* ]]
@@ -54,9 +55,9 @@ src() { FZX_MODE="$1" "$HIST/source.sh" | plain; }
   [[ "${lines[3]}" =~ $'\t'\ *[0-9]{2}/[0-9]{2}/[0-9]{2}\  ]]
 }
 
-@test "a failed latest run is red" {
-  run bash -c "FZX_MODE=host '$HIST/source.sh'"
-  [[ "${lines[0]}" == *$'\e[38;5;203mfalse\e[0m' ]]
+@test "a failed latest run is red, with the failed icon" {
+  run bash -c "FZX_MODE=host FZX_ICONS=unicode '$HIST/source.sh'"
+  [[ "${lines[0]}" == *$'\e[38;5;203m✗\e[0m \e[38;5;203mfalse\e[0m' ]]
 }
 
 @test "global includes other hosts; session follows FZX_HISTDB_SESSION, else the host's latest" {

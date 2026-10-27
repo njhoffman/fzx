@@ -39,21 +39,23 @@ src() {
   return "$rc"
 }
 
-@test "status: staged, modified and untracked files with absolute ids" {
-  run src status
+@test "status: staged, modified and untracked files with absolute ids and a state icon" {
+  FZX_ICONS=unicode run src status
   [ "$status" -eq 0 ]
   [ "${#lines[@]}" -eq 3 ]
+  [[ "$output" == *"$REAL/a.txt"$'\t'" M ~ a.txt"* ]]
+  [[ "$output" == *"$REAL/s.txt"$'\t'"A  + s.txt"* ]]
+  [[ "$output" == *"$REAL/u space.txt"$'\t'"?? ? u space.txt"* ]]
+  FZX_ICONS=none run src status
   [[ "$output" == *"$REAL/a.txt"$'\t'" M a.txt"* ]]
-  [[ "$output" == *"$REAL/s.txt"$'\t'"A  s.txt"* ]]
-  [[ "$output" == *"$REAL/u space.txt"$'\t'"?? u space.txt"* ]]
 }
 
 @test "status: renames show the original path" {
   git commit -qm wip
   git mv a.txt b.txt
-  run src status
-  # a.txt also has an unstaged change, so the worktree column is M
-  [[ "$output" == *"$REAL/b.txt"$'\t'"RM b.txt <- a.txt"* ]]
+  FZX_ICONS=unicode run src status
+  # a.txt also has an unstaged change, so the worktree column is M; the icon is the rename's
+  [[ "$output" == *"$REAL/b.txt"$'\t'"RM > b.txt <- a.txt"* ]]
 }
 
 @test "status: works from a subdirectory and with a DIR argument" {

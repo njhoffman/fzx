@@ -55,18 +55,40 @@ git::split() {
   git::args "${args[@]}"
 }
 
+# git::status_icon <XY> <var>: the icon for the entry's state, colored by kind (conflict, deleted, renamed,
+# added, modified, untracked), with a space after it; empty with FZX_ICONS=none
+git::status_icon() {
+  local _kind _clr _glyph
+  case "$1" in
+    '??') _kind=untracked _clr='38;5;244' ;;
+    U? | ?U | AA | DD) _kind=conflict _clr='1;38;5;203' ;;
+    *D*) _kind=deleted _clr='38;5;203' ;;
+    R* | C*) _kind=renamed _clr='38;5;147' ;;
+    A*) _kind=added _clr='38;5;114' ;;
+    *) _kind=modified _clr='38;5;81' ;;
+  esac
+  fzx::icon "$_kind" _glyph
+  if [[ -n "$_glyph" ]]; then
+    printf -v "$2" '\e[%sm%s\e[0m ' "$_clr" "$_glyph"
+  else
+    printf -v "$2" ''
+  fi
+}
+
 # status --porcelain -z: "XY path" entries; renames and copies are followed by the original path
 git::source_status() {
-  local entry xy path orig x y
+  local entry xy path orig x y icon
+  fzx::require icons
   git::g status --porcelain=v1 -z --untracked-files=all |
     while IFS= read -r -d '' entry; do
       xy="${entry:0:2}" path="${entry:3}" orig=""
       [[ "$xy" == R* || "$xy" == C* ]] && IFS= read -r -d '' orig
       x="${xy:0:1}" y="${xy:1:1}"
+      git::status_icon "$xy" icon
       if [[ "$xy" == '??' ]]; then
-        printf '%s/%s\t\e[31m??\e[0m %s\n' "$GIT_TOP" "$path" "$path"
+        printf '%s/%s\t\e[31m??\e[0m %s%s\n' "$GIT_TOP" "$path" "$icon" "$path"
       else
-        printf '%s/%s\t\e[32m%s\e[31m%s\e[0m %s%s\n' "$GIT_TOP" "$path" "$x" "$y" "$path" \
+        printf '%s/%s\t\e[32m%s\e[31m%s\e[0m %s%s%s\n' "$GIT_TOP" "$path" "$x" "$y" "$icon" "$path" \
           "${orig:+ $'\e[38;5;244m'<- $orig$'\e[0m'}"
       fi
     done
@@ -110,4 +132,7 @@ git::source() {
   esac
 }
 
-[[ "${BASH_SOURCE[0]}" == "$0" ]] && git::source "$@"
+[[ "${BASH_SOURCE[0]}" == "$0" ]] && {
+  source "$(dirname "${BASH_SOURCE[0]}")/../../lib/core.sh"
+  git::source "$@"
+}

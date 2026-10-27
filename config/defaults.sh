@@ -111,6 +111,10 @@ FZX_HEADER_POSITION=footer
 # icons and colors from prettypath in the files and dirs lists: auto (when it is installed), 1 or 0
 FZX_PRETTY="${FZX_PRETTY:-auto}"
 
+# icons in rows and previews (lib/icons.sh): nerd (Nerd Font glyphs), unicode (plain symbols, for terminals
+# without a Nerd Font) or none
+FZX_ICONS="${FZX_ICONS:-nerd}"
+
 # passed to fzf as --color when set (e.g. "dark,hl:208,border:240"); empty keeps the user's fzf colors
 FZX_FZF_COLORS=""
 
