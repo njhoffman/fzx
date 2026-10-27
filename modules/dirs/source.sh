@@ -1,22 +1,8 @@
 #!/usr/bin/env bash
-# dirs source. Lines are "absolute path<TAB>display", best match first.
-# Mode from $FZX_MODE: zlua (z.lua frecency), frecent (zoxide), fasd (fasd frecency), recent (fasd, by
-# last access), bookmarks (FZX_DIRS_BOOKMARKS), all (every directory under ~, by fd). Module args are query
-# words, passed to z.lua/zoxide/fasd as keywords (the all mode ignores them; they become the fzf query).
-
-# dirs::zlua <var>: the z.lua script (FZX_DIRS_ZLUA, or found in the usual places), or fail
-dirs::zlua() {
-  local _s="${FZX_DIRS_ZLUA:-}" _c
-  [[ "$_s" == none ]] && return 1
-  if [[ -z "$_s" ]]; then
-    for _c in "${ZLUA_SCRIPT:-}" "$HOME"/.zinit/plugins/*z.lua/z.lua "$HOME"/.local/share/zinit/plugins/*z.lua/z.lua \
-      "$HOME/.local/share/z.lua/z.lua"; do
-      [[ -n "$_c" && -f "$_c" ]] && { _s="$_c"; break; }
-    done
-  fi
-  [[ -n "$_s" && -f "$_s" ]] || return 1
-  printf -v "$1" '%s' "$_s"
-}
+# dirs source. Lines are "absolute path<TAB>display".
+# Mode from $FZX_MODE: all (every directory under ~, by fd), bookmarks (FZX_DIRS_BOOKMARKS, by name).
+# Frecent and recently visited directories are modes of the recent module. Module args are query words:
+# they become the fzf query (all) or filter the bookmark names and paths (bookmarks).
 
 # fd is packaged as fdfind on Debian/Ubuntu
 dirs::has_fd() { command -v fd > /dev/null || command -v fdfind > /dev/null; }
@@ -40,7 +26,7 @@ dirs::all() {
   return "${PIPESTATUS[0]}"
 }
 
-# dirs::format: "score<TAB>path" lines -> "path<TAB>display" (missing directories dropped)
+# dirs::format: "name<TAB>path" lines -> "path<TAB>display" (missing directories dropped)
 dirs::format() {
   local dim=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" rst=$'\e[0m' in
   fzx::require pretty
@@ -72,45 +58,21 @@ dirs::format() {
 
 # dirs::source [query words...]
 dirs::source() {
-  local zl
-  # already "path<TAB>display", and too long for the existence check below
-  if [[ "${FZX_MODE:-}" == all ]]; then
-    dirs::all
-    return
-  fi
-  case "${FZX_MODE:-frecent}" in
-    zlua)
-      if ! dirs::zlua zl; then
-        printf 'dirs: z.lua not found (set FZX_DIRS_ZLUA)\n' >&2
-        return 2
-      fi
-      # z.lua lists the best match last
-      command "$FZX_DIRS_ZLUA_LUA" "$zl" -l "$@" | tac |
-        awk '{ s = $1; sub(/^ *[^ ]+ +/, ""); printf "%s\t%s\n", (s < 10 ? sprintf("%.1f", s) : sprintf("%.0f", s)), $0 }'
-      ;;
-    frecent)
-      command zoxide query --list --score -- "$@" |
-        awk '{ s = $1; sub(/^ *[^ ]+ +/, ""); printf "%s\t%s\n", (s < 10 ? sprintf("%.1f", s) : sprintf("%.0f", s)), $0 }'
-      ;;
-    fasd)
-      command fasd -d -R -s "$@" | awk '{ s = $1; sub(/^[^ ]+ +/, ""); printf "%s\t%s\n", (s < 10 ? sprintf("%.1f", s) : sprintf("%.0f", s)), $0 }'
-      ;;
-    recent)
-      command fasd -d -t -R -l "$@" | awk '{ printf "%d\t%s\n", NR, $0 }'
-      ;;
+  local name
+  case "${FZX_MODE:-all}" in
+    # already "path<TAB>display", and too long for dirs::format's existence check
+    all) dirs::all ;;
     bookmarks)
-      local name
       for name in "${!FZX_DIRS_BOOKMARKS[@]}"; do
         printf '%s\t%s\n' "$name" "${FZX_DIRS_BOOKMARKS[$name]/#\~/$HOME}"
-      done | sort
+      done | sort | awk -F'\t' -v words="$*" 'BEGIN { n = split(tolower(words), w, " ") }
+        { s = tolower($0); for (i = 1; i <= n; i++) if (!index(s, w[i])) next; print }' | dirs::format
       ;;
     *)
-      printf 'dirs: unknown mode: %s\n' "$FZX_MODE" >&2
+      printf 'dirs: unknown mode: %s (frecent directories are in the recent module)\n' "$FZX_MODE" >&2
       return 2
       ;;
-  esac | dirs::format
-  # zoxide and fasd exit non-zero when nothing matches the query; an empty list is not an error
-  return 0
+  esac
 }
 
 [[ "${BASH_SOURCE[0]}" == "$0" ]] && {

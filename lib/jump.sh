@@ -3,17 +3,48 @@
 # `fzx jump --files [--] [WORDS...]` the files v opens (fzx::jump_files, below).
 #
 #   a single word that is a directory   that directory
-#   no words                            the picker over every frecent directory (dirs module)
+#   no words                            the picker over every frecent directory (recent module)
 #   no frecent match                    the picker over every directory under ~ (dirs:all), WORDS as its query
 #   g (no --pick)                       the best match; when $PWD is a match already, the one after it
 #                                       (wrapping), so repeating `g foo` steps through the matches
 #   gg (--pick)                         a single match as is; several open the picker over them
 #
-# Matches come from the dirs module's FZX_DIRS_JUMP_MODE (default: its default mode, z.lua or zoxide);
-# directories that no longer exist are skipped. Prints nothing and fails when nothing was chosen.
+# Matches come from FZX_RECENT_DIRS_JUMP_MODE (recent's config): a directory mode of the recent module, or
+# MODULE:MODE of another (dirs:bookmarks); by default recent's zlua, else dirs (zoxide), else fasd-dirs.
+# Directories that no longer exist are skipped. Prints nothing and fails when nothing was chosen.
+
+# fzx::jump_source <module var> <mode var>: the module and mode g matches with, its config and components
+# loaded and its source.sh sourced
+fzx::jump_source() {
+  local _dir _spec _mod _mode _m
+  _dir="$(fzx::module_find recent)" || fzx::die 2 "jump: the recent module is not in FZX_MODULE_PATH"
+  fzx::require config components
+  fzx::config_load "$_dir" recent
+  _spec="${FZX_RECENT_DIRS_JUMP_MODE:-}"
+  if [[ "$_spec" == *:* ]]; then
+    _mod="${_spec%%:*}" _mode="${_spec#*:}"
+    _dir="$(fzx::module_find "$_mod")" || fzx::die 2 "jump: no module $_mod (FZX_RECENT_DIRS_JUMP_MODE=$_spec)"
+    fzx::config_load "$_dir" "$_mod"
+  else
+    _mod=recent _mode="$_spec"
+  fi
+  # shellcheck disable=SC2034  # the executable components.tsv reads them
+  FZX_MODULE_DIR="$_dir" FZX_MODULE="$_mod"
+  fzx::comp_load "$_dir" "$_mod"
+  if [[ -z "$_mode" ]]; then
+    for _m in zlua dirs fasd-dirs; do
+      [[ " ${FZX_MODES[*]} " == *" $_m "* ]] && { _mode="$_m"; break; }
+    done
+    [[ -n "$_mode" ]] || fzx::die 1 "jump: no directory tracker installed (z.lua, zoxide or fasd)"
+  fi
+  # shellcheck source=../modules/recent/source.sh
+  source "$_dir/source.sh"
+  printf -v "$1" '%s' "$_mod"
+  printf -v "$2" '%s' "$_mode"
+}
 
 fzx::jump() {
-  local pick=0 dir mode matches=() n i idx=-1 here here_p
+  local pick=0 mod mode matches=() n i idx=-1 here here_p
   while (($#)); do
     case "$1" in
       --files)
@@ -34,26 +65,17 @@ fzx::jump() {
     return
   fi
 
-  dir="$(fzx::module_find dirs)" || fzx::die 2 "jump: the dirs module is not in FZX_MODULE_PATH"
-  fzx::require config components
-  fzx::config_load "$dir" dirs
-  # shellcheck disable=SC2034  # the executable components.tsv reads them
-  FZX_MODULE_DIR="$dir" FZX_MODULE=dirs
-  fzx::comp_load "$dir" dirs
-  mode="${FZX_DIRS_JUMP_MODE:-$FZX_MODE_DEFAULT}"
+  fzx::jump_source mod mode
   if ((!$#)); then
-    fzx::log info "jump: no words, picker over $mode"
-    exec "$FZX_BIN" -m "dirs:$mode"
+    fzx::log info "jump: no words, picker over $mod:$mode"
+    exec "$FZX_BIN" -m "$mod:$mode"
   fi
 
-  # shellcheck source=../modules/dirs/source.sh
-  source "$dir/source.sh"
   # ids only, so no icons are needed
-  mapfile -t matches < <(FZX_PRETTY=0 FZX_MODE="$mode" dirs::source "$@" 2>> "${FZX_LOG_FILE:-/dev/null}" | cut -f1)
+  mapfile -t matches < <(FZX_PRETTY=0 FZX_MODE="$mode" "$mod::source" "$@" 2>> "${FZX_LOG_FILE:-/dev/null}" | cut -f1)
   n="${#matches[@]}"
   if ((n == 0)); then
     fzx::log info "jump: no $mode match for '$*', picker over every directory"
-    fzx::comp_field mode all key _ || return 1
     exec "$FZX_BIN" -m dirs:all "$@"
   fi
   if ((pick)); then
@@ -63,7 +85,7 @@ fzx::jump() {
       return 0
     fi
     fzx::log info "jump: $n $mode matches for '$*', picker"
-    exec "$FZX_BIN" -m "dirs:$mode" "$@"
+    exec "$FZX_BIN" -m "$mod:$mode" "$@"
   fi
 
   # from inside a match, the next one: both the logical and the resolved $PWD count
@@ -98,7 +120,13 @@ fzx::jump_files() {
   # shellcheck disable=SC2034  # the executable components.tsv reads them
   FZX_MODULE_DIR="$dir" FZX_MODULE=recent
   fzx::comp_load "$dir" recent
-  mode="${FZX_RECENT_JUMP_MODE:-$FZX_MODE_DEFAULT}"
+  mode="${FZX_RECENT_JUMP_MODE:-}"
+  if [[ -z "$mode" ]]; then
+    # the default mode can be a directory one (no nvim database, no fasd): files only here
+    [[ " ${FZX_MODES[*]} " == *" nvim "* ]] && mode=nvim
+    [[ -z "$mode" && " ${FZX_MODES[*]} " == *" fasd "* ]] && mode=fasd
+    [[ -n "$mode" ]] || fzx::die 1 "jump: no recent files source (telescope-frecency's database or fasd)"
+  fi
   if ((!$#)); then
     fzx::log info "jump files: no words, picker over $mode"
     exec "$FZX_BIN" -m "recent:$mode"

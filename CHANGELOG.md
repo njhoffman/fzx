@@ -6,6 +6,28 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-10-26
+
+### Changed
+
+- The frecent and recently visited directories moved from the dirs module to the recent module, beside
+  the recent files: `recent:zlua`, `recent:dirs` (zoxide), `recent:fasd-dirs` and `recent:visited` (fasd).
+  The menu lists them under recent. The dirs module keeps `dirs:all` (every directory under ~, now its
+  default) and `dirs:bookmarks`.
+- `g`, `gg` and alt-j go through the recent module's directory modes (z.lua, else zoxide, else fasd), with
+  the same behavior. Settings renamed: `FZX_DIRS_ZLUA` and `FZX_DIRS_ZLUA_LUA` are now `FZX_RECENT_ZLUA` and
+  `FZX_RECENT_ZLUA_LUA`; `FZX_DIRS_JUMP_MODE` is now `FZX_RECENT_DIRS_JUMP_MODE`, which also takes
+  `MODULE:MODE` (`dirs:bookmarks`).
+- recent: ctrl-x forgets the selected entries in fasd, zoxide or z.lua; the dirs preview (git branch, then
+  the listing) is shared by both modules and gained the path header.
+- `v` uses recent's file modes only, whatever the default mode is.
+
+### Fixed
+
+- Menu summaries are cached by what the entry opens instead of its position in the module's manifest, and a
+  module without a summary no longer shows an old cached one: after this change `dirs` showed zoxide's
+  "known directories" count from its former first entry.
+
 ## [0.10.0] - 2026-10-26
 
 ### Added

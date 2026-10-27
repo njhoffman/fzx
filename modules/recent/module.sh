@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# recent: frecent files, best first. `fzx -m recent[:nvim|:fasd] [WORDS...]`: words filter the list
-# (each one, in order, anywhere in the path, ignoring case); with words, a single match is printed without
-# the picker. Enter prints the paths (v opens them in $EDITOR).
+# recent: frecent files and directories, best first. `fzx -m recent[:MODE] [WORDS...]`; modes nvim, fasd
+# (files), zlua, dirs, fasd-dirs, visited (directories). Words filter the list (files: each one, in order,
+# anywhere in the path, ignoring case; directories: the tracker's own matching); with words, a single match
+# is printed without the picker. Enter prints the paths (v opens files in $EDITOR, g/gg/alt-j cd).
 
 FZX_MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../lib/core.sh

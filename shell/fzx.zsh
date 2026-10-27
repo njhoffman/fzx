@@ -10,7 +10,7 @@
 typeset -gA FZX_ZSH_KEYS
 : ${FZX_ZSH_KEYS[files]=$'\ef'} # insert file paths
 : ${FZX_ZSH_KEYS[dirs]=$'\ed'}  # cd into a directory below this one
-: ${FZX_ZSH_KEYS[jump]=$'\ej'}  # cd into a frecent directory (dirs module)
+: ${FZX_ZSH_KEYS[jump]=$'\ej'}  # cd into a frecent directory (recent module, as g picks it)
 : ${FZX_ZSH_KEYS[git]=$'\eg'}   # insert paths, a hash or a branch from the git module
 : ${FZX_ZSH_KEYS[ps]=$'\ep'}    # insert pids
 : ${FZX_ZSH_KEYS[menu]=$'\em'}  # open the menu, insert what it returns
@@ -101,7 +101,7 @@ fzx-cd-widget-run() {
 }
 
 fzx-dirs-widget() { fzx-cd-widget-run -m files:dirs; }
-fzx-jump-widget() { fzx-cd-widget-run -m dirs; }
+fzx-jump-widget() { fzx-cd-widget-run jump; }
 fzx-repos-widget() { fzx-cd-widget-run -m repos; }
 
 # fzx-jump [--pick] [--] [words...]: cd where `fzx jump` says (see lib/jump.sh), then show where that is

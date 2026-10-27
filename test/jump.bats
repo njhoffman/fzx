@@ -1,9 +1,10 @@
 #!/usr/bin/env bats
-# fzx jump (g / gg) and the dirs module's zlua and all modes, with z.lua, zoxide and fd stubbed
+# fzx jump (g / gg), the recent module's zlua mode and the dirs module's all mode, with z.lua and fd stubbed
 
 load test_helper
 
 DIRS="$(readlink -f "$BATS_TEST_DIRNAME/../modules/dirs")"
+RECENT="$(readlink -f "$BATS_TEST_DIRNAME/../modules/recent")"
 
 setup() {
   setup_fzx
@@ -19,7 +20,9 @@ case "\$1" in
     printf '%-10s %s\n' 2 "$T/three/proj" 3 "$T/gone/proj" 10 "$T/two/proj" 120.5 "$T/one/proj" ;;
 esac
 STUB
-  export FZX_DIRS_ZLUA="$BATS_TEST_TMPDIR/z.lua" FZX_DIRS_ZLUA_LUA=bash
+  export FZX_RECENT_ZLUA="$BATS_TEST_TMPDIR/z.lua" FZX_RECENT_ZLUA_LUA=bash
+  # no recent files source, so recent's first mode is a directory one
+  export FZX_RECENT_NVIM_DB=/nonexistent
   # fd: a fixed walk; its arguments are recorded
   cat > "$BATS_TEST_TMPDIR/bin/fd" << STUB
 #!/usr/bin/env bash
@@ -30,18 +33,16 @@ STUB
   cd "$T"
 }
 
-@test "zlua mode: best match first, scores rounded, missing directories dropped; it is the default" {
-  FZX_MODE=zlua run bash -c "'$DIRS/source.sh' proj | cut -f1"
+@test "zlua mode: best match first, scores rounded, missing directories dropped" {
+  FZX_MODE=zlua run bash -c "'$RECENT/source.sh' proj | cut -f1"
   [ "$output" = "$T/one/proj"$'\n'"$T/two/proj"$'\n'"$T/three/proj" ]
   grep -q "zlua -l proj" "$BATS_TEST_TMPDIR/calls"
-  run "$FZX" -m dirs
-  [ "$(< "$BATS_TEST_TMPDIR/fzf.mode")" = zlua ]
 }
 
 @test "zlua mode is offered only when z.lua is found; remove forgets with -x" {
-  FZX_DIRS_ZLUA=none run "$FZX" -m dirs
+  FZX_RECENT_ZLUA=none run "$FZX" -m recent
   [ "$(< "$BATS_TEST_TMPDIR/fzf.mode")" != zlua ]
-  FZX_MODE=zlua run "$DIRS/actions.sh" remove "$T/one/proj"
+  FZX_MODE=zlua run "$RECENT/actions.sh" remove "$T/one/proj"
   grep -q "zlua -x $T/one/proj" "$BATS_TEST_TMPDIR/calls"
 }
 
@@ -108,9 +109,10 @@ STUB
   [[ " ${FZF_ARGS[*]} " == *" --select-1 --exit-0 "* ]]
 }
 
-@test "FZX_DIRS_JUMP_MODE picks the tracker; bad options fail" {
-  mkdir -p "$FZX_CONFIG_DIR/modules/dirs"
-  echo 'FZX_DIRS_JUMP_MODE=bookmarks; FZX_DIRS_BOOKMARKS=([x]='"$T/three"')' > "$FZX_CONFIG_DIR/modules/dirs/config.sh"
+@test "FZX_RECENT_DIRS_JUMP_MODE picks the tracker, in recent or another module; bad options fail" {
+  mkdir -p "$FZX_CONFIG_DIR/modules/dirs" "$FZX_CONFIG_DIR/modules/recent"
+  echo 'FZX_DIRS_BOOKMARKS=([x]='"$T/three"')' > "$FZX_CONFIG_DIR/modules/dirs/config.sh"
+  echo 'FZX_RECENT_DIRS_JUMP_MODE=dirs:bookmarks' > "$FZX_CONFIG_DIR/modules/recent/config.sh"
   run "$FZX" jump x
   [ "$output" = "$T/three" ]
   run "$FZX" jump --bogus

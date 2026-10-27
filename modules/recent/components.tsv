@@ -1,15 +1,23 @@
 #!/usr/bin/env bash
-# recent components, computed: only the sources that exist (see lib/components.sh for the table format)
+# recent components, computed: only the sources that exist (see lib/components.sh for the table format).
+# Files first (nvim, fasd), then directories (zlua, dirs, fasd-dirs, visited); the first file mode is the
+# default, else the first directory mode.
 dir="$(dirname "$(readlink -f "$0")")"
 source "${FZX_ROOT:-$dir/../..}/lib/core.sh"
 fzx::require log config
 fzx::config_load "$dir" recent
-nvim=0
-if [[ -f "$FZX_RECENT_NVIM_DB" ]] && command -v sqlite3 > /dev/null; then
-  nvim=1
-  printf 'mode\tnvim\t-\tfiles opened in nvim (telescope-frecency)\tdefault\n'
-fi
-command -v fasd > /dev/null && printf 'mode\tfasd\t-\tfrecent files (fasd)\t%s\n' "$( ((nvim)) && echo - || echo default)"
+# shellcheck source=./source.sh
+source "$dir/source.sh"
+def=default
+mode() { printf 'mode\t%s\t-\t%s\t%s\n' "$1" "$2" "$def"; def=-; }
+[[ -f "$FZX_RECENT_NVIM_DB" ]] && command -v sqlite3 > /dev/null && mode nvim "files opened in nvim (telescope-frecency)"
+command -v fasd > /dev/null && mode fasd "frecent files (fasd)"
+zl=""
+# shellcheck disable=SC2034  # filled through its name; only success matters here
+recent::zlua zl && mode zlua "frecent directories (z.lua)"
+command -v zoxide > /dev/null && mode dirs "frecent directories (zoxide)"
+command -v fasd > /dev/null && { mode fasd-dirs "frecent directories (fasd)"; mode visited "recently visited directories (fasd)"; }
 # shellcheck disable=SC2016  # $EDITOR is text in the description
 printf 'action\tedit\tctrl-e\topen in $EDITOR\tforeground\n'
+printf 'action\tremove\tctrl-x\tforget the selected entries (fasd, zoxide, z.lua)\tsilent,reload\n'
 exit 0

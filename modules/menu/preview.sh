@@ -18,8 +18,10 @@ menu::preview() {
   printf 'opens    fzx -m %s%s\n' "${FZX_ENTRY_TARGETS[n]}" "${FZX_ENTRY_ARGS[n]:+ ${FZX_ENTRY_ARGS[n]}}"
   printf 'module   %s\n\n' "$dir"
   printf '%s\n' "${FZX_ENTRY_DESCS[n]}"
-  fzx::summary_path file "$id"
-  [[ -s "$file" ]] && printf '\n%s\n' "$(< "$file")"
+  if declare -F "$module::summary" > /dev/null; then
+    fzx::summary_path file "$module" "$n"
+    [[ -s "$file" ]] && printf '\n%s\n' "$(< "$file")"
+  fi
 
   fzx::require stats
   if [[ -s "$FZX_STATS_FILE" ]]; then

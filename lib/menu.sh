@@ -51,11 +51,14 @@ fzx::menu_entry_args() {
   eval "FZX_ARGS=(${FZX_ENTRY_ARGS[$1]})"
 }
 
-# fzx::summary_path <var> <id>: summary cache file for an entry id ("module#n") in the current directory
+# fzx::summary_path <var> <module> <n>: summary cache file for the module's entry n (FZX_ENTRY_* loaded) in
+# the current directory. Keyed by what the entry opens (target and args), not its position, so a manifest
+# that gains, drops or reorders entries never shows one entry's summary on another.
 fzx::summary_path() {
-  local _dir
+  local _dir _key
   _dir="$(printf '%s' "$PWD" | md5sum)"
-  printf -v "$1" '%s/summary/%s/%s' "$FZX_CACHE_DIR" "${_dir%% *}" "$2"
+  _key="$(printf '%s\n%s' "${FZX_ENTRY_TARGETS[$3]}" "${FZX_ENTRY_ARGS[$3]:-}" | md5sum)"
+  printf -v "$1" '%s/summary/%s/%s@%s' "$FZX_CACHE_DIR" "${_dir%% *}" "$2" "${_key:0:12}"
 }
 
 # summary file is present and younger than FZX_SUMMARY_TTL
@@ -85,8 +88,10 @@ fzx::menu_lines() {
         fi
         label="${FZX_ENTRY_TARGETS[i]}${FZX_ENTRY_ARGS[i]:+ ${FZX_ENTRY_ARGS[i]}}"
         summary=""
-        fzx::summary_path file "$name#$i"
-        [[ -f "$file" ]] && summary="$(< "$file")"
+        if declare -F "$name::summary" > /dev/null; then
+          fzx::summary_path file "$name" "$i"
+          [[ -f "$file" ]] && summary="$(< "$file")"
+        fi
         printf '%s\t\e[%sm%-24s\e[0m %-42s \e[%sm%s\e[0m\n' \
           "$name#$i" "${FZX_COLORS[menu_target]:-0}" "$label" "${FZX_ENTRY_DESCS[i]}" \
           "${FZX_COLORS[menu_summary]:-0}" "$summary"
@@ -106,7 +111,7 @@ fzx::menu_refresh() {
       declare -F "$name::summary" > /dev/null || exit 0
       local i file
       for i in "${!FZX_ENTRY_TARGETS[@]}"; do
-        fzx::summary_path file "$name#$i"
+        fzx::summary_path file "$name" "$i"
         fzx::_summary_fresh "$file" && continue
         fzx::menu_entry_args "$i"
         if declare -F "$name::applicable" > /dev/null &&

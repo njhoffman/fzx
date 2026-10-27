@@ -2,20 +2,13 @@
 # dirs menu entries
 
 dirs::manifest() {
-  fzx::entry dirs "Frecent directories (zoxide)"
-  fzx::entry dirs:recent "Recently visited directories (fasd)"
+  fzx::entry dirs "Every directory under ~ (fd)"
+  fzx::entry dirs:bookmarks "Named directories"
 }
 
 dirs::applicable() {
   case "$1" in
-    dirs:recent) command -v fasd > /dev/null ;;
-    *) command -v zoxide > /dev/null ;;
-  esac
-}
-
-dirs::summary() {
-  case "$1" in
-    dirs) printf '%s known directories\n' "$(command zoxide query --list 2> /dev/null | wc -l)" ;;
-    *) return 0 ;;
+    dirs:bookmarks) ((${#FZX_DIRS_BOOKMARKS[@]})) ;;
+    *) command -v fd > /dev/null || command -v fdfind > /dev/null ;;
   esac
 }

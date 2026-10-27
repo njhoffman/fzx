@@ -358,8 +358,8 @@ and settings.
 | `logs` | files (newest first), units, docker | | alt-F follow (ctrl-c returns) | path, unit or container id |
 | `systemd` | user, system, failed | | alt-s start, ctrl-x stop, alt-R restart, alt-e enable, alt-d disable, ctrl-l journal, ctrl-e edit | unit names |
 | `git` | status, log, branches, stash (switch in place) | `[--all] [--rev REV] [DIR]` | alt-s stage, alt-u unstage, ctrl-e edit, alt-c switch branch (remote: `--track`), ctrl-o branch to its log | paths, hashes, ref names, stash names |
-| `dirs` | zlua (z.lua, `FZX_DIRS_ZLUA`), frecent (zoxide), fasd, recent (fasd by access), bookmarks (`FZX_DIRS_BOOKMARKS`), all (fd over ~), whichever are installed/configured | `[WORDS...]`: zoxide/fasd keywords; with words a single match is printed without the picker (`--select-1 --exit-0`) | ctrl-x forget, ctrl-o browse in files | the directory |
-| `recent` | nvim (telescope-frecency's `file_frecency.sqlite3`, scored by its count and recency weights), fasd | `[WORDS...]`: each in order in the path, ignoring case; with words a single match is printed | ctrl-e edit, ctrl-o browse the directory | paths |
+| `dirs` | all (fd over ~, the default), bookmarks (`FZX_DIRS_BOOKMARKS`, when configured) | `[WORDS...]`: the fzf query (all) or a bookmark filter, where a single match is printed without the picker | ctrl-o browse in files | the directory |
+| `recent` | files: nvim (telescope-frecency's `file_frecency.sqlite3`, scored by its count and recency weights), fasd; directories: zlua (z.lua, `FZX_RECENT_ZLUA`), dirs (zoxide), fasd-dirs, visited (fasd by last visit); whichever are installed | `[WORDS...]`: files, each in order in the path, ignoring case; directories, the tracker's keywords; with words a single match is printed (`--select-1 --exit-0`) | ctrl-e edit, ctrl-x forget (fasd, zoxide, z.lua), ctrl-o browse in files | paths |
 | `tmux` | sessions, windows, panes; capture: lines, urls, paths, words, hashes, ips; buffers; keys, commands, options, variables, styles, formats, status, hooks | `--pane %N`, `--scope pane|window|session|all`, `--table`, `--option-scope`, `--user-only`, `--builtin-only`, `--prefix`, `--options-file`, `--data-file` | alt-s switch/attach, ctrl-o capture, ctrl-x kill (confirm), alt-n rename, alt-m move, alt-p paste; toggles: viewport/changed/free/empty/short; actions: link/swap/mark, next/prev session, theme, scratch, nvim | plain IDs/text; colored display and hidden metadata; see [tmux](tmux.md) |
 | `history` | session, directory, host (default), global (zsh-histdb); toggle failed; sort recent/frequent | `[WORDS...]`: the starting query | alt-enter run (exit status 10), ctrl-x forget (confirm), alt-e failed only | the command (multi-line kept) |
 | `repos` | all, mine, changed, unsynced, todos; sort recent/name | | ctrl-o git module, alt-o files, ctrl-e edit, alt-w browse; actions: fetch, pull (`--ff-only`), rescan | the repository path |
@@ -541,7 +541,7 @@ resolved paths). Default keys, bound in viins, vicmd and emacs unless `FZX_ZSH_N
 |---|---|---|
 | alt-f | `fzx-files-widget` | insert file paths |
 | alt-d | `fzx-dirs-widget` | `cd` into a directory below the current one, through accept-line so it is in history |
-| alt-j | `fzx-jump-widget` | `cd` into a frecent directory (dirs module) |
+| alt-j | `fzx-jump-widget` | `cd` into a frecent directory (`fzx jump`: the recent module's directory mode, as `g` picks it) |
 | alt-g | `fzx-git-widget` | insert git paths, a hash or a branch |
 | alt-p | `fzx-ps-widget` | insert pids |
 | alt-m | `fzx-menu-widget` | open the menu, insert what it returns |
@@ -549,8 +549,8 @@ resolved paths). Default keys, bound in viins, vicmd and emacs unless `FZX_ZSH_N
 `g` and `gg` are functions, not widgets (they cd the shell they run in), over `fzx jump` (lib/jump.sh),
 which prints the directory; `FZX_ZSH_NO_JUMP=1` leaves them undefined:
 
-- `g WORDS`: the best frecent match (dirs `FZX_DIRS_JUMP_MODE`, default its default mode: z.lua, else
-  zoxide). Run again from inside a match, it goes to the match after it, wrapping, so repeating `g foo`
+- `g WORDS`: the best frecent match (`FZX_RECENT_DIRS_JUMP_MODE`: a directory mode of recent, or
+  `MODULE:MODE` such as `dirs:bookmarks`; default recent's zlua, else dirs (zoxide), else fasd-dirs). Run again from inside a match, it goes to the match after it, wrapping, so repeating `g foo`
   steps through the matches with no saved state. A single word that is a directory is taken as is.
 - `gg [WORDS]`: one match cds, several open the picker over them (`--select-1 --exit-0`); no words reuse
   the last ones (`_FZX_JUMP_LAST`, per shell). `fzx-cd` is the same function.

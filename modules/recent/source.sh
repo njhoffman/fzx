@@ -1,7 +1,31 @@
 #!/usr/bin/env bash
-# recent source. Lines are "absolute path<TAB>display", best first; files that no longer exist are dropped.
-# Mode from $FZX_MODE: nvim (telescope-frecency's database), fasd (fasd -f). Args are words: each must
-# appear in the path, in order, ignoring case.
+# recent source. Lines are "absolute path<TAB>display", best first; paths that no longer exist are dropped.
+# Mode from $FZX_MODE. Files: nvim (telescope-frecency's database), fasd (fasd -f); args are words, each of
+# which must appear in the path, in order, ignoring case. Directories: zlua (z.lua), dirs (zoxide),
+# fasd-dirs (fasd -d), visited (fasd, by last visit); args are keywords for the tool, which matches them
+# its own way (zoxide: the last word against the last path component).
+
+# recent::kind [mode]: files or dirs
+recent::kind() {
+  case "${1:-${FZX_MODE:-nvim}}" in
+    nvim | fasd) echo files ;;
+    *) echo dirs ;;
+  esac
+}
+
+# recent::zlua <var>: the z.lua script (FZX_RECENT_ZLUA, or found in the usual places), or fail
+recent::zlua() {
+  local _s="${FZX_RECENT_ZLUA:-}" _c
+  [[ "$_s" == none ]] && return 1
+  if [[ -z "$_s" ]]; then
+    for _c in "${ZLUA_SCRIPT:-}" "$HOME"/.zinit/plugins/*z.lua/z.lua "$HOME"/.local/share/zinit/plugins/*z.lua/z.lua \
+      "$HOME/.local/share/z.lua/z.lua"; do
+      [[ -n "$_c" && -f "$_c" ]] && { _s="$_c"; break; }
+    done
+  fi
+  [[ -n "$_s" && -f "$_s" ]] || return 1
+  printf -v "$1" '%s' "$_s"
+}
 
 # nvim: telescope-frecency's score, the open count times the average weight of its timestamps by age
 # (Julian days: under 4 hours 100, a day 80, 3 days 60, a week 40, a month 20, 90 days 10, older 0)
@@ -22,36 +46,60 @@ recent::match() {
       if (ok) print }'
 }
 
-# recent::format: "score<TAB>path" -> "path<TAB>display" (dim score, prettypath when on), existing files only
+# recent::score: "score path" (the tools' own spacing) -> "score<TAB>path", scores under 10 with a decimal
+recent::score() {
+  awk '{ s = $1; sub(/^ *[^ ]+ +/, ""); printf "%s\t%s\n", (s < 10 ? sprintf("%.1f", s) : sprintf("%.0f", s)), $0 }'
+}
+
+# recent::format <files|dirs>: "score<TAB>path" -> "path<TAB>display" (dim score, prettypath when on, as
+# directories in the dirs kind), only paths that still exist as that kind
 recent::format() {
-  local dim=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" rst=$'\e[0m' in line
+  local kind="$1" dim=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" rst=$'\e[0m' in line test=-f pretty=() width=5
+  [[ "$kind" == dirs ]] && test=-d pretty=(--dirs) width=7
   in="$(cat)"
   [[ -n "$in" ]] || return 0
   fzx::require pretty
   if fzx::pretty_on; then
-    awk -F'\t' -v dim="$dim" -v rst="$rst" 'NR == FNR { shown[$1] = $2; next }
-      { disp = ($2 in shown) ? shown[$2] : "  " $2; printf "%s\t%s%5s%s  %s\n", $2, dim, $1, rst, disp }' \
-      <(cut -f2 <<< "$in" | fzx::pretty) - <<< "$in"
+    # prettypath decorates the paths; joined back to their scores by path, in the input's order (by path,
+    # not by line: an older prettypath can drop lines, which keep a plain display)
+    awk -F'\t' -v dim="$dim" -v rst="$rst" -v w="$width" 'NR == FNR { shown[$1] = $2; next }
+      { path = $2; sub(/\/$/, "", path); disp = (path in shown) ? shown[path] : "  " path
+        printf "%s\t%s%*s%s  %s\n", path, dim, w, $1, rst, disp }' \
+      <(cut -f2 <<< "$in" | fzx::pretty "${pretty[@]}") - <<< "$in"
   else
-    awk -F'\t' -v home="$HOME" -v dim="$dim" -v rst="$rst" '
-      { shown = $2; if (index(shown, home "/") == 1) shown = "~" substr(shown, length(home) + 1)
+    awk -F'\t' -v home="$HOME" -v dim="$dim" -v rst="$rst" -v w="$width" '
+      { path = $2; sub(/\/$/, "", path); shown = path
+        if (index(shown, home "/") == 1) shown = "~" substr(shown, length(home) + 1)
         n = split(shown, parts, "/"); name = parts[n]
-        printf "%s\t%s%5s%s  %s%s%s%s\n", $2, dim, $1, rst, dim, substr(shown, 1, length(shown) - length(name)), rst, name }' <<< "$in"
+        printf "%s\t%s%*s%s  %s%s%s%s\n", path, dim, w, $1, rst, dim, substr(shown, 1, length(shown) - length(name)), rst, name }' <<< "$in"
   fi | while IFS= read -r line; do
-    [[ -f "${line%%$'\t'*}" ]] && printf '%s\n' "$line"
+    test "$test" "${line%%$'\t'*}" && printf '%s\n' "$line"
   done
 }
 
 # recent::source [words...]
 recent::source() {
-  case "${FZX_MODE:-nvim}" in
-    nvim) recent::nvim ;;
-    fasd) command fasd -f -R -s | awk '{ s = $1; sub(/^[^ ]+ +/, ""); printf "%d\t%s\n", s, $0 }' ;;
+  local mode="${FZX_MODE:-nvim}" zl
+  case "$mode" in
+    nvim) recent::nvim | recent::match "$@" ;;
+    fasd) command fasd -f -R -s | awk '{ s = $1; sub(/^[^ ]+ +/, ""); printf "%d\t%s\n", s, $0 }' | recent::match "$@" ;;
+    zlua)
+      if ! recent::zlua zl; then
+        printf 'recent: z.lua not found (set FZX_RECENT_ZLUA)\n' >&2
+        return 2
+      fi
+      # z.lua lists the best match last
+      command "$FZX_RECENT_ZLUA_LUA" "$zl" -l "$@" | tac | recent::score
+      ;;
+    dirs) command zoxide query --list --score -- "$@" | recent::score ;;
+    fasd-dirs) command fasd -d -R -s "$@" | recent::score ;;
+    visited) command fasd -d -t -R -l "$@" | awk '{ printf "%d\t%s\n", NR, $0 }' ;;
     *)
-      printf 'recent: unknown mode: %s\n' "$FZX_MODE" >&2
+      printf 'recent: unknown mode: %s\n' "$mode" >&2
       return 2
       ;;
-  esac | recent::match "$@" | recent::format
+  esac | recent::format "$(recent::kind "$mode")"
+  # zoxide and fasd exit non-zero when nothing matches the words; an empty list is not an error
   return 0
 }
 

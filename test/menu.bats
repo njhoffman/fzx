@@ -97,10 +97,25 @@ plain_lines() {
   fixture_modules
   menu_session
   "$FZX" _cb transform refresh > /dev/null
-  find "$FZX_CACHE_DIR/summary" -name 'counter#0' -exec touch -d '10 minutes ago' {} +
+  find "$FZX_CACHE_DIR/summary" -name 'counter@*' | head -1 | xargs touch -d '10 minutes ago'
   run "$FZX" _cb transform refresh
   [ "$output" = "reload:$FZX _cb source" ]
   [ "$(wc -l < "$COUNTER_FILE.summaries")" -eq 3 ]
+}
+
+@test "summary cache: keyed by what the entry opens, not its position in the manifest" {
+  load_libs menu
+  local a b c
+  FZX_ENTRY_TARGETS=(x:one x:two) FZX_ENTRY_ARGS=("" "")
+  fzx::summary_path a x 1
+  # x:one dropped from the manifest: x:two is now entry 0 and keeps its summary
+  FZX_ENTRY_TARGETS=(x:two) FZX_ENTRY_ARGS=("")
+  fzx::summary_path b x 0
+  [ "$a" = "$b" ]
+  # the same target with other args is another entry
+  FZX_ENTRY_ARGS=("--y")
+  fzx::summary_path c x 0
+  [ "$c" != "$b" ]
 }
 
 @test "refresh: summaries are per directory" {
