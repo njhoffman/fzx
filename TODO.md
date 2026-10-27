@@ -29,9 +29,10 @@ Categories: module
       mode's meaning (0.17.0).
 - [x] **git: safe writes**: add -p, commit/amend, fetch, stash push/apply/pop, cherry-pick, revert,
       detached checkout, restore files as of a commit, .gitignore entries, new branch (0.17.0).
-- [ ] **git: history rewriting and destructive actions** (p2) [feature]: fixup, squash, reword, rebase -i
-      onto a commit, branch delete, stash drop, clean (dry run in the preview), discard. Hidden unless
-      `FZX_GIT_DESTRUCTIVE=1`, and confirmed even then.
+- [x] **git: history rewriting and destructive actions**: drop (discard/clean, branches, stashes),
+      fixup, squash, reword, rebase -i; only with `FZX_GIT_DESTRUCTIVE=1`, confirmed (0.18.0).
+- [ ] **git: remote branch delete** (p3) [feature]: drop on a remote-tracking branch pushes the delete
+      (`git push REMOTE --delete BRANCH`); left out of 0.18.0 as an outward action.
 - [x] **Shell integration**: `shell/fzx.zsh` widgets on alt-f/d/g/p/m (insert paths, cd, git, pids,
       menu) and `just install` (symlink `bin/fzx` into ~/.local/bin).
 - [ ] **Sessions module** (p3) [module]: a picker over `fzx debug ls` that resumes a kept or running session from

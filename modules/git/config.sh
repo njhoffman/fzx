@@ -17,6 +17,10 @@ FZX_GIT_LOG_LIMIT=1000
 # preview's width), "" none, anything else a command line, e.g. "diff-so-fancy"
 FZX_GIT_DIFF_FILTER="${FZX_GIT_DIFF_FILTER-auto}"
 
+# the destructive verbs (drop, fixup, squash, reword, rebase; components.tsv) are bound only when 1, and ask
+# first even then; amend of a pushed commit is allowed too. Exported: the components table is a script
+export FZX_GIT_DESTRUCTIVE="${FZX_GIT_DESTRUCTIVE:-0}"
+
 # git color settings applied to every git call here (`-c KEY=VALUE`), over the user's: git's defaults
 # draw tags, commit hashes and the decoration parentheses in yellow; cool colors instead
 FZX_GIT_COLOR_CONFIG=("color.decorate.tag=bold 117" "color.diff.commit=252")

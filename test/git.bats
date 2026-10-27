@@ -476,3 +476,88 @@ subjects() { git log --format=%s "$@" | tr '\n' ' '; }
   [[ "$output" != *alt-k* ]]
   [[ "$output" != *"apply the stash"* && "$output" == *"copy the selection"* ]]
 }
+
+@test "destructive verbs: listed only with FZX_GIT_DESTRUCTIVE=1, confirmed, and refused without it" {
+  run "$GIT_DIR_MOD/components.tsv"
+  [[ "$output" != *drop* ]]
+  FZX_GIT_DESTRUCTIVE=1 run "$GIT_DIR_MOD/components.tsv"
+  [[ "$output" == *$'\n''action  drop     alt-x'*confirm* ]]
+  stub_fzf
+  run "$FZX" -m git "$REPO"
+  [ -z "$(fzf_bind alt-x)" ]
+  FZX_GIT_DESTRUCTIVE=1 run "$FZX" -m git "$REPO"
+  [[ "$(fzf_bind alt-x)" == *'_cb action drop'* ]]
+  run act status drop -- "$REAL/u space.txt"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"set FZX_GIT_DESTRUCTIVE=1"* ]]
+  [ -e "u space.txt" ]
+}
+
+@test "drop: status discards unstaged changes (staged kept) and deletes untracked files" {
+  echo more >> s.txt
+  FZX_GIT_DESTRUCTIVE=1 act status drop -- "$REAL/a.txt" "$REAL/s.txt" "$REAL/u space.txt"
+  [ "$(cat a.txt)" = "$(printf 'one\ntwo')" ]
+  [ "$(cat s.txt)" = staged ]
+  [ "$(git diff --cached --name-only)" = s.txt ]
+  [ ! -e "u space.txt" ]
+}
+
+@test "drop: local branches deleted, remote ones left; stashes dropped highest first" {
+  git stash -q -u
+  echo x > x.txt && git stash -q -u
+  echo y > y.txt && git stash -q -u
+  FZX_GIT_DESTRUCTIVE=1 run act branches drop -- feature origin/feature
+  ! git show-ref --verify --quiet refs/heads/feature
+  git show-ref --verify --quiet refs/remotes/origin/feature
+  [[ "$output" == *"not a local branch: origin/feature"* ]]
+  local keep
+  keep="$(git rev-parse 'stash@{1}')"
+  FZX_GIT_DESTRUCTIVE=1 act stash drop -- 'stash@{0}' 'stash@{2}'
+  [ "$(git stash list | wc -l)" -eq 1 ]
+  [ "$(git rev-parse 'stash@{0}')" = "$keep" ]
+}
+
+# three commits on main above "first": second, c3, c4; local changes kept aside by --autostash
+history3() {
+  git commit -qam wip
+  echo c3 > c3.txt && git add c3.txt && git commit -qm c3
+  echo c4 > c4.txt && git add c4.txt && git commit -qm c4
+}
+
+@test "fixup: what is staged folds into the commit, local changes survive; nothing staged is refused" {
+  history3
+  echo fix >> c3.txt && git add c3.txt
+  echo loose > loose.txt
+  FZX_GIT_DESTRUCTIVE=1 run act log fixup -- "$(git rev-parse HEAD~1)"
+  [ "$status" -eq 0 ]
+  [ "$(subjects -3)" = "c4 c3 wip " ]
+  [ "$(git show HEAD~1:c3.txt)" = "$(printf 'c3\nfix')" ]
+  [ -e loose.txt ]
+  FZX_GIT_DESTRUCTIVE=1 run act log fixup -- HEAD
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"nothing staged"* ]]
+}
+
+@test "squash and reword rewrite the selected commit; commits off the branch or before merges are refused" {
+  history3
+  GIT_EDITOR="printf 'c3 and c4\n' >" FZX_GIT_DESTRUCTIVE=1 act log squash -- "$(git rev-parse HEAD)"
+  [ "$(subjects -2)" = "c3 and c4 wip " ]
+  [ -e c4.txt ]
+  GIT_EDITOR="printf 'work\n' >" FZX_GIT_DESTRUCTIVE=1 act log reword -- "$(git rev-parse HEAD~1)"
+  [ "$(subjects -3)" = "c3 and c4 work second " ]
+  FZX_GIT_DESTRUCTIVE=1 run act log reword -- feature
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"not in the current branch's history"* ]]
+  git merge -q --no-ff --no-edit feature
+  FZX_GIT_DESTRUCTIVE=1 run act log reword -- "$(git rev-parse HEAD~1)"
+  [[ "$output" == *"merges follow"* ]]
+  FZX_GIT_DESTRUCTIVE=1 run act log squash -- "$(git rev-list --max-parents=0 HEAD)"
+  [ "$status" -ne 0 ]
+}
+
+@test "rebase: rebase -i of the commits after the selected one" {
+  history3
+  GIT_SEQUENCE_EDITOR="sed -i '/ c3$/d'" FZX_GIT_DESTRUCTIVE=1 act log rebase -- "$(git rev-parse HEAD~2)"
+  [ "$(subjects -2)" = "c4 wip " ]
+  [ ! -e c3.txt ]
+}

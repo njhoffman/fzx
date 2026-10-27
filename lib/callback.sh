@@ -228,7 +228,17 @@ fzx::_cb_action() {
       fzx::require builtin
       fzx::comp_field action "$name" description desc
       [[ "$desc" == - ]] && desc=""
-      if ! fzx::confirm "${desc:-$name}" "${@:2}"; then
+      # a mode-scoped description asks with the current mode's part
+      local mode="" modes=() row
+      fzx::state_get mode mode 2> /dev/null || mode=""
+      while IFS=$'\t' read -r _ row _; do modes+=("$row"); done < <(fzx::comp_rows mode)
+      ((${#modes[@]})) && fzx::mode_desc "$desc" "$mode" desc "${modes[@]}"
+      # the selection only: module args before a "--" are not what is acted on
+      local shown=("${@:2}") i
+      for ((i = ${#shown[@]} - 1; i >= 0; i--)); do
+        [[ "${shown[i]}" == -- ]] && { shown=("${shown[@]:i+1}"); break; }
+      done
+      if ! fzx::confirm "${desc:-$name}" "${shown[@]}"; then
         fzx::log info "action $name: not confirmed"
         return 0
       fi

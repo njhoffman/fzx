@@ -1,4 +1,11 @@
-# git components: kind  name  key  description  flags (see lib/components.sh)
+#!/usr/bin/env bash
+# git components (kind  name  key  description  flags; see lib/components.sh). Executable: the destructive
+# verbs are listed only with FZX_GIT_DESTRUCTIVE=1 (exported by config.sh, so the user's config can set
+# it), and each asks first.
+# Actions are verbs shared across modes: a description's "MODE[, MODE]: text" parts say what each does
+# where (the f1 help and the actions menu show the current mode's part); elsewhere the key does nothing.
+
+command cat << 'EOF'
 mode  status     -  changed files                            default
 mode  log        -  commits                                  -
 mode  branches   -  local and remote branches                -
@@ -7,8 +14,6 @@ mode  stash      -  stashes                                  -
 mode  reflog     -  where HEAD (or --rev REF) has been       -
 mode  worktrees  -  linked work trees                        -
 mode  commit     -  the files a commit (--rev) changed       hidden
-# actions are verbs shared across modes: a description's "MODE[, MODE]: text" parts say what each does
-# where (the f1 help and the actions menu show the current mode's part); elsewhere the key does nothing
 action  stage    alt-s   status: stage the selected files                                         foreground,reload
 action  unstage  alt-u   status: unstage the selected files                                       foreground,reload
 action  patch    alt-p   status: stage parts of the selected files (add -p)                       foreground,reload
@@ -23,3 +28,13 @@ action  commit   alt-m   commit what is staged                                  
 action  amend    alt-M   amend the last commit with what is staged (refused once it is pushed)    foreground,restart
 action  fetch    alt-F   fetch every remote, pruning deleted branches                             foreground,restart
 action  copy     ctrl-y  copy the selection (paths, hashes, names)                                silent,builtin
+EOF
+
+[[ "${FZX_GIT_DESTRUCTIVE:-0}" == 1 ]] || exit 0
+command cat << 'EOF'
+action  drop     alt-x   status: discard the unstaged changes of the selected files, delete untracked ones; branches: delete the selected local branches; stash: drop the selected stashes  foreground,restart,confirm
+action  fixup    alt-U   log: fold what is staged into the selected commit (rewrites history after it)  foreground,restart,confirm
+action  squash   alt-Q   log: squash the selected commit into its parent (rewrites history)        foreground,restart,confirm
+action  reword   alt-W   log: edit the selected commit's message (rewrites history)                foreground,restart,confirm
+action  rebase   alt-E   log: rebase -i the commits after the selected one                          foreground,restart,confirm
+EOF

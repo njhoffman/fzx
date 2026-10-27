@@ -88,6 +88,106 @@ git::new_branch() {
   git::g switch -c "$name" "$1"
 }
 
+# the destructive verbs run only with FZX_GIT_DESTRUCTIVE=1 (their rows are not even listed without it)
+git::destructive() {
+  [[ "${FZX_GIT_DESTRUCTIVE:-0}" == 1 ]] && return 0
+  printf 'git: %s is destructive: set FZX_GIT_DESTRUCTIVE=1 to allow it\n' "$1" >&2
+  return 1
+}
+
+# drop in status: tracked files lose their unstaged changes (the staged ones stay), untracked ones are
+# deleted
+git::discard() {
+  local f tracked=() untracked=() rc=0
+  for f; do
+    if git::g ls-files --error-unmatch -- "$f" > /dev/null 2>&1; then tracked+=("$f"); else untracked+=("$f"); fi
+  done
+  if ((${#tracked[@]})); then
+    git::g restore --worktree -- "${tracked[@]}" || rc=$?
+  fi
+  if ((${#untracked[@]})); then
+    git::g clean -f -d -- "${untracked[@]}" || rc=$?
+  fi
+  return "$rc"
+}
+
+# drop in branches: local branches, force-deleted (asked first); remote-tracking ones are left alone
+git::delete_branches() {
+  local b rc=0
+  for b; do
+    if git::g show-ref --verify --quiet "refs/heads/$b"; then
+      git::g branch -D -- "$b" || rc=$?
+    else
+      printf 'skipped, not a local branch: %s (remote branches are not deleted here)\n' "$b" >&2
+      rc=1
+    fi
+  done
+  return "$rc"
+}
+
+# drop in stash: highest index first, so the others keep their names until their turn
+git::drop_stashes() {
+  local s rc=0
+  while IFS= read -r s; do
+    git::g stash drop "$s" || rc=$?
+  done < <(printf '%s\n' "$@" | sort -t'{' -k2 -rn)
+  return "$rc"
+}
+
+# git::rewritable <commit>: the commit is in HEAD's history and no merge follows it (rebase would
+# flatten the merge)
+git::rewritable() {
+  if ! git::g merge-base --is-ancestor "$1" HEAD 2> /dev/null; then
+    printf 'git: %s is not in the current branch'"'"'s history\n' "$1" >&2
+    return 1
+  fi
+  if [[ -n "$(git::g rev-list --merges "$1..HEAD")" ]]; then
+    printf 'git: merges follow %s; rewrite them by hand (git rebase --rebase-merges)\n' "$1" >&2
+    return 1
+  fi
+}
+
+# git::rebase_from <commit> <args...>: rebase -i from the commit's parent (--root for the first commit),
+# stashing local changes around it
+git::rebase_from() {
+  local c="$1"
+  shift
+  if git::g rev-parse --quiet --verify "$c^" > /dev/null; then
+    git::g -c core.abbrev=40 rebase -i --autostash "$@" "$c^"
+  else
+    git::g -c core.abbrev=40 rebase -i --autostash "$@" --root
+  fi
+}
+
+# git::rewrite <fixup|squash|reword|rebase> <commit>
+git::rewrite() {
+  local verb="$1" c
+  c="$(git::g rev-parse --verify --quiet "$2^{commit}")" || {
+    printf 'git: not a commit: %s\n' "$2" >&2
+    return 1
+  }
+  git::rewritable "$c" || return
+  case "$verb" in
+    fixup)
+      if git::g diff --cached --quiet; then
+        printf 'git: nothing staged to fold into %s\n' "${c:0:8}" >&2
+        return 1
+      fi
+      git::g commit --quiet --fixup="$c" || return
+      GIT_SEQUENCE_EDITOR=: git::rebase_from "$c" --autosquash
+      ;;
+    reword) GIT_SEQUENCE_EDITOR="sed -i 's/^pick $c /reword $c /'" git::rebase_from "$c" ;;
+    squash)
+      if ! git::g rev-parse --quiet --verify "$c^" > /dev/null; then
+        printf 'git: %s is the first commit: nothing to squash it into\n' "${c:0:8}" >&2
+        return 1
+      fi
+      GIT_SEQUENCE_EDITOR="sed -i 's/^pick $c /squash $c /'" git::rebase_from "$(git::g rev-parse "$c^")"
+      ;;
+    rebase) git::g rebase -i --autostash "$c" ;;
+  esac
+}
+
 # amend rewrites the last commit: refused when a remote branch holds it, unless FZX_GIT_DESTRUCTIVE=1
 git::amend() {
   if [[ "${FZX_GIT_DESTRUCTIVE:-0}" != 1 && -n "$(git::g branch -r --contains HEAD 2> /dev/null)" ]]; then
@@ -109,6 +209,7 @@ git::action() {
     amend) git::amend; git::_report $?; return ;;
     fetch) git::g fetch --all --prune; git::_report $?; return ;;
     stage | unstage | patch | edit | switch | pick | revert | branch | stash | ignore) ;;
+    drop | fixup | squash | reword | rebase) git::destructive "$action" || { git::_report 1; return; } ;;
     *)
       printf 'git: unknown action: %s\n' "$action" >&2
       return 2
@@ -142,6 +243,10 @@ git::action() {
     stash:status) git::g stash push --include-untracked -- "$@" ;;
     stash:stash) git::g stash pop "$1" ;;
     ignore:status) git::ignore "$@" ;;
+    drop:status) git::discard "$@" ;;
+    drop:branches) git::delete_branches "$@" ;;
+    drop:stash) git::drop_stashes "$@" ;;
+    fixup:log | squash:log | reword:log | rebase:log) git::rewrite "$action" "$1" ;;
     *) return 0 ;;
   esac
   git::_report $?

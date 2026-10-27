@@ -6,6 +6,22 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-10-27
+
+### Added
+
+- git destructive verbs, bound only with `FZX_GIT_DESTRUCTIVE=1` (environment or fzx config) and confirmed
+  every time: alt-x drop (status: discard unstaged changes, staged ones kept, and delete untracked files;
+  branches: force-delete local branches, remote ones are left alone; stash: drop, highest index first);
+  alt-U fixup (fold what is staged into the selected commit); alt-Q squash into its parent; alt-W reword;
+  alt-E `rebase -i` of the commits after the selected one. History rewrites refuse commits outside HEAD's
+  history or followed by merges, and stash local changes around the rebase.
+
+### Changed
+
+- The confirm prompt shows the current mode's part of a mode-scoped description, and only the selection
+  (not the module's arguments).
+
 ## [0.17.0] - 2026-10-27
 
 ### Added
