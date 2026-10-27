@@ -7,13 +7,15 @@ declare -gA FZX_KEYS
 # prompt icon (Nerd Font); FZX_ICON="" keeps fzf's own prompt
 FZX_ICON=""
 
-FZX_KEYS[git.into]=ctrl-o   # branches: open the branch's log
+FZX_KEYS[git.into]=ctrl-o   # branches, tags: the log; log, reflog, stash: the commit's files; worktrees: status
+FZX_KEYS[git.view]=alt-v    # status, commit: the preview shows the diff or the blame
 
 # commits listed in log mode
 FZX_GIT_LOG_LIMIT=1000
 
-# diffs in the preview are piped through this when set, e.g. "delta --paging=never"
-FZX_GIT_DIFF_FILTER=""
+# diffs in the preview are piped through this command: "auto" is delta when it is installed (at the
+# preview's width), "" none, anything else a command line, e.g. "diff-so-fancy"
+FZX_GIT_DIFF_FILTER="${FZX_GIT_DIFF_FILTER-auto}"
 
 # git color settings applied to every git call here (`-c KEY=VALUE`), over the user's: git's defaults
 # draw tags, commit hashes and the decoration parentheses in yellow; cool colors instead

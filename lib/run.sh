@@ -87,6 +87,7 @@ fzx::run_standalone() {
   fzx::comp_load "$FZX_MODULE_DIR" "$FZX_MODULE"
   local mode="${FZX_MODE:-$FZX_MODE_DEFAULT}"
   fzx::_mode_valid "$mode" || fzx::die 2 "unknown mode for $FZX_MODULE: $mode (modes: ${FZX_MODES[*]})"
+  fzx::_mode_hidden "$mode" && FZX_MODES=("$mode")
   export FZX_MODE="$mode"
   fzx::comp_current
   fzx::opts_build "$FZX_MODULE" || fzx::die 1 "$FZX_MODULE::opts failed"
@@ -113,7 +114,6 @@ fzx::_launch() {
   fzx::require components
   fzx::comp_load "$FZX_MODULE_DIR" "$FZX_MODULE"
   fzx::comp_save
-  printf '%s\0' "${FZX_MODES[@]}" > "$FZX_SESSION_DIR/meta/modes"
   if [[ -n "$requested" ]]; then
     fzx::_mode_valid "$requested" || fzx::die 2 "unknown mode for $FZX_MODULE: $requested (modes: ${FZX_MODES[*]})"
     mode="$requested"
@@ -124,6 +124,9 @@ fzx::_launch() {
       mode="$FZX_MODE_DEFAULT"
     fi
   fi
+  # a hidden mode is the session's only one: the mode keys and the component line leave it alone
+  fzx::_mode_hidden "$mode" && FZX_MODES=("$mode")
+  printf '%s\0' "${FZX_MODES[@]}" > "$FZX_SESSION_DIR/meta/modes"
   fzx::state_set mode "$mode"
   export FZX_MODE="$mode"
   fzx::comp_current
@@ -239,6 +242,15 @@ fzx::_placement() {
 fzx::_mode_valid() {
   local m
   for m in "${FZX_MODES[@]}"; do
+    [[ "$m" == "$1" ]] && return 0
+  done
+  fzx::_mode_hidden "$1"
+}
+
+# fzx::_mode_hidden <mode>: a mode row flagged hidden (lib/components.sh)
+fzx::_mode_hidden() {
+  local m
+  for m in "${FZX_MODES_HIDDEN[@]}"; do
     [[ "$m" == "$1" ]] && return 0
   done
   return 1

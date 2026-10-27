@@ -6,6 +6,25 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-10-27
+
+### Added
+
+- git: tags, reflog (`--rev REF` for a ref's) and worktrees modes, each with a menu entry (tags and
+  worktrees only when there are any).
+- git: ctrl-o on a log, reflog or stash entry lists the files that commit changed (`git:commit --rev REV`),
+  each previewing its own diff, renames against their original name; on a tag it opens the tag's log, on
+  a work tree that tree's status.
+- git: alt-v switches the status and commit previews between the diff and the blame (colored by age).
+- git: ctrl-y copies the selection (paths, hashes, names).
+- Mode rows flagged `hidden`: left out of the mode cycle and the footer, opened only by name; a session
+  opened in one has that mode alone.
+
+### Changed
+
+- git: `FZX_GIT_DIFF_FILTER` defaults to `auto`, delta at the preview's width when it is installed; set
+  it to "" for git's own colors.
+
 ## [0.15.0] - 2026-10-27
 
 ### Added

@@ -23,11 +23,16 @@ Categories: module
       plus one-shot `debug state` and `debug send`.
 - [ ] **Menu ordering by use** (p2) [feature]: sort entries by `stats.tsv` (recent and frequent first), maybe a
       "recent" group on top.
-- [ ] **git** (p2) [feature]: commit-to-files drill-down (ctrl-o on a commit lists its changed files with per-file diff),
-      fetch, commit/amend in `execute`, blame preview, worktrees. From fzf-rsc/git.zsh and fzfmenu
-      widgets/git/fzg-*: diff (staged/unstaged), add -p, reset HEAD, restore a file from a commit,
-      .gitignore entries, clean (dry run first), stash show/apply/drop, cherry-pick, fixup/rebase onto a
-      commit, checkout a file at a commit, grep through history. Discard/restore stays opt-in only.
+- [x] **git: read and navigate**: commit-to-files drill-down (ctrl-o), tags, reflog and worktrees modes,
+      blame preview (alt-v), copy, delta by default (0.16.0).
+- [ ] **git: per-mode key help** (p2) [feature]: shared verb keys mean one thing per mode; the f1 help and
+      the actions menu show only the current mode's meaning (descriptions as "status: X; log: Y").
+- [ ] **git: safe writes** (p2) [feature]: add -p, commit/amend in `execute`, fetch, stash push of the
+      selected files / apply / pop, cherry-pick, revert, checkout of a commit, tag or file at a commit,
+      .gitignore entries, create a branch from the selection; shared verb keys across modes.
+- [ ] **git: history rewriting and destructive actions** (p2) [feature]: fixup, squash, reword, rebase -i
+      onto a commit, branch delete, stash drop, clean (dry run in the preview), discard. Hidden unless
+      `FZX_GIT_DESTRUCTIVE=1`, and confirmed even then.
 - [x] **Shell integration**: `shell/fzx.zsh` widgets on alt-f/d/g/p/m (insert paths, cd, git, pids,
       menu) and `just install` (symlink `bin/fzx` into ~/.local/bin).
 - [ ] **Sessions module** (p3) [module]: a picker over `fzx debug ls` that resumes a kept or running session from

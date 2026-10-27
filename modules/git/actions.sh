@@ -42,16 +42,32 @@ git::action() {
   git::_report $?
 }
 
-# git::transform into [module args...] -- <id>: branches open the branch's log as a child session
+# git::transform <into|view> [module args...] -- <id>
+#   into: ctrl-o. Branches and tags open their log, log, reflog and stash entries the files the commit
+#         changed, a work tree its status; each as a child session
+#   view: alt-v. Status and commit previews switch between the diff and the blame
 git::transform() {
-  local name="${1:-}"
+  local name="${1:-}" view=""
   shift
   case "$name" in
     into)
       git::split "$@" || return
-      [[ "${FZX_MODE:-}" == branches && -n "${GIT_IDS[0]:-}" ]] || return 0
+      local id="${GIT_IDS[0]:-}"
+      [[ -n "$id" ]] || return 0
       fzx::require nav
-      fzx::nav goto git:log --rev "${GIT_IDS[0]}" "$GIT_TOP"
+      case "${FZX_MODE:-}" in
+        branches | tags) fzx::nav goto git:log --rev "$id" "$GIT_TOP" ;;
+        log | reflog | stash) fzx::nav goto git:commit --rev "$id" "$GIT_TOP" ;;
+        worktrees) fzx::nav goto git:status "$id" ;;
+        *) return 0 ;;
+      esac
+      ;;
+    view)
+      [[ "${FZX_MODE:-}" == status || "${FZX_MODE:-}" == commit ]] || return 0
+      fzx::state_get git_view view 2> /dev/null || view=""
+      if [[ "$view" == blame ]]; then view="diff"; else view="blame"; fi
+      fzx::state_set git_view "$view"
+      printf 'change-preview-label( %s )+refresh-preview' "$view"
       ;;
     *)
       printf 'git: unknown transform: %s\n' "$name" >&2

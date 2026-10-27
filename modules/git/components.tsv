@@ -1,9 +1,14 @@
 # git components: kind  name  key  description  flags (see lib/components.sh)
-mode  status    -  changed files              default
-mode  log       -  commits                    -
-mode  branches  -  local and remote branches  -
-mode  stash     -  stashes                    -
+mode  status     -  changed files                            default
+mode  log        -  commits                                  -
+mode  branches   -  local and remote branches                -
+mode  tags       -  tags, newest first                       -
+mode  stash      -  stashes                                  -
+mode  reflog     -  where HEAD (or --rev REF) has been       -
+mode  worktrees  -  linked work trees                        -
+mode  commit     -  the files a commit (--rev) changed       hidden
 action  stage    alt-s   status: stage the selected files                      foreground,reload
 action  unstage  alt-u   status: unstage the selected files                    foreground,reload
 action  edit     ctrl-e  status: open the selected files in $EDITOR             foreground,reload
 action  switch   alt-c   branches: switch (remote: create a tracking branch)  foreground,restart
+action  copy     ctrl-y  copy the selection (paths, hashes, names)            silent,builtin

@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # git source. Lines are "id<TAB>display" in every mode, so modes switch without restarting fzf:
-#   status    id: absolute path        log     id: commit hash
-#   branches  id: short ref name       stash   id: stash@{n}
+#   status    id: absolute path        log       id: commit hash
+#   branches  id: short ref name       tags      id: tag name
+#   stash     id: stash@{n}            reflog    id: commit hash
+#   worktrees id: the work tree's path commit    id: absolute path, then "<TAB>original path" for renames
+# commit (hidden: opened by ctrl-o) lists the files the --rev commit changed against its first parent.
 # Mode from $FZX_MODE (default status).
 
 # git::args [--all] [--rev REV] [DIR]: GIT_TOP (work tree root), GIT_ALL, GIT_REV
@@ -122,6 +125,82 @@ git::source_stash() {
   git::g stash list --format=$'%gd\t\e[38;5;255m%gd\e[0m \e[38;5;244m%cr\e[0m %s'
 }
 
+git::source_tags() {
+  # creatordate: the tagger's date for annotated tags, the commit's for lightweight ones
+  git::g for-each-ref --sort=-creatordate refs/tags \
+    --format=$'%(refname:short)\t%(creatordate:short)\t%(objecttype)\t%(subject)' |
+    awk -F'\t' '{ kind = $3 == "tag" ? "" : "\033[38;5;244mlightweight\033[0m "
+      printf "%s\t\033[1;38;5;117m%-24s\033[0m \033[32m%s\033[0m %s%s\n", $1, $1, $2, kind, $4 }'
+}
+
+# reflog of HEAD, or of --rev REF
+git::source_reflog() {
+  git::g reflog show --max-count="${FZX_GIT_LOG_LIMIT:-1000}" --color=always \
+    --format=$'%H\t%C(white)%h%C(reset) %C(cyan)%<(12)%gd%C(reset) %C(green)%<(14,trunc)%cr%C(reset) %gs' \
+    "${GIT_REV:-HEAD}" --
+}
+
+# worktree list --porcelain: records of "key value" lines, a blank line after each
+git::source_worktrees() {
+  git::g worktree list --porcelain |
+    awk -v top="$GIT_TOP" -v home="$HOME" '
+      function flush() {
+        if (path == "") return
+        shown = path; if (index(shown, home "/") == 1) shown = "~" substr(shown, length(home) + 1)
+        cur = path == top ? "\033[32m*\033[0m" : " "
+        ref = bare ? "\033[38;5;244mbare\033[0m" : branch != "" ? "\033[32m" branch "\033[0m" : "\033[38;5;244mdetached\033[0m"
+        printf "%s\t%s %-50s %s \033[38;5;252m%s\033[0m%s\n", path, cur, shown, ref, substr(head, 1, 8), flags
+        path = ""; branch = ""; head = ""; bare = 0; flags = ""
+      }
+      /^worktree / { flush(); path = substr($0, 10); next }
+      /^HEAD / { head = $2; next }
+      /^branch / { branch = $2; sub(/^refs\/heads\//, "", branch); next }
+      /^bare$/ { bare = 1; next }
+      /^(locked|prunable)/ { flags = flags " \033[38;5;203m" $1 "\033[0m"; next }
+      END { flush() }'
+}
+
+# git::commit_base <var>: the --rev commit's first parent, or empty for a root commit
+git::commit_base() {
+  if git::g rev-parse --quiet --verify "$GIT_REV^1" > /dev/null 2>&1; then
+    printf -v "$1" '%s' "$GIT_REV^1"
+  else
+    printf -v "$1" ''
+  fi
+}
+
+# the files --rev changed, with their state like status: "A", "M", "D", "R" (renames name the original)
+git::source_commit() {
+  local base st path orig icon
+  [[ -n "$GIT_REV" ]] || {
+    printf 'git: the commit mode needs --rev\n' >&2
+    return 2
+  }
+  git::g rev-parse --quiet --verify "$GIT_REV^{commit}" > /dev/null || {
+    printf 'git: not a commit: %s\n' "$GIT_REV" >&2
+    return 2
+  }
+  fzx::require icons
+  git::commit_base base
+  if [[ -n "$base" ]]; then
+    git::g diff -M --name-status -z "$base" "$GIT_REV" --
+  else
+    git::g diff-tree --root -r -M --no-commit-id --name-status -z "$GIT_REV" --
+  fi |
+    while IFS= read -r -d '' st; do
+      orig=""
+      if [[ "$st" == R* || "$st" == C* ]]; then
+        IFS= read -r -d '' orig
+      fi
+      IFS= read -r -d '' path
+      st="${st:0:1}"
+      [[ "$st" == T ]] && st=M
+      git::status_icon "$st " icon
+      printf '%s/%s\t\e[32m%s\e[0m %s%s%s\t%s\n' "$GIT_TOP" "$path" "$st" "$icon" "$path" \
+        "${orig:+ $'\e[38;5;244m'<- $orig$'\e[0m'}" "$orig"
+    done
+}
+
 # git::source [--all] [--rev REV] [DIR]
 git::source() {
   git::args "$@" || return
@@ -129,7 +208,11 @@ git::source() {
     status) git::source_status ;;
     log) git::source_log ;;
     branches) git::source_branches ;;
+    tags) git::source_tags ;;
     stash) git::source_stash ;;
+    reflog) git::source_reflog ;;
+    worktrees) git::source_worktrees ;;
+    commit) git::source_commit ;;
     *)
       printf 'git: unknown mode: %s\n' "$FZX_MODE" >&2
       return 2

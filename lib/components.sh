@@ -76,13 +76,19 @@ fzx::comp_save() {
   printf '%s\n' "${FZX_COMP[@]}" > "$FZX_SESSION_DIR/meta/components"
 }
 
-# FZX_MODES from the mode rows, the "default" one first ("main" when there are none)
+# FZX_MODES from the mode rows, the "default" one first ("main" when there are none). Rows flagged
+# "hidden" go into FZX_MODES_HIDDEN instead: never cycled to, only opened by name (a drill-down such as
+# git:commit), and a session opened in one has that mode alone
 fzx::_comp_modes() {
   local row kind name flags def=""
-  FZX_MODES=()
+  FZX_MODES=() FZX_MODES_HIDDEN=()
   for row in "${FZX_COMP[@]}"; do
     IFS=$'\t' read -r kind name _ _ flags <<< "$row"
     [[ "$kind" == mode ]] || continue
+    if [[ ",$flags," == *,hidden,* ]]; then
+      FZX_MODES_HIDDEN+=("$name")
+      continue
+    fi
     FZX_MODES+=("$name")
     [[ -z "$def" && ",$flags," == *,default,* ]] && def="$name"
   done

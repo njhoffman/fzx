@@ -51,6 +51,14 @@ load_own() {
   [ "${FZX_MODES[*]}" = main ]
 }
 
+@test "hidden modes are left out of the cycle and the default, but still exist" {
+  table 'mode  drill  -  a drill-down  hidden' 'mode  one' 'mode  two  -  -  default'
+  load_own
+  [ "${FZX_MODES[*]}" = "one two" ]
+  [ "${FZX_MODES_HIDDEN[*]}" = drill ]
+  [ "$FZX_MODE_DEFAULT" = two ]
+}
+
 @test "user rows replace by kind+name; '=' keeps a field, 'off' removes, new names are added" {
   table 'mode  a  f3  first  default' 'mode  b  -  second' 'action  x  ctrl-x  do x  silent'
   printf '%s\n' 'mode  a  f5  =  =' 'mode  b  =  =  off' 'action  y  alt-y  do y  foreground' > "$FZX_CONFIG_DIR/modules/m/components.tsv"

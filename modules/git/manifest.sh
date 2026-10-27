@@ -6,12 +6,20 @@ git::manifest() {
   fzx::entry git:log "Commits on the current branch"
   fzx::entry git:log "Commits on all branches" --all
   fzx::entry git:branches "Local and remote branches, newest first"
+  fzx::entry git:tags "Tags, newest first"
   fzx::entry git:stash "Stashes"
+  fzx::entry git:reflog "Where HEAD has been"
+  fzx::entry git:worktrees "Linked work trees"
 }
 
 git::applicable() {
   command git rev-parse --is-inside-work-tree > /dev/null 2>&1 || return 1
-  [[ "$1" != git:stash ]] || command git rev-parse --quiet --verify refs/stash > /dev/null
+  case "$1" in
+    git:stash) command git rev-parse --quiet --verify refs/stash > /dev/null ;;
+    git:tags) [[ -n "$(command git for-each-ref --count=1 refs/tags --format=x)" ]] ;;
+    git:worktrees) (($(command git worktree list | wc -l) > 1)) ;;
+    *) return 0 ;;
+  esac
 }
 
 git::summary() {
@@ -45,6 +53,12 @@ git::summary() {
         "$(command git symbolic-ref --quiet --short HEAD || echo detached)"
       ;;
     git:stash) printf '%s stashes\n' "$(command git stash list | wc -l)" ;;
+    git:tags)
+      printf '%s tags, latest %s\n' "$(command git for-each-ref refs/tags --format=x | wc -l)" \
+        "$(command git for-each-ref --sort=-creatordate --count=1 refs/tags --format='%(refname:short)')"
+      ;;
+    git:reflog) printf '%s entries\n' "$(command git reflog | wc -l)" ;;
+    git:worktrees) printf '%s work trees\n' "$(command git worktree list | wc -l)" ;;
     *) return 0 ;;
   esac
 }

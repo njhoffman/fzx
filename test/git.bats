@@ -12,6 +12,9 @@ setup() {
   # isolate from the user's git config
   export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
   export GIT_AUTHOR_NAME=T GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=T GIT_COMMITTER_EMAIL=t@t
+  # raw diffs (delta, when installed, is the default filter)
+  export FZX_GIT_DIFF_FILTER=""
+  unset FZX_GIT_VIEW
   REMOTE="$BATS_TEST_TMPDIR/remote.git"
   REPO="$BATS_TEST_TMPDIR/repo"
   git init -q --bare -b main "$REMOTE"
@@ -112,6 +115,8 @@ src() {
 
 # preview output without colors (diff colors split "+" from the line text)
 prev() { FZX_MODE="$1" "$GIT_DIR_MOD/preview.sh" -- "$2" | sed 's/\x1b\[[0-9;]*m//g'; }
+# prev_rev <mode> <rev> <id> [extra]
+prev_rev() { FZX_MODE="$1" "$GIT_DIR_MOD/preview.sh" --rev "$2" -- "${@:3}" | sed 's/\x1b\[[0-9;]*m//g'; }
 
 @test "preview: diff for tracked files, contents for untracked, commits, branches, stashes" {
   run prev status "$REAL/a.txt"
@@ -173,7 +178,7 @@ prev() { FZX_MODE="$1" "$GIT_DIR_MOD/preview.sh" -- "$2" | sed 's/\x1b\[[0-9;]*m
   [ "$status" -eq 0 ]
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " == *" --header=repo  main  ↑1 ↓0 origin/main "* ]]
-  [ "$(fzf_flag --preview)" = "$FZX _cb preview $REPO -- {1}" ]
+  [ "$(fzf_flag --preview)" = "$FZX _cb preview $REPO -- {1} {3}" ]
   [[ "$(fzf_bind alt-s)" == "alt-s:execute($FZX _cb action stage $REPO -- {+1})+change-prompt("*")+reload($FZX _cb source)" ]]
   [ "$(fzf_bind alt-c)" = "alt-c:execute($FZX _cb action switch $REPO -- {+1})+transform($FZX _cb nav restart)" ]
   load_libs log session
@@ -219,4 +224,132 @@ prev() { FZX_MODE="$1" "$GIT_DIR_MOD/preview.sh" -- "$2" | sed 's/\x1b\[[0-9;]*m
   [ "$(git::summary git:branches)" = "2 local, 2 remote, on main" ]
   git stash -q
   [ "$(git::summary git:stash)" = "1 stashes" ]
+}
+
+@test "tags: newest first, lightweight ones marked; reflog: HEAD's moves, or a ref's with --rev" {
+  git tag -a v1 -m "release one" HEAD~1
+  git tag light
+  run src tags
+  [ "$status" -eq 0 ]
+  [ "$(printf '%s\n' "${lines[@]}" | cut -f1 | sort | tr '\n' ' ')" = "light v1 " ]
+  [[ "$(printf '%s\n' "${lines[@]}" | grep $'^light\t')" == *lightweight* ]]
+  [[ "$(printf '%s\n' "${lines[@]}" | grep $'^v1\t')" == *"release one" ]]
+  run src reflog
+  [[ "${lines[0]}" =~ ^[0-9a-f]{40}$'\t'[0-9a-f]+\ HEAD@\{0\} ]]
+  [[ "$output" == *"checkout: moving from feature to main"* ]]
+  run src reflog --rev feature
+  [[ "${lines[0]}" == *"feature@{0}"* ]]
+}
+
+@test "worktrees: every work tree, the current one marked, its branch" {
+  git worktree add -q "$BATS_TEST_TMPDIR/wt" feature
+  run src worktrees
+  [ "${#lines[@]}" -eq 2 ]
+  [[ "${lines[0]}" == "$REAL"$'\t'"* "* ]]
+  [[ "$output" == *"$(cd "$BATS_TEST_TMPDIR/wt" && pwd -P)"$'\t'*feature* ]]
+}
+
+@test "commit: the files a commit changed, renames with their original, a root commit's files" {
+  git commit -qam wip
+  git mv a.txt moved.txt
+  git commit -qm "move"
+  FZX_ICONS=none run src commit --rev HEAD
+  [ "$status" -eq 0 ]
+  [ "$output" = "$REAL/moved.txt"$'\t'"R moved.txt <- a.txt"$'\t'"a.txt" ]
+  FZX_ICONS=none run src commit --rev HEAD~1
+  [[ "$output" == *"$REAL/s.txt"$'\t'"A s.txt"$'\t'* ]]
+  FZX_ICONS=none run src commit --rev "$(git rev-list --max-parents=0 HEAD)"
+  [ "$output" = "$REAL/a.txt"$'\t'"A a.txt"$'\t' ]
+  run src commit
+  [ "$status" -eq 2 ]
+  run src commit --rev nope
+  [ "$status" -eq 2 ]
+}
+
+@test "preview: a commit's file (renames follow the original), blame in status and commit, tags, worktrees" {
+  git commit -qam wip
+  git mv a.txt moved.txt
+  echo more >> moved.txt
+  git add moved.txt
+  git commit -qm "move"
+  run prev_rev commit HEAD "$REAL/moved.txt" a.txt
+  [[ "$output" == *"rename from a.txt"* && "$output" == *"+more"* ]]
+  FZX_GIT_VIEW=blame run prev_rev commit HEAD "$REAL/moved.txt" a.txt
+  [[ "$output" == *"T "*" 4) more"* ]]
+  FZX_GIT_VIEW=blame run prev status "$REAL/moved.txt"
+  [[ "$output" == *"1) one"* ]]
+  git tag -a v1 -m "release one"
+  run prev tags v1
+  [[ "$output" == *"release one"* ]]
+  run prev worktrees "$REAL"
+  [[ "$output" == "## main"* ]]
+}
+
+@test "preview: auto filter uses delta when installed, at the preview's width; empty is none" {
+  mkdir -p "$BATS_TEST_TMPDIR/bin"
+  printf '#!/usr/bin/env bash\necho "delta $*"\n' > "$BATS_TEST_TMPDIR/bin/delta"
+  chmod +x "$BATS_TEST_TMPDIR/bin/delta"
+  FZX_GIT_DIFF_FILTER=auto FZF_PREVIEW_COLUMNS=70 PATH="$BATS_TEST_TMPDIR/bin:$PATH" run prev log HEAD
+  [ "$output" = "delta --paging=never --width=70" ]
+  run prev log HEAD
+  [[ "$output" == *second* ]]
+}
+
+@test "under fzx: ctrl-o opens a commit's files from log, reflog and stash, a tag's log, a work tree's status" {
+  load_libs log session
+  fzx::session_create git "$GIT_DIR_MOD"
+  printf '%s\0' status log branches tags stash reflog worktrees > "$FZX_SESSION_DIR/meta/modes"
+  local child args
+  for mode in log reflog stash; do
+    fzx::state_set mode "$mode"
+    run "$FZX" _cb transform into -- abc123
+    [[ "$output" == "become:$FZX --resume "*" -m :commit" ]]
+    child="${output% -m*}" child="${child##* }"
+    mapfile -d '' -t args < "$FZX_RUNTIME_DIR/sessions/$child/meta/args"
+    [ "${args[*]}" = "--rev abc123 $REAL" ]
+  done
+  fzx::state_set mode tags
+  run "$FZX" _cb transform into -- v1
+  [[ "$output" == *" -m :log" ]]
+  fzx::state_set mode worktrees
+  run "$FZX" _cb transform into -- /some/tree
+  [[ "$output" == *" -m :status" ]]
+  child="${output% -m*}" child="${child##* }"
+  mapfile -d '' -t args < "$FZX_RUNTIME_DIR/sessions/$child/meta/args"
+  [ "${args[*]}" = "/some/tree" ]
+}
+
+@test "under fzx: alt-v flips the status and commit previews between diff and blame" {
+  load_libs log session
+  fzx::session_create git "$GIT_DIR_MOD"
+  fzx::state_set mode status
+  run "$FZX" _cb transform view
+  [ "$output" = "change-preview-label( blame )+refresh-preview" ]
+  [ "$(cat "$FZX_SESSION_DIR/state/git_view")" = blame ]
+  run bash -c "'$FZX' _cb preview -- '$REAL/a.txt' | sed 's/\x1b\[[0-9;]*m//g'"
+  [[ "$output" == *"1) one"* ]]
+  run "$FZX" _cb transform view
+  [ "$output" = "change-preview-label( diff )+refresh-preview" ]
+  fzx::state_set mode log
+  run "$FZX" _cb transform view
+  [ -z "$output" ]
+}
+
+@test "under fzx: commit is a hidden mode: out of the cycle, alone in its session, header names the commit" {
+  stub_fzf
+  FZX_ICONS=none run "$FZX" -m git "$REPO"
+  [ "$status" -eq 0 ]
+  [ -n "$(fzf_bind alt-0)" ]
+  read_fzf_args
+  local footer="" a
+  for a in "${FZF_ARGS[@]}"; do [[ "$a" == --footer=* ]] && footer="$a"; done
+  [[ "$footer" == *worktrees* && "$footer" != *commit* ]]
+  FZX_ICONS=none run "$FZX" -m git:commit --rev HEAD "$REPO"
+  [ "$status" -eq 0 ]
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *" --header=repo  main  ↑1 ↓0 origin/main  "*" second "* ]]
+  [ -z "$(fzf_bind alt-0)" ]
+  footer=""
+  for a in "${FZF_ARGS[@]}"; do [[ "$a" == --footer=* ]] && footer="$a"; done
+  [[ "$footer" != *status* ]]
 }
