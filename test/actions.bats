@@ -165,6 +165,16 @@ menu_open() {
   [[ "$output" == *"flags  foreground,restart"* && "$output" == *$'runs on:\n  a\n  b'* ]]
 }
 
+@test "actions menu: mode-scoped descriptions show the parent's mode's part; idle actions are left out" {
+  menu_open
+  printf 'mode\tone\t-\t-\tdefault\nmode\ttwo\t-\t-\t-\n' >> "$DIR/meta/components"
+  sed -i 's/\tmark the items\t/\tone: mark the items; two: mark them twice\t/; s/\tedit the items\t/\tone: edit the items\t/' "$DIR/meta/components"
+  printf two > "$DIR/state/mode"
+  FZX_SESSION="$CHILD" run "$FZX" _cb source
+  [ "$(printf '%s\n' "$output" | cut -f1 | tr '\n' ' ')" = "mark pick open copy-line " ]
+  [[ "${lines[0]}" == *"mark them twice"* && "${lines[0]}" != *"one:"* ]]
+}
+
 @test "actions menu: enter runs the action and goes back, or hands over for print/become" {
   menu_open
   FZX_SESSION="$CHILD" run "$FZX" _cb transform run mark

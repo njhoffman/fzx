@@ -6,6 +6,21 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-10-27
+
+### Added
+
+- git write actions, as verbs shared across modes: alt-p `add -p` (status); alt-c also checks out a
+  log, reflog or tag entry detached, and in a commit's file list restores the selected files as of that
+  commit (files with local changes are skipped); alt-k cherry-picks commits oldest first, or applies a
+  stash; alt-R reverts commits newest first, without an editor; alt-B creates a branch at the selection
+  and switches to it; alt-z stashes the selected files (untracked included), or pops a stash; alt-i
+  appends paths to .gitignore; alt-m commits; alt-M amends, refused once HEAD is on a remote branch
+  unless `FZX_GIT_DESTRUCTIVE=1`; alt-F fetches every remote with pruning. ctrl-e also edits a commit's
+  files.
+- Mode-scoped action descriptions (`MODE[, MODE]: text` parts separated by "; "): the f1 help and the
+  actions menu show the current mode's meaning of each key and leave out actions idle in that mode.
+
 ## [0.16.0] - 2026-10-27
 
 ### Added

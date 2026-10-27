@@ -42,14 +42,24 @@ actions::argv() {
 }
 
 # actions::source [menu args...]
+# an action whose description is scoped by mode (lib/components.sh, fzx::mode_desc) is listed with the
+# parent's mode's part, and left out when no part names that mode
 actions::source() {
-  local dir k n key desc d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
+  local dir k n key desc mode="" modes=() d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
   actions::parent dir || return
+  fzx::require components
+  [[ -f "$dir/state/mode" ]] && mode="$(< "$dir/state/mode")"
+  while IFS=$'\t' read -r k n _; do
+    [[ "$k" == mode ]] && modes+=("$n")
+  done < "$dir/meta/components"
   while IFS=$'\t' read -r k n key desc _; do
     [[ "$k" == action ]] || continue
     actions::argv "$n" "$@" || continue
     [[ "$key" == - ]] && key=""
     [[ "$desc" == - ]] && desc=""
+    if ((${#modes[@]})); then
+      fzx::mode_desc "$desc" "$mode" desc "${modes[@]}" || continue
+    fi
     printf '%s\t%-12s %s%-10s%s %s\n' "$n" "$n" "$d" "$key" "$r" "$desc"
   done < "$dir/meta/components"
 }

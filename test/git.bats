@@ -353,3 +353,126 @@ prev_rev() { FZX_MODE="$1" "$GIT_DIR_MOD/preview.sh" --rev "$2" -- "${@:3}" | se
   for a in "${FZF_ARGS[@]}"; do [[ "$a" == --footer=* ]] && footer="$a"; done
   [[ "$footer" != *status* ]]
 }
+
+act() { FZX_MODE="$1" "$GIT_DIR_MOD/actions.sh" "${@:2}"; }
+subjects() { git log --format=%s "$@" | tr '\n' ' '; }
+
+@test "patch: add -p stages the hunks answered yes" {
+  printf 'y\n' | act status patch -- "$REAL/a.txt"
+  [[ "$(git diff --cached -- a.txt)" == *"+changed"* ]]
+}
+
+@test "switch: log, reflog and tags check out detached; branches still switch" {
+  git stash -q -u
+  act log switch -- "$(git rev-parse HEAD~1)"
+  ! git symbolic-ref -q HEAD
+  [ "$(git rev-parse HEAD)" = "$(git rev-parse main~1)" ]
+  git tag v1 main
+  act tags switch -- v1
+  [ "$(git rev-parse HEAD)" = "$(git rev-parse main)" ]
+  act branches switch -- main
+  [ "$(git symbolic-ref --short HEAD)" = main ]
+}
+
+@test "switch in commit mode: files as of the commit, staged; files with local changes or absent are skipped" {
+  git commit -qam wip
+  echo three >> s.txt && git commit -qam third
+  local first
+  first="$(git rev-list --max-parents=0 HEAD)"
+  echo dirty >> s.txt
+  FZX_MODE=commit run "$GIT_DIR_MOD/actions.sh" switch --rev "$first" -- "$REAL/a.txt" "$REAL/s.txt" "$REAL/f.txt"
+  [ "$(cat a.txt)" = one ]
+  [ "$(git diff --cached --name-only)" = a.txt ]
+  [[ "$output" == *"local changes: s.txt"* ]]
+  [[ "$(tail -n 1 s.txt)" == dirty ]]
+}
+
+@test "pick: cherry-picks oldest first whatever the selection order; stash: apply keeps the stash" {
+  git stash -q -u
+  git switch -q feature
+  echo g > g.txt && git add g.txt && git commit -qm "feature two"
+  echo h > h.txt && git add h.txt && git commit -qm "feature three"
+  git switch -q main
+  act log pick -- "$(git rev-parse feature)" "$(git rev-parse feature~1)"
+  [ "$(subjects -2)" = "feature three feature two " ]
+  act stash pick -- 'stash@{0}'
+  [ "$(git stash list | wc -l)" -eq 1 ]
+  [[ "$(cat a.txt)" == *changed* ]]
+}
+
+@test "revert: newest first, no editor" {
+  git stash -q -u
+  echo x >> a.txt && git commit -qam "x"
+  echo y >> a.txt && git commit -qam "y"
+  act log revert -- "$(git rev-parse HEAD~1)" "$(git rev-parse HEAD)"
+  [ "$(subjects -2)" = "Revert \"x\" Revert \"y\" " ]
+  [ "$(cat a.txt)" = "$(printf 'one\ntwo')" ]
+}
+
+@test "branch: a new branch at the selection, switched to; an empty name cancels" {
+  git stash -q -u
+  printf 'topic\n' | act log branch -- "$(git rev-parse HEAD~1)"
+  [ "$(git symbolic-ref --short HEAD)" = topic ]
+  [ "$(git rev-parse HEAD)" = "$(git rev-parse main~1)" ]
+  printf '\n' | act branches branch -- main
+  [ "$(git symbolic-ref --short HEAD)" = topic ]
+}
+
+@test "stash: status stashes the selected files only (untracked too); stash mode pops" {
+  act status stash -- "$REAL/a.txt" "$REAL/u space.txt"
+  [ "$(git stash list | wc -l)" -eq 1 ]
+  [ "$(cat a.txt)" = "$(printf 'one\ntwo')" ]
+  [ ! -e "u space.txt" ]
+  [ "$(git diff --cached --name-only)" = s.txt ]
+  act stash stash -- 'stash@{0}'
+  [ "$(git stash list | wc -l)" -eq 0 ]
+  [ -e "u space.txt" ]
+}
+
+@test "ignore: anchored paths appended once, after a missing final newline" {
+  printf 'build' > .gitignore
+  act status ignore -- "$REAL/u space.txt"
+  act status ignore -- "$REAL/u space.txt"
+  [ "$(cat .gitignore)" = "$(printf 'build\n/u space.txt')" ]
+  [ -z "$(git status --porcelain -- 'u space.txt')" ]
+}
+
+@test "commit, amend (refused once pushed unless FZX_GIT_DESTRUCTIVE=1) and fetch need no selection" {
+  GIT_EDITOR="printf 'from editor\n' >" act status commit --
+  [ "$(git log -1 --format=%s)" = "from editor" ]
+  git add a.txt
+  GIT_EDITOR=true act log amend --
+  [ "$(git log -1 --format=%s)" = "from editor" ]
+  [ -z "$(git diff --cached --name-only)" ]
+  git push -q origin main
+  echo more >> a.txt && git add a.txt
+  run act status amend --
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"published history"* ]]
+  FZX_GIT_DESTRUCTIVE=1 GIT_EDITOR=true act status amend --
+  [ -z "$(git diff --cached --name-only)" ]
+  git -C "$REMOTE" branch -q newer main
+  act branches fetch --
+  git rev-parse --verify -q origin/newer
+}
+
+@test "verbs outside their modes do nothing" {
+  act log stage -- "$REAL/a.txt"
+  act status pick -- HEAD
+  act branches ignore -- x
+  [ ! -e .gitignore ]
+  [ "$(git diff --cached --name-only)" = s.txt ]
+  [ "$(subjects -1)" = "second " ]
+}
+
+@test "help and actions menu: verbs show the current mode's meaning, idle ones are left out" {
+  local args=(m:git $'c:mode\tstatus\t-\t' $'c:mode\tlog\t-\t' $'c:mode\tstash\t-\t'
+    $'k:git\talt-k\taction: log: cherry-pick the selected commits; stash: apply the stash'
+    $'k:git\tctrl-y\taction: copy the selection')
+  FZX_MODE=stash run "$FZX" keys "${args[@]}"
+  [[ "$output" == *"action: apply the stash"* && "$output" != *cherry-pick* ]]
+  FZX_MODE=status run "$FZX" keys "${args[@]}"
+  # bound but idle here: neither listed nor offered as free
+  [[ "$output" != *alt-k* ]]
+  [[ "$output" != *"apply the stash"* && "$output" == *"copy the selection"* ]]
+}

@@ -59,6 +59,22 @@ load_own() {
   [ "$FZX_MODE_DEFAULT" = two ]
 }
 
+@test "mode_desc: a scoped description's part for the mode; unknown names or no mode return it whole" {
+  load_libs components
+  local d='status: stage the files; log, reflog: cherry-pick (oldest: first)' out
+  fzx::mode_desc "$d" reflog out status log reflog
+  [ "$out" = "cherry-pick (oldest: first)" ]
+  fzx::mode_desc "$d" status out status log reflog
+  [ "$out" = "stage the files" ]
+  ! fzx::mode_desc "$d" stash out status log reflog stash
+  fzx::mode_desc "$d" "" out status log reflog
+  [ "$out" = "$d" ]
+  fzx::mode_desc "note: plain text" log out status log
+  [ "$out" = "note: plain text" ]
+  fzx::mode_desc "status: x; and some prose" log out status log
+  [ "$out" = "status: x; and some prose" ]
+}
+
 @test "user rows replace by kind+name; '=' keeps a field, 'off' removes, new names are added" {
   table 'mode  a  f3  first  default' 'mode  b  -  second' 'action  x  ctrl-x  do x  silent'
   printf '%s\n' 'mode  a  f5  =  =' 'mode  b  =  =  off' 'action  y  alt-y  do y  foreground' > "$FZX_CONFIG_DIR/modules/m/components.tsv"

@@ -25,11 +25,10 @@ Categories: module
       "recent" group on top.
 - [x] **git: read and navigate**: commit-to-files drill-down (ctrl-o), tags, reflog and worktrees modes,
       blame preview (alt-v), copy, delta by default (0.16.0).
-- [ ] **git: per-mode key help** (p2) [feature]: shared verb keys mean one thing per mode; the f1 help and
-      the actions menu show only the current mode's meaning (descriptions as "status: X; log: Y").
-- [ ] **git: safe writes** (p2) [feature]: add -p, commit/amend in `execute`, fetch, stash push of the
-      selected files / apply / pop, cherry-pick, revert, checkout of a commit, tag or file at a commit,
-      .gitignore entries, create a branch from the selection; shared verb keys across modes.
+- [x] **git: per-mode key help**: mode-scoped descriptions; f1 and the actions menu show the current
+      mode's meaning (0.17.0).
+- [x] **git: safe writes**: add -p, commit/amend, fetch, stash push/apply/pop, cherry-pick, revert,
+      detached checkout, restore files as of a commit, .gitignore entries, new branch (0.17.0).
 - [ ] **git: history rewriting and destructive actions** (p2) [feature]: fixup, squash, reword, rebase -i
       onto a commit, branch delete, stash drop, clean (dry run in the preview), discard. Hidden unless
       `FZX_GIT_DESTRUCTIVE=1`, and confirmed even then.

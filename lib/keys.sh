@@ -127,6 +127,17 @@ fzx::keys_page() {
   local r=$'\e[0m' b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m"
   local cap=$'\e['"${FZX_COLORS[help_key]:-1;38;5;255;48;5;236}m"
   width="${FZF_PREVIEW_COLUMNS:-${COLUMNS:-80}}"
+  # the screen's mode (its session's, which follows in-place switches) and the module's modes: a key
+  # whose description is scoped by mode ("status: stage; log: cherry-pick") shows this mode's part, and
+  # is left out where no part names the mode
+  local cur_mode="${FZX_MODE:-}" modes=() prefix scoped
+  [[ -n "${FZX_SESSION_DIR:-}" && -f "$FZX_SESSION_DIR/state/mode" ]] && cur_mode="$(< "$FZX_SESSION_DIR/state/mode")"
+  for entry in "$@"; do
+    [[ "$entry" == c:mode$'\t'* ]] || continue
+    IFS=$'\t' read -r _ name _ <<< "${entry#c:}"
+    modes+=("$name")
+  done
+  fzx::require components
   for entry in "$@"; do
     case "$entry" in
       m:*) module="${entry#m:}" ;;
@@ -135,6 +146,16 @@ fzx::keys_page() {
         IFS=$'\t' read -r scope k desc <<< "${entry#k:}"
         fzx::key_name "$k" name
         [[ -n "${mine[$name]:-}" ]] && continue
+        if [[ "$scope" != fzx ]] && ((${#modes[@]})); then
+          prefix=""
+          [[ "$desc" =~ ^((default )?action: ) ]] && prefix="${BASH_REMATCH[1]}"
+          # bound but idle in this mode: taken (not free), not listed
+          if ! fzx::mode_desc "${desc#"$prefix"}" "$cur_mode" scoped "${modes[@]}"; then
+            mine[$name]="$scope" all[$name]=1
+            continue
+          fi
+          desc="$prefix$scoped"
+        fi
         mine[$name]="$scope" all[$name]=1
         if [[ "$scope" == fzx ]]; then rows_fzx+=("$name"$'\t'"$desc"); else rows_mod+=("$name"$'\t'"$desc"); fi
         ;;

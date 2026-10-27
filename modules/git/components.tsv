@@ -7,8 +7,19 @@ mode  stash      -  stashes                                  -
 mode  reflog     -  where HEAD (or --rev REF) has been       -
 mode  worktrees  -  linked work trees                        -
 mode  commit     -  the files a commit (--rev) changed       hidden
-action  stage    alt-s   status: stage the selected files                      foreground,reload
-action  unstage  alt-u   status: unstage the selected files                    foreground,reload
-action  edit     ctrl-e  status: open the selected files in $EDITOR             foreground,reload
-action  switch   alt-c   branches: switch (remote: create a tracking branch)  foreground,restart
-action  copy     ctrl-y  copy the selection (paths, hashes, names)            silent,builtin
+# actions are verbs shared across modes: a description's "MODE[, MODE]: text" parts say what each does
+# where (the f1 help and the actions menu show the current mode's part); elsewhere the key does nothing
+action  stage    alt-s   status: stage the selected files                                         foreground,reload
+action  unstage  alt-u   status: unstage the selected files                                       foreground,reload
+action  patch    alt-p   status: stage parts of the selected files (add -p)                       foreground,reload
+action  edit     ctrl-e  status, commit: open the selected files in $EDITOR                       foreground,reload
+action  switch   alt-c   branches: switch (remote: create a tracking branch); log, reflog, tags: check out, detached; commit: restore the selected files as of this commit  foreground,restart
+action  pick     alt-k   log, reflog: cherry-pick the selected commits, oldest first; stash: apply the stash  foreground,restart
+action  revert   alt-R   log, reflog: revert the selected commits, newest first                   foreground,restart
+action  branch   alt-B   branches, tags, log, reflog: create a branch there and switch to it       foreground,restart
+action  stash    alt-z   status: stash the selected files; stash: pop the stash                   foreground,restart
+action  ignore   alt-i   status: add the selected paths to .gitignore                             foreground,reload
+action  commit   alt-m   commit what is staged                                                    foreground,restart
+action  amend    alt-M   amend the last commit with what is staged (refused once it is pushed)    foreground,restart
+action  fetch    alt-F   fetch every remote, pruning deleted branches                             foreground,restart
+action  copy     ctrl-y  copy the selection (paths, hashes, names)                                silent,builtin

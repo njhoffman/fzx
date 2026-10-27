@@ -184,3 +184,44 @@ fzx::data_key() {
   [[ -n "$FZX_SORT" ]] && _key+="@$FZX_SORT"
   printf -v "$1" '%s' "$_key"
 }
+
+# fzx::mode_desc <description> <mode> <var> <modes...>: the part of a mode-scoped description that names
+# the mode. A scoped description is "; "-separated parts, each "MODE[, MODE...]: text" with known modes
+# (the ones given): "status: stage the files; log, reflog: cherry-pick" in log gives "cherry-pick". Fails
+# when no part names the mode; any other description (or no mode) comes back whole.
+fzx::mode_desc() {
+  local __md_d="$1" __md_mode="$2" __md_var="$3" __md_rest __md_seg __md_n __md_hit="" __md_found=0
+  local -a __md_segs=() __md_names=()
+  shift 3
+  if [[ -z "$__md_mode" || "$__md_d" != *": "* ]]; then
+    printf -v "$__md_var" '%s' "$__md_d"
+    return 0
+  fi
+  __md_rest="$__md_d"
+  while [[ "$__md_rest" == *"; "* ]]; do
+    __md_segs+=("${__md_rest%%; *}")
+    __md_rest="${__md_rest#*; }"
+  done
+  __md_segs+=("$__md_rest")
+  for __md_seg in "${__md_segs[@]}"; do
+    if [[ "$__md_seg" != *": "* ]]; then
+      printf -v "$__md_var" '%s' "$__md_d"
+      return 0
+    fi
+    IFS=, read -ra __md_names <<< "${__md_seg%%: *}"
+    for __md_n in "${__md_names[@]}"; do
+      __md_n="${__md_n# }"
+      if [[ " $* " != *" $__md_n "* ]]; then
+        printf -v "$__md_var" '%s' "$__md_d"
+        return 0
+      fi
+      [[ "$__md_n" == "$__md_mode" ]] && __md_found=1
+    done
+    if ((__md_found)) && [[ -z "$__md_hit" ]]; then
+      __md_hit="${__md_seg#*: }"
+    fi
+    __md_found=0
+  done
+  [[ -n "$__md_hit" ]] || return 1
+  printf -v "$__md_var" '%s' "$__md_hit"
+}
