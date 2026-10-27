@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.30.0): the six steps of `docs/design.md` are done. Modules: actions, capture, colors, dirs,
+Status (0.31.0): the six steps of `docs/design.md` are done. Modules: actions, capture, colors, dirs,
 docker, files, git, github, history, keybindings, logs, man, menu, ps, recent, repos, systemd, tmux, todos,
 youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
@@ -218,8 +218,6 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 
 ## 7. Known issues
 
-- [ ] **Menu `applicable` runs synchronously** (p2) [perf] for every entry on every open; one slow check slows the
-      menu. Log per-module timing, or time-box it like summaries.
 - [ ] **Untested against the real thing** (p2) [test]: docker (stubbed only), systemd start/stop/enable (stubbed
       systemctl and sudo), Zellij popups (tmux only).
 - [ ] **Slow suite** (p2) [test]: about 500 tests take several minutes serially; `bats -j` needs GNU parallel
@@ -256,5 +254,3 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [ ] **prettypath follow-ups** (p3) [chore] (~/git/prettypath): moved to ~/git/prettypath/TODO.md (speed,
       `--base`, `--dirs`, a field of tabbed input, NO_COLOR, packaging bugs). When `--base` and `--dirs` land,
       drop fzx::pretty's prefix-strip awk and slash sed; when stat is automatic, drop `--stat_file=false`.
-- [ ] **Global CLAUDE.md test command** (p3) [docs]: `~/.claude/CLAUDE.md` says to run `npm run test` before
-      commits; this repo uses `just test` (bats). "Run the project's test command" fits all repos.

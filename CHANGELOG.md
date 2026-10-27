@@ -6,6 +6,21 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.31.0] - 2026-10-27
+
+### Added
+
+- `FZX_APPLICABLE_TIMEOUT` (default 2s): a module whose menu entries take longer than this to check is
+  left out of that menu listing and logged, so one slow check (a hung docker daemon) cannot hold up the
+  menu. Each module's listing time is logged at the debug level.
+
+### Changed
+
+- The menu lists every module at once instead of one after another, and checks that cost a request
+  (docker's daemon, gh's keyring token, git's work tree, git's and capture's summary keys) run once per
+  module instead of once per entry: opening the menu takes about half the time it did.
+- `<module>::summary_key` takes no target: it is asked once per module and listing.
+
 ## [0.30.0] - 2026-10-27
 
 ### Added

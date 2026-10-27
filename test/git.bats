@@ -217,7 +217,10 @@ prev_rev() { FZX_MODE="$1" "$GIT_DIR_MOD/preview.sh" --rev "$2" -- "${@:3}" | se
   [ "$status" -eq 1 ]
   git stash -q
   git::applicable git:stash
+  # the work tree is checked once per listing: still known after leaving it, asked again in a new one
   cd /
+  git::applicable git
+  unset _GIT_WORK_TREE
   run git::applicable git
   [ "$status" -eq 1 ]
 }
@@ -235,20 +238,20 @@ prev_rev() { FZX_MODE="$1" "$GIT_DIR_MOD/preview.sh" --rev "$2" -- "${@:3}" | se
 @test "manifest: the summary key follows HEAD and the refs; outside a repository it is empty" {
   source "$GIT_DIR_MOD/manifest.sh"
   local k1 k2 k3
-  k1="$(git::summary_key git)"
+  k1="$(git::summary_key)"
   [[ "$k1" == "$(git rev-parse HEAD)"* ]]
   git commit -q --allow-empty -m another
-  k2="$(git::summary_key git)"
+  k2="$(git::summary_key)"
   [ "$k1" != "$k2" ]
   # a stash (refs/stash appears) changes it without a new HEAD
   touch -d '1 minute ago' .git/index .git/HEAD .git/logs/HEAD
-  k2="$(git::summary_key git)"
+  k2="$(git::summary_key)"
   echo change >> "$(git ls-files | head -1)"
   git stash -q
-  k3="$(git::summary_key git)"
+  k3="$(git::summary_key)"
   [ "$k2" != "$k3" ]
   cd "$BATS_TEST_TMPDIR"
-  [ -z "$(git::summary_key git)" ]
+  [ -z "$(git::summary_key)" ]
 }
 
 @test "tags: newest first, lightweight ones marked; reflog: HEAD's moves, or a ref's with --rev" {

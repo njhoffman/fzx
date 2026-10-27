@@ -562,6 +562,11 @@ ps::summary() { ... }      # optional: <target> [args]; one short line, may be s
 `fzx::entry <module[:mode]> <description> [args...]` stores args `%q`-quoted. An entry's id is
 `<module>#<index in its manifest>`, so hiding an entry with `applicable` does not renumber the others.
 Each module is read in a subshell, so a broken manifest drops only that module (logged as a warning).
+All modules are read at once, each into its own file, printed in module order; a module whose manifest
+and `applicable` checks take longer than `FZX_APPLICABLE_TIMEOUT` (default 2s) is left out of that
+listing (a warning; each module's time is logged at the debug level). A check that costs a request
+(docker's daemon, gh's keyring token, git's work tree) is made once per module and kept in a variable
+for its other entries.
 
 **Opening** an entry is `enter:transform:fzx _cb nav entry {1}`: the callback re-reads that module's
 manifest, then goes to the entry as a child of the menu (`nav goto`), so `alt-left` comes back to the
@@ -577,8 +582,8 @@ must not hold the callback's stdout: fzf waits for every writer of a `bg-transfo
 A summary describes what the entry would open from here (counts, the state of a server or repository)
 and stays well under the timeout: one that would need an interactive shell or a walk of `~` (the zsh
 key bindings without a saved dump, `dirs`) prints nothing instead. A summary that depends on more than the
-directory has its manifest define `<module>::summary_key <target>`, a fast command whose output joins the
-cache key: git prints HEAD's commit and the times the index, HEAD, refs, fetches and stashes changed (so a
+directory has its manifest define `<module>::summary_key`, a fast command whose output joins the cache
+key of every entry of the module (it is asked once per module and listing): git prints HEAD's commit and the times the index, HEAD, refs, fetches and stashes changed (so a
 commit, stage, switch, fetch or stash shows at once; edits not yet staged wait for the TTL), capture the
 active pane with its history size and cursor line (its entries count the lines, URLs, paths and the rest
 there). Entries under old keys are left to `fzx gc` (`FZX_CACHE_MAX_AGE_DAYS`).

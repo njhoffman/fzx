@@ -8,8 +8,13 @@ github::manifest() {
   fzx::entry github:starred "GitHub repositories you starred"
 }
 
+# once per menu listing, not once per entry: the token comes from the keyring (about 100ms)
 github::applicable() {
-  command -v gh > /dev/null && command -v jq > /dev/null && command gh auth token > /dev/null 2>&1
+  if [[ -z "${_GITHUB_OK:-}" ]]; then
+    command -v gh > /dev/null && command -v jq > /dev/null && command gh auth token > /dev/null 2>&1
+    _GITHUB_OK=$?
+  fi
+  return "$_GITHUB_OK"
 }
 
 # github::summary <target>: repos: GitHub's status when it is not fine, this repository's open PRs and

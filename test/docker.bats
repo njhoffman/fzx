@@ -124,3 +124,15 @@ STUB
   run bash -c "FZX_SORT=created FZX_MODE=images '$DOCKER/source.sh'"
   [[ "${lines[0]}" == i1$'\t'* && "${lines[0]}" == *$'4m2 weeks ago\e[0m'* ]]
 }
+
+@test "menu: the daemon is asked once for all the module's entries; compose needs the compose plugin" {
+  load_libs log config menu
+  fzx::menu_entries docker "$DOCKER"
+  local t
+  for t in "${FZX_ENTRY_TARGETS[@]}"; do docker::applicable "$t"; done
+  [ "$(grep -c '^info' "$CALLS")" -eq 1 ]
+  # a stopped daemon hides every entry
+  _DOCKER_UP=1
+  run docker::applicable docker
+  [ "$status" -eq 1 ]
+}

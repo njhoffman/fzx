@@ -113,6 +113,28 @@ EOF
   grep -q 'menu: manifest of syntax failed' "$LOG"
 }
 
+@test "source: modules are listed at once; one over FZX_APPLICABLE_TIMEOUT is left out and logged" {
+  mkdir -p "$BATS_TEST_TMPDIR/mods/aslow" "$BATS_TEST_TMPDIR/mods/zslow"
+  cat > "$BATS_TEST_TMPDIR/mods/aslow/manifest.sh" << 'EOF2'
+aslow::manifest() { fzx::entry aslow "slow but in time"; }
+aslow::applicable() { sleep 0.4; }
+EOF2
+  cat > "$BATS_TEST_TMPDIR/mods/zslow/manifest.sh" << 'EOF2'
+zslow::manifest() { fzx::entry zslow "too slow"; }
+zslow::applicable() { sleep 10; }
+EOF2
+  export FZX_MODULE_PATH="$BATS_TEST_TMPDIR/mods:$FZX_MODULE_PATH" FZX_APPLICABLE_TIMEOUT=3
+  menu_session
+  local start=$EPOCHSECONDS
+  run plain_lines
+  ((EPOCHSECONDS - start < 7))
+  # in module order, the slow one in time included
+  [[ "${lines[0]}" == "aslow#0|"* ]]
+  [ -n "$(entry 'counter#0')" ]
+  [[ "$output" != *zslow* ]]
+  grep -q 'menu: zslow took over 3s, left out' "$LOG"
+}
+
 @test "refresh: writes stale summaries, asks for one reload, then is quiet" {
   fixture_modules
   menu_session
@@ -151,16 +173,23 @@ EOF
   [ "$c" != "$b" ]
 }
 
-@test "summary cache: a module's summary_key adds to the key, given the entry's target" {
+@test "summary cache: a module's summary_key adds to the key, asked once per module and listing" {
   load_libs menu
-  local a b c d
-  FZX_ENTRY_TARGETS=(x:one) FZX_ENTRY_ARGS=("")
+  local a b c d e
+  FZX_ENTRY_TARGETS=(x:one x:two) FZX_ENTRY_ARGS=("" "")
   fzx::summary_path a x 0
-  x::summary_key() { printf '%s %s\n' "$1" "$KEYV"; }
+  x::summary_key() { printf '%s\n' "$KEYV"; printf 'x\n' >> "$BATS_TEST_TMPDIR/asked"; }
   KEYV=1 fzx::summary_path b x 0
-  KEYV=1 fzx::summary_path c x 0
+  KEYV=1 fzx::summary_path c x 1
+  [ "$a" != "$b" ] && [ "$b" != "$c" ]
+  # the other entry, and a changed key, reuse what the first entry asked: one listing, one key
   KEYV=2 fzx::summary_path d x 0
-  [ "$a" != "$b" ] && [ "$b" = "$c" ] && [ "$c" != "$d" ]
+  [ "$d" = "$b" ]
+  [ "$(wc -l < "$BATS_TEST_TMPDIR/asked")" -eq 1 ]
+  # the next listing (a new process) asks again
+  _FZX_SUMMARY_KEYS=()
+  KEYV=2 fzx::summary_path e x 0
+  [ "$e" != "$b" ]
 }
 
 @test "refresh: summaries are per directory" {

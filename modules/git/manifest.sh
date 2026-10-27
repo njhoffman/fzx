@@ -13,7 +13,12 @@ git::manifest() {
 }
 
 git::applicable() {
-  command git rev-parse --is-inside-work-tree > /dev/null 2>&1 || return 1
+  # the work tree is checked once per menu listing, not once per entry
+  if [[ -z "${_GIT_WORK_TREE:-}" ]]; then
+    command git rev-parse --is-inside-work-tree > /dev/null 2>&1
+    _GIT_WORK_TREE=$?
+  fi
+  ((_GIT_WORK_TREE == 0)) || return 1
   case "$1" in
     git:stash) command git rev-parse --quiet --verify refs/stash > /dev/null ;;
     git:tags) [[ -n "$(command git for-each-ref --count=1 refs/tags --format=x)" ]] ;;

@@ -46,10 +46,10 @@ src() { FZX_MODE="$1" "$CAP/source.sh" "${@:2}"; }
   run capture::summary capture:paths
   [[ "$output" =~ ^[1-9][0-9]*\ paths$ ]]
   local k1 k2
-  k1="$(capture::summary_key capture)"
+  k1="$(capture::summary_key)"
   [[ "$k1" == "$PANE:"* ]]
   fill 'seq 30'
-  k2="$(capture::summary_key capture)"
+  k2="$(capture::summary_key)"
   [ "$k1" != "$k2" ]
   # under the menu's session the source still reads the pane (no session state of its own)
   fill 'echo https://example.com/b'

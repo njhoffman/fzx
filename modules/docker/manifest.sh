@@ -12,7 +12,12 @@ docker::manifest() {
 docker::applicable() {
   command -v docker > /dev/null || return 1
   [[ "$1" != docker:compose ]] || command docker compose version > /dev/null 2>&1 || return 1
-  timeout 2 docker info --format '{{.ServerVersion}}' > /dev/null 2>&1
+  # the daemon is asked once per menu listing, not once per entry
+  if [[ -z "${_DOCKER_UP:-}" ]]; then
+    timeout 2 docker info --format '{{.ServerVersion}}' > /dev/null 2>&1
+    _DOCKER_UP=$?
+  fi
+  return "$_DOCKER_UP"
 }
 
 docker::summary() {

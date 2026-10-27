@@ -68,6 +68,9 @@ FZX_SUMMARY_TTL=300
 # default is ~/git when that directory exists
 [[ -n "${FZX_REPOS_LINKS_DIR+x}" ]] || { FZX_REPOS_LINKS_DIR=""; [[ -d "$HOME/git" ]] && FZX_REPOS_LINKS_DIR="$HOME/git"; }
 FZX_SUMMARY_TIMEOUT="${FZX_SUMMARY_TIMEOUT:-3}"
+# a module whose menu entries (its manifest and applicable checks) take longer than this many seconds is
+# left out of that menu listing, so one slow check cannot hold up the menu
+FZX_APPLICABLE_TIMEOUT="${FZX_APPLICABLE_TIMEOUT:-2}"
 
 # usage statistics in $FZX_STATE_DIR/stats.tsv (see `fzx stats`); 0 turns recording off
 FZX_STATS="${FZX_STATS:-1}"
