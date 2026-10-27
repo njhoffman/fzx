@@ -89,7 +89,8 @@ Design questions for these are in `docs/components.md` (decided; what is built i
 - [ ] **Preview layouts for every module** (p2) [chore]: once the above exists, tune each module from its
       content: how long its lines are, how many there usually are (a handful of items and a big preview: do
       not spend height on the list), and what the screen is for (logs: a narrow list, a large preview).
-      Decide when the preview starts hidden. Then make it part of the module contract (design.md, CLAUDE.md)
+      Decide when the preview starts hidden. Done: files (`0:down,40%` `130:right,55%`), todos, menu, repos,
+      history. Then make it part of the module contract (design.md, CLAUDE.md)
       so new modules come with their layouts.
 - [ ] **Popup geometry per module** (p2) [feature]: popup size and position from the module's content and
       purpose, measured against the whole tmux window (`#{window_width}`/`#{window_height}`), not the
@@ -170,9 +171,8 @@ Design questions for these are in `docs/components.md` (decided; what is built i
 - [ ] **logs: colored previews** (p3) [feature]: ccze -A or grcat (conf.tail) over log files and journals (both
       installed here), and a unit's `systemctl status` above its journal in the units preview; the preview
       window in follow mode. Refs: widgets/system/logs/logs.preview.sh, logs.fzf.sh.
-- [ ] **files: toggles, sort, images** (p2) [feature]: toggles for hidden files and ignored files (fd --no-ignore;
-      today hidden is always on), newest-first sort by mtime, image previews with chafa or viu (installed;
-      overlaps the preview script upgrade). Refs: proto-widgets/files.sh, fzf-rsc/modules/fz-rg.ueberzug.sh.
+- [x] **files: toggles, sort, images** (p2) [feature]: hidden (alt-h, on), ignored (alt-i), follow (alt-l) toggles;
+      path/recent sorts; chafa image previews; path-and-size preview header; grep falls back to grep -E (0.10.0).
 - [ ] **dirs: bookmark from the list** (p3) [feature]: add and remove bookmarks with keys (fzf-marks' mark/unmark),
       kept in a file under FZX_STATE_DIR instead of only FZX_DIRS_BOOKMARKS in config. Ref: fzf-marks.plugin.zsh.
 - [ ] **tmux follow-ups** (p3) [feature]: Codex's list in docs/tmux.md: snippet history (snippetdb), edit the text
@@ -380,10 +380,9 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       (ids too), lines dropped silently on any error, relative/top-level/trailing-slash paths rejected,
       `$HOME` as a pattern, `--stat_file=false` ignored, literal words in `--format` taken as tokens. fzx
       probes for an old version and routes the affected paths around it.
-- [ ] **prettypath follow-ups** (p3) [chore] (~/git/prettypath): `require("prettypath")` from other Lua
-      code parses the host's `arg`; `pretty_dir`/`pretty_file` return nothing; the rockspec misses
-      override_materialicons/override_webicons; `force_256` unused; `NO_COLOR`/`--color`; `--base DIR`
-      (fzx could drop its prefix-strip awk); `-0` input; LuaJIT; the cli_spec still expects dev-3.
+- [ ] **prettypath follow-ups** (p3) [chore] (~/git/prettypath): moved to ~/git/prettypath/TODO.md (speed,
+      `--base`, `--dirs`, a field of tabbed input, NO_COLOR, packaging bugs). When `--base` and `--dirs` land,
+      drop fzx::pretty's prefix-strip awk and slash sed; when stat is automatic, drop `--stat_file=false`.
 - [ ] **Global CLAUDE.md test command** (p3) [docs]: `~/.claude/CLAUDE.md` says to run `npm run test` before
       commits; this repo uses `just test` (bats). "Run the project's test command" fits all repos.
 - [x] **Source the zsh widgets** (p1) [chore]: add `source ~/ghq/github.com/njhoffman/fzx/shell/fzx.zsh` to the

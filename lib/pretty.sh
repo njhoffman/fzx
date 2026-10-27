@@ -35,15 +35,20 @@ fzx::pretty_sound() {
   return 1
 }
 
-# fzx::pretty [base]: absolute paths on stdin -> "path<TAB>display", the display without the base
-# directory (as prettypath shows it, under ~). With an older prettypath (fzx::pretty_sound), the paths it
-# would mangle (a "%" in them, or directly under /) skip it and get a plain display.
+# fzx::pretty [--dirs] [base]: absolute paths on stdin -> "path<TAB>display", the display without the base
+# directory (as prettypath shows it, under ~). A trailing "/" marks a directory (fd prints one), which
+# prettypath shows with the folder icon and drops from %path%; --dirs marks every path as one (zoxide's
+# lists have no slash). With an older prettypath (fzx::pretty_sound), the paths it would mangle (a "%" in
+# them, or directly under /) skip it and get a plain display.
 fzx::pretty() {
-  local base="${1:-}" shown="" cmd
+  local dirs="" base shown="" cmd
+  [[ "${1:-}" == --dirs ]] && { dirs=1; shift; }
+  base="${1:-}"
   [[ -n "$base" ]] && shown="${base/#$HOME/\~}/"
   cmd="prettypath --stat_file=false --format='%path%"$'\t'"%icon% %dir%%name%'"
   if fzx::pretty_sound; then
-    sed 's:/$::' | command prettypath --stat_file=false --format=$'%path%\t%icon% %dir%%name%'
+    if [[ -n "$dirs" ]]; then sed 's:/*$:/:'; else command cat; fi |
+      command prettypath --stat_file=false --format=$'%path%\t%icon% %dir%%name%'
   else
     sed 's:/$::' | awk -v cmd="$cmd" -v home="$HOME" '
       /%/ || /^\/[^\/]*$/ { shown = $0; if (index(shown, home "/") == 1) shown = "~" substr(shown, length(home) + 1)

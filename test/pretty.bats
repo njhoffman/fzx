@@ -18,7 +18,10 @@ while IFS= read -r p; do
     [[ "$p" =~ ^/[^/]*$ ]] && continue
     p="${p//%/}"
   fi
-  if [[ "$*" == *"--format=%path%" ]]; then printf '%s\n' "$p"; else printf '%s\t[I] %s\n' "$p" "${p/#$HOME/\~}"; fi
+  # like prettypath: a trailing "/" marks a directory ([D], the folder icon) and is dropped from the path
+  icon='[I]'
+  [[ "$p" == ?*/ ]] && p="${p%/}" icon='[D]'
+  if [[ "$*" == *"--format=%path%" ]]; then printf '%s\n' "$p"; else printf '%s\t%s %s\n' "$p" "$icon" "${p/#$HOME/\~}"; fi
 done
 STUB
   chmod +x "$BATS_TEST_TMPDIR/bin/prettypath"
@@ -37,10 +40,14 @@ STUB
   [ "$status" -eq 1 ]
 }
 
-@test "pretty: ids stay the paths; the base directory is dropped from the display; trailing / removed" {
+@test "pretty: ids stay the paths; the base directory is dropped from the display; a trailing / is a directory" {
   load_libs pretty
-  run fzx::pretty "$TREE" <<< "$TREE/sub/"
-  [ "$output" = "$TREE/sub"$'\t'"[I] sub" ]
+  run fzx::pretty "$TREE" <<< "$TREE/sub/"$'\n'"$TREE/sub/a.txt"
+  [ "${lines[0]}" = "$TREE/sub"$'\t'"[D] sub" ]
+  [ "${lines[1]}" = "$TREE/sub/a.txt"$'\t'"[I] sub/a.txt" ]
+  # --dirs: every path is a directory (zoxide lists them without the slash)
+  run fzx::pretty --dirs "$TREE" <<< "$TREE/sub"
+  [ "$output" = "$TREE/sub"$'\t'"[D] sub" ]
   grep -q -- "--stat_file=false" "$BATS_TEST_TMPDIR/pp.args"
 }
 
@@ -58,7 +65,7 @@ STUB
   source "$MODS/dirs/source.sh" || :
   run dirs::format <<< $'12\t'"$TREE/sub"$'\n3\t/nonexistent/dir'
   [ "${#lines[@]}" -eq 1 ]
-  [[ "${lines[0]}" == "$TREE/sub"$'\t'*"     12"*"  [I] $TREE/sub" ]]
+  [[ "${lines[0]}" == "$TREE/sub"$'\t'*"     12"*"  [D] $TREE/sub" ]]
 }
 
 @test "sound prettypath: every path goes through it, % included; the probe is cached" {

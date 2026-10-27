@@ -6,6 +6,30 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-26
+
+### Added
+
+- files: toggles for hidden files (alt-h, on at start), ignored files (alt-i) and following symbolic links
+  (alt-l); sorts by path (default) and newest first (f11/f12).
+- files: the preview starts with the path and size (a directory's entry count, a link's target), and shows
+  images through chafa (`FZX_FILES_IMAGE_FORMAT`: symbols, sixels or kitty).
+- files: grep mode falls back to `grep -E` when ripgrep is not installed.
+- files: `FZX_FILES_EXCLUDES` leaves tool caches (`.ruff_cache`, `__pycache__`, ...) out of every mode.
+
+### Changed
+
+- files: symbolic links are no longer followed by default. Links are still listed (a link to a directory in
+  dirs, to a file in files) and ctrl-o enters a linked directory; alt-l follows them all.
+- files: lists come in path order instead of fd's walk order.
+- files: the preview goes to the right from 130 columns, and takes 40% under the list below that.
+- Directories show prettypath's folder icon and colors (files, dirs and zoxide lists).
+
+### Fixed
+
+- The repository's own `/todo-pop` command still ran todo-fzf to open the editor; it now matches the global
+  one (`fzx -m todos --paste`).
+
 ## [0.9.2] - 2026-10-26
 
 ### Changed

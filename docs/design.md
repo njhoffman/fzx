@@ -354,7 +354,7 @@ and settings.
 | Module | Modes | Args | Keys | Enter prints |
 |---|---|---|---|---|
 | `ps` | user, all, tree | `--ppid PID` | ctrl-x SIGTERM, kill (SIGKILL, confirm; menu only), ctrl-o children | pids |
-| `files` | files, dirs, grep (as you type) | `[DIR]` | ctrl-e edit, ctrl-o into directory, alt-up parent | absolute paths (`path:line` in grep) |
+| `files` | files, dirs, grep (as you type); toggles hidden (on), ignored, follow; sort path/recent | `[DIR]` | ctrl-e edit, ctrl-o into directory, alt-up parent, alt-h/alt-i/alt-l toggles | absolute paths (`path:line` in grep) |
 | `logs` | files (newest first), units, docker | | alt-F follow (ctrl-c returns) | path, unit or container id |
 | `systemd` | user, system, failed | | alt-s start, ctrl-x stop, alt-R restart, alt-e enable, alt-d disable, ctrl-l journal, ctrl-e edit | unit names |
 | `git` | status, log, branches, stash (switch in place) | `[--all] [--rev REV] [DIR]` | alt-s stage, alt-u unstage, ctrl-e edit, alt-c switch branch (remote: `--track`), ctrl-o branch to its log | paths, hashes, ref names, stash names |
@@ -385,6 +385,17 @@ keeps a plain display). Older prettypath versions strip `%` from `%path%` (the i
 directly under `/`; `fzx::pretty_sound` probes the installed one once per binary (path and mtime, cached in
 `$FZX_CACHE_DIR/prettypath/`), and with an old one those paths skip prettypath. About 13µs per path with
 the fixed prettypath (20k paths in 0.26s), streamed.
+Directories keep fd's trailing `/` into prettypath, which marks them as directories (folder icon) and drops
+it from `%path%`; `fzx::pretty --dirs` adds it for lists without one (zoxide). prettypath's own roadmap
+(stat only when the format needs it, `--base`, `--dirs`, a field of tabbed input) is in its TODO.md.
+`files` lists in path order (component by component, so `a/` comes before `a-b/`) or newest first, and
+leaves `FZX_FILES_EXCLUDES` (tool caches such as `.ruff_cache`) out of every mode. With follow off,
+symbolic links are listed by their target's kind but not entered: fd's `--type f`/`--type d` skip links, so
+a second `--type l` pass sorts them into files or dirs and drops broken ones. grep mode uses ripgrep, else
+`grep -E` (smart case emulated, binary files skipped, no ignore files); it runs from inside the base with
+`--exclude-dir='.?*'`, since GNU grep matches `--exclude-dir='.*'` against a `.` or dot-named base itself
+and searches nothing. The preview starts with one line: the path under ~ and the size (a directory's
+entry count, a link's target); images go through chafa (`FZX_FILES_IMAGE_FORMAT`, symbols by default).
 `shell/fzx.zsh` also defines `fzf`: with no options and a terminal on stdin it runs `fzx -m files`,
 otherwise the real fzf (`FZX_ZSH_NO_FZF=1` before sourcing leaves fzf alone).
 `history` reads `FZX_HISTDB_FILE` (default `$HISTDB_FILE`, else `~/.histdb/zsh-history.db`) read-only, one row

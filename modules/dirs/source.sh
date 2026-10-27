@@ -54,7 +54,7 @@ dirs::format() {
         # a path prettypath did not return (an older version drops some) keeps a plain display
         disp = (path in shown) ? shown[path] : "  " path
         printf "%s\t%s%7s%s  %s\n", path, dim, $1, rst, disp }' \
-      <(cut -f2 <<< "$in" | fzx::pretty) - <<< "$in" |
+      <(cut -f2 <<< "$in" | fzx::pretty --dirs) - <<< "$in" |
       while IFS= read -r line; do
         [[ -d "${line%%$'\t'*}" ]] && printf '%s\n' "$line"
       done
