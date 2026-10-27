@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.26.0): the six steps of `docs/design.md` are done. Modules: actions, capture, colors, dirs,
+Status (0.28.0): the six steps of `docs/design.md` are done. Modules: actions, capture, colors, dirs,
 docker, files, git, github, history, keybindings, logs, man, menu, ps, recent, repos, systemd, tmux, todos,
 youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
@@ -139,6 +139,15 @@ Categories: module
       (`yt-dlp -x --audio-format mp3`) already covers the audio case.
 - [ ] **top in ps** (p3) [feature]: a refreshing mode of `ps` (`every(N):reload`) rather than a module.
       Refs: system/fzf.top.zsh, fzf-scripts/fztop.
+- [ ] **colors: absorb ~/.shell/scripts/colors/** (p2) [feature]: move what belongs in a picker into the colors
+      module and leave the rest as ~/.shell commands, then remove the moved scripts there.
+      - Into colors: the 8/16-color palette by attribute (bold, bright, normal, faint) from `colorcodes`, the
+        `termcolors*` 16/256/truecolor tables and `zsh-colors` (zsh's `$fg[...]` names) as modes, with
+        `to256.py`'s hex to 256 conversion as an action or a preview line.
+      - Theme modes, if wanted: `theme-preview.sh`/`theme-gallery.sh` (iTerm2-Color-Schemes) overlap the
+        theme presets item in section 2; `change-theme.sh` and `randomize-theme.sh` (nvim and terminal
+        themes, `term-detect`) are actions for that screen or stay shell commands.
+      - `ls-pygmentize.sh` is not about colors: keep it in ~/.shell, or drop it if unused.
 - [ ] **ps: plain-left PIDs** (p3) [refactor]: since ~/.fzf/.fzfrc dropped its `--delimiter`, the ps source no
       longer needs left-aligned PIDs for `{1}`; right-align them like the other numeric columns.
 
@@ -199,8 +208,15 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [ ] **zsh docs** (p3) [module]: the zsh manual index (option, builtin, parameter) opening the right section;
       possibly a mode of the man module. Refs: fzfmenu system/zman*, zmandata.tsv.
 - [ ] **i3** (p3) [module]: windows and workspaces (focus, move), scratchpads. Refs: list.md "i3". Has: i3-msg.
-- [ ] **fonts** (p3) [module]: fc-list families with a sample preview; a glyph search mode would have
-      helped pick the menu icons. Has: fc-list.
+- [ ] **glyphs** (p2) [module]: absorb ~/.shell/scripts/{nerdfont-symbols,unicode-symbols,unicode-all}: modes
+      for Nerd Font glyphs (share/glyphs/nerdfont-glyphs.json, nerdfont-symbols.json, ~9k entries with names)
+      and Unicode symbols (unicode-symbols.json), each row the glyph, its name and code point; copy or insert
+      the glyph, its code (`\uXXXX`, `nf-...`) or the escape; preview the glyph large with neighbours in its
+      block. `unicode-all` (every code point to a UTF-16 file) becomes a mode over the Unicode blocks
+      instead of a dump. Would have helped pick the menu icons; lib/icons.sh could reference names from it.
+      Remove the scripts from ~/.shell once the module covers them (aliases for the old names if wanted).
+      There is no `scripts/unicode` (only unicode-all and unicode-symbols).
+- [ ] **fonts** (p3) [module]: fc-list families with a sample preview. Has: fc-list.
 - [ ] **displays** (p3) [module]: xrandr outputs and modes. Has: xrandr.
 - [ ] **bluetooth** (p3) [module]: devices (connect, disconnect, pair). Has: bluetoothctl.
 - [ ] **cron** (p3) [module]: crontab entries and systemd timers with next run (or a timers mode of systemd).
