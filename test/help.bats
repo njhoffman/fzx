@@ -27,6 +27,8 @@ section() {
   local titles
   titles="$(printf '%s\n' "$output" | grep '^▌' | cut -d' ' -f2 | tr '\n' ' ')"
   [ "$titles" = "ps fzx global components free " ]
+  # the version opens the page
+  [ "${lines[0]}" = "fzx $(< "$FZX_REPO/VERSION")" ]
   run section ps
   [[ "$output" =~ ctrl-x\ +action:\ send\ SIGTERM ]]
   [[ "$output" =~ ctrl-o\ +open\ the\ children ]]

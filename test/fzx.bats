@@ -14,6 +14,14 @@ setup() {
   [[ "$output" == *"usage: fzx"* ]]
 }
 
+@test "--version and -V print the VERSION file" {
+  run "$FZX" --version
+  [ "$status" -eq 0 ]
+  [ "$output" = "fzx $(< "$FZX_REPO/VERSION")" ]
+  run "$FZX" -V
+  [ "$output" = "fzx $(< "$FZX_REPO/VERSION")" ]
+}
+
 @test "--mode without a value fails with 2" {
   run "$FZX" --mode
   [ "$status" -eq 2 ]

@@ -33,6 +33,7 @@ usage: fzx                        open the menu of modules
       --dry-run      print the resolved fzf command instead of running it
       --keep         keep the session directory after exit (until `fzx gc --all`)
   -h, --help         show this help
+  -V, --version      print the version
 
 Arguments fzx does not recognise are passed to the module.
 EOF
@@ -40,6 +41,12 @@ EOF
 
 main() {
   case "${1:-}" in
+    -V | --version)
+      local version
+      fzx::version version
+      printf 'fzx %s\n' "$version"
+      return
+      ;;
     _cb)
       shift
       fzx::require callback

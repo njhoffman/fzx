@@ -83,6 +83,19 @@ run_with_load() {
   [ "$(< "$COUNTER_FILE")" = 2 ]
 }
 
+@test "persist=cache: a mode flagged nopersist keeps its data to the session" {
+  persist cache:1h
+  printf 'mode  two  -  =  nopersist\n' > "$FZX_CONFIG_DIR/modules/counter/components.tsv"
+  run_with_load -m counter:two
+  run_with_load -m counter:two
+  [ "$(< "$COUNTER_FILE")" = 2 ]
+  [ ! -d "$FZX_CACHE_DIR/counter" ]
+  # the other modes still persist
+  run_with_load -m counter:one
+  run_with_load -m counter:one
+  [ "$(< "$COUNTER_FILE")" = 3 ]
+}
+
 @test "persist=cache: an entry older than the ttl is refreshed" {
   persist cache:1h
   run_with_load -m counter

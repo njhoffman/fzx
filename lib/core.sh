@@ -27,6 +27,13 @@ fzx::require() {
   done
 }
 
+# fzx::version <var>: fzx's version, from the VERSION file ("unknown" without one)
+fzx::version() {
+  local _v="unknown"
+  [[ -r "$FZX_ROOT/VERSION" ]] && read -r _v < "$FZX_ROOT/VERSION"
+  printf -v "$1" '%s' "${_v:-unknown}"
+}
+
 # milliseconds since epoch into the named variable (no subshell)
 fzx::now_ms() {
   local _us="${EPOCHREALTIME//[.,]/}"

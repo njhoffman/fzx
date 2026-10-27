@@ -212,7 +212,12 @@ fzx::keys_page() {
     fi
   }
 
-  local row
+  local row version
+  # the f1 page (a screen's module given) opens with the version
+  if [[ -n "$module" ]]; then
+    fzx::version version
+    printf '%sfzx %s%s\n' "$d" "$version" "$r"
+  fi
   if ((${#rows_mod[@]})); then
     _keys_title help_module "${module:-this screen}" "this screen's keys"
     for row in "${rows_mod[@]}"; do

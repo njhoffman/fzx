@@ -6,6 +6,23 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-10-27
+
+### Added
+
+- `fzx --version` (`-V`) prints the version; the f1 help page shows it in its first line.
+- The menu's preview is styled: the entry's icon and target, its description and summary, the module's
+  modes (the entry's marked), toggles, sort orders and actions with their keys (actions described for
+  the entry's mode), how often the module was opened and how its runs ended, then the command it runs.
+- A mode row in components.tsv can be flagged `nopersist`: under a `FZX_PERSIST=cache:<ttl>` module its
+  data stays with the session.
+
+### Fixed
+
+- `files:grep` no longer opens with the previous search's hits under an empty prompt: its rows follow the
+  query, so the mode is flagged `nopersist` and is no longer written to the 5-minute files cache.
+- `fzx --version` used to fall through to fzf and fail.
+
 ## [0.26.0] - 2026-10-27
 
 ### Added

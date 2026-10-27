@@ -14,11 +14,6 @@ Categories: module
 
 ## 1. Next up
 
-- [ ] **Query-driven sources share the mode cache** (p1) [bug]: `files` is `cache:5m`, so every `files:grep`
-      keystroke writes its hits through to the persistent entry for the mode (`fzx::_cb_persistent_path`
-      keys on module, args, cwd and mode, not the query). A new `files:grep` launch within 5 minutes starts
-      with the previous query's hits under an empty prompt. Fix: a per-mode persist override (`none` for
-      query-driven modes), or key the entry on `FZF_QUERY` when the mode is `--disabled`.
 - [ ] **Widget keys that fit** (p1) [chore]: the alt-f/d/j/g/p/m defaults took over the user's alt-f
       (edit-command-line), alt-d (_close-shell) and alt-g (Telescope projects) in ~/.shell/zsh/keymaps.zsh, so
       the postloader sets FZX_ZSH_NO_BIND=1 (widgets defined, unbound): the widgets go unused. Pick free keys
@@ -26,8 +21,6 @@ Categories: module
 - [ ] **Menu ordering by use** (p1) [feature]: the menu lists about 70 entries in module order. Sort by
       `stats.tsv` (recent and frequent first), with a "recent" group on top, and consider group headers
       (shell, system, development) for the rest.
-- [ ] **`fzx --version`** (p2) [bug]: falls through to fzf and fails ("inappropriate ioctl for device").
-      Print the VERSION file; show it at the top of the f1 page too.
 - [ ] **Summaries keyed by more than the directory** (p2) [bug]: the cache is per directory, so git
       summaries (ahead/behind, changes) stay stale for up to `FZX_SUMMARY_TTL` (5m) after a commit or stage,
       and the capture entries have no summary because they depend on the pane. Let a manifest add to the
@@ -36,8 +29,6 @@ Categories: module
 
 ## 2. Menu and presentation
 
-- [ ] **Styled menu previews** (p2) [feature]: the menu's preview of each module entry is plain text now; give it
-      color and layout (the icon and title, the entry's description, its summary, the module's modes and keys).
 - [ ] **Mode icon in the prompt** (p3) [feature]: the prompt shows the module's `FZX_ICON` even in a mode with
       its own menu icon (`FZX_ICON_MODES`, files:grep). The `load:change-prompt(...)` bind is fixed when fzf
       starts, so an in-place mode switch needs the load bind to follow the mode (a `transform-prompt`

@@ -150,6 +150,7 @@ _fzx() {
     '--dry-run[print the fzf command instead of running it]' \
     '--keep[keep the session directory after exit]' \
     '(- *)'{-h,--help}'[show the help]' \
+    '(- *)'{-V,--version}'[print the version]' \
     '*:: :->args' && ret=0
   if [[ "$state" == args ]]; then
     # the first word without -m is a command; after it, or with a module, the module's arguments

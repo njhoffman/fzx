@@ -110,6 +110,8 @@ callbacks need not load config.
 A load with no session cache serves a persistent entry younger than the ttl and seeds the session cache
 from it; an older entry is refreshed by running the source. A failing source never touches either
 cache. `fzx gc` removes persistent entries older than `FZX_CACHE_MAX_AGE_DAYS` (default 7).
+A mode flagged `nopersist` in components.tsv stays at `session` under a `cache:<ttl>` module: its rows
+follow the query (`files:grep`), so a later launch must not start with the last query's hits.
 
 ### Reloading and navigation
 
@@ -548,7 +550,11 @@ and stays well under the timeout: one that would need an interactive shell or a 
 key bindings without a saved dump, `dirs`) prints nothing instead. The capture entries have none: they
 depend on the pane, which the per-directory cache cannot tell apart.
 
-**Preview** shows what the entry opens, its description and summary, and `fzx stats` for its module.
+**Preview** (`modules/menu/preview.sh`) shows the entry as the menu line does (icon, target), its
+description and summary; the module's modes (the entry's marked), toggles, sort orders and actions with
+their keys (actions described for the entry's mode, the built-in ones left out); how often the module was
+open (its sessions in `stats.tsv`), how runs ended there and its average source time; then the command
+and the module directory.
 Running `modules/menu/module.sh` directly lists entries but cannot open them.
 
 ## Shell integration

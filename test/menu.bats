@@ -231,13 +231,19 @@ EOF
   grep -q "actions: become:$FZX --resume " "$LOG"
 }
 
-@test "preview: what the entry opens, its description and cached summary" {
+@test "preview: the entry, its summary, the module's modes (the entry's marked) and the command it runs" {
   menu_session
   "$FZX" _cb transform refresh > /dev/null
   run "$FZX" _cb preview counter#1
-  [ "${lines[0]}" = 'opens    fzx -m counter:two --x a\ b' ]
-  [[ "$output" == *"Counter in mode two"* ]]
-  [[ "$output" == *"summary of counter:two --x a b"* ]]
+  output="$(printf '%s\n' "$output" | sed 's/\x1b\[[0-9;]*m//g')"
+  mapfile -t lines <<< "$output"
+  [[ "${lines[0]}" == *"counter:two" ]]
+  [ "${lines[1]}" = "Counter in mode two" ]
+  [ "${lines[2]}" = "summary of counter:two --x a b" ]
+  [[ "$output" == *"▌ modes"* ]]
+  [[ "$output" =~ ▸\ +two\ +counter\ mode\ two ]]
+  [[ "$output" =~ $'\n'\ +one\ +counter\ mode\ one ]]
+  [[ "$output" == *"fzx -m counter:two --x a\\ b"* ]]
   run "$FZX" _cb preview nope#0
   [ "$status" -eq 1 ]
 }

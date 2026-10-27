@@ -109,6 +109,17 @@ fzx::_cb_mode() {
   fzx::comp_current
 }
 
+# fzx::_cb_persist <var>: the module's persist policy for the current mode: a mode flagged nopersist (its
+# rows follow the query, files:grep) keeps a cache:<ttl> module's data to the session
+fzx::_cb_persist() {
+  local _p _f=""
+  fzx::meta_get persist _p || _p=session
+  if [[ "$_p" == cache:* ]] && fzx::comp_field mode "$FZX_MODE" flags _f 2> /dev/null && [[ ",$_f," == *,nopersist,* ]]; then
+    _p=session
+  fi
+  printf -v "$1" '%s' "$_p"
+}
+
 # serve cached data for the current mode when present (session cache, then the persistent cache for
 # cache:<ttl> modules), otherwise run the source. persist=none always runs the source.
 fzx::_cb_load() {
@@ -120,7 +131,7 @@ fzx::_cb_load() {
     fzx::_cb_source reload
     return
   fi
-  fzx::meta_get persist persist || persist=session
+  fzx::_cb_persist persist
   fzx::data_key view
   fzx::data_path data "$view"
   if [[ "$persist" != none && -f "$data" ]]; then
@@ -175,7 +186,7 @@ fzx::_cb_source() {
   local why="${1:-reload}" data tmp rc lines persist file view
   fzx::_cb_import source source || return
   fzx::_cb_mode
-  fzx::meta_get persist persist || persist=session
+  fzx::_cb_persist persist
   fzx::session_args
 
   if [[ "$persist" == none ]]; then
