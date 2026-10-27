@@ -181,28 +181,14 @@ tmux::action() {
       command tmux select-pane -m -t "$id"
       ;;
     paste)
-      case "$mode" in buffers | lines | urls | paths | words | hashes | ips) ;; *) return 0 ;; esac
+      [[ "$mode" == buffers ]] || return 0
       [[ -n "$TMUX_TARGET_PANE" ]] || {
         printf 'tmux: paste needs --pane %%N or an invoking tmux pane\n' >&2
         return 2
       }
-      if [[ "$mode" == buffers ]]; then
-        for id in "${TMUX_IDS[@]}"; do
-          command tmux paste-buffer -p -b "$id" -t "$TMUX_TARGET_PANE" || return
-        done
-      else
-        # Give each callback a private buffer; no send-keys interpretation or Enter.
-        local buffer="fzx-$BASHPID-$RANDOM" rc
-        # A single pipeline feeds all selections, preserving their spaces and quotes.
-        {
-          printf '%s' "${TMUX_IDS[0]}"
-          for id in "${TMUX_IDS[@]:1}"; do printf '\n%s' "$id"; done
-        } | command tmux load-buffer -b "$buffer" - || return
-        command tmux paste-buffer -p -d -b "$buffer" -t "$TMUX_TARGET_PANE"
-        rc=$?
-        ((rc == 0)) || command tmux delete-buffer -b "$buffer" 2> /dev/null
-        return "$rc"
-      fi
+      for id in "${TMUX_IDS[@]}"; do
+        command tmux paste-buffer -p -b "$id" -t "$TMUX_TARGET_PANE" || return
+      done
       ;;
   esac
 }
@@ -217,7 +203,7 @@ tmux::transform() {
   tmux::object_id "${TMUX_IDS[0]}" || return 2
   pane="$(command tmux display-message -p -t "${TMUX_IDS[0]}" '#{pane_id}')" || return
   fzx::require nav
-  fzx::nav goto tmux:lines --pane "$pane" --scope pane
+  fzx::nav goto capture:lines --pane "$pane"
 }
 
 [[ "${BASH_SOURCE[0]}" == "$0" ]] && tmux::action "$@"

@@ -45,7 +45,7 @@ plain_lines() {
   touch "$BATS_TEST_TMPDIR/mods/ps/manifest.sh" "$BATS_TEST_TMPDIR/mods/nomanifest/module.sh"
   FZX_MODULE_PATH="$BATS_TEST_TMPDIR/mods:$FZX_MODULE_PATH"
   run fzx::menu_modules
-  [ "${lines[0]}" = "$(printf 'counter\t%s' "$BATS_TEST_DIRNAME/fixtures/modules/counter")" ]
+  [[ "$output" == *"$(printf 'counter\t%s' "$BATS_TEST_DIRNAME/fixtures/modules/counter")"* ]]
   [[ "$output" == *"$(printf 'ps\t%s' "$BATS_TEST_TMPDIR/mods/ps")"* ]]
   [ "$(printf '%s\n' "${lines[@]}" | grep -c '^ps')" -eq 1 ]
   [[ "$output" != *nomanifest* && "$output" != *$'\n'menu$'\t'* ]]

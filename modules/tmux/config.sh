@@ -5,8 +5,6 @@ FZX_ICON=""
 declare -gA FZX_KEYS
 FZX_KEYS[tmux.capture]=ctrl-o
 FZX_PERSIST=none
-FZX_TMUX_LINES=2000
-FZX_TMUX_SCOPE=pane
 # Optional installed helpers used by the tmux.* aliases. Override for another layout.
 FZX_TMUX_HELPERS="${XDG_CONFIG_HOME:-$HOME/.config}/tmux/scripts"
 # shellcheck disable=SC2034

@@ -13,9 +13,6 @@ tmux::preview() {
       tmux::capture "$pane"
       ;;
     buffers) command tmux show-buffer -b "$id" ;;
-    lines | urls | paths | words | hashes | ips)
-      printf '%s\n\nCaptured from %s; alt-p pastes without pressing Enter.\n' "$id" "${TMUX_TARGET_PANE:-the current pane}"
-      ;;
     keys | commands | options | variables | styles | formats | status | hooks)
       tmux::reference preview "$FZX_MODE" --identifier "$id" --metadata "${metadata:-\{\}}"
       ;;

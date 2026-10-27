@@ -1,3 +1,6 @@
+> Pane capture (lines, URLs, paths, words, hashes, IPs) moved to its own module, `capture` (0.15.0):
+> `fzx -m capture:urls`; the `--scope` option and `FZX_TMUX_LINES`/`FZX_TMUX_SCOPE` are gone.
+
 # Tmux module
 
 `fzx -m tmux` lists sessions. Enter prints the selected ID or text, as in the other modules.
@@ -5,9 +8,8 @@
 
 ```sh
 fzx -m tmux:panes
-fzx -m tmux:urls --scope window
-fzx -m tmux:paths --pane %3 --scope session
-fzx -m tmux:lines --scope all
+fzx -m capture:urls
+fzx -m capture:paths --pane %3
 fzx -m tmux:buffers
 fzx -m tmux:options
 fzx -m tmux:keys --table prefix,root

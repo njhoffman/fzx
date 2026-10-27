@@ -1,0 +1,10 @@
+# capture components: kind  name  key  description  flags (see lib/components.sh)
+mode  lines   -  nonempty lines                         default
+mode  urls    -  URLs                                   -
+mode  paths   -  paths (may include line numbers)       -
+mode  words   -  words and identifiers                  -
+mode  hashes  -  hexadecimal hashes                     -
+mode  ips     -  IPv4 addresses                         -
+toggle  visible  alt-v  only the visible screen (copy mode's view when scrolled)  -
+action  paste  alt-p  paste into the pane fzx was opened from (bracketed, no Enter)  silent
+action  copy   ctrl-y  copy the selection to the clipboard                       silent,builtin

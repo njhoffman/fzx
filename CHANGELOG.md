@@ -6,6 +6,21 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-10-27
+
+### Added
+
+- capture module (`fzx -m capture[:urls|paths|words|hashes|ips]`): text out of a tmux pane, the visible
+  screen first and newest first, then the whole scrollback nearest first; each row says where it was
+  (`vis`, `↑N` lines above the screen, `↓N` below a copy-mode view) and the header the pane and its line
+  counts. alt-. / alt-, read the window's next/previous pane; the preview shows the lines around a hit.
+  Under fzx the origin pane is read once before fzf starts, so an inline fzf never captures itself.
+
+### Removed
+
+- The tmux module's capture modes, its visible toggle, `--scope` and `FZX_TMUX_LINES`/`FZX_TMUX_SCOPE`;
+  its ctrl-o now opens `capture:lines` on the pane under the cursor.
+
 ## [0.14.0] - 2026-10-26
 
 ### Added

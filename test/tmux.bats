@@ -6,7 +6,7 @@ setup() {
   setup_fzx
   export FZF_DEFAULT_OPTS='' FZF_DEFAULT_OPTS_FILE=/dev/null
   export LSAN_OPTIONS=detect_leaks=0
-  unset TMUX_PANE FZX_TMUX_PANE FZX_TOGGLES FZX_TMUX_SCOPE TMUX_PREFIX FZX_TMUX_SESSION_PREFIX
+  unset TMUX_PANE FZX_TMUX_PANE FZX_TOGGLES TMUX_PREFIX FZX_TMUX_SESSION_PREFIX
   export TMUX_MOD="$FZX_REPO/modules/tmux"
   export TEST_TMUX_BIN="$(command -v tmux)"
   export TEST_TMUX_SOCKET="$BATS_TEST_TMPDIR/tmux.sock"
@@ -39,16 +39,6 @@ src() {
 }
 act() { FZX_MODE="$1" "$TMUX_MOD/actions.sh" "${@:2}"; }
 
-capture_fixture() {
-  tmux send-keys -t "$PANE" "printf '%s\n' 'https://example.test/a?q=1&b=2' '/tmp/with-file.txt:42' 'README.md' 'abcdef123456 192.168.1.3 999.2.3.4' 'capture-ready'" Enter
-  local n
-  for n in {1..50}; do
-    [[ "$(tmux capture-pane -p -t "$PANE")" == *$'\ncapture-ready'* ]] && return 0
-    sleep 0.02
-  done
-  return 1
-}
-
 @test "tmux: sessions, windows and panes use stable IDs across rename" {
   run src sessions
   [ "$status" -eq 0 ]
@@ -75,21 +65,6 @@ capture_fixture() {
   [[ "$output" == *'#{pane_id}'$'\t'*"$PANE"* ]]
   run src styles
   [[ "$output" == *'-style'* ]]
-}
-
-@test "tmux: extraction preserves URL query strings, file line numbers and identifiers" {
-  capture_fixture
-  run src urls --pane "$PANE"
-  [ "$status" -eq 0 ]
-  [[ "$output" == *'https://example.test/a?q=1&b=2'$'\t'* ]]
-  run src paths --pane "$PANE"
-  [[ "$output" == *'/tmp/with-file.txt:42'$'\t'* && "$output" == *'README.md'$'\t'* ]]
-  run src hashes --pane "$PANE"
-  [[ "$output" == *'abcdef123456'$'\t'* ]]
-  run src ips --pane "$PANE"
-  [[ "$output" == *'192.168.1.3'$'\t'* && "$output" != *'999.2.3.4'* ]]
-  run src words --pane "$PANE"
-  [[ "$output" == *'capture-ready'$'\t'* ]]
 }
 
 @test "tmux: color stays in display fields and metadata never changes accepted IDs" {
@@ -245,37 +220,6 @@ DATA
   [[ "$accepted" == 'bind-key -r -T prefix F12 '* && "$accepted" != *$'\e'* && "$accepted" != *'"changed"'* ]]
 }
 
-@test "tmux: capture scopes gather other panes and deduplicate extracted values" {
-  capture_fixture
-  other="$(tmux split-window -d -t first -P -F '#{pane_id}' 'printf "remote-only https://other.test\n"; sleep 600')"
-  run src urls --pane "$PANE" --scope window
-  [ "$status" -eq 0 ]
-  [[ "$output" == *'https://other.test'$'\t'"$other"* ]]
-  run src urls --pane "$PANE" --scope pane
-  [[ "$output" != *'https://other.test'* ]]
-  run src lines --pane "$PANE" --scope all
-  [[ "$output" == *'remote-only'* ]]
-}
-
-@test "tmux: visible capture excludes scrollback and handles copy mode" {
-  tmux send-keys -t "$PANE" "printf 'old-marker\n'; for i in {1..100}; do echo line-\$i; done" Enter
-  local n
-  for n in {1..50}; do
-    [[ "$(tmux capture-pane -p -t "$PANE")" == *line-100* ]] && break
-    sleep 0.02
-  done
-  run src lines --pane "$PANE"
-  [[ "$output" == *old-marker* ]]
-  FZX_TOGGLES=visible run src lines --pane "$PANE"
-  [ "$status" -eq 0 ]
-  [[ "$output" != *old-marker* && "$output" == *line-100* ]] || { printf '%s\n' "$output"; return 1; }
-  tmux copy-mode -t "$PANE"
-  tmux send-keys -t "$PANE" -X page-up
-  FZX_TOGGLES=visible run src lines --pane "$PANE"
-  [ "$status" -eq 0 ]
-  [[ "$output" != *line-100* ]]
-}
-
 @test "tmux: buffers preview exact contents and delete by name" {
   printf 'literal $HOME; "quotes"\nsecond line' | tmux load-buffer -b 'named buffer' -
   run src buffers
@@ -284,16 +228,6 @@ DATA
   [ "$output" = $'literal $HOME; "quotes"\nsecond line' ]
   run act buffers kill -- 'named buffer'
   [ "$status" -eq 0 ]
-  run src buffers
-  [ -z "$output" ]
-}
-
-@test "tmux: text paste is literal, does not press Enter and removes its private buffer" {
-  run act lines paste --pane "$PANE" -- 'literal text; $(touch SHOULD_NOT_EXIST)'
-  [ "$status" -eq 0 ]
-  [ -z "$output" ]
-  [[ "$(tmux capture-pane -p -t "$PANE")" == *'literal text; $(touch SHOULD_NOT_EXIST)'* ]]
-  [ ! -e SHOULD_NOT_EXIST ]
   run src buffers
   [ -z "$output" ]
 }
@@ -321,7 +255,7 @@ DATA
   [ "$(tmux display-message -p -t "$PANE" '#{pane_marked}')" = 1 ]
 }
 
-@test "tmux: live fzf changes mode, opens capture and uses Escape to return and quit" {
+@test "tmux: live fzf opens the capture module on a pane and uses Escape to return and quit" {
   local picker state sid root n
   printf -v picker '%q -m tmux:panes --pane %q' "$FZX" "$PANE"
   tmux new-window -d -n picker "$picker"
@@ -340,7 +274,7 @@ DATA
   "$FZX" debug send 'trigger(ctrl-o)'
   for n in {1..60}; do
     for sid in "$FZX_RUNTIME_DIR"/sessions/*; do
-      [[ -f "$sid/meta/module" && -f "$sid/state/mode" && "$(cat "$sid/meta/module")" == tmux &&
+      [[ -f "$sid/meta/module" && -f "$sid/state/mode" && "$(cat "$sid/meta/module")" == capture &&
         "$(cat "$sid/state/mode")" == lines ]] && break 2
     done
     sleep 0.05
@@ -384,9 +318,10 @@ DATA
 }
 
 @test "tmux: invalid arguments and IDs fail before modifying a session" {
-  run src lines --pane bad
+  run src sessions --pane bad
   [ "$status" -eq 2 ]
-  run src lines --scope bad
+  # the capture modes moved to the capture module
+  run src lines
   [ "$status" -eq 2 ]
   run src unknown
   [ "$status" -eq 2 ]
@@ -400,14 +335,14 @@ DATA
 @test "tmux: callback mode changes, confirmation and pane arguments are wired into fzf" {
   stub_fzf
   export STUB_FZF_RUN='"$FZX_REPO/bin/fzx" _cb source'
-  run "$FZX" -m tmux:urls --pane "$PANE" --scope window
+  run "$FZX" -m tmux:panes --pane "$PANE"
   [ "$status" -eq 0 ]
   run fzf_bind ctrl-x
   [[ "$output" == *'_cb action kill --pane '* && "$output" == *'+reload('* ]]
   run fzf_bind ctrl-o
   [[ "$output" == *'_cb transform capture'* ]]
   run fzf_flag --preview
-  [[ "$output" == *'--scope window -- {1} {2} {3}' ]]
+  [[ "$output" == *"--pane $PANE -- {1} {2} {3}" ]]
 }
 
 @test "tmux: hooks list only set hooks unless the empty toggle is on" {

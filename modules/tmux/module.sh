@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# tmux: object navigation, pane extraction, buffers and reference browsers.
+# tmux: object navigation, buffers and reference browsers (extraction from panes: the capture module,
+# which ctrl-o opens on the pane under the cursor).
 FZX_MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../lib/core.sh
 source "${FZX_ROOT:-$FZX_MODULE_DIR/../..}/lib/core.sh"

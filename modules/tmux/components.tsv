@@ -2,12 +2,6 @@
 mode  sessions   -  tmux sessions                         default
 mode  windows    -  windows across all sessions           -
 mode  panes      -  panes across all sessions             -
-mode  lines      -  pane capture: nonempty lines          -
-mode  urls       -  pane capture: URLs                    -
-mode  paths      -  pane capture: paths (may include line numbers)  -
-mode  words      -  pane capture: words and identifiers   -
-mode  hashes     -  pane capture: hexadecimal hashes      -
-mode  ips        -  pane capture: IPv4 addresses          -
 mode  buffers    -  paste buffers                         -
 mode  keys       -  key bindings in every table           -
 mode  commands   -  command signatures                   -
@@ -17,7 +11,6 @@ mode  styles     -  style options                         -
 mode  formats    -  format templates with rendered samples  -
 mode  status     -  rendered status-left and status-right   -
 mode  hooks      -  hooks by scope                         -
-toggle  visible  alt-v  capture only the visible viewport (including copy mode)  -
 toggle  changed  alt-d  keys/options/hooks: only changes and local overrides    -
 toggle  unassigned  alt-u  keys: show free keys in the selected table           -
 toggle  empty    alt-e  variables and hooks: include empty values               -
@@ -29,7 +22,7 @@ action  move    alt-m   move window to session or pane to another pane        fo
 action  swap    -       swap two windows or panes                             foreground,reload
 action  link    -       link window into another session                      foreground,reload
 action  mark    -       mark selected pane                                    silent,reload
-action  paste   alt-p   paste buffer or captured text into the origin pane    silent
+action  paste   alt-p   paste the buffer into the origin pane                 silent
 action  next-session  -  switch to the next session matching the prefix        become
 action  prev-session  -  switch to the previous session matching the prefix    become
 action  theme-main    -  apply the main theme to the selected session           foreground,reload
