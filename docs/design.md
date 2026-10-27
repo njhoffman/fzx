@@ -413,6 +413,11 @@ default, the first known `[category]`, extended by a `Categories:` line, `(due Y
 lines, fenced blocks skipped) and matches `todo-status -l` on open items. Its id is `file\x1fline\x1ftitle`:
 done (ctrl-d) checks the box only while that line still holds the open item with that title (todo-fzf
 keeps a file snapshot for the same purpose), rewriting through a temporary file with the mode kept.
+The here mode picks the nearest TODO.md in that format (a `## ` heading and a checkbox item) from the
+current directory up to the repository's top, or the current directory only outside a repository, as
+todo-status does. `--paste PANE` hands the paste to the tmux server 0.3s after fzf exits (`run-shell -b -d`):
+in tmux 3.9 a popup is a pane of its own, and the target's shell or /todo-pop's hook may not be ready yet.
+/todo-pop, the `todo.pop` alias and tmux Alt-i open `fzx -m todos`, with todo-fzf kept as the fallback.
 `systemd` runs actions on system units through sudo when not root, bound with `execute` so sudo can
 prompt; list parsing forces `SYSTEMD_COLORS=0` because users commonly export it.
 

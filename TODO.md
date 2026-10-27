@@ -6,8 +6,8 @@ Keep this file current: tick items off, add what you find.
 
 Every item carries a priority in its first line, `(p1)` high, `(p2)` normal or `(p3)` low, and a
 category: `[bug]` `[feature]` `[refactor]` `[docs]` `[test]` `[chore]` `[perf]`, plus this repo's own below.
-`(due YYYY-MM-DD)` adds a date and an OVERDUE flag. `/todo` and `/todo-pop` (`~/.shell/scripts/todo-status`,
-`todo-fzf`) sort and mark by them; `todo-status --check` lists untagged items.
+`(due YYYY-MM-DD)` adds a date and an OVERDUE flag. `/todo` (`~/.shell/scripts/todo-status`) and `/todo-pop`
+(`fzx -m todos`) sort and mark by them; `todo-status --check` lists untagged items.
 
 Categories: module
 
@@ -100,9 +100,11 @@ Design questions for these are in `docs/components.md` (decided; what is built i
       popup -> float. fzx-only on purpose: plain fzf cannot switch placements.
 - [x] **todos** (p2) [module]: modules/todos (here/all, done toggle, urgency/file sort, card preview,
       done/edit/copy, `--paste PANE`), todo-fzf's features with its own parser (matches `todo-status -l`).
-- [ ] **todo-fzf delegates to fzx todos** (p2) [chore]: point ~/.shell/scripts/todo-fzf and /todo-pop at
-      `fzx -m todos [--paste PANE]` so there is one implementation. Waiting on another session's todo-fzf
-      bug fix (2026-10-26); do not change todo-fzf until it lands.
+- [x] **todo-fzf delegates to fzx todos** (p2) [chore]: /todo-pop, `todo.pop` and tmux Alt-i open
+      `fzx -m todos [--paste PANE]`; todo-fzf's lookup and delayed paste fixes ported (0.9.2).
+- [ ] **Retire todo-fzf** (p3) [chore]: once fzx todos has been in daily use, drop the todo-fzf fallback
+      from /todo-pop, `todo.pop` and Alt-i and remove ~/.shell/scripts/todo-fzf with its tests. Kept for
+      now at the user's request (2026-10-26).
 - [ ] **Preview script upgrade** (p2) [feature] (~/.fzf/core/preview.sh): handle more file types, and report
       which detector and renderer it chose (to fzx's log, or a debug header) so it is clear why content
       looks the way it does. The same detection then serves piping (below): what kind of content is piped in.

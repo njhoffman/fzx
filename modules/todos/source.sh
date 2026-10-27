@@ -4,15 +4,27 @@
 # Rows are "id<TAB>display<TAB>line<TAB>title": id is "file\x1fstart line\x1ftitle" (the done action checks
 # the title is still on that line), line the printable "TODO.md:LINE ☐  (Pn) [category] Title" and title
 # the plain title.
-# Modes: here (the TODO.md at the top of the current repository, else in this directory), all (the TODO.md
+# Modes: here (the nearest TODO.md in this format, up to the repository's top), all (the TODO.md
 # at the top of every repository under ghq and FZX_TODOS_ROOTS, plus FZX_TODOS_FILES). Toggle done: completed
 # items too. Sort: urgency (open first, overdue, priority, due date, file order) or file (file order).
 
-# todos::here: the TODO.md for the current directory
+# todos::fits <file>: a TODO.md in this format (a "## " heading and at least one checkbox item)
+todos::fits() {
+  [[ -r "$1" ]] && awk '/^## / { h = 1 } /^- \[[ xX]\] / { i = 1 } END { exit !(h && i) }' "$1"
+}
+
+# todos::here: the nearest TODO.md in this format from the current directory up to the repository's top
+# (outside a repository, the current directory only), as todo-status picks it
 todos::here() {
-  local top
-  top="$(git rev-parse --show-toplevel 2> /dev/null)" || top="$PWD"
-  [[ -f "$top/TODO.md" ]] && printf '%s\n' "$top/TODO.md"
+  local dir top
+  dir="$(pwd -P)"
+  top="$(git rev-parse --show-toplevel 2> /dev/null)" || top="$dir"
+  while :; do
+    todos::fits "$dir/TODO.md" && { printf '%s\n' "$dir/TODO.md"; return; }
+    [[ "$dir" == "$top" || "$dir" == / ]] && return 1
+    dir="${dir%/*}"
+    dir="${dir:-/}"
+  done
 }
 
 # todos::files: every TODO.md the mode covers, resolved and deduplicated

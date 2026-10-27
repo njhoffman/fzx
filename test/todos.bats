@@ -125,3 +125,36 @@ lines_of() { (cd "$1" && FZX_MODE="${2:-here}" "$TODOS/source.sh") | cut -f3; }
   run "$FZX" -m todos -- --paste %7
   [ "$(fzf_bind enter)" = "enter:become:$FZX _cb action paste %7 {+3}" ]
 }
+
+@test "here: the nearest TODO.md in the format up to the repository's top; others passed over" {
+  # a subdirectory's own list wins over the top's
+  mkdir -p "$P/sub/deep"
+  printf '## Sub\n\n- [ ] **Sub item.** (p1) [bug] x\n' > "$P/sub/TODO.md"
+  run lines_of "$P/sub/deep"
+  [ "$output" = 'TODO.md:3 ☐  (P1) [bug] Sub item' ]
+  # a TODO.md in another format is skipped for the next one up
+  printf '# notes\n\n* something\n' > "$P/sub/TODO.md"
+  run lines_of "$P/sub/deep"
+  [ "${#lines[@]}" -eq 5 ]
+  # outside a repository: the current directory only, never its parents
+  mkdir -p "$BATS_TEST_TMPDIR/plain/inner"
+  printf '## Plain\n\n- [ ] **Up.** (p1) [bug] x\n' > "$BATS_TEST_TMPDIR/plain/TODO.md"
+  run lines_of "$BATS_TEST_TMPDIR/plain/inner"
+  [ -z "$output" ]
+  run lines_of "$BATS_TEST_TMPDIR/plain"
+  [ "$output" = 'TODO.md:3 ☐  (P1) [bug] Up' ]
+}
+
+@test "paste: the lines go to a tmux buffer, the server pastes them into the pane a moment later" {
+  printf '#!/usr/bin/env bash\n{ printf "%%s|" "$@"; echo; if [[ "$1" == load-buffer ]]; then command cat; fi; } >> "%s/tmux.calls"\n' \
+    "$BATS_TEST_TMPDIR" > "$BATS_TEST_TMPDIR/bin/tmux"
+  chmod +x "$BATS_TEST_TMPDIR/bin/tmux"
+  run "$TODOS/actions.sh" paste %7 'TODO.md:8 ☐  (P1) [bug] Urgent bug' 'TODO.md:7 ☐  (P3) [chore] Low thing'
+  [ "$status" -eq 0 ]
+  [ "$(cat "$BATS_TEST_TMPDIR/tmux.calls")" = "load-buffer|-b|fzx-todos|-|
+TODO.md:8 ☐  (P1) [bug] Urgent bug
+TODO.md:7 ☐  (P3) [chore] Low thing
+run-shell|-b|-d|0.3|tmux paste-buffer -p -d -b fzx-todos -t %7|" ]
+  run "$TODOS/actions.sh" paste 'x; rm -rf /' line
+  [ "$status" -eq 2 ]
+}

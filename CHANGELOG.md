@@ -6,6 +6,21 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-10-26
+
+### Changed
+
+- todos: the here mode uses the nearest TODO.md in the todo format, from the current directory up to the
+  repository's top (outside a repository, the current directory only); a TODO.md in another format is
+  passed over. This matches todo-status, so /todo and the picker show the same list.
+- /todo-pop, the `todo.pop` alias and tmux Alt-i now open `fzx -m todos` (todo-fzf stays as the fallback
+  when fzx is not installed).
+
+### Fixed
+
+- todos `--paste`: the tmux server pastes 0.3s after the picker exits, so the lines arrive once the popup
+  has closed. Under tmux 3.9 the paste could land before the target pane was ready.
+
 ## [0.9.1] - 2026-10-26
 
 ### Changed
