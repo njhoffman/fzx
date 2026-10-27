@@ -6,6 +6,15 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.32.0] - 2026-10-27
+
+### Added
+
+- The network module (`fzx -m network`): listening ports and established connections with their
+  processes, interfaces, routes, wifi networks and mDNS services. ctrl-x stops the process on a port
+  (through sudo when it is not yours), ctrl-o lists its open files, alt-c and alt-d connect and disconnect
+  wifi, alt-s scans again, alt-o opens web services; alt-u runs ss and lsof as root when sudo is cached.
+
 ## [0.31.0] - 2026-10-27
 
 ### Added

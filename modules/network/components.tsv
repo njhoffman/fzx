@@ -1,0 +1,21 @@
+# network components: kind  name  key  description  flags (see lib/components.sh)
+# Every mode prints a header row, then "id<TAB>copy text<TAB>display" rows; ports and connections ids are
+# PID/PROTO/PORT (PID "-" when the process is not yours and root is off).
+mode    ports        -  listening sockets and their processes                    default
+mode    connections  -  established connections and their processes             -
+mode    interfaces   -  network interfaces, their state and addresses           -
+mode    routes       -  the routing table (IPv4, then IPv6)                     -
+mode    wifi         -  wifi networks in range (nmcli)                          -
+mode    services     -  mDNS services on the network (avahi; cached)            -
+mode    files        -  the open files of a process (--pid PID)                 hidden
+toggle  root     alt-u  ss and lsof through sudo -n: every process (needs a cached sudo: run sudo -v)  -
+sort    port     -      ports: by port                                         default
+sort    remote   -      connections: by remote address                         -
+sort    process  -      ports, connections: by process name                    -
+sort    signal   -      wifi: strongest first                                  -
+sort    name     -      wifi, services: by name                                -
+action  kill        ctrl-x  ports, connections: SIGTERM to the process (sudo when it is not yours; a port without a visible process: fuser as root)  foreground,confirm,reload
+action  connect     alt-c   wifi: connect (a saved connection, else asks for the password)  foreground,reload
+action  disconnect  alt-d   wifi: disconnect the wifi device                               foreground,confirm,reload
+action  rescan      alt-s   wifi: scan again; services: browse again (avahi, a few seconds)  silent,reload
+action  open        alt-o   services: open http and https services in the browser          silent

@@ -1,7 +1,7 @@
 # fzx TODO
 
-Status (0.31.0): the six steps of `docs/design.md` are done. Modules: actions, capture, colors, dirs,
-docker, files, git, github, history, keybindings, logs, man, menu, ps, recent, repos, systemd, tmux, todos,
+Status (0.32.0): the six steps of `docs/design.md` are done. Modules: actions, capture, colors, dirs,
+docker, files, git, github, history, keybindings, logs, man, menu, network, ps, recent, repos, systemd, tmux, todos,
 youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
 
@@ -149,11 +149,6 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
         is cached (`cache:<ttl>`), since walking every repo is slow.
       - Task preview: the definition itself (the make target's rule, the just recipe, the npm script line).
       Refs: vendors/completers/{make,npm,yarn}.zsh, list.md "asynctasks". Has: just, make, pnpm.
-- [ ] **network** (p2) [module]: listening sockets and connections (ss), open files per process (lsof),
-      interfaces and routes (ip), wifi networks (nmcli connect), mDNS services (avahi-browse), kill the
-      process on a port. Refs: system/fzf.netstat.zsh, system/fzf.lsof.zsh, system/fzwifi, fzf-scripts/wifi,
-      avahi-browse.sh, ref/mods/avahi.sh, fzf-rsc/completions/system/kill-proc-by-port.zsh.
-      Has: ss, netstat, lsof, ip, nmcli, avahi-browse.
 - [ ] **github: issues, PRs, notifications** (p2) [module]: phase 2 of modules/github (search, files and
       fetch in 0.24.0; your repositories, stars and the search follow-ups in 0.25.0): issues and PRs of the
       repository here, or involving you elsewhere (view, checkout, comment, close), and notifications
