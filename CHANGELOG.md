@@ -6,6 +6,23 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.26.0] - 2026-10-27
+
+### Added
+
+- zsh completion: `fzx completion zsh` prints a `#compdef fzx` function for the commands, the options,
+  `-m module[:mode]` with each module's and mode's description, and session ids. It asks the new
+  `fzx _complete targets|modules|sessions` while completing, so new modules need no new script.
+- Repository links (lib/links.sh): `FZX_REPOS_LINKS_DIR` (default `~/git` when it exists) holds a link per
+  ghq repository named after it. The repos module's new `links` action and the shell's
+  `repos [--dry-run]` bring it up to date (dead links removed, shared names reported); every clone fzx
+  makes adds its link.
+- zsh (`shell/fzx.zsh`): `clone REPO...` clones with ghq (anything ghq takes; your GitHub repositories over
+  ssh, `FZX_GITHUB_CLONE_SSH`) and links; `repos --clone-missing` first clones your GitHub repositories
+  that are not here yet. `FZX_ZSH_NO_REPOS=1` leaves both out. These replace ~/.shell's repoman.
+- github: repository rows mark the ones cloned here; the `missing` toggle (alt-5) keeps the others.
+  alt-c clones your own repositories over ssh and links every clone.
+
 ## [0.25.0] - 2026-10-27
 
 ### Added

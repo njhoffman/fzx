@@ -28,6 +28,9 @@ FZX_GITHUB_LIMIT="${FZX_GITHUB_LIMIT:-100}"
 FZX_GITHUB_CACHE_TTL="${FZX_GITHUB_CACHE_TTL:-1h}"
 # recent searches per mode, kept in $FZX_STATE_DIR/github/history-<mode>
 FZX_GITHUB_HISTORY_MAX="${FZX_GITHUB_HISTORY_MAX:-200}"
+# clones (alt-c, `clone`, `repos --clone-missing`) over ssh: mine (your own repositories, which you push
+# to), always or never
+FZX_GITHUB_CLONE_SSH="${FZX_GITHUB_CLONE_SSH:-mine}"
 # where fetch (alt-d) writes; empty: the directory fzx was started in
 FZX_GITHUB_FETCH_DIR="${FZX_GITHUB_FETCH_DIR:-}"
 # files larger than this (bytes) are not previewed

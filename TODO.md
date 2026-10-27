@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.25.0): the six steps of `docs/design.md` are done. Modules: actions, capture, colors, dirs,
+Status (0.26.0): the six steps of `docs/design.md` are done. Modules: actions, capture, colors, dirs,
 docker, files, git, github, history, keybindings, logs, man, menu, ps, recent, repos, systemd, tmux, todos,
 youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.

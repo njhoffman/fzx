@@ -8,6 +8,7 @@
 # g and gg cd to frecent directories, v opens frecent files (fzx jump), unless FZX_ZSH_NO_JUMP=1.
 # The shell's key bindings are dumped for the keybindings module unless FZX_ZSH_NO_KEYS_DUMP=1.
 # ghs and ghsc search GitHub, ghfetch downloads from a github.com URL, unless FZX_ZSH_NO_GITHUB=1.
+# clone and repos clone repositories and keep their ~/git links, unless FZX_ZSH_NO_REPOS=1.
 
 typeset -gA FZX_ZSH_KEYS
 : ${FZX_ZSH_KEYS[files]=$'\ef'} # insert file paths
@@ -189,11 +190,39 @@ fi
 # github module (qualifiers work, quoted for the shell: ghs fzf language:go 'stars:>100'); ghfetch URL...
 # [--dest DIR] downloads a file, or a directory under its own name, from a github.com URL into DIR (default
 # here), and clones a repository's URL with ghq
+_FZX_GITHUB_ACTIONS="${${(%):-%x}:A:h}/../modules/github/actions.sh"
+_FZX_REPOS_ACTIONS="${${(%):-%x}:A:h}/../modules/repos/actions.sh"
 if [[ "${FZX_ZSH_NO_GITHUB:-0}" != 1 ]]; then
-  _FZX_GITHUB_ACTIONS="${${(%):-%x}:A:h}/../modules/github/actions.sh"
   function ghs { command "${FZX_ZSH_BIN:-fzx}" -m github ${1:+--query} ${1:+"$*"}; }
   function ghsc { command "${FZX_ZSH_BIN:-fzx}" -m github:code ${1:+--query} ${1:+"$*"}; }
   function ghfetch { "$_FZX_GITHUB_ACTIONS" fetch "$@"; }
+fi
+
+# Repositories (what ~/.shell's repoman did), unless FZX_ZSH_NO_REPOS=1: clone REPO... clones with ghq
+# (OWNER/REPO, a URL or anything ghq takes; your own over ssh) and links each into FZX_REPOS_LINKS_DIR
+# (~/git); repos [--dry-run] links every ghq repository there and removes dead links; with --clone-missing
+# it first clones your GitHub repositories that are not here yet
+if [[ "${FZX_ZSH_NO_REPOS:-0}" != 1 ]]; then
+  function clone { "$_FZX_GITHUB_ACTIONS" clone "$@"; }
+  function repos {
+    emulate -L zsh
+    local dry=() missing=0 a
+    for a in "$@"; do
+      case "$a" in
+        -n | -d | --dry-run) dry=(--dry-run) ;;
+        -u | --update | --clone-missing) missing=1 ;;
+        -h | --help)
+          print 'usage: repos [--dry-run] [--clone-missing]   link ghq repositories into ${FZX_REPOS_LINKS_DIR:-~/git}'
+          return 0
+          ;;
+        *) print -u2 "repos: unknown option: $a"; return 2 ;;
+      esac
+    done
+    if ((missing)); then
+      "$_FZX_GITHUB_ACTIONS" clone-missing "${dry[@]}" || return
+    fi
+    "$_FZX_REPOS_ACTIONS" links "${dry[@]}"
+  }
 fi
 
 () {

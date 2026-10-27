@@ -11,3 +11,4 @@ action  fetch     -       git fetch the selected repositories              foreg
 action  pull      -       git pull --ff-only the selected repositories     foreground,reload
 action  browse    alt-w   open the remote in the browser                   silent
 action  rescan    -       scan every repository again now                  foreground,reload
+action  links     -       link every ghq repository into FZX_REPOS_LINKS_DIR (~/git)  foreground

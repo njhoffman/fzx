@@ -10,6 +10,7 @@ changing lib/ or adding a module).
 - `bin/fzx -m <module> --dry-run`: the resolved fzf command
 - `bin/fzx config -m <module>`: resolved config layers, keys, colors, settings
 - `just install`: symlink `bin/fzx` into ~/.local/bin; `shell/fzx.zsh`: zsh widgets (source from zshrc)
+- `bin/fzx completion zsh`: the zsh completion (lists come from `fzx _complete` at completion time)
 - `FZX_LOG_LEVEL=debug` then `bin/fzx debug tail`: callbacks, their durations and the fzf actions they return
 - `bin/fzx debug attach` (or `debug state` / `debug send ACTION`): inspect and drive the fzf on screen
 

@@ -378,9 +378,9 @@ and settings.
 | `capture` | lines, urls, paths, words, hashes, ips out of a tmux pane: the screen first (newest first), then the scrollback nearest first, each row marked `vis`, `↑N` or `↓N`; toggle visible | `--pane %N` (the origin) | alt-. / alt-, the window's next/previous pane (header shows which), alt-p paste into the origin pane, ctrl-y copy | the values |
 | `colors` | 256 (xterm names), names (X11 rgb.txt in true color, nearest 256), fzx (`FZX_COLORS` of every layer, by module) | | alt-h copy hex, alt-s copy SGR parameters, alt-e copy escape sequences, ctrl-y copy | numbers, names or keys |
 | `history` | session, directory, host (default), global (zsh-histdb); toggle failed; sort recent/frequent | `[WORDS...]`: the starting query | alt-enter run (exit status 10), ctrl-x forget (confirm), alt-e failed only | the command (multi-line kept) |
-| `repos` | all, mine, changed, unsynced, todos; sort recent/name | | ctrl-o git module, alt-o files, ctrl-e edit, alt-w browse; actions: fetch, pull (`--ff-only`), rescan | the repository path |
+| `repos` | all, mine, changed, unsynced, todos; sort recent/name | | ctrl-o git module, alt-o files, ctrl-e edit, alt-w browse; actions: fetch, pull (`--ff-only`), rescan, links (every ghq repository linked into `FZX_REPOS_LINKS_DIR`) | the repository path |
 | `docker` | containers (running first), images, volumes, networks, compose; toggle running | | alt-s start/up, ctrl-x stop/down, alt-R restart, alt-x remove (confirm), alt-e exec a shell, ctrl-l follow logs, alt-i inspect; actions: kill, run (image), pull, prune | ids (volume and project names) |
-| `github` | repos, code (GitHub search through gh; enter runs the query, GitHub qualifiers in it, a code query of qualifiers alone asks for words; an empty query lists the mode's recent searches; ctrl-t filters the results with fzf instead, and back), mine (yours, or `--owner NAME`'s), starred (both filtered by fzf; entering or leaving them restarts fzf), tree (hidden: a repository's files at a commit); toggles private, public, sources, forks (every repository list; both of a pair or neither: all); searches and lists cached for `FZX_GITHUB_CACHE_TTL`, trees and file contents by sha; GitHub's emoji shortcodes shown as characters; f2 lists every rate limit | `[--query Q]`; mine: `--owner NAME`; tree: `--repo OWNER/REPO [--ref REF]` | alt-o browser, alt-c clone (ghq), alt-d fetch (files, directories; a repository is cloned), ctrl-e a read-only copy in $EDITOR, alt-s star (starred: unstar), alt-F fork (confirm), alt-e settings page, alt-w the search on github.com, ctrl-y copy, ctrl-o files, alt-p code search in the repository (code: narrow the search to it), alt-1..4 toggles; zsh: `ghs`, `ghsc`, `ghfetch URL [--dest DIR]` | github.com URLs |
+| `github` | repos, code (GitHub search through gh; enter runs the query, GitHub qualifiers in it, a code query of qualifiers alone asks for words; an empty query lists the mode's recent searches; ctrl-t filters the results with fzf instead, and back), mine (yours, or `--owner NAME`'s), starred (both filtered by fzf; entering or leaving them restarts fzf), tree (hidden: a repository's files at a commit); toggles private, public, sources, forks (every repository list; both of a pair or neither: all) and missing (not cloned here; cloned ones are marked); searches and lists cached for `FZX_GITHUB_CACHE_TTL`, trees and file contents by sha; GitHub's emoji shortcodes shown as characters; f2 lists every rate limit | `[--query Q]`; mine: `--owner NAME`; tree: `--repo OWNER/REPO [--ref REF]` | alt-o browser, alt-c clone (ghq; yours over ssh) and link, alt-d fetch (files, directories; a repository is cloned), ctrl-e a read-only copy in $EDITOR, alt-s star (starred: unstar), alt-F fork (confirm), alt-e settings page, alt-w the search on github.com, ctrl-y copy, ctrl-o files, alt-p code search in the repository (code: narrow the search to it), alt-1..4 toggles; zsh: `ghs`, `ghsc`, `ghfetch URL [--dest DIR]` | github.com URLs |
 | `todos` | here (this repository's TODO.md), all (every repository's); toggle done; sort urgency/file | `[--paste PANE] [QUERY...]` | ctrl-d done, ctrl-e edit at the line, ctrl-y copy titles, alt-y copy lines | `TODO.md:LINE ☐  (Pn) [category] Title` per item (with `--paste`, pasted into the pane) |
 | `menu` | | | enter opens the entry | entry id |
 | `actions` | | groups of `names args... --fzx--` (built by the actions key) | enter runs the action, then back | |
@@ -589,6 +589,29 @@ They replace `g_func`/`gg_func`/`v_func` (~/.fzf/functions.sh, now removed), `fg
 `FZX_DIRS_ALL_EXCLUDES` (VCS, cache and package directories) and streams into fzf with the query already
 typed. fzf's own ctrl-t, alt-c and ctrl-r are left alone. `just install` symlinks `bin/fzx` into
 `~/.local/bin` (or `$XDG_BIN_HOME`) and refuses to replace anything that is not a symlink.
+
+Repositories and GitHub (they replace ~/.shell's repoman and gitman):
+
+- `ghs [QUERY]`, `ghsc [QUERY]`: the github module's repository and code searches; `ghfetch URL...
+  [--dest DIR]` downloads a file, or a directory under its own name, and clones a repository's URL
+  (`FZX_ZSH_NO_GITHUB=1` leaves them out).
+- `clone REPO...`: ghq get (OWNER/REPO, a URL, or anything ghq takes such as `git@bitbucket.org:o/r.git`;
+  GitHub repositories of yours over ssh, `FZX_GITHUB_CLONE_SSH`), then the repository's link.
+- `repos [--dry-run] [--clone-missing]`: link every ghq repository into `FZX_REPOS_LINKS_DIR` and remove
+  the dead links there; with `--clone-missing` (`-u`) first clone your GitHub repositories that are not
+  here yet (`FZX_ZSH_NO_REPOS=1` leaves both out).
+
+The links (lib/links.sh): `FZX_REPOS_LINKS_DIR` (default `~/git` when it exists, else none) holds one
+link per ghq repository named after it (`~/git/fzx -> ~/ghq/github.com/njhoffman/fzx`). A name two
+repositories share keeps the link it has, and the other is reported as taken. Every clone fzx makes (the
+github module's alt-c and fetch, `clone`, `--clone-missing`) adds its link; the repos module's `links`
+action (in the actions menu) and `repos` bring the whole directory up to date.
+
+Completion: `fzx completion zsh` prints a zsh completion function (`#compdef fzx`, lib/complete.sh) for
+the commands, options and `-m module[:mode]` (with each module's and mode's description; hidden modes
+left out) and session ids. It asks `fzx _complete targets|modules|sessions` while completing, so a new
+module or mode needs no new script. Install it into a directory on `fpath` before compinit
+(`fzx completion zsh > "${fpath[1]}/_fzx"`), or as a generated provider of ~/.shell's zsh-complete.
 
 ## Piping (later)
 

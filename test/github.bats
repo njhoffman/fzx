@@ -10,7 +10,7 @@ SHA=0123456789abcdef0123456789abcdef01234567
 
 setup() {
   setup_fzx
-  export NO_COLOR=1 FZX_ICONS=none
+  export NO_COLOR=1 FZX_ICONS=none FZX_REPOS_LINKS_DIR="$BATS_TEST_TMPDIR/git"
   STUBS="$BATS_TEST_TMPDIR/stubs"
   mkdir -p "$STUBS"
   # gh: each call's args on a line of gh.calls (searches also in gh.search, one arg per line)
@@ -42,6 +42,7 @@ case "${args[0]} ${args[1]}" in
     if [[ "${args[1]}" == repos ]]; then cat "$BATS_TEST_TMPDIR/repos.json"; else cat "$BATS_TEST_TMPDIR/code.json"; fi
     ;;
   "api rate_limit") echo "searches left: 29/30, code 9/10 (per minute)" ;;
+  "api user") echo me ;;
   "api emojis") printf '{"cherry_blossom":"https://x/emoji/unicode/1f338.png?v8","atom":"https://x/emoji/atom.png?v8"}\n' ;;
   "api notifications?per_page=50") [[ " $* " == *" --jq "* ]] && echo "3 unread" ;;
   "api user/starred?per_page=1")
@@ -72,10 +73,14 @@ case "${args[0]} ${args[1]}" in
     ;;
 esac
 STUB
+  # ghq: list -p -e REPO prints where it is, plain list the repositories in $STUB_GHQ_HAVE; get makes it
   cat > "$STUBS/ghq" << 'STUB'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "$BATS_TEST_TMPDIR/ghq.calls"
-[[ "$1" == list ]] && echo "$HOME/ghq/${*: -1}"
+if [[ "$1" == list ]]; then
+  if [[ " $* " == *" -e "* ]]; then echo "$BATS_TEST_TMPDIR/ghq/${*: -1}"; else printf '%s\n' ${STUB_GHQ_HAVE:-}; fi
+fi
+[[ "$1" == get ]] && mkdir -p "$BATS_TEST_TMPDIR/ghq/${*: -1}"
 exit 0
 STUB
   printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$@" >> "$BATS_TEST_TMPDIR/open.calls"\n' > "$STUBS/xdg-open"
@@ -149,7 +154,7 @@ searches() { grep -c '^search ' "$BATS_TEST_TMPDIR/gh.calls" 2> /dev/null || ech
   [ "${#lines[@]}" -eq 2 ]
   [[ "${lines[0]}" == "https://github.com/junegunn/fzf"$'\t'repo$'\t'junegunn/fzf$'\t'*$'\t'0$'\t'* ]]
   [[ "${lines[0]}" == *"junegunn/fzf "*"83.8k"*"4.7k"*"334"*"A command-line fuzzy finder" ]]
-  [[ "${lines[1]}" == *$'\t'"o/noreadme "* ]]
+  [[ "${lines[1]}" == *$'\t'"  o/noreadme "* ]]
   run src repos "fzf"
   [ "$(searches)" -eq 1 ]
   FZX_GITHUB_CACHE_TTL=0 run src repos "other"
@@ -243,6 +248,7 @@ searches() { grep -c '^search ' "$BATS_TEST_TMPDIR/gh.calls" 2> /dev/null || ech
   [ "$(wc -l < "$FZX_STATE_DIR/github/fetched")" -eq 2 ]
   run "$GH_DIR/actions.sh" fetch https://github.com/o/r
   [ "$(head -1 "$BATS_TEST_TMPDIR/ghq.calls")" = "get -- github.com/o/r" ]
+  [ "$(readlink "$FZX_REPOS_LINKS_DIR/r")" = "$BATS_TEST_TMPDIR/ghq/github.com/o/r" ]
   run "$GH_DIR/actions.sh" fetch --dest out https://github.com/o/r/blob/main/missing.sh https://example.com/x
   [ "$status" -eq 1 ]
   [[ "$output" == *"cannot fetch"* && "$output" == *"not a GitHub URL"* ]]
@@ -472,4 +478,34 @@ STUB
   src mine "" > /dev/null
   run github::summary github:mine
   [ "$output" = "2 repositories, 1 private" ]
+}
+
+@test "repository rows: cloned ones marked; the missing toggle keeps the others" {
+  STUB_GHQ_HAVE="github.com/Me/Priv" run src mine ""
+  [[ "${lines[0]}" == *$'\t'"+ me/priv "* && "${lines[1]}" == *$'\t'"  me/forked "* ]]
+  STUB_GHQ_HAVE="github.com/me/priv" FZX_TOGGLES=missing run src mine ""
+  [ "${#lines[@]}" -eq 1 ] && [[ "${lines[0]}" == https://github.com/me/forked$'\t'* ]]
+}
+
+@test "clone: yours over ssh, others over https (FZX_GITHUB_CLONE_SSH), each linked; other hosts as given" {
+  cd "$BATS_TEST_TMPDIR"
+  run "$GH_DIR/actions.sh" clone me/mine https://github.com/o/theirs
+  [ "$status" -eq 0 ]
+  grep -qx 'get -p -- github.com/me/mine' ghq.calls
+  grep -qx 'get -- github.com/o/theirs' ghq.calls
+  [ -L git/mine ] && [ -L git/theirs ]
+  FZX_GITHUB_CLONE_SSH=always run "$GH_DIR/actions.sh" clone o/again
+  grep -qx 'get -p -- github.com/o/again' ghq.calls
+  run "$GH_DIR/actions.sh" clone
+  [ "$status" -eq 2 ]
+}
+
+@test "clone-missing: your repositories not cloned yet, a dry run first" {
+  STUB_GHQ_HAVE="github.com/me/priv" run "$GH_DIR/actions.sh" clone-missing --dry-run
+  [ "${lines[0]}" = "would clone me/forked" ]
+  [ "${lines[-1]}" = "dry run: 1 of your repositories to clone" ]
+  ! grep -q '^get' "$BATS_TEST_TMPDIR/ghq.calls"
+  STUB_GHQ_HAVE="github.com/me/priv" run "$GH_DIR/actions.sh" clone-missing
+  grep -qx 'get -p -- github.com/me/forked' "$BATS_TEST_TMPDIR/ghq.calls"
+  [ "${lines[-1]}" = "1 of your repositories cloned" ]
 }

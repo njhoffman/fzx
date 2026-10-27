@@ -18,6 +18,8 @@ usage: fzx                        open the menu of modules
        fzx keys [KEY...]          keys in use (KEYs as fzx's, your fzf binds, fzf's defaults) and free keys
        fzx builtin copy|copy-line|view|confirm [ARGS...]
        fzx debug ls | tail [SID] | attach [SID] | state [SID] [N] | send ACTION [SID]
+       fzx completion zsh          print the zsh completion (#compdef fzx; modules and modes are looked up
+                                   as you complete): fzx completion zsh > "${fpath[1]}/_fzx"
 
   -m, --mode MODULE[:MODE]
                      run MODULE (searched in $FZX_MODULE_PATH), optionally in MODE
@@ -80,6 +82,18 @@ main() {
       fzx::require log session config
       [[ "${1:-}" == -m || "${1:-}" == --mode ]] && shift
       fzx::config_show "${1:-}"
+      return
+      ;;
+    completion)
+      shift
+      fzx::require complete
+      fzx::completion "$@"
+      return
+      ;;
+    _complete)
+      shift
+      fzx::require complete
+      fzx::complete "$@"
       return
       ;;
     gc)

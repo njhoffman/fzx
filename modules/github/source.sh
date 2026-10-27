@@ -222,29 +222,34 @@ github::language_icons() {
   printf -- '-v\nlangs=%s\n' 'Lua= Go= Python= Rust= Shell= JavaScript= TypeScript= C= C++= Ruby= Vim_Script= Java= HTML= CSS= Nix= Elixir= Haskell= Swift= Kotlin= PHP= Markdown= Dockerfile='
 }
 
-# github::repo_rows <file>: a repository list's rows. The toggles keep private or public repositories only,
-# sources or forks only (both of a pair, or neither: all); the index stays the one in the file
+# github::repo_rows <file>: a repository list's rows, those cloned here (in ghq) marked. The toggles keep
+# private or public repositories only, sources or forks only (both of a pair, or neither: all), and with
+# missing the ones not cloned yet; the index stays the one in the file
 github::repo_rows() {
   local o=$'\e['"${FZX_COLORS[github_owner]:-38;5;244}m" n=$'\e['"${FZX_COLORS[github_name]:-1;38;5;75}m"
   local s=$'\e['"${FZX_COLORS[github_star]:-38;5;220}m" c=$'\e['"${FZX_COLORS[github_count]:-38;5;250}m"
   local d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m' langs=()
   [[ -n "${NO_COLOR+x}" ]] && o="" n="" s="" c="" d="" r=""
   fzx::require icons
-  fzx::icon_vars star fork issue archived repo
+  fzx::icon_vars star fork issue archived repo folder
   mapfile -t langs < <(github::language_icons)
-  local emojis on=" ${FZX_TOGGLES:-} "
+  local emojis on=" ${FZX_TOGGLES:-} " have=""
   github::emojis emojis
-  command jq -r --arg file "$1" --argjson e "$emojis" \
+  command -v ghq > /dev/null && have="$(command ghq list | tr '[:upper:]' '[:lower:]')"
+  command jq -r --arg file "$1" --argjson e "$emojis" --arg have "$have" \
+    --argjson missing "$([[ "$on" == *" missing "* ]] && echo true || echo false)" \
     --argjson priv "$([[ "$on" == *" private "* ]] && echo true || echo false)" \
     --argjson pub "$([[ "$on" == *" public "* ]] && echo true || echo false)" \
     --argjson src "$([[ "$on" == *" sources "* ]] && echo true || echo false)" \
     --argjson frk "$([[ "$on" == *" forks "* ]] && echo true || echo false)" '
     def keep(a; b; v): (a == b) or (if a then v else (v | not) end);
+    ($have | split("\n") | map({key: ., value: true}) | from_entries) as $h |
     to_entries[] | .key as $i | .value |
-    select(keep($priv; $pub; .isPrivate == true) and keep($frk; $src; .isFork == true)) |
+    ($h["github.com/" + (.fullName | ascii_downcase)] // false) as $cloned |
+    select(keep($priv; $pub; .isPrivate == true) and keep($frk; $src; .isFork == true) and (($missing and $cloned) | not)) |
     [.url, "repo", .fullName, $file, $i, .language // "", .stargazersCount, .forksCount, .openIssuesCount,
      (now - ((.pushedAt // .createdAt) | fromdateiso8601) | floor), .isArchived,
-     ((.description // "") | gsub(":(?<n>[a-z0-9_+-]+):"; $e[.n] // ":\(.n):"))]
+     ((.description // "") | gsub(":(?<n>[a-z0-9_+-]+):"; $e[.n] // ":\(.n):")), $cloned]
     | map(tostring | gsub("[\t\r\n]+"; " ")) | join("\t")' -- "$1" |
     awk -F'\t' -v OFS='\t' "${FZX_ICON_VARS[@]}" "${langs[@]}" -v o="$o" -v n="$n" -v s="$s" -v c="$c" -v d="$d" -v r="$r" '
       BEGIN { k = split(langs, l, " "); for (i = 1; i <= k; i++) { split(l[i], kv, "="); gsub(/_/, " ", kv[1]); icon[kv[1]] = kv[2] } }
@@ -257,8 +262,10 @@ github::repo_rows() {
         lang = ($6 in icon) ? icon[$6] : icon_repo
         name = o on[1] "/" r n on[2] r
         if ($11 == "true") { name = name " " d icon_archived r; width += 2 }
+        # cloned here: the folder icon (unicode/none styles: "+"), else a space of the same width
+        mark = ($13 == "true") ? (icon_folder != "" ? icon_folder : "+") : " "
         pad = 40 - width; if (pad < 1) pad = 1
-        print $1, $2, $3, $4, $5, sprintf("%s%s%*s%s%s %6s%s  %s%s %5s  %s %4s%s  %4s  %s%s%s", (lang != "" ? lang " " : ""), name, pad, "",
+        print $1, $2, $3, $4, $5, sprintf("%s%s%s %s%*s%s%s %6s%s  %s%s %5s  %s %4s%s  %4s  %s%s%s", (lang != "" ? lang " " : ""), c, mark, name, pad, "",
           s, icon_star, short($7), r, c, icon_fork, short($8), icon_issue, short($9), r, age($10), d, $12, r) }'
 }
 

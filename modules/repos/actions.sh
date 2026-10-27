@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# repos actions on repository paths, and the background scan (repos::transform refresh)
+# repos actions on repository paths, and the background scan (repos::transform refresh). `actions.sh links
+# [--dry-run]` runs on its own (the shell's `repos`).
 
 [[ -n "${_FZX_CORE_LOADED:-}" ]] || source "${FZX_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}/lib/core.sh"
 # shellcheck source=./source.sh
@@ -88,6 +89,18 @@ repos::transform() {
 repos::action() {
   local action="${1:-}" dir failed=0 url
   shift
+  # not on the selection: every ghq repository's link in FZX_REPOS_LINKS_DIR (lib/links.sh)
+  if [[ "$action" == links ]]; then
+    fzx::require links
+    # under fzx the selected paths follow: links takes only --dry-run
+    if [[ -n "${FZX_SESSION_DIR:-}" ]]; then
+      fzx::link_repos
+      repos::wait
+      return 0
+    fi
+    fzx::link_repos "$@"
+    return
+  fi
   for dir in "$@"; do
     [[ -d "$dir/.git" || -f "$dir/.git" ]] || { printf 'repos: not a repository: %s\n' "$dir" >&2; return 2; }
   done

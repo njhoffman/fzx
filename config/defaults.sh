@@ -58,6 +58,11 @@ FZX_CACHE_MAX_AGE_DAYS=7
 
 # menu entry summaries are cached per directory for this many seconds, and each may run this long
 FZX_SUMMARY_TTL=300
+
+# a directory of links named after each ghq repository (~/git/fzx -> ~/ghq/github.com/njhoffman/fzx), kept
+# by the repos module's links action, the shell's `repos` and every clone fzx makes; empty: none. The
+# default is ~/git when that directory exists
+[[ -n "${FZX_REPOS_LINKS_DIR+x}" ]] || { FZX_REPOS_LINKS_DIR=""; [[ -d "$HOME/git" ]] && FZX_REPOS_LINKS_DIR="$HOME/git"; }
 FZX_SUMMARY_TIMEOUT="${FZX_SUMMARY_TIMEOUT:-3}"
 
 # usage statistics in $FZX_STATE_DIR/stats.tsv (see `fzx stats`); 0 turns recording off

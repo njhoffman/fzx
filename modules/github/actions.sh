@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# github actions on the selected rows' URLs, the enter and ctrl-o transforms, and fetch, which also runs on
-# its own: `actions.sh fetch [--dest DIR] URL...` (the shell's ghfetch).
+# github actions on the selected rows' URLs, the enter and ctrl-o transforms, and three that also run on
+# their own: `actions.sh fetch [--dest DIR] URL...` (the shell's ghfetch), `actions.sh clone REPO...` (the
+# shell's clone) and `actions.sh clone-missing [--dry-run]` (the shell's `repos --clone-missing`).
 
 # shellcheck source=./source.sh
 source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
@@ -40,12 +41,75 @@ github::download() {
 
 # github::clone <owner/name>: through ghq (its root and layout), printing where it is
 github::clone() {
+  local path ssh=()
   if ! command -v ghq > /dev/null; then
     printf 'github: clone needs ghq\n' >&2
     return 1
   fi
-  command ghq get -- "github.com/$1" || return
-  command ghq list -p -e -- "github.com/$1" 2> /dev/null
+  github::ssh "$1" && ssh=(-p)
+  command ghq get "${ssh[@]}" -- "github.com/$1" || return
+  path="$(command ghq list -p -e -- "github.com/$1" 2> /dev/null)"
+  printf '%s\n' "$path"
+  github::link "$path"
+}
+
+# github::link <path>: the repository's link in FZX_REPOS_LINKS_DIR (lib/links.sh)
+github::link() {
+  [[ -n "$1" ]] || return 0
+  fzx::require links
+  fzx::link_repo "$1" || :
+}
+
+# github::login: your GitHub login (cached: it does not change)
+github::login() {
+  local file
+  file="$(github::cached "$FZX_CACHE_DIR/github/login" command gh api user --jq .login 2> /dev/null)" || return 1
+  command cat -- "$file"
+}
+
+# github::ssh <owner/name>: clone over ssh? FZX_GITHUB_CLONE_SSH: mine (your own repositories, which you
+# push to), always or never
+github::ssh() {
+  case "${FZX_GITHUB_CLONE_SSH:-mine}" in
+    always) return 0 ;;
+    never) return 1 ;;
+    *) [[ "${1%%/*}" == "$(github::login)" ]] ;;
+  esac
+}
+
+# github::clone_any <repo...>: clone (ghq) and link each: a GitHub URL or OWNER/REPO through github::clone,
+# anything else ghq takes (bitbucket.org/o/r, git@host:o/r.git) as it is, over ssh
+github::clone_any() {
+  local repo rc=0 path before
+  (($#)) || { printf 'usage: clone REPO...   (OWNER/REPO, a URL, or anything ghq get takes)\n' >&2; return 2; }
+  for repo in "$@"; do
+    if github::parse_url "$repo" && [[ "$repo" != *@* ]]; then
+      github::clone "$GH_REPO" || rc=1
+      continue
+    fi
+    before="$(command ghq list -p)"
+    command ghq get -p -- "$repo" || { rc=1; continue; }
+    # the new path: the one ghq lists now that it did not before
+    path="$(comm -13 <(printf '%s\n' "$before" | sort) <(command ghq list -p | sort) | head -1)"
+    [[ -n "$path" ]] && printf '%s\n' "$path" && github::link "$path"
+  done
+  return "$rc"
+}
+
+# github::clone_missing [--dry-run]: clone every repository of yours (github:mine, fetched again) that is not
+# cloned yet, sources and forks, private ones included
+github::clone_missing() {
+  local dry="" file repo n=0 rc=0
+  [[ "${1:-}" == --dry-run || "${1:-}" == -n ]] && dry=1
+  FZX_GITHUB_CACHE_TTL=0 github::list mine file || { printf 'github: cannot list your repositories: %s\n' "$GITHUB_ERROR" >&2; return 1; }
+  while IFS= read -r repo; do
+    n=$((n + 1))
+    if [[ -n "$dry" ]]; then printf 'would clone %s\n' "$repo"; else github::clone "$repo" || rc=1; fi
+  done < <(command jq -r --rawfile have <(command ghq list | tr '[:upper:]' '[:lower:]') '
+    ($have | split("\n") | map({key: ., value: true}) | from_entries) as $h |
+    .[] | select($h["github.com/" + (.fullName | ascii_downcase)] | not) | .fullName' -- "$file")
+  printf '%s%d of your repositories %s\n' "${dry:+dry run: }" "$n" "$([[ -n "$dry" ]] && echo "to clone" || echo cloned)"
+  return "$rc"
 }
 
 # github::fetch [--dest DIR] [--] <url...>: a repository is cloned (ghq); a file is written into DIR, a
@@ -147,9 +211,13 @@ github::open() {
 github::action() {
   local action="${1:-}" urls=() u repos=() file type=repositories
   shift
-  if [[ "$action" == fetch && " $* " != *" -- "* ]]; then
-    github::fetch "$@"
-    return
+  # on their own (no "--" before the selection, as fzx passes it)
+  if [[ " $* " != *" -- "* ]]; then
+    case "$action" in
+      fetch) github::fetch "$@"; return ;;
+      clone) github::clone_any "$@"; return ;;
+      clone-missing) github::clone_missing "$@"; return ;;
+    esac
   fi
   # module args (the tree's --repo) are not acted on
   while (($#)) && [[ "$1" != -- ]]; do shift; done
