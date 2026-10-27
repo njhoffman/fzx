@@ -361,6 +361,7 @@ and settings.
 |---|---|---|---|---|
 | `ps` | user, all, tree | `--ppid PID` | ctrl-x SIGTERM, kill (SIGKILL, confirm; menu only), ctrl-o children | pids |
 | `files` | files, dirs, grep (as you type); toggles hidden (on), ignored, follow; sort path/recent | `[DIR]` | ctrl-e edit, ctrl-o into directory, alt-up parent, alt-h/alt-i/alt-l toggles | absolute paths (`path:line` in grep) |
+| `keybindings` | zsh (every keymap; zle descriptions from zshzle(1), user widgets from the comment above their function), tmux (the tmux module's keys), fzf (yours, then fzf's defaults) | | ctrl-y copy | bindkey / bind-key lines, fzf keys |
 | `logs` | files (newest first), units, docker | | alt-F follow (ctrl-c returns) | path, unit or container id |
 | `man` | commands (`FZX_MAN_SECTIONS`, 1 and 8), all, tldr (descriptions from tealdeer's pages); cached a day | | enter opens in the pager, alt-n nvim (`:Man`, a tldr page's markdown), ctrl-y copy | (enter opens) |
 | `systemd` | user, system, failed | | alt-s start, ctrl-x stop, alt-R restart, alt-e enable, alt-d disable, ctrl-l journal, ctrl-e edit | unit names |

@@ -6,6 +6,7 @@
 # before sourcing, e.g. FZX_ZSH_KEYS[files]='^Xf'; an empty value leaves that widget unbound.
 # A plain `fzf` (no options, nothing piped in) opens the files module instead, unless FZX_ZSH_NO_FZF=1.
 # g and gg cd to frecent directories, v opens frecent files (fzx jump), unless FZX_ZSH_NO_JUMP=1.
+# The shell's key bindings are dumped for the keybindings module unless FZX_ZSH_NO_KEYS_DUMP=1.
 
 typeset -gA FZX_ZSH_KEYS
 : ${FZX_ZSH_KEYS[files]=$'\ef'} # insert file paths
@@ -16,6 +17,21 @@ typeset -gA FZX_ZSH_KEYS
 : ${FZX_ZSH_KEYS[menu]=$'\em'}  # open the menu, insert what it returns
 : ${FZX_ZSH_KEYS[history]='^R'}  # histdb history: replace the line (alt-enter runs it)
 : ${FZX_ZSH_KEYS[repos]=$'\er'} # cd into a git repository (repos module)
+
+# keybindings: the shell's bindings for the keybindings module (fzx-keys-dump-file, from the module's
+# dump.zsh), written at the first prompt (once the startup files have bound everything) and again, in the
+# background, whenever an fzx widget runs
+source "${${(%):-%x}:A:h}/../modules/keybindings/dump.zsh"
+fzx-keys-refresh() {
+  [[ "${FZX_ZSH_NO_KEYS_DUMP:-0}" == 1 ]] && return 0
+  { fzx-keys-dump-file > /dev/null 2>&1 } &!
+}
+_fzx_keys_first_prompt() {
+  add-zsh-hook -d precmd _fzx_keys_first_prompt
+  fzx-keys-refresh
+}
+autoload -Uz add-zsh-hook
+add-zsh-hook precmd _fzx_keys_first_prompt
 
 # fzx-format: selection lines on stdin -> one shell-quoted word each, space-separated; paths under the
 # current directory become relative (the directory itself becomes "."). Both the logical $PWD and its
@@ -44,6 +60,7 @@ fzx-insert() {
   emulate -L zsh
   setopt pipefail no_aliases
   local words
+  fzx-keys-refresh
   words="$(command "${FZX_ZSH_BIN:-fzx}" "$@" < /dev/tty | fzx-format)"
   if [[ -n "$words" ]]; then
     [[ -n "$LBUFFER" && "$LBUFFER" != *' ' ]] && words=" $words"
@@ -65,6 +82,7 @@ fzx-history-widget() {
   emulate -L zsh
   setopt pipefail no_aliases
   local out mode rc query=()
+  fzx-keys-refresh
   [[ -n "$LBUFFER" ]] && query=(-- "$LBUFFER")
   case "${SHELL_HISTORY_SCOPE:-}" in
     directory | session) mode="$SHELL_HISTORY_SCOPE" ;;
@@ -90,6 +108,7 @@ fzx-cd-widget-run() {
   emulate -L zsh
   setopt pipefail no_aliases
   local dir
+  fzx-keys-refresh
   dir="$(command "${FZX_ZSH_BIN:-fzx}" "$@" < /dev/tty | head -n 1)"
   if [[ -z "$dir" ]]; then
     zle reset-prompt

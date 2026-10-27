@@ -1,0 +1,5 @@
+# keybindings components: kind  name  key  description  flags (see lib/components.sh)
+mode    zsh   -  zsh key bindings in every keymap, with the widgets' descriptions  default
+mode    tmux  -  tmux key bindings in every table (the tmux module's keys)         -
+mode    fzf   -  fzf bindings: yours (FZF_DEFAULT_OPTS) and fzf's defaults         -
+action  copy  ctrl-y  copy the selection (bindkey and bind-key lines, fzf keys)     silent,builtin

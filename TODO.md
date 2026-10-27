@@ -208,9 +208,8 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       modes all/mine/changed/unsynced/todos, fetch/pull/browse/edit, git and files hand-offs); alt-r cd widget.
 - [ ] **env** (p3) [module]: environment variables and shell parameters with values. Refs: system/fzf.params.zsh,
       vendors/completers/env.zsh. Has: everything (shell builtins).
-- [ ] **keybindings** (p3) [module]: zsh bindkey maps and tmux bindings, searchable with descriptions.
-      Refs: widgets/bindkeys/*, system/keybindings.zsh, fzf-rsc/modules/bindkeys (key list JSON).
-      Has: zsh, tmux.
+- [x] **keybindings** (p3) [module]: modules/keybindings: zsh (every keymap, zle and user widget
+      descriptions), tmux (the tmux module's keys), fzf; zsh bindings dumped by shell/fzx.zsh (0.21.0).
 - [ ] **commands** (p2) [module]: executables on PATH, aliases and shell functions with man/tldr or
       definition preview. Refs: fzfmenu system/fz-commands, system/fz-funcs. Has: man, tldr.
 - [ ] **zsh docs** (p3) [module]: the zsh manual index (option, builtin, parameter) opening the right section.

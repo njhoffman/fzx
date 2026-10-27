@@ -6,6 +6,19 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-10-27
+
+### Added
+
+- keybindings module (`fzx -m keybindings[:tmux|:fzf]`): zsh bindings in every keymap with readable keys
+  (`ctrl-x ctrl-e`, `alt-f`, `up`), zle's description of each standard widget (from zshzle(1), cached)
+  and, for your own widgets, the comment above their function; tmux bindings through the tmux module;
+  fzf bindings, yours first. The zsh preview lists every key bound to the widget and what the same key
+  does in each keymap. Enter prints `bindkey -M` lines, ready for a zshrc.
+- shell/fzx.zsh dumps the shell's bindings for it (`fzx-keys-dump-file`) at the first prompt and whenever
+  an fzx widget runs, in the background; `FZX_ZSH_NO_KEYS_DUMP=1` turns that off. Without a dump younger
+  than `FZX_KEYBINDINGS_ZSH_TTL` (a day) the module asks an interactive zsh (`zsh -ic`, about a second).
+
 ## [0.20.1] - 2026-10-27
 
 ### Fixed
