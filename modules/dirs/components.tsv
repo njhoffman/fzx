@@ -8,5 +8,9 @@ fzx::config_load "$dir" dirs
 # shellcheck source=./source.sh
 source "$dir/source.sh"
 dirs::has_fd && printf 'mode\tall\t-\tevery directory under ~ (fd)\tdefault\n'
-((${#FZX_DIRS_BOOKMARKS[@]})) && printf 'mode\tbookmarks\t-\tnamed directories (FZX_DIRS_BOOKMARKS)\t-\n'
+if ((${#FZX_DIRS_BOOKMARKS[@]})); then
+  printf 'mode\tbookmarks\t-\tnamed directories (FZX_DIRS_BOOKMARKS)\t-\n'
+  printf 'sort\tname\t-\tbookmarks: by name\tdefault\n'
+  printf 'sort\tpath\t-\tbookmarks: by path\t-\n'
+fi
 exit 0

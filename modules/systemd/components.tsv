@@ -2,6 +2,8 @@
 mode  user    -  user services                     default
 mode  system  -  system services                   -
 mode  failed  -  failed services of both managers  -
+sort  name   -  by name                                     default
+sort  state  -  failed, running, other active, then inactive  -
 action  start    alt-s   start                               foreground,reload
 action  stop     ctrl-x  stop                                foreground,reload
 action  restart  alt-R   restart                             foreground,reload

@@ -52,9 +52,13 @@ recent::score() {
 }
 
 # recent::format <files|dirs>: "score<TAB>path" -> "path<TAB>display" (dim score, prettypath when on, as
-# directories in the dirs kind), only paths that still exist as that kind
+# directories in the dirs kind), only paths that still exist as that kind. The column FZX_SORT orders by
+# (rank: the score, path: the path) is drawn in FZX_COLORS[sorted] as well.
 recent::format() {
   local kind="$1" dim=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" rst=$'\e[0m' in line test=-f pretty=() width=5
+  local hl=$'\e['"${FZX_COLORS[sorted]:-4}m" sort="${FZX_SORT:-rank}" hs="" hp=""
+  [[ "$sort" == rank ]] && hs="$hl"
+  [[ "$sort" == path ]] && hp="$hl"
   [[ "$kind" == dirs ]] && test=-d pretty=(--dirs) width=7
   in="$(cat)"
   [[ -n "$in" ]] || return 0
@@ -62,16 +66,19 @@ recent::format() {
   if fzx::pretty_on; then
     # prettypath decorates the paths; joined back to their scores by path, in the input's order (by path,
     # not by line: an older prettypath can drop lines, which keep a plain display)
-    awk -F'\t' -v dim="$dim" -v rst="$rst" -v w="$width" 'NR == FNR { shown[$1] = $2; next }
+    awk -F'\t' -v dim="$dim" -v rst="$rst" -v w="$width" -v hs="$hs" -v hp="$hp" 'NR == FNR { shown[$1] = $2; next }
       { path = $2; sub(/\/$/, "", path); disp = (path in shown) ? shown[path] : "  " path
-        printf "%s\t%s%*s%s  %s\n", path, dim, w, $1, rst, disp }' \
+        # the sorted color survives prettypath'"'"'s own resets
+        if (hp != "") { gsub(/\033\[0m/, "&" hp, disp); disp = hp disp rst }
+        printf "%s\t%s%*s%s%s  %s\n", path, dim, w - length($1), "", hs $1, rst, disp }' \
       <(cut -f2 <<< "$in" | fzx::pretty "${pretty[@]}") - <<< "$in"
   else
-    awk -F'\t' -v home="$HOME" -v dim="$dim" -v rst="$rst" -v w="$width" '
+    awk -F'\t' -v home="$HOME" -v dim="$dim" -v rst="$rst" -v w="$width" -v hs="$hs" -v hp="$hp" '
       { path = $2; sub(/\/$/, "", path); shown = path
         if (index(shown, home "/") == 1) shown = "~" substr(shown, length(home) + 1)
         n = split(shown, parts, "/"); name = parts[n]
-        printf "%s\t%s%*s%s  %s%s%s%s\n", path, dim, w, $1, rst, dim, substr(shown, 1, length(shown) - length(name)), rst, name }' <<< "$in"
+        printf "%s\t%s%*s%s%s  %s%s%s%s%s%s\n", path, dim, w - length($1), "", hs $1, rst, dim, hp,
+          substr(shown, 1, length(shown) - length(name)), rst, hp name, rst }' <<< "$in"
   fi | while IFS= read -r line; do
     test "$test" "${line%%$'\t'*}" && printf '%s\n' "$line"
   done
@@ -98,7 +105,8 @@ recent::source() {
       printf 'recent: unknown mode: %s\n' "$mode" >&2
       return 2
       ;;
-  esac | recent::format "$(recent::kind "$mode")"
+  esac | if [[ "${FZX_SORT:-rank}" == path ]]; then sort -s -t $'\t' -k2,2; else cat; fi |
+    recent::format "$(recent::kind "$mode")"
   # zoxide and fasd exit non-zero when nothing matches the words; an empty list is not an error
   return 0
 }

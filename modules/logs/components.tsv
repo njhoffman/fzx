@@ -2,4 +2,7 @@
 mode  files   -  log files, newest first                  default
 mode  units   -  journals of running and failed services  -
 mode  docker  -  docker container logs                    -
+sort  recent  -  files: newest first   default
+sort  size    -  files: largest first  -
+sort  name    -  files: by name        -
 action  follow  alt-F   follow the log (ctrl-c returns)  foreground

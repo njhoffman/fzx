@@ -241,6 +241,24 @@ fzf instead. The cache key is the view, not just the mode: `<mode>[+<toggles on>
 (`data/all+kernel@mem`), so each combination is cached once. The footer shows modes, toggles and the sort
 key, active ones highlighted (`FZX_COLORS[toggle_on|toggle_off|sort]`).
 
+A sort row's description may be scoped by mode as an action's is (`branches: last commit first`,
+`mine, starred: most stars first`): the row then exists only in the modes it names
+(`fzx::comp_sort_names`), and a mode no row names has no sort (`FZX_SORT` empty, no footer item, f11/f12
+do nothing; ps's tree, whose order is the content). The default is the row flagged `default`, else the
+first, among the rows the mode has. A scoped description must name modes that exist: one naming only
+modes the table lacks applies everywhere, so computed tables print such rows only with their mode (dirs'
+bookmarks).
+
+Sources draw the column a list is sorted by in `FZX_COLORS[sorted]` (default `4`, underline) on top of
+the column's own color, in the text and not its padding, header included where there is one. It is done
+in the source and not with fzf's `change-nth` and `--color nth`, because `change-nth` also narrows what
+the query matches to that column. Sorted columns: ps (cpu, mem, age, pid), docker containers (state, name)
+and images (created, size, name), tmux sessions, windows and panes (order, recent: an activity age column,
+name), systemd (name, state), recent (rank: the score, path), dirs bookmarks (name, path), logs files
+(recent, size, name), git branches (recent, name), github mine and starred (listed: mine's push age,
+stars, name), repos (recent, name) and history (recent, frequent). files (path, modification time) and
+todos (urgency) sort without a column to mark.
+
 ### Actions
 
 `action` rows name what can be done to the selection; `lib/actions.sh` turns them into bindings. Flags:
@@ -335,7 +353,7 @@ resolved config: the callback loads the layers just before the first module func
 | `FZX_FZF_OPTS` | `--ansi --with-shell='bash -c'` | base fzf options for every module |
 | `FZX_KEYS` | core: `reload_hard` ctrl-r, `reload_soft` alt-r, `mode_next` alt-0, `mode_prev` alt-9, `back` alt-left, `escape` esc, `popout` ctrl-^, `actions` ctrl-\\ | module navigation keys are `<module>.<name>` (`ps.children`, `files.into`), set in the module's `config.sh`; action keys are in the action rows of `components.tsv` |
 | `FZX_RESERVED_KEYS` | ctrl-f ctrl-b ctrl-u ctrl-w ctrl-g alt-g ctrl-p ctrl-n up down alt-b alt-f scroll-up scroll-down | keys modules may not bind (the user's scrolling and query editing); `fzx::bind` skips a module binding on one and logs a warning. fzx's own keys are not checked. Modules may still take keys the user binds elsewhere (ctrl-e edit replaces the user's `become(nvim)` with a per-module editor action) |
-| `FZX_COLORS` | `mode_active`, `mode_inactive`, `menu_target`, `menu_summary`, `dim` | SGR parameters for what fzx draws itself |
+| `FZX_COLORS` | `mode_active`, `mode_inactive`, `menu_target`, `menu_summary`, `dim`, `sorted` | SGR parameters for what fzx draws itself (`sorted`: added to the column a list is sorted by) |
 | `FZX_FZF_COLORS` | empty | passed as `--color` when set; empty keeps the user's fzf theme |
 | `FZX_HISTORY` | `1` | per-module `--history=$XDG_STATE_HOME/fzx/history/<module>`; `0` leaves fzf's history alone |
 | `FZX_ICON`, `FZX_PROMPT`, `FZX_PROMPT_LOADING` | icon per module (Nerd Font), `{icon} ` | the prompt: `{icon}` in `FZX_COLORS[prompt_loading]` from start until `load`, then `[prompt_loaded]`; every reload (ctrl-r, mode/toggle/sort switches, reload actions) goes back to loading first. A blank prompt (`FZX_ICON=""`) keeps fzf's own prompt and binds nothing. `)` is dropped (it would end `change-prompt(...)`) |

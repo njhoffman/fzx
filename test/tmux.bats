@@ -52,6 +52,18 @@ act() { FZX_MODE="$1" "$TMUX_MOD/actions.sh" "${@:2}"; }
   [[ "$output" == *$'$0\tname with spaces '* ]]
 }
 
+@test "tmux: sessions, windows and panes sort by tmux's order, last activity or name; the age shows, the sorted column underlined" {
+  run src sessions
+  [[ "${lines[0]}" =~ $'\t'.*\ \ [0-9]+[smhd]$'\t' ]] || { printf '%s\n' "$output"; return 1; }
+  ! grep -q $'\e\[4m' "$BATS_TEST_TMPDIR/src.out"
+  tmux rename-session -t '$0' zeta
+  FZX_SORT=name run src sessions
+  [[ "${lines[0]}" == *$'\tsecond '* && "${lines[1]}" == *$'\tzeta '* ]]
+  grep -q $'\e\[4m\e\[[0-9;]*msecond' "$BATS_TEST_TMPDIR/src.out"
+  FZX_SORT=recent run src windows
+  grep -q $'\e\[4m\e\[[0-9;]*m[0-9]*[smhd]\e' "$BATS_TEST_TMPDIR/src.out"
+}
+
 @test "tmux: reference modes read installed commands, bindings, options and variables" {
   local mode
   # hooks lists only set hooks, and the empty test server has none

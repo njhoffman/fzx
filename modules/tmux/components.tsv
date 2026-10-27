@@ -11,6 +11,9 @@ mode  styles     -  style options                         -
 mode  formats    -  format templates with rendered samples  -
 mode  status     -  rendered status-left and status-right   -
 mode  hooks      -  hooks by scope                         -
+sort  order   -  sessions, windows, panes: tmux's order               default
+sort  recent  -  sessions, windows, panes: last active first         -
+sort  name    -  sessions, windows, panes: by name                   -
 toggle  changed  alt-d  keys/options/hooks: only changes and local overrides    -
 toggle  unassigned  alt-u  keys: show free keys in the selected table           -
 toggle  empty    alt-e  variables and hooks: include empty values               -

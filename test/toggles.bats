@@ -126,3 +126,40 @@ kept() {
   FZX_MODE=all FZX_SORT=pid FZX_TOGGLES=kernel run "$BATS_TEST_DIRNAME/../modules/ps/source.sh"
   [[ "${lines[1]}" =~ ^1\  ]]
 }
+
+@test "sort rows scoped by mode: the first that applies starts, other modes have none, another mode's sort is ignored" {
+  cat > "$FZX_CONFIG_DIR/modules/counter/components.tsv" << 'EOF2'
+sort  size  f5  one: by size        default
+sort  name  -   one, two: by name   -
+EOF2
+  STUB_FZF_RUN='echo "[$FZX_SORT]" > "$BATS_TEST_TMPDIR/env"' run "$FZX" -m counter:two
+  [ "$(< "$BATS_TEST_TMPDIR/env")" = "[name]" ]
+  STUB_FZF_RUN='echo "[$FZX_SORT]" > "$BATS_TEST_TMPDIR/env"' run "$FZX" -m counter:three
+  [ "$(< "$BATS_TEST_TMPDIR/env")" = "[]" ]
+  read_fzf_args
+  local footer
+  footer="$(printf '%s\n' "${FZF_ARGS[@]}" | grep -- '^--footer=')"
+  [[ "$footer" == *three* && "$footer" != *name* ]]
+  kept
+  FZX_SESSION="$SID" "$FZX" _cb mode two > /dev/null
+  # size is one's only: f5 does nothing in two, next stays on the one sort two has
+  FZX_SESSION="$SID" run "$FZX" _cb sort size
+  [ "$status" -eq 0 ]
+  FZX_SESSION="$SID" "$FZX" _cb sort next > /dev/null
+  [ "$(< "$DIR/state/sort")" = name ]
+}
+
+@test "ps: the sorted column is underlined, header too; tree has no sort" {
+  FZX_MODE=all FZX_SORT=mem run "$BATS_TEST_DIRNAME/../modules/ps/source.sh"
+  [[ "${lines[0]}" == *$'\e[1;38;5;245;4m%MEM\e[0m'* && "${lines[0]}" != *'4m%CPU'* ]]
+  [[ "${lines[1]}" =~ $'\e['[0-9\;]+';4m'[0-9.]+$'\e[0m' ]]
+  FZX_MODE=tree FZX_SORT= run "$BATS_TEST_DIRNAME/../modules/ps/source.sh"
+  [[ "${lines[0]}" != *';4m'* ]]
+  load_libs log session components
+  fzx::comp_load "$FZX_REPO/modules/ps" ps
+  local names=()
+  FZX_MODE=tree fzx::comp_sort_names names
+  [ "${#names[@]}" -eq 0 ]
+  FZX_MODE=user fzx::comp_sort_names names
+  [ "${names[*]}" = "cpu mem age pid" ]
+}

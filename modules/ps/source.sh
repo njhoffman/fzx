@@ -10,10 +10,17 @@
 # stopped blue); the tty cyan; the command's name bold white after its dim directory, options blue, paths
 # light grey, kernel threads cyan, the tree's branches dim. Kernel threads (pid 2 and its children) are
 # dropped unless kernel is 1. The pid stays first and left-aligned ({1}); NO_COLOR leaves the escapes out.
+# The sorted column (the column number given, 0 for none) is also drawn in FZX_COLORS[sorted], its header too.
 ps::color() {
-  awk -v kernel="$1" -v me="${USER:-$(id -un)}" -v nocolor="${NO_COLOR+x}" '
+  awk -v kernel="$1" -v scol="${2:-0}" -v hl="${FZX_COLORS[sorted]:-4}" -v me="${USER:-$(id -un)}" -v nocolor="${NO_COLOR+x}" '
     function c(code, text) { return nocolor != "" || text ~ /^ *$/ ? text : "\033[" code "m" text "\033[0m" }
     function pad(text, w, right) { return right ? sprintf("%" w "s", text) : sprintf("%-" w "s", text) }
+    # col(i, code, text, right): column i padded to its width; the sorted one adds hl to the text, not the padding
+    function col(i, code, text, right,  p) {
+      p = pad(text, w[i], right)
+      if (i != scol || text == "") return c(code, p)
+      return (right ? substr(p, 1, length(p) - length(text)) : "") c(code ";" hl, text) (right ? "" : substr(p, length(text) + 1))
+    }
     function human(kb) {
       if (kb !~ /^[0-9]+$/) return kb
       if (kb < 1024) return kb "K"
@@ -52,15 +59,16 @@ ps::color() {
       split("PID PPID USER %CPU %MEM RSS ELAPSED STAT TT", h, " ")
       right[2] = right[4] = right[5] = right[6] = right[7] = 1
       line = ""
-      for (i = 1; i <= 9; i++) { if (length(h[i]) > w[i]) w[i] = length(h[i]); line = line pad(h[i], w[i], right[i]) " " }
-      print c("1;38;5;245", line "COMMAND")
+      for (i = 1; i <= 9; i++) if (length(h[i]) > w[i]) w[i] = length(h[i])
+      for (i = 1; i <= 9; i++) line = line col(i, "1;38;5;245", h[i], right[i]) " "
+      print line c("1;38;5;245", "COMMAND")
       for (r = 1; r <= n; r++) {
         u = row[r, 3]
-        line = c("1;38;5;141", pad(row[r, 1], w[1])) " " c("38;5;244", pad(row[r, 2], w[2], 1)) " "
-        line = line c(u == "root" ? "1;38;5;203" : u == me ? "38;5;110" : "38;5;81", pad(u, w[3])) " "
-        line = line c(load(row[r, 4]), pad(row[r, 4], w[4], 1)) " " c(load(row[r, 5]), pad(row[r, 5], w[5], 1)) " "
-        line = line c("38;5;152", pad(row[r, 6], w[6], 1)) " " c("38;5;245", pad(row[r, 7], w[7], 1)) " "
-        line = line c(state(row[r, 8]), pad(row[r, 8], w[8])) " " c(row[r, 9] == "?" ? "38;5;240" : "38;5;117", pad(row[r, 9], w[9])) " "
+        line = col(1, "1;38;5;141", row[r, 1]) " " col(2, "38;5;244", row[r, 2], 1) " "
+        line = line col(3, u == "root" ? "1;38;5;203" : u == me ? "38;5;110" : "38;5;81", u) " "
+        line = line col(4, load(row[r, 4]), row[r, 4], 1) " " col(5, load(row[r, 5]), row[r, 5], 1) " "
+        line = line col(6, "38;5;152", row[r, 6], 1) " " col(7, "38;5;245", row[r, 7], 1) " "
+        line = line col(8, state(row[r, 8]), row[r, 8]) " " col(9, row[r, 9] == "?" ? "38;5;240" : "38;5;117", row[r, 9]) " "
         print line command(args[r])
       }
     }'
@@ -68,12 +76,12 @@ ps::color() {
 
 # ps::source [--ppid PID]   only the direct children of PID
 ps::source() {
-  local mode="${FZX_MODE:-user}" scope sort ppid="" kernel=0
+  local mode="${FZX_MODE:-user}" scope sort ppid="" kernel=0 scol=0
   case "${FZX_SORT:-cpu}" in
-    cpu) sort=(--sort=-%cpu) ;;
-    mem) sort=(--sort=-%mem) ;;
-    age) sort=(--sort=etimes) ;;
-    pid) sort=(--sort=pid) ;;
+    cpu) sort=(--sort=-%cpu) scol=4 ;;
+    mem) sort=(--sort=-%mem) scol=5 ;;
+    age) sort=(--sort=etimes) scol=7 ;;
+    pid) sort=(--sort=pid) scol=1 ;;
     *)
       printf 'ps: unknown sort: %s\n' "$FZX_SORT" >&2
       return 2
@@ -101,7 +109,7 @@ ps::source() {
   case "$mode" in
     user) scope=(--user="${USER:-$(id -un)}") ;;
     all) scope=(-e) ;;
-    tree) scope=(-e) sort=(--forest) ;;
+    tree) scope=(-e) sort=(--forest) scol=0 ;;
     *)
       printf 'ps: unknown mode: %s\n' "$mode" >&2
       return 2
@@ -116,7 +124,7 @@ ps::source() {
   if ((rc != 0)) && [[ "$out" != *PID* ]]; then
     return "$rc"
   fi
-  printf '%s\n' "$out" | ps::color "$kernel"
+  printf '%s\n' "$out" | ps::color "$kernel" "$scol"
 }
 
 [[ "${BASH_SOURCE[0]}" == "$0" ]] && ps::source "$@"

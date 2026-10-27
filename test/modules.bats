@@ -255,3 +255,27 @@ stub_systemctl() {
   [[ "$ids" == *"logs#0 "* && "$ids" == *"ps#0 "* ]]
   if command -v fd > /dev/null; then [[ "$ids" == *"files#0 "* ]]; fi
 }
+
+@test "logs: files sort by size or name; the sorted column is underlined" {
+  mkdir -p "$FZX_CONFIG_DIR/modules/logs" "$BATS_TEST_TMPDIR/logs"
+  head -c 5000 /dev/zero > "$BATS_TEST_TMPDIR/logs/big.log"
+  touch -d '2 days ago' "$BATS_TEST_TMPDIR/logs/big.log"
+  echo a > "$BATS_TEST_TMPDIR/logs/abc.log"
+  printf 'FZX_LOGS_FILES=()\nFZX_LOGS_GLOBS=("%s/logs/*.log")\n' "$BATS_TEST_TMPDIR" > "$FZX_CONFIG_DIR/modules/logs/config.sh"
+  run "$MODS/logs/source.sh"
+  [[ "${lines[0]}" == *abc.log* && "${lines[0]}" =~ $'\e[38;5;46;4m'[0-9]+s ]]
+  FZX_SORT=size run "$MODS/logs/source.sh"
+  [[ "${lines[0]}" == *big.log* && "${lines[0]}" == *$'\e[38;5;152;4m4K\e[0m'* ]]
+  FZX_SORT=name run "$MODS/logs/source.sh"
+  [[ "${lines[0]}" == *abc.log* && "${lines[0]}" == *$'\e[4mabc\e[0m'* && "${lines[1]}" == *big.log* ]]
+}
+
+@test "systemd: by name, or by state (failed, running, other active, inactive), the sorted column underlined" {
+  stub_cmd systemctl 'printf "a.service loaded inactive dead A\nb.service loaded active running B\nc.service loaded failed failed C\n"'
+  run "$MODS/systemd/source.sh"
+  [ "$(printf '%s\n' "${lines[@]}" | cut -f2 | tr '\n' ' ')" = "a.service b.service c.service " ]
+  [[ "${lines[0]}" == *$'\e[4ma.service\e[0m'* ]]
+  FZX_SORT=state run "$MODS/systemd/source.sh"
+  [ "$(printf '%s\n' "${lines[@]}" | cut -f2 | tr '\n' ' ')" = "c.service b.service a.service " ]
+  [[ "${lines[0]}" == *$'\e[38;5;244m\e[4mfailed\e[0m'* ]]
+}

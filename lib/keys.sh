@@ -255,6 +255,8 @@ fzx::keys_page() {
       for row in "${comps[@]}"; do
         IFS=$'\t' read -r k name a desc <<< "$row"
         [[ "$k" == "$kind" ]] || continue
+        # a sort order of other modes only (scoped like actions): not this screen's
+        [[ "$k" == sort ]] && ((${#modes[@]})) && ! fzx::mode_desc "$desc" "$cur_mode" scoped "${modes[@]}" && continue
         line+="${line:+  }$name"
         [[ -n "$a" && "$a" != - ]] && line+=" ${d}[$a]$r"
       done

@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # logs source. Lines are "kind<TAB>target<TAB>display", kind being file, unit-user, unit-system or docker.
 # Mode from $FZX_MODE: files (default), units, docker.
+# $FZX_SORT (files): recent (newest first, default), size (largest first) or name; the sorted column is
+# drawn in FZX_COLORS[sorted] as well.
 
-# logs::age <seconds>: short age with a color that fades from bright to dim
+# logs::age <seconds> [SGR]: short age, right-aligned in 4 columns, with a color that fades from bright to
+# dim (and the SGR given, for the sorted column)
 logs::age() {
   local s="$1" clr text
   if ((s < 60)); then
@@ -14,11 +17,20 @@ logs::age() {
   else
     clr="38;5;240" text="$((s / 86400))d"
   fi
-  printf '\e[%sm%4s\e[0m' "$clr" "$text"
+  printf '%*s\e[%s%sm%s\e[0m' "$((4 - ${#text}))" "" "$clr" "${2:+;$2}" "$text"
+}
+
+# logs::size <bytes>: K, M or G
+logs::size() {
+  local b="$1"
+  if ((b < 1024)); then printf '%sB' "$b"
+  elif ((b < 1048576)); then printf '%sK' "$((b / 1024))"
+  elif ((b < 1073741824)); then printf '%sM' "$((b / 1048576))"
+  else printf '%s.%sG' "$((b / 1073741824))" "$((b % 1073741824 * 10 / 1073741824))"; fi
 }
 
 logs::source_files() {
-  local name path mtime glob icon
+  local name path mtime size glob icon key sort="${FZX_SORT:-recent}" hl="${FZX_COLORS[sorted]:-4}" h shown
   local -A seen=() files=()
   fzx::require icons
   fzx::icon file icon
@@ -34,15 +46,24 @@ logs::source_files() {
       files[$name]="$path"
     done
   done
-  # most recently written first
   for name in "${!files[@]}"; do
     path="${files[$name]}"
     [[ -f "$path" && -r "$path" && -z "${seen[$path]:-}" ]] || continue
     seen[$path]=1
-    mtime="$(stat -c %Y -- "$path")" || continue
-    printf '%s\tfile\t%s\t%s  %s%-28s \e[38;5;244m%s\e[0m\n' "$mtime" "$path" \
-      "$(logs::age $((EPOCHSECONDS - mtime)))" "${icon:+$'\e[38;5;110m'$icon$'\e[0m' }" "$name" "${path/#$HOME/\~}"
-  done | sort -t $'\t' -k1,1nr | cut -f2-
+    read -r mtime size < <(stat -c '%Y %s' -- "$path") || continue
+    case "$sort" in
+      size) printf -v key '%015d' "$((999999999999999 - size))" ;;
+      name) key="${name,,}" ;;
+      *) printf -v key '%015d' "$((999999999999999 - mtime))" ;;
+    esac
+    printf -v shown '%-28s' "$name"
+    [[ "$sort" == name ]] && shown=$'\e['"${hl}m$name"$'\e[0m'"${shown:${#name}}"
+    h="$(logs::size "$size")"
+    printf -v h '%*s%s' "$((5 - ${#h}))" "" $'\e[38;5;152'"$([[ "$sort" == size ]] && printf ';%s' "$hl")m$h"$'\e[0m'
+    printf '%s\tfile\t%s\t%s  %s%s %s \e[38;5;244m%s\e[0m\n' "$key" "$path" \
+      "$(logs::age $((EPOCHSECONDS - mtime)) "$([[ "$sort" == recent ]] && printf %s "$hl")")" \
+      "${icon:+$'\e[38;5;110m'$icon$'\e[0m' }" "$shown" "$h" "${path/#$HOME/\~}"
+  done | sort -s -t $'\t' -k1,1 | cut -f2-
 }
 
 logs::source_units() {

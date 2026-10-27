@@ -96,6 +96,11 @@ repos_fn() {
   [[ "${lines[2]}" == *other/beta* ]]
   FZX_SORT=name run src
   [[ "${lines[0]}" == *gitlab.com/team/gamma* && "${lines[1]}" == *me/alpha* && "${lines[2]}" == *other/beta* ]]
+  # the sorted column underlined: the last commit's age, or the name
+  run bash -c "'$REPOS/source.sh' | grep alpha"
+  [[ "$output" =~ $'\e[4m'[0-9]+(m|h|d|w|mo|y)$'\e[0m' ]]
+  run bash -c "FZX_SORT=name '$REPOS/source.sh' | grep alpha"
+  [[ "$output" == *$'\e[4malpha\e[0m'* ]]
 }
 
 @test "extra roots: their repositories are added, links into ghq collapse" {

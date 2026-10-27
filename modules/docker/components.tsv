@@ -5,6 +5,10 @@ mode    volumes     -  volumes (unused ones dim)                         -
 mode    networks    -  networks                                          -
 mode    compose     -  compose projects                                  -
 toggle  running     alt-a  containers: only running ones                 -
+sort    state       -      containers: running first                     default
+sort    created     -      images: newest first                          -
+sort    name        -      containers, images: by name                   -
+sort    size        -      images: largest first                         -
 action  start       alt-s   start containers / compose up -d             reload
 action  stop        ctrl-x  stop containers / compose down               reload
 action  restart     alt-R   restart containers / compose restart         reload

@@ -95,10 +95,14 @@ history::source() {
     group by history.command_id
     $having
     order by $order" |
-    awk -F'\x1f' -v dim="$dim" -v red="$red" -v rst="$rst" -v failed="$failed" '
-      # the failed icon (or as much blank) between the count and the command, so commands line up
+    awk -F'\x1f' -v dim="$dim" -v red="$red" -v rst="$rst" -v failed="$failed" -v sort="${FZX_SORT:-recent}" \
+      -v hl=$'\e['"${FZX_COLORS[sorted]:-4}m" '
+      # the failed icon (or as much blank) between the count and the command, so commands line up; the
+      # sorted column (the time, or the count) also in the sorted color
       { mark = failed == "" ? "" : ($4 != 0 ? red failed rst " " : "  ")
-        printf "%s\t%s%8s %5s%s  %s%s%s%s\n", $1, dim, $5, ($3 > 1 ? $3 "x" : ""), rst, mark, ($4 != 0 ? red : ""), $6, ($4 != 0 ? rst : "") }'
+        n = $3 > 1 ? $3 "x" : ""
+        printf "%s\t%s%*s%s%s%s %*s%s%s%s  %s%s%s%s\n", $1, dim, 8 - length($5), "", (sort == "frequent" ? "" : hl), $5, rst dim,
+          5 - length(n), "", (sort == "frequent" && n != "" ? hl : ""), n, rst, mark, ($4 != 0 ? red : ""), $6, ($4 != 0 ? rst : "") }'
 }
 
 [[ "${BASH_SOURCE[0]}" == "$0" ]] && {

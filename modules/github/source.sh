@@ -251,8 +251,11 @@ github::repo_rows() {
      (now - ((.pushedAt // .createdAt) | fromdateiso8601) | floor), .isArchived,
      ((.description // "") | gsub(":(?<n>[a-z0-9_+-]+):"; $e[.n] // ":\(.n):")), $cloned]
     | map(tostring | gsub("[\t\r\n]+"; " ")) | join("\t")' -- "$1" |
-    awk -F'\t' -v OFS='\t' "${FZX_ICON_VARS[@]}" "${langs[@]}" -v o="$o" -v n="$n" -v s="$s" -v c="$c" -v d="$d" -v r="$r" '
-      BEGIN { k = split(langs, l, " "); for (i = 1; i <= k; i++) { split(l[i], kv, "="); gsub(/_/, " ", kv[1]); icon[kv[1]] = kv[2] } }
+    awk -F'\t' -v OFS='\t' "${FZX_ICON_VARS[@]}" "${langs[@]}" -v o="$o" -v n="$n" -v s="$s" -v c="$c" -v d="$d" -v r="$r" \
+      -v sort="${FZX_SORT:-}" -v mode="${FZX_MODE:-}" -v hl="${r:+$'\e['"${FZX_COLORS[sorted]:-4}m"}" '
+      BEGIN { k = split(langs, l, " "); for (i = 1; i <= k; i++) { split(l[i], kv, "="); gsub(/_/, " ", kv[1]); icon[kv[1]] = kv[2] }
+              # the sorted column: the name, the stars, or the last push (mine as listed)
+              hn = sort == "name" ? hl : ""; hs = sort == "stars" ? hl : ""; ha = sort == "listed" && mode == "mine" ? hl : "" }
       function short(x) { x += 0; if (x >= 1e6) return sprintf("%.1fm", x / 1e6); if (x >= 1e3) return sprintf("%.1fk", x / 1e3); return x }
       function age(x) {
         if (x < 3600) return int(x / 60) "m"; if (x < 86400) return int(x / 3600) "h"
@@ -260,13 +263,17 @@ github::repo_rows() {
         return int(x / 31536000) "y" }
       { split($3, on, "/"); width = length($3)
         lang = ($6 in icon) ? icon[$6] : icon_repo
-        name = o on[1] "/" r n on[2] r
+        name = o on[1] "/" r n hn on[2] r
         if ($11 == "true") { name = name " " d icon_archived r; width += 2 }
         # cloned here: the folder icon (unicode/none styles: "+"), else a space of the same width
         mark = ($13 == "true") ? (icon_folder != "" ? icon_folder : "+") : " "
         pad = 40 - width; if (pad < 1) pad = 1
-        print $1, $2, $3, $4, $5, sprintf("%s%s%s %s%*s%s%s %6s%s  %s%s %5s  %s %4s%s  %4s  %s%s%s", (lang != "" ? lang " " : ""), c, mark, name, pad, "",
-          s, icon_star, short($7), r, c, icon_fork, short($8), icon_issue, short($9), r, age($10), d, $12, r) }'
+        # a sort key in front, cut off after sorting (listed: the order the list came in)
+        key = sort == "stars" ? sprintf("%012d", 1e11 - $7) : sort == "name" ? tolower($3) : sprintf("%08d", NR)
+        st = short($7); a = age($10)
+        print key, $1, $2, $3, $4, $5, sprintf("%s%s%s %s%*s%s%s %*s%s%s%s  %s%s %5s  %s %4s%s  %*s%s%s%s  %s%s%s", (lang != "" ? lang " " : ""), c, mark, name, pad, "",
+          s, icon_star, 6 - length(st), "", hs, st, r, c, icon_fork, short($8), icon_issue, short($9), r, 4 - length(a), "", ha, a, r, d, $12, r) }' |
+    sort -s -t $'\t' -k1,1 | cut -f2-
 }
 
 # github::code_rows <file>: a code search's rows: the repository, the path and how many matches

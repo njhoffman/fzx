@@ -91,6 +91,12 @@ src() {
   ids="$(printf '%s\n' "${lines[@]}" | cut -f1 | sort | tr '\n' ' ')"
   [ "$ids" = "feature main origin/feature origin/main " ]
   [[ "$(printf '%s\n' "${lines[@]}" | grep $'^main\t')" == *"* main"*"[ahead 1]"* ]]
+  # sorted by name: the name underlined; by last commit (the default): the date
+  FZX_SORT=name run src branches
+  [ "$(printf '%s\n' "${lines[@]}" | cut -f1 | tr '\n' ' ')" = "feature main origin/feature origin/main " ]
+  grep -q $'\e\[32;4mfeature' "$BATS_TEST_TMPDIR/src.out"
+  run src branches
+  grep -q $'\e\[38;5;244;4m[0-9a-z ]*ago' "$BATS_TEST_TMPDIR/src.out"
 }
 
 @test "stash: lists stashes" {

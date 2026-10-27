@@ -66,7 +66,7 @@ repos::source() {
     -v c_dim=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" -v c_branch=$'\e['"${FZX_COLORS[repos_branch]:-38;5;81}m" \
     -v c_changed=$'\e['"${FZX_COLORS[repos_changed]:-38;5;255}m" -v c_ahead=$'\e['"${FZX_COLORS[repos_ahead]:-38;5;114}m" \
     -v c_behind=$'\e['"${FZX_COLORS[repos_behind]:-38;5;203}m" -v c_todo=$'\e['"${FZX_COLORS[repos_todo]:-38;5;117}m" \
-    -v rst=$'\e[0m' '
+    -v rst=$'\e[0m' -v hl=$'\e['"${FZX_COLORS[sorted]:-4}m" '
     function age(t,   s) {
       if (t == "") return ""
       s = now - t
@@ -100,8 +100,10 @@ repos::source() {
       bicon = (branch != "" && icon_branch != "") ? icon_branch " " : (icon_branch != "" ? "  " : "")
       shown = prefix name; pad = 44 - length(shown); if (pad < 1) pad = 1
       bpad = 20 - length(branch); if (bpad < 1) bpad = 1
-      line = dir "\t" c_dim prefix rst c_name name rst sprintf("%" pad "s", "") c_branch bicon branch rst \
-        sprintf("%" bpad "s", "") c_dim sprintf("%4s", age(last)) rst "  " flags
+      # the sorted column (name, or the last commit) also in the sorted color
+      a = age(last)
+      line = dir "\t" c_dim prefix rst c_name (sort == "name" ? hl : "") name rst sprintf("%" pad "s", "") c_branch bicon branch rst \
+        sprintf("%" bpad "s", "") sprintf("%" (4 - length(a)) "s", "") c_dim (sort == "name" ? "" : hl) a rst "  " flags
       key = (sort == "name") ? tolower(prefix name) : sprintf("%012d", 999999999999 - (last == "" ? 0 : last))
       print key "\t" line
     }' "$cache" - | sort -t $'\t' -k1,1 | cut -f2-

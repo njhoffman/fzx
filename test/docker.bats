@@ -110,3 +110,17 @@ STUB
   [ "$status" -eq 0 ]
   [[ "$output" == *'[name-c1] line one of c1'* && "$output" == *'[name-c2] line two of c2'* ]]
 }
+
+@test "sorts: containers by state or name, images by created, size or name; the sorted column underlined" {
+  FZX_SORT=name run src containers
+  [[ "${lines[0]}" == c1$'\t'*old-job* && "${lines[1]}" == c2$'\t'*web* ]]
+  run bash -c "FZX_SORT=name FZX_MODE=containers '$DOCKER/source.sh'"
+  [[ "${lines[1]}" == *$'\e[4mweb\e[0m'* ]]
+  run bash -c "FZX_SORT=size FZX_MODE=images '$DOCKER/source.sh'"
+  [[ "${lines[0]}" == i1$'\t'* && "${lines[0]}" == *$'\e[4m180MB\e[0m'* ]]
+  FZX_SORT=name run src images
+  # untagged images last
+  [[ "${lines[0]}" == i1$'\t'* && "${lines[1]}" == i2$'\t'* ]]
+  run bash -c "FZX_SORT=created FZX_MODE=images '$DOCKER/source.sh'"
+  [[ "${lines[0]}" == i1$'\t'* && "${lines[0]}" == *$'4m2 weeks ago\e[0m'* ]]
+}

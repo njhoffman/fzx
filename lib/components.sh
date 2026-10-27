@@ -142,7 +142,8 @@ fzx::comp_flag() {
 # and FZX_SORT. Session state wins (state/toggles, state/sort); otherwise the environment (a standalone
 # run), otherwise the table's defaults (toggles flagged "on", the sort flagged "default", else the first).
 fzx::comp_current() {
-  local _row _k _n _f _have_state=0 _t="" _s="" _first_sort="" _def_sort=""
+  local _row _k _n _f _have_state=0 _t="" _s="" _first_sort="" _def_sort="" _sorts=()
+  fzx::comp_sort_names _sorts
   if [[ -n "${FZX_SESSION_DIR:-}" && -f "$FZX_SESSION_DIR/state/toggles" ]]; then
     fzx::_kv_get "$FZX_SESSION_DIR/state/toggles" _t || :
     _have_state=1
@@ -154,7 +155,7 @@ fzx::comp_current() {
     IFS=$'\t' read -r _k _n _ _ _f <<< "$_row"
     if [[ "$_k" == toggle ]] && ((!_have_state)) && [[ ",$_f," == *,on,* ]]; then
       _t+="${_t:+ }$_n"
-    elif [[ "$_k" == sort ]]; then
+    elif [[ "$_k" == sort && " ${_sorts[*]} " == *" $_n "* ]]; then
       [[ -n "$_first_sort" ]] || _first_sort="$_n"
       [[ -z "$_def_sort" && ",$_f," == *,default,* ]] && _def_sort="$_n"
     fi
@@ -164,11 +165,29 @@ fzx::comp_current() {
   else
     _s="${FZX_SORT:-}"
   fi
-  # a sort name that is not (or no longer) in the table falls back to the default
-  [[ -n "$_s" ]] && ! fzx::comp_field sort "$_s" key _ 2> /dev/null && _s=""
+  # a sort name that is not (or no longer) in the table, or not for this mode, falls back to the default
+  [[ -n "$_s" && " ${_sorts[*]} " != *" $_s "* ]] && _s=""
   [[ -n "$_s" ]] || _s="${_def_sort:-$_first_sort}"
   FZX_TOGGLES="$_t" FZX_SORT="$_s"
   export FZX_TOGGLES FZX_SORT
+}
+
+# fzx::comp_sort_names <array var>: the sort orders that apply in FZX_MODE, table order. A sort row whose
+# description is scoped by mode ("mine, starred: most stars first", as actions are) applies only in the
+# modes it names; ps's tree, whose order is the content, has none.
+fzx::comp_sort_names() {
+  local _row _k _n _d _modes=() _names=()
+  for _row in "${FZX_COMP[@]}"; do
+    IFS=$'\t' read -r _k _n _ _ <<< "$_row"
+    [[ "$_k" == mode ]] && _modes+=("$_n")
+  done
+  for _row in "${FZX_COMP[@]}"; do
+    IFS=$'\t' read -r _k _n _ _d _ <<< "$_row"
+    [[ "$_k" == sort ]] || continue
+    ((${#_modes[@]})) && ! fzx::mode_desc "$_d" "${FZX_MODE:-}" _d "${_modes[@]}" && continue
+    _names+=("$_n")
+  done
+  eval "$1=(\"\${_names[@]}\")"
 }
 
 # fzx::comp_on <toggle>: the toggle is on (expects comp_current)

@@ -95,9 +95,6 @@ Categories: module
 - [ ] **Previewer command setting** (p2) [feature]: an env variable / config value for the syntax viewer command
       line (preferred: `nvimpager -c`; default `bat`), plus per-file-type viewers (e.g. a map of glob or mime
       to command). The logic belongs in the preview script (above), with fzx passing the setting through.
-- [ ] **Sort by column in every module** (p2) [feature]: sort rows for as many modules as possible (not just
-      ps), and highlight the sorted column with `change-nth` plus `--color nth:regular,fg:dim`. ps:tree keeps
-      `--no-sort` (its order is the tree); decide whether tree sorts siblings only or disables the sort keys.
 - [ ] **Sessions module** (p3) [module]: a picker over `fzx debug ls` that resumes a kept or running session from
       another terminal.
 - [ ] **Piping** (p3) [feature]: when stdin is not a tty and no module is given, match each manifest's `detect`

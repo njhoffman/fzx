@@ -353,6 +353,14 @@ searches() { grep -c '^search ' "$BATS_TEST_TMPDIR/gh.calls" 2> /dev/null || ech
   [ -f "$FZX_CACHE_DIR/github/list/mine-someone.json" ]
   run src starred ""
   [ "${#lines[@]}" -eq 2 ]
+  # sorts: as listed (mine: last push, its age underlined), most stars, or by name (colors on for these)
+  unset NO_COLOR
+  FZX_SORT=listed run src mine ""
+  [[ "${lines[0]}" == *me/priv* ]] && grep -q $'\e\[4m[0-9]*[a-z]*\e\[0m' "$BATS_TEST_TMPDIR/src.out"
+  FZX_SORT=name run src mine ""
+  [[ "${lines[0]}" == *me/forked* && "${lines[1]}" == *me/priv* ]] && grep -q $'\e\[4mforked' "$BATS_TEST_TMPDIR/src.out"
+  FZX_SORT=stars run src mine ""
+  [[ "${lines[0]}" == *me/priv* ]] && grep -q $'\e\[4m1\e\[0m' "$BATS_TEST_TMPDIR/src.out"
   STUB_GH_FAIL=1 FZX_GITHUB_CACHE_TTL=0 run src starred ""
   [ "$status" -eq 1 ]
   [[ "$output" == *$'\t'error$'\t'*"cannot list starred: HTTP 401: Bad credentials"* ]]

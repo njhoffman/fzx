@@ -129,7 +129,7 @@ fzx::nav_sort() {
   fzx::session_modes
   fzx::session_mode FZX_MODE
   fzx::comp_current
-  mapfile -t names < <(fzx::comp_rows sort | cut -f2)
+  fzx::comp_sort_names names
   n="${#names[@]}"
   ((n > 0)) || return 0
   for ((i = 0; i < n; i++)); do
@@ -139,6 +139,10 @@ fzx::nav_sort() {
     next) sort="${names[(idx + 1) % n]}" ;;
     prev) sort="${names[(idx - 1 + n) % n]}" ;;
     *)
+      # a sort another mode has: nothing to do here
+      if fzx::comp_field sort "$target" key _ && [[ " ${names[*]} " != *" $target "* ]]; then
+        return 0
+      fi
       if ! fzx::comp_field sort "$target" key _; then
         fzx::log error "unknown sort for $FZX_MODULE: $target"
         printf 'fzx: unknown sort: %s\n' "$target" >&2

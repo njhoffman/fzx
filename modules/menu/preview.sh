@@ -62,7 +62,7 @@ menu::_components() {
     IFS=$'\t' read -r kind name key desc flags <<< "$row"
     [[ ",$flags," == *,hidden,* || ",$flags," == *,builtin,* ]] && continue
     [[ "$desc" == - ]] && desc=""
-    if [[ "$kind" == action ]] && ((${#modes[@]} > 1)); then
+    if [[ "$kind" == action || "$kind" == sort ]] && ((${#modes[@]} > 1)); then
       fzx::mode_desc "$desc" "$mode" desc "${modes[@]}" || continue
     fi
     if [[ "$kind" != "$last" ]]; then

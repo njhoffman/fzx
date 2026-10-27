@@ -749,8 +749,14 @@ def stream(args):
             continue
         identifier, display = fields
         if args.mode in ("sessions", "windows", "panes"):
+            # the last field is the age of the last activity; the sorted column also gets the sorted color
             first, _, rest = display.partition("  ")
-            decorated = paint(first, "name") + "  " + paint(rest, "dim")
+            rest, _, age = rest.rpartition("  ")
+            sorted_code = os.environ.get("FZX_TMUX_COLOR_SORTED", "4")
+            mark = f"\033[{sorted_code}m" if re.fullmatch(r"[0-9;]+", sorted_code) else ""
+            first = (mark if args.sorted == "name" else "") + paint(first, "name")
+            age = (mark if args.sorted == "recent" else "") + paint(age, "dim")
+            decorated = first + "  " + paint(rest, "dim") + "  " + age
             decorated = decorated.replace("attached", paint("attached", "value"))
         elif args.mode == "buffers":
             first, _, rest = display.partition("  ")
@@ -774,6 +780,7 @@ def main():
     parser.add_argument("--data-file", default="")
     parser.add_argument("--identifier", default="")
     parser.add_argument("--metadata", default="{}")
+    parser.add_argument("--sorted", default="")
     args = parser.parse_args()
     if args.operation == "preview":
         preview(args)

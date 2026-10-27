@@ -40,6 +40,15 @@ STUB
   [ "$(< "$BATS_TEST_TMPDIR/fzf.mode")" = nvim ]
 }
 
+@test "sort: the ranking (score underlined) or by path (path underlined)" {
+  run bash -c "'$RECENT/source.sh' | head -1 | cut -f2"
+  [[ "$output" == *$'\e[4m200\e[0m'* ]]
+  run bash -c "FZX_SORT=path '$RECENT/source.sh' | cut -f1"
+  [ "$output" = "$T/other.txt"$'\n'"$T/proj/docs/a.md"$'\n'"$T/proj/docs/b.md"$'\n'"$T/proj/old.md" ]
+  run bash -c "FZX_SORT=path '$RECENT/source.sh' | head -1 | cut -f2"
+  [[ "$output" == *$'\e[4m'*other.txt* && "$output" != *$'\e[4m'[0-9]* ]]
+}
+
 @test "words: each one, in order, anywhere in the path, ignoring case" {
   run bash -c "'$RECENT/source.sh' PROJ md | cut -f1"
   [ "$output" = "$T/proj/docs/a.md"$'\n'"$T/proj/docs/b.md"$'\n'"$T/proj/old.md" ]

@@ -17,6 +17,8 @@ zl=""
 recent::zlua zl && mode zlua "frecent directories (z.lua)"
 command -v zoxide > /dev/null && mode dirs "frecent directories (zoxide)"
 command -v fasd > /dev/null && { mode fasd-dirs "frecent directories (fasd)"; mode visited "recently visited directories (fasd)"; }
+printf 'sort\trank\t-\tthe tool'"'"'s ranking, best first (visited: last visit first)\tdefault\n'
+printf 'sort\tpath\t-\tby path\t-\n'
 # shellcheck disable=SC2016  # $EDITOR is text in the description
 printf 'action\tedit\tctrl-e\topen in $EDITOR\tforeground\n'
 printf 'action\tremove\tctrl-x\tforget the selected entries (fasd, zoxide, z.lua)\tsilent,reload\n'

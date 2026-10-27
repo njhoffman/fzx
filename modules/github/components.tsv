@@ -12,6 +12,9 @@ toggle  public   alt-2  public repositories only (with private: both)           
 toggle  sources  alt-3  repositories that are not forks (with forks: both)                     -
 toggle  forks    alt-4  forks only (with sources: both)                                        -
 toggle  missing  alt-5  only repositories not cloned here yet (cloned ones are marked)        -
+sort    listed   -      mine: last push first; starred: most recently starred first          default
+sort    stars    -      mine, starred: most stars first                                       -
+sort    name     -      mine, starred: by name                                                -
 action  browser   alt-o   open in the browser                                                    silent
 action  clone     alt-c   clone the repositories with ghq (yours over ssh) and link them (FZX_REPOS_LINKS_DIR)  foreground
 action  fetch     alt-d   repos, mine, starred: clone; code, tree: download the selected files and directories  foreground

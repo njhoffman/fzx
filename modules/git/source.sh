@@ -110,15 +110,20 @@ git::source_log() {
     --format=$'%H\t%C(white)%h%C(reset) %C(green)%ad%C(reset) %C(blue)%<(14,trunc)%an%C(reset)%C(auto)%d%C(reset) %s'
 }
 
+# FZX_SORT: recent (last commit first, default) or name; the sorted column is drawn in FZX_COLORS[sorted] too
 git::source_branches() {
+  local sort=-committerdate
+  [[ "${FZX_SORT:-recent}" == name ]] && sort=refname
   # filtered on the full ref name: newer git shortens refs/remotes/origin/HEAD to just "origin"
-  git::g for-each-ref --sort=-committerdate refs/heads refs/remotes \
+  git::g for-each-ref --sort="$sort" refs/heads refs/remotes \
     --format=$'%(refname)\t%(refname:short)\t%(HEAD)\t%(upstream:track)\t%(committerdate:relative)\t%(subject)' |
-    awk -F'\t' '
+    awk -F'\t' -v sort="${FZX_SORT:-recent}" -v hl="${FZX_COLORS[sorted]:-4}" '
+      function cell(color, text, w, on) { return "\033[" color (on ? ";" hl : "") "m" text "\033[0m" sprintf("%" (w - length(text) > 0 ? w - length(text) : 0) "s", "") }
       $1 ~ /\/HEAD$/ { next }
       { cur = $3 == "*" ? "\033[32m*\033[0m" : " "
-        clr = $1 ~ /^refs\/remotes\// ? "\033[31m" : "\033[32m"
-        printf "%s\t%s %s%-40s\033[0m \033[36m%-16s\033[0m \033[38;5;244m%-16s\033[0m %s\n", $2, cur, clr, $2, $4, $5, $6 }'
+        clr = $1 ~ /^refs\/remotes\// ? "31" : "32"
+        printf "%s\t%s %s \033[36m%-16s\033[0m %s %s\n", $2, cur, cell(clr, $2, 40, sort == "name"), $4,
+          cell("38;5;244", $5, 16, sort == "recent"), $6 }'
 }
 
 git::source_stash() {

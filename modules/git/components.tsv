@@ -14,6 +14,8 @@ mode  stash      -  stashes                                  -
 mode  reflog     -  where HEAD (or --rev REF) has been       -
 mode  worktrees  -  linked work trees                        -
 mode  commit     -  the files a commit (--rev) changed       hidden
+sort  recent     -  branches: last commit first              default
+sort  name       -  branches: by name                        -
 action  stage    alt-s   status: stage the selected files                                         foreground,reload
 action  unstage  alt-u   status: unstage the selected files                                       foreground,reload
 action  patch    alt-p   status: stage parts of the selected files (add -p)                       foreground,reload

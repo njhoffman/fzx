@@ -6,6 +6,25 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-10-27
+
+### Added
+
+- Sort orders (f11/f12) in more modules: docker containers (state, name) and images (created, size, name);
+  tmux sessions, windows and panes (tmux's order, last active, name); systemd (name, or failed and running
+  first); recent (the tool's ranking, or path); dirs bookmarks (name, path); logs files (newest, largest,
+  name); git branches (last commit, name); github mine and starred (as listed, most stars, name).
+- The column a list is sorted by is underlined (`FZX_COLORS[sorted]`, added to the column's own color),
+  header included: ps, docker, tmux, systemd, recent, dirs, logs, git branches, github, repos and history.
+  The query still matches the whole line.
+- tmux sessions, windows and panes show how long ago they were last active; logs files show their size.
+- A sort row's description can be scoped by mode, as actions are (`branches: last commit first`): the
+  order then exists only in those modes, and a mode without one has no sort.
+
+### Changed
+
+- ps's tree mode has no sort orders: f11/f12 do nothing there and the footer shows none.
+
 ## [0.27.0] - 2026-10-27
 
 ### Added

@@ -41,6 +41,7 @@ tmux::reference() {
     name="tmux_$role"
     [[ -z "${FZX_COLORS[$name]:-}" ]] || colors+=("FZX_TMUX_COLOR_${role^^}=${FZX_COLORS[$name]}")
   done
+  colors+=("FZX_TMUX_COLOR_SORTED=${FZX_COLORS[sorted]:-4}")
   command env "${colors[@]}" python3 "$(dirname "${BASH_SOURCE[0]}")/reference.py" "$@" \
     --pane "$TMUX_TARGET_PANE" "${TMUX_REFERENCE_ARGS[@]}"
 }
@@ -56,23 +57,37 @@ tmux::capture() {
   command tmux capture-pane -p -J -S "$((-pos))" -E "$((height - 1 - pos))" "${target[@]}"
 }
 
+# tmux::sorted: "id<TAB>activity<TAB>display" rows in FZX_SORT's order (order: tmux's, recent: last active
+# first, name: by the display's first word, numbers in order) -> "id<TAB>display  <age>"
+tmux::sorted() {
+  local now
+  printf -v now '%(%s)T' -1
+  awk -F'\t' -v now="$now" -v sort="${FZX_SORT:-order}" 'BEGIN { OFS = "\t" }
+    function age(s) { s = now - s; return s < 60 ? s "s" : s < 3600 ? int(s / 60) "m" : s < 86400 ? int(s / 3600) "h" : int(s / 86400) "d" }
+    { name = $3; sub(/ .*/, "", name)
+      print (sort == "recent" ? sprintf("%012d", 1e11 - $2) : sort == "name" ? name : sprintf("%08d", NR)), $1, $3 "  " age($2) }' |
+    sort -s -t $'\t' -k1,1V | cut -f2-
+}
+
 tmux::_source() {
   tmux::args "$@" || return
   local mode="${FZX_MODE:-sessions}"
   case "$mode" in
     sessions)
       local sessions id display
-      sessions="$(command tmux list-sessions -F $'#{session_id}\t#{session_name}  #{session_windows} windows  #{?session_attached,attached,detached}')" || return
+      sessions="$(command tmux list-sessions -F $'#{session_id}\t#{session_activity}\t#{session_name}  #{session_windows} windows  #{?session_attached,attached,detached}')" || return
       while IFS=$'\t' read -r id display; do
-        [[ -z "$TMUX_SESSION_PREFIX" || "$display" == "$TMUX_SESSION_PREFIX"* ]] && printf '%s\t%s\n' "$id" "$display"
-      done <<< "$sessions"
+        [[ -z "$TMUX_SESSION_PREFIX" || "${display#*$'\t'}" == "$TMUX_SESSION_PREFIX"* ]] && printf '%s\t%s\n' "$id" "$display"
+      done <<< "$sessions" | tmux::sorted
       return 0
       ;;
     windows)
-      command tmux list-windows -a -F $'#{session_id}:#{window_id}\t#{session_name}:#{window_index} #{window_name}  #{window_panes} panes  #{window_flags}'
+      command tmux list-windows -a -F $'#{session_id}:#{window_id}\t#{window_activity}\t#{session_name}:#{window_index} #{window_name}  #{window_panes} panes  #{window_flags}' |
+        tmux::sorted
       ;;
     panes)
-      command tmux list-panes -a -F $'#{pane_id}\t#{session_name}:#{window_index}.#{pane_index} #{window_name}  #{pane_current_command}  #{pane_current_path}  #{pane_title}'
+      command tmux list-panes -a -F $'#{pane_id}\t#{window_activity}\t#{session_name}:#{window_index}.#{pane_index} #{window_name}  #{pane_current_command}  #{pane_current_path}  #{pane_title}' |
+        tmux::sorted
       ;;
     buffers)
       command tmux list-buffers -F $'#{buffer_name}\t#{buffer_name}  #{buffer_size} bytes  #{buffer_sample}'
@@ -89,7 +104,7 @@ tmux::source() {
       tmux::reference list "$mode"
       ;;
     *)
-      tmux::_source "$@" | tmux::reference stream "$mode"
+      tmux::_source "$@" | tmux::reference stream "$mode" --sorted "${FZX_SORT:-}"
       local result=("${PIPESTATUS[@]}")
       ((result[0] == 0)) || return "${result[0]}"
       return "${result[1]}"

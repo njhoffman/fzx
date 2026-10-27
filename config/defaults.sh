@@ -77,6 +77,8 @@ declare -gA FZX_COLORS=(
   [toggle_on]="38;5;49"
   [toggle_off]="38;5;240"
   [sort]="38;5;45"
+  # added to the column a list is sorted by (ps, docker, tmux, ...), on top of the column's own color
+  [sorted]="4"
   # bubble and triangle header styles: 256-color numbers for the background and text of on/off items
   [pill_on]=39
   [pill_on_fg]=16
