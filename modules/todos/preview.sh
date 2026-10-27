@@ -16,13 +16,13 @@ todos::preview() {
   [[ -n "$row" ]] || { printf 'the item at %s:%s is gone (reload with ctrl-r)\n' "$file" "$start"; return 0; }
   IFS=$'\x1f' read -r start end section title due over prio cat isdone <<< "$row"
   width="${FZF_PREVIEW_COLUMNS:-80}"
-  local R=$'\e[0m' DIM=$'\e[2m' B=$'\e[1m' CYAN=$'\e[36m' RED=$'\e[1;31m' YEL=$'\e[33m' GREEN=$'\e[32m' mark
-  case "$prio" in 1) mark="${RED}● P1 high${R}" ;; 3) mark="${DIM}○ P3 low${R}" ;; *) mark="${YEL}● P2 normal${R}" ;; esac
+  local R=$'\e[0m' DIM=$'\e[2m' B=$'\e[1m' CYAN=$'\e[36m' RED=$'\e[1;31m' WHT=$'\e[38;5;255m' GREEN=$'\e[32m' mark
+  case "$prio" in 1) mark="${RED}● P1 high${R}" ;; 3) mark="${DIM}○ P3 low${R}" ;; *) mark="${WHT}● P2 normal${R}" ;; esac
   printf '%s%s%s\n\n' "$DIM" "$section" "$R"
   if ((isdone)); then printf '%s☑%s completed\n\n' "$GREEN" "$R"; else printf '☐ incomplete\n\n'; fi
   printf '%s   %s%s%s' "$mark" "$CYAN" "${cat:-uncategorized}" "$R"
   if [[ -n "$due" ]]; then
-    if ((over)); then printf '   %sdue %s OVERDUE%s' "$RED" "$due" "$R"; else printf '   %sdue %s%s' "$YEL" "$due" "$R"; fi
+    if ((over)); then printf '   %sdue %s OVERDUE%s' "$RED" "$due" "$R"; else printf '   %sdue %s%s' "$WHT" "$due" "$R"; fi
   fi
   printf '\n%s%s%s   %s%s:%s%s\n' "$B" "$title" "$R" "$DIM" "${file/#$HOME/\~}" "$start" "$R"
   printf -v rule '%*s' "$width" ''

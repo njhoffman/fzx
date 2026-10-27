@@ -7,7 +7,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
 # history::preview <history id>
 history::preview() {
   local id="${1:-}" argv row when status secs dir host session runs failed first dirs
-  local B=$'\e[1m' D=$'\e[2m' R=$'\e[0m' RED=$'\e[31m' YEL=$'\e[33m' MAG=$'\e[35m' GRN=$'\e[32m'
+  local B=$'\e[1m' D=$'\e[2m' R=$'\e[0m' RED=$'\e[31m' WHT=$'\e[38;5;255m' MAG=$'\e[35m' GRN=$'\e[32m'
   [[ "$id" =~ ^[0-9]+$ ]] || return 0
   argv="$(history::argv "$id" | tr -d '\0')"
   row="$(history::sql "
@@ -34,7 +34,7 @@ history::preview() {
   esac
   if [[ -z "$secs" ]]; then secs="${MAG}unknown${R}"
   elif ((secs > 300)); then secs="${RED}${secs}s${R}"
-  elif ((secs > 60)); then secs="${YEL}${secs}s${R}"
+  elif ((secs > 60)); then secs="${WHT}${secs}s${R}"
   else secs="${secs}s"; fi
   printf '%slast run%s   %s\n' "$B" "$R" "$when"
   printf '%sstatus%s     %s\n' "$B" "$R" "$status"

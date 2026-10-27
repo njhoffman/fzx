@@ -110,8 +110,8 @@ todos::source() {
     todos::parse "$file" | awk -v file="$file" -v label="$label" '{ print file "\t" label "\t" $0 }'
   done | awk -F'\t' -v order="${FZX_SORT:-urgency}" -v mode="${FZX_MODE:-here}" -v nocolor="${NO_COLOR+x}" '
     BEGIN {
-      R = "\033[0m"; RED = "\033[1;31m"; DIM = "\033[2m"; YEL = "\033[33m"; CYAN = "\033[36m"; BLUE = "\033[34m"; GREEN = "\033[32m"; WHITE = "\033[2;37m"
-      if (nocolor != "") R = RED = DIM = YEL = CYAN = BLUE = GREEN = WHITE = ""
+      R = "\033[0m"; RED = "\033[1;31m"; DIM = "\033[2m"; WHT = "\033[38;5;255m"; CYAN = "\033[36m"; BLUE = "\033[34m"; GREEN = "\033[32m"; WHITE = "\033[2;37m"
+      if (nocolor != "") R = RED = DIM = WHT = CYAN = BLUE = GREEN = WHITE = ""
     }
     {
       file = $1; label = $2; start = $3; section = $5; title = $6; due = $7; over = $8; prio = $9; cat = $10; done = $11
@@ -119,9 +119,9 @@ todos::source() {
       # repository in all mode
       proj = (mode == "here") ? section : label; sub(/:.*/, "", proj); sub(/^[0-9]+\. +/, "", proj); sub(/\/TODO\.md$/, "", proj)
       if (length(proj) > 28) proj = substr(proj, 1, 27) "~"
-      mark = done ? DIM "P" prio R : prio == 1 ? RED "P1" R : prio == 3 ? DIM "P3" R : YEL "P2" R
+      mark = done ? DIM "P" prio R : prio == 1 ? RED "P1" R : prio == 3 ? DIM "P3" R : WHT "P2" R
       box = done ? GREEN "☑" R : WHITE "☐" R
-      tag = due == "" ? "" : (over ? "  " RED "[due " due ", OVERDUE]" R : "  " (done ? DIM : YEL) "[due " due "]" R)
+      tag = due == "" ? "" : (over ? "  " RED "[due " due ", OVERDUE]" R : "  " (done ? DIM : WHT) "[due " due "]" R)
       line = label ":" start " " (done ? "☑" : "☐") "  (P" prio ")" (cat == "" ? "" : " [" cat "]") " " title (due == "" ? "" : " [due " due "]")
       key = order == "file" ? sprintf("%s %09d", file, start) : sprintf("%d %d %d %s %s %09d", done, !over, prio, (due == "" ? "9999-99-99" : due), file, start)
       # the id: file, line and title, \x1f-separated (titles can hold colons); done checks the title

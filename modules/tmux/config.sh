@@ -13,9 +13,9 @@ FZX_TMUX_HELPERS="${XDG_CONFIG_HOME:-$HOME/.config}/tmux/scripts"
 declare -gA FZX_COLORS
 FZX_COLORS[tmux_name]='38;5;81'
 FZX_COLORS[tmux_value]='38;5;150'
-FZX_COLORS[tmux_scope]='38;5;180'
-FZX_COLORS[tmux_key]='1;38;5;222'
-FZX_COLORS[tmux_changed]='1;38;5;215'
+FZX_COLORS[tmux_scope]='38;5;250'
+FZX_COLORS[tmux_key]='1;38;5;255'
+FZX_COLORS[tmux_changed]='1;38;5;159'
 FZX_COLORS[tmux_dim]='38;5;245'
 FZX_COLORS[tmux_title]='1;38;5;111'
 FZX_COLORS[tmux_flag]='38;5;176'

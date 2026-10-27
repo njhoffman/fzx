@@ -13,13 +13,13 @@ repos::preview() {
   timeout 2 git -C "$dir" -c color.status=always status -sb 2> /dev/null | head -n 15 ||
     printf '%s(status took too long)%s\n' "$D" "$R"
   printf '\n'
-  git -C "$dir" log --color=always --graph --format='%C(yellow)%h%C(reset) %s %C(dim)%cr%C(reset)%C(auto)%d' -n 10 2> /dev/null
+  git -C "$dir" log --color=always --graph --format='%C(white)%h%C(reset) %s %C(dim)%cr%C(reset)%C(auto)%d' -n 10 2> /dev/null
   todo="$dir/TODO.md"
   if [[ -f "$todo" ]] && grep -q '^- \[ \]' "$todo"; then
     printf '\n%sTODO%s %s(%s open)%s\n' "$B" "$R" "$D" "$(grep -c '^- \[ \]' "$todo")" "$R"
     grep -n '^- \[ \]' "$todo" | sed -E 's/^([0-9]+):- \[ \] \*\*([^*]+)\*\*.*\((p[123])\).*/\3\t\2\t\1/' |
       grep -E '^p[123]'$'\t' | sort -s -k1,1 | head -n 8 |
-      awk -F'\t' -v c="$C" -v d="$D" -v r="$R" '{ p = ($1 == "p1") ? "\033[31m" : ($1 == "p2") ? "\033[33m" : d; printf "  %s%s%s %s %s:%s%s\n", p, toupper($1), r, $2, d, $3, r }'
+      awk -F'\t' -v c="$C" -v d="$D" -v r="$R" '{ p = ($1 == "p1") ? "\033[31m" : ($1 == "p2") ? "\033[38;5;255m" : d; printf "  %s%s%s %s %s:%s%s\n", p, toupper($1), r, $2, d, $3, r }'
   fi
 }
 

@@ -6,6 +6,15 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-10-26
+
+### Changed
+
+- Cool colors over warm ones: yellow, wheat and tan become shades of white (todos P2 and due dates, git and
+  repos hashes, stash names, long history durations, repos' changed count, docker's paused state, tmux keys
+  and scopes, the f1 keycaps); orange and pink become pale cyan and lavender (tmux's changed options,
+  docker's merged-log palette). Red stays for errors, failures, overdue items and P1.
+
 ## [0.11.0] - 2026-10-26
 
 ### Changed

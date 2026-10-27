@@ -27,7 +27,7 @@ FZX_PERSIST=none
 
 FZX_COLORS[repos_name]='1;38;5;111'
 FZX_COLORS[repos_branch]='38;5;81'
-FZX_COLORS[repos_changed]='38;5;222'
+FZX_COLORS[repos_changed]='38;5;255'
 FZX_COLORS[repos_ahead]='38;5;114'
 FZX_COLORS[repos_behind]='38;5;203'
 FZX_COLORS[repos_todo]='38;5;117'

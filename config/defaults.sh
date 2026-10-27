@@ -81,7 +81,7 @@ declare -gA FZX_COLORS=(
   [menu_summary]="38;5;244"
   [dim]="38;5;244"
   # the shortcuts page (f1): keycaps, and the section titles for this screen, fzx, global and free keys
-  [help_key]="1;38;5;223;48;5;236"
+  [help_key]="1;38;5;255;48;5;236"
   [help_module]="1;38;5;45"
   [help_fzx]="1;38;5;213"
   [help_global]="1;38;5;110"

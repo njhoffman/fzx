@@ -62,7 +62,7 @@ repos::source() {
     -v owners=" $owners " -v ghq="${FZX_REPOS_GHQ_ROOT:-$(command ghq root 2> /dev/null)}/" -v home="$HOME/" \
     -v now="$(date +%s)" -v c_name=$'\e['"${FZX_COLORS[repos_name]:-1;38;5;111}m" \
     -v c_dim=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" -v c_branch=$'\e['"${FZX_COLORS[repos_branch]:-38;5;81}m" \
-    -v c_changed=$'\e['"${FZX_COLORS[repos_changed]:-38;5;222}m" -v c_ahead=$'\e['"${FZX_COLORS[repos_ahead]:-38;5;114}m" \
+    -v c_changed=$'\e['"${FZX_COLORS[repos_changed]:-38;5;255}m" -v c_ahead=$'\e['"${FZX_COLORS[repos_ahead]:-38;5;114}m" \
     -v c_behind=$'\e['"${FZX_COLORS[repos_behind]:-38;5;203}m" -v c_todo=$'\e['"${FZX_COLORS[repos_todo]:-38;5;117}m" \
     -v rst=$'\e[0m' '
     function age(t,   s) {

@@ -31,7 +31,7 @@ docker::exec() {
 # docker::logs_merged <container...>: follow several containers at once, each line prefixed with its
 # container's name in its own color (docker-fzf's dla); ctrl-c stops them all
 docker::logs_merged() {
-  local id name i=0 pids=() colors=(81 114 222 175 117 215)
+  local id name i=0 pids=() colors=(81 114 255 147 117 159)
   for id in "$@"; do
     name="$(command docker inspect --format '{{.Name}}' "$id" 2> /dev/null)"
     name="${name#/}"

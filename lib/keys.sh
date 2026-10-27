@@ -125,7 +125,7 @@ fzx::keys_page() {
   local -A user=() def=() all=() mine=()
   local module="" entry k a name scope desc width rows_mod=() rows_fzx=() comps=()
   local r=$'\e[0m' b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m"
-  local cap=$'\e['"${FZX_COLORS[help_key]:-1;38;5;223;48;5;236}m"
+  local cap=$'\e['"${FZX_COLORS[help_key]:-1;38;5;255;48;5;236}m"
   width="${FZF_PREVIEW_COLUMNS:-${COLUMNS:-80}}"
   for entry in "$@"; do
     case "$entry" in

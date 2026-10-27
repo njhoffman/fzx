@@ -17,5 +17,5 @@ FZX_DOCKER_SHELLS=(zsh bash ash sh)
 
 FZX_COLORS[docker_name]='1;38;5;111'
 FZX_COLORS[docker_running]='38;5;114'
-FZX_COLORS[docker_paused]='38;5;222'
+FZX_COLORS[docker_paused]='38;5;252'
 FZX_COLORS[docker_stopped]='38;5;203'

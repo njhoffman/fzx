@@ -77,7 +77,7 @@ git::source_log() {
   ((GIT_ALL)) && scope=(--all)
   [[ -n "$GIT_REV" ]] && scope+=("$GIT_REV")
   git::g log "${scope[@]}" --max-count="${FZX_GIT_LOG_LIMIT:-1000}" --date=short --color=always \
-    --format=$'%H\t%C(yellow)%h%C(reset) %C(green)%ad%C(reset) %C(blue)%<(14,trunc)%an%C(reset)%C(auto)%d%C(reset) %s'
+    --format=$'%H\t%C(white)%h%C(reset) %C(green)%ad%C(reset) %C(blue)%<(14,trunc)%an%C(reset)%C(auto)%d%C(reset) %s'
 }
 
 git::source_branches() {
@@ -92,7 +92,7 @@ git::source_branches() {
 }
 
 git::source_stash() {
-  git::g stash list --format=$'%gd\t\e[33m%gd\e[0m \e[38;5;244m%cr\e[0m %s'
+  git::g stash list --format=$'%gd\t\e[38;5;255m%gd\e[0m \e[38;5;244m%cr\e[0m %s'
 }
 
 # git::source [--all] [--rev REV] [DIR]

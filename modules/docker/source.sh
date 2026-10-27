@@ -10,7 +10,7 @@ docker::source() {
   local dim rst=$'\e[0m' run pause stop name
   command -v docker > /dev/null || { printf 'docker: the docker command is not installed\n' >&2; return 2; }
   dim="$(docker::color dim '38;5;244')" name="$(docker::color docker_name '1;38;5;111')"
-  run="$(docker::color docker_running '38;5;114')" pause="$(docker::color docker_paused '38;5;222')"
+  run="$(docker::color docker_running '38;5;114')" pause="$(docker::color docker_paused '38;5;252')"
   stop="$(docker::color docker_stopped '38;5;203')"
   case "${FZX_MODE:-containers}" in
     containers)
