@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.28.0): the six steps of `docs/design.md` are done. Modules: actions, capture, colors, dirs,
+Status (0.29.0): the six steps of `docs/design.md` are done. Modules: actions, capture, colors, dirs,
 docker, files, git, github, history, keybindings, logs, man, menu, ps, recent, repos, systemd, tmux, todos,
 youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
@@ -56,30 +56,15 @@ Categories: module
 
 ## 3. Keys and help
 
-- [ ] **Several keys per action** (p2) [feature]: fzf takes `key1,key2:action`, but `FZX_KEYS` holds one key per
-      action and `fzx::bind` (lib/opts.sh) records the joined string as one help row, so f1, the free keys
-      and the "bound twice" check do not see the individual keys. Allow lists in `FZX_KEYS` and split them
-      in `fzx::bind`.
 - [ ] **Keys from i3, tmux and autokey** (p2) [feature]: scan ~/.config/i3/config, tmux's root table (-n binds;
       the keybindings module already reads tmux) and ~/.config/autokey for keys they take before fzf sees
       them; show them in f1 as their own section, highlighted differently, and keep them out of the free
       keys. A setting chooses whether a remapped key is shown as what it is remapped to or as the original.
-- [ ] **Keys grid in f1** (p2) [feature]: an alternate keys layout grouped by modifier prefix, like the free keys
-      section (`ctrl-  up down left right home end`, `shift-  ...`), with the used ones highlighted; shift-f1
-      opens it instead of the usual page.
-- [ ] **Actions menu key toggles back** (p2) [feature]: pressing the actions menu key while in the actions
-      menu returns to the screen it was opened from.
-- [ ] **ctrl-backspace goes back** (p3) [feature]: bind it with alt-left (needs several keys per action). fzf
+- [ ] **ctrl-backspace goes back** (p3) [feature]: bind it with alt-left (`FZX_KEYS[back]="alt-left,ctrl-bspace"`). fzf
       knows `ctrl-bspace` (default: backward-delete-char), but check what the terminal sends: many send ctrl-h
       or plain backspace for it, and binding those would stop backspace deleting query characters.
-- [ ] **Key name style** (p3) [feature]: a setting for full key names (`ctrl-x`) or short ones / glyphs
-      (`^X`, `⌃X`, `⌥`), after what-key.nvim (~/git/what-key.nvim, ~/.config/nvim/lua/configs/what-key).
-- [ ] **Components at the top of the keys page** (p3) [feature]: move the components section of the f1
-      keybindings preview to the top.
 - [ ] **All keys list** (p3) [feature]: a mode of the keybindings module listing fzf's `--keys` names (every
       key fzf knows), marking the bound ones with their action.
-- [ ] **FZX_ variables in the debug views** (p3) [feature]: the preview debug screen (alt-_) and f2 show
-      `FZF_*` only in places; list every `FZX_*` parameter in both.
 
 ## 4. Core features
 

@@ -180,6 +180,24 @@ fzx::_debug_row() {
   printf '  %-22s %s\n' "$1" "$_v"
 }
 
+# fzx::_debug_params: a row per FZX_* parameter; arrays one row per element, NAME[KEY]
+fzx::_debug_params() {
+  local _n _k _attrs
+  while IFS= read -r _n; do
+    _attrs="$(declare -p "$_n" 2> /dev/null)"
+    case "$_attrs" in
+      "declare -A"* | "declare -a"*)
+        local -n _ref="$_n"
+        while IFS= read -r _k; do
+          [[ -n "$_k" ]] && fzx::_debug_row "${_n}[$_k]" "${_ref[$_k]}"
+        done < <(printf '%s\n' "${!_ref[@]}" | LC_ALL=C sort -V)
+        unset -n _ref
+        ;;
+      *) fzx::_debug_row "$_n" "${!_n}" ;;
+    esac
+  done < <(compgen -v FZX_ | LC_ALL=C sort)
+}
+
 # fzx::debug_preview [focused line]: the debug key's preview (f2) for the attached session. Runs as a
 # preview command, so FZF_* holds fzf's live state (query, position, counts, preview size).
 fzx::debug_preview() {
@@ -248,6 +266,14 @@ fzx::debug_preview() {
   while IFS='=' read -r key val; do
     fzx::_debug_row "$key" "$val"
   done < <(env | grep -E '^FZF_[A-Z_]+=' | sort)
+
+  # every FZX_* parameter, the module's config layers loaded (as its source and actions see them)
+  if [[ -z "${_FZX_CB_CONFIG:-}" ]]; then
+    fzx::require config
+    fzx::config_load "$FZX_MODULE_DIR" "$FZX_MODULE" 2> /dev/null && _FZX_CB_CONFIG=1
+  fi
+  printf '\n%sfzx%s %s(FZX_* with the module'"'"'s config loaded)%s\n' "$b" "$r" "$d" "$r"
+  fzx::_debug_params
 
   if [[ -n "$line" ]]; then
     printf '\n%sfocused line%s %s(tabs shown as ⇥)%s\n' "$b" "$r" "$d" "$r"

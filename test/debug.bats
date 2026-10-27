@@ -120,6 +120,9 @@ listening() {
   # two items plus the "args:--x" line the fixture prints when given args
   [[ "$output" == *"  two                    3 lines, "*"s old"* ]]
   [[ "$output" == *"  FZF_POS                2"* && "$output" == *"  FZF_QUERY              abc"* ]]
+  # FZX_* with the config loaded: settings, and arrays one element per row
+  [[ "$output" == *$'\nfzx (FZX_*'* && "$output" == *"  FZX_KEY_STYLE          full"* ]]
+  [[ "$output" == *"  FZX_KEYS[help]         f1"* && "$output" == *"  FZX_MODULE             counter"* ]]
   [[ "$output" == *$'focused line'*$'\n  id⇥shown'* ]]
   [[ "$output" != *"persistent cache"* ]]
 }
@@ -141,10 +144,11 @@ listening() {
   stub_fzf
   run "$FZX" -m ps
   [ "$(fzf_bind f2)" = "f2:show-preview+preview:$FZX _cb debug {}" ]
-  local bind
+  local bind cmd
   bind="$(fzf_bind f1)"
-  run bash -c "${bind#f1:show-preview+preview:}"
-  [[ "$output" == *"f2"*"debug: session state and FZF_* variables"* ]]
+  cmd="$(bash -c "${bind#f1:transform:}")"
+  run bash -c "${cmd#show-preview+preview:}"
+  [[ "$output" == *"f2"*"debug: session state, FZF_* and FZX_* variables"* ]]
   run "$BATS_TEST_DIRNAME/../modules/ps/module.sh"
   [ "$(fzf_bind f2)" = "f2:show-preview+preview:env | grep -E '^(FZX|FZF)_' | sort" ]
 }

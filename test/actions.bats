@@ -175,6 +175,12 @@ menu_open() {
   [[ "${lines[0]}" == *"mark them twice"* && "${lines[0]}" != *"one:"* ]]
 }
 
+@test "actions menu: its own key goes back to the screen it was opened from" {
+  menu_open
+  FZX_SESSION="$CHILD" "$FZX" --resume > /dev/null
+  [ "$(fzf_bind 'ctrl-\')" = "ctrl-\:transform:$FZX _cb nav back" ]
+}
+
 @test "actions menu: enter runs the action and goes back, or hands over for print/become" {
   menu_open
   FZX_SESSION="$CHILD" run "$FZX" _cb transform run mark

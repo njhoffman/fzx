@@ -46,7 +46,7 @@ menu::preview() {
 # actions (the mode's part of a scoped description; the built-in actions every module has are left out)
 menu::_components() {
   local module="$1" dir="$2" mode="$3" kind name key desc flags row title last="" room mark keycap namew=4
-  fzx::require components
+  fzx::require components keys
   fzx::comp_load "$dir" "$module" 2> /dev/null || return 0
   [[ -n "$mode" ]] || mode="${FZX_MODES[0]:-}"
   # every mode, hidden ones too, so a scoped description is recognized as one
@@ -75,7 +75,10 @@ menu::_components() {
     mark=" "
     [[ "$kind" == mode && "$name" == "$mode" ]] && mark="${b}▸$r"
     keycap="           "
-    [[ "$key" != - ]] && printf -v keycap '%s %-9s %s' "$cap" "$key" "$r"
+    if [[ "$key" != - ]]; then
+      fzx::key_label "$key" key
+      printf -v keycap '%s %s %s' "$cap" "$(fzx::pad "$key" 9)" "$r"
+    fi
     ((${#desc} > room)) && desc="${desc:0:room-1}…"
     printf '%s %s %s%-*s%s  %s\n' "$mark" "$keycap" "$b" "$namew" "$name" "$r" "$desc"
   done

@@ -99,6 +99,11 @@ fzx::actions_bind() {
   local module="$1" _k _n _key _desc _flags act args menu=() names
   local -A groups=() order=()
   local -a templates=()
+  # in the actions menu itself the key closes it: back to the screen it was opened from
+  if [[ "$module" == actions ]]; then
+    fzx::in_session && fzx::bind "${FZX_KEYS[actions]}" "transform:$(fzx::cb nav back)" "back to the screen the menu was opened from"
+    return 0
+  fi
   fzx::comp_has action || return 0
   while IFS=$'\t' read -r _k _n _key _desc _flags; do
     [[ "$_desc" == - ]] && _desc=""

@@ -285,7 +285,8 @@ module's opts hook (it can depend on the mode). `view` takes the arguments of th
 callback. git passes its module args (`$a {+1}`), logs `{1} {2}`, files in grep mode `{1} {2}`.
 
 The actions menu (`ctrl-\`, `FZX_KEYS[actions]`) is a child session of the built-in `actions` module, so
-back, help, stats and debugging work as on any screen. The binding passes the selection already expanded,
+back, help, stats and debugging work as on any screen; its own key there goes back to the screen it was
+opened from. The binding passes the selection already expanded,
 grouped by argument template: `nav goto actions term,kill,copy {+1} --fzx-- copy-line {+} --fzx-- ...`.
 The menu lists the parent's rows (from its `meta/components`), the preview shows the flags and the
 arguments; enter runs `FZX_SESSION=<parent> fzx _cb action NAME ARGS` in the foreground and goes back
@@ -302,14 +303,23 @@ both with `transform-header(fzx _cb header)`, since a module header can hold tex
 into `change-header(...)`. Standalone runs show the line too.
 
 `<name>::opts` appends to the `FZX_OPTS` array. Key bindings go through
-`fzx::bind <key> <action> <description>`, which records them for the help key (f1, `FZX_KEYS[help]`):
-f1 runs `show-preview+preview:fzx keys ...` with every recorded binding (`k:SCOPE<TAB>KEY<TAB>DESC`), the
-component rows (`c:...`) and the module's name as arguments; lib/keys.sh draws the page, so help needs no
-callback and works standalone. Sections, each under a colored title: this screen's keys (the module's
-bindings, including component keys and action rows), fzx's keys (every fzx screen), the global keys (the
-user's `--bind`s from `FZF_DEFAULT_OPTS_FILE` and `FZF_DEFAULT_OPTS`, then fzf's defaults from a static
-table of the fzf 0.74 man page; the first that binds a key wins), the components (modes, toggles, sort
-orders, actions with their keys), then the free ctrl, alt, alt-shift and function keys. Keys are keycaps
+`fzx::bind <key>[,<key>...] <action> <description>`, which records them for the help key (f1,
+`FZX_KEYS[help]`). A comma list binds several keys to one action (`FZX_KEYS[back]="alt-left,ctrl-bspace"`,
+or a component row's key field; a comma after a dash is the comma key, `alt-,`); each key gets its own `--bind` and is recorded, checked against `FZX_RESERVED_KEYS` and for double
+binding on its own. f1 runs `transform:fzx keys --toggle s:STYLE ...` with every recorded binding
+(`k:SCOPE<TAB>KEY<TAB>DESC`), the component rows (`c:...`) and the module's name as arguments; it answers
+`show-preview+preview:fzx keys ...` and lib/keys.sh draws the page, so help needs no callback and works
+standalone. Pressed again while the page shows (fzf's `FZF_ACTION` is still that `show-preview`), it
+answers the grid instead (`l:grid`, ending in `ignore` so a third press brings the list back): a row per
+modifier (none, ctrl, alt, alt-shift, shift, ctrl-alt, ctrl-shift) with the keys fzf 0.74 accepts with it
+(letters, digits, function keys, movement, editing; fzf has no shift-f1), each colored by who binds it.
+Sections of the page, each under a colored title: the components (modes, toggles, sort orders, actions
+with their keys), this screen's keys (the module's bindings, including component keys and action rows),
+fzx's keys (every fzx screen), the global keys (the user's `--bind`s from `FZF_DEFAULT_OPTS_FILE` and
+`FZF_DEFAULT_OPTS`, then fzf's defaults from a static table of the fzf 0.74 man page; the first that binds
+a key wins), then the free ctrl, alt, alt-shift and function keys. `FZX_KEY_STYLE` sets how keys are shown
+there and in the menu preview (`fzx::key_label`): `full` (fzf's names, the default), `short` (`^X`,
+`M-left`) or `glyph` (`⌃X`, `⌥←`). Keys are keycaps
 (`FZX_COLORS[help_key]`); a key fzx takes over from a global binding says what it shadows ("over yours:
 ...", "over fzf: ..."); lines are cut to `FZF_PREVIEW_COLUMNS`. The user's options are split into shell words
 by an awk tokenizer (quotes, escapes, continuations, comments; nothing is evaluated) and fzf's key synonyms
@@ -496,7 +506,8 @@ prompt; list parsing forces `SYSTEMD_COLORS=0` because users commonly export it.
 - The debug key (f2, `FZX_KEYS[debug]`) shows in the preview: session id, path in the tree, owner and
   whether it is alive, every `meta/` and `state/` key, the cached `data/` per mode (lines, age), the
   persistent cache entry for `cache:` modules, the module's own section (`<module>::debug` in its
-  preview.sh, when it defines one; github lists every API rate limit), every `FZF_*` variable fzf exported to the preview, and
+  preview.sh, when it defines one; github lists every API rate limit), every `FZF_*` variable fzf exported to the preview, every
+  `FZX_*` parameter with the module's config loaded (arrays one row per element, `FZX_KEYS[help]`), and
   the focused line raw (tabs shown as ⇥). Standalone runs show the `FZX_*`/`FZF_*` variables only.
   `fzx::bind` logs a warning when one key is bound twice (the later binding wins in fzf).
 

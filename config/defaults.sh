@@ -21,6 +21,10 @@ declare -gA FZX_KEYS=(
   [actions]="ctrl-\\"
 )
 
+# how keys are shown in the help page, its grid and the menu preview: full (fzf's names: ctrl-x, alt-left),
+# short (^X, M-left) or glyph (⌃X, ⌥←; needs a font with the symbols). Binds and FZX_KEYS keep fzf's names.
+FZX_KEY_STYLE=full
+
 # keys modules may not take: scrolling and query editing in the user's fzf options. A module binding on one
 # of these is skipped with a warning in the log (fzx's own keys are not checked); drop a key from the list
 # to let modules have it

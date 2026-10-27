@@ -153,21 +153,30 @@ fzx::_component_pills() {
   printf -v "$_var" '%s' "$_out"
 }
 
-# fzx::bind <key> <action> <description>: add a key binding and record it for the help key (f1).
-# Bindings made while the module's opts hook runs are listed as the module's, the rest as fzx's.
-# A module's binding on a key in FZX_RESERVED_KEYS is skipped.
+# fzx::bind <key[,key...]> <action> <description>: add a key binding and record it for the help key (f1).
+# Several keys (FZX_KEYS[back]="alt-left,ctrl-bspace") share the action; each is recorded and checked on
+# its own. Bindings made while the module's opts hook runs are listed as the module's, the rest as fzx's.
+# A module's binding on a key in FZX_RESERVED_KEYS is skipped (the other keys of the list are bound).
 fzx::bind() {
-  local _e
-  if [[ "${_FZX_BIND_SCOPE:-fzx}" != fzx && " ${FZX_RESERVED_KEYS[*]} " == *" $1 "* ]]; then
-    fzx::log warn "key $1 is reserved (FZX_RESERVED_KEYS); not bound for ${_FZX_BIND_SCOPE}: $3"
-    return 0
-  fi
-  for _e in "${FZX_HELP[@]}"; do
-    [[ "$_e" == *$'\t'"$1"$'\t'* ]] &&
-      fzx::log warn "key $1 is bound twice (${_e##*$'\t'} / $3); the later binding wins"
+  local _e _k _keys=() _ok=()
+  fzx::split_keys "$1" _keys
+  for _k in "${_keys[@]}"; do
+    [[ -n "$_k" ]] || continue
+    if [[ "${_FZX_BIND_SCOPE:-fzx}" != fzx && " ${FZX_RESERVED_KEYS[*]} " == *" $_k "* ]]; then
+      fzx::log warn "key $_k is reserved (FZX_RESERVED_KEYS); not bound for ${_FZX_BIND_SCOPE}: $3"
+      continue
+    fi
+    for _e in "${FZX_HELP[@]}"; do
+      [[ "$_e" == *$'\t'"$_k"$'\t'* ]] &&
+        fzx::log warn "key $_k is bound twice (${_e##*$'\t'} / $3); the later binding wins"
+    done
+    _ok+=("$_k")
   done
-  FZX_OPTS+=(--bind "$1:$2")
-  FZX_HELP+=("${_FZX_BIND_SCOPE:-fzx}"$'\t'"$1"$'\t'"$3")
+  # a --bind per key: fzf's own key lists cannot hold the comma key (alt-,)
+  for _k in "${_ok[@]}"; do
+    FZX_OPTS+=(--bind "$_k:$2")
+    FZX_HELP+=("${_FZX_BIND_SCOPE:-fzx}"$'\t'"$_k"$'\t'"$3")
+  done
 }
 
 # fzx::key_hints <var>: "key description" pairs of the module's bindings, for a header
@@ -181,8 +190,9 @@ fzx::key_hints() {
   printf -v "$1" '%s' "$_hints"
 }
 
-# the help key: show-preview, then `fzx keys` with every recorded binding and component row as arguments
-# (lib/keys.sh draws the page), so help needs no callback and works standalone as well
+# the help key: `fzx keys --toggle` with every recorded binding and component row as arguments answers
+# show-preview and the page (lib/keys.sh draws it), or the grid when pressed again; no session needed, so
+# help works standalone as well
 fzx::_help_bind() {
   local module="$1"
   local entry args=("m:$module") seen=" " i key keys _k _n _key _desc _fl
@@ -194,17 +204,21 @@ fzx::_help_bind() {
   # keys bound with a plain --bind (no fzx::bind, so no description) are the module's own
   for ((i = 1; i < ${#FZX_OPTS[@]}; i++)); do
     [[ "${FZX_OPTS[i - 1]}" == --bind ]] || continue
-    key="${FZX_OPTS[i]%%:*}"
-    [[ " ${FZX_TRACE_EVENTS[*]} " == *" $key "* || "$seen" == *" $key "* ]] && continue
-    args+=("k:$module"$'\t'"$key"$'\t')
-    seen+="$key "
+    local bkeys=()
+    fzx::split_keys "${FZX_OPTS[i]%%:*}" bkeys
+    for key in "${bkeys[@]}"; do
+      [[ " ${FZX_TRACE_EVENTS[*]} " == *" $key "* || "$seen" == *" $key "* ]] && continue
+      args+=("k:$module"$'\t'"$key"$'\t')
+      seen+="$key "
+    done
   done
   while IFS=$'\t' read -r _k _n _key _desc _fl; do
     args+=("c:$_k"$'\t'"$_n"$'\t'"$_key"$'\t'"${_desc#-}")
   done < <(fzx::comp_rows mode 2> /dev/null; fzx::comp_rows toggle 2> /dev/null; fzx::comp_rows sort 2> /dev/null
     fzx::comp_rows action 2> /dev/null)
-  printf -v keys '%q ' "$FZX_BIN" keys "${args[@]}"
-  FZX_OPTS+=(--bind "${FZX_KEYS[help]}:show-preview+preview:$keys")
+  # pressed again while the page shows, the grid (`fzx keys --toggle` picks; lib/keys.sh)
+  printf -v keys '%q ' "$FZX_BIN" keys --toggle "s:${FZX_KEY_STYLE:-full}" "${args[@]}"
+  FZX_OPTS+=(--bind "${FZX_KEYS[help]}:transform:$keys")
 }
 
 # fzx::opts_build <module>; expects config loaded, module.sh sourced, FZX_MODES and FZX_MODE set
@@ -285,11 +299,13 @@ fzx::opts_build() {
   fzx::_component_place
   # debug view in the preview; standalone has no session, so only the variables
   if fzx::in_session; then
-    fzx::bind "${FZX_KEYS[debug]}" "show-preview+preview:$(fzx::cb debug {})" "debug: session state and FZF_* variables"
+    fzx::bind "${FZX_KEYS[debug]}" "show-preview+preview:$(fzx::cb debug {})" "debug: session state, FZF_* and FZX_* variables"
   else
     fzx::bind "${FZX_KEYS[debug]}" "show-preview+preview:env | grep -E '^(FZX|FZF)_' | sort" "debug: FZX_* and FZF_* variables"
   fi
-  FZX_HELP+=("fzx"$'\t'"${FZX_KEYS[help]}"$'\t'"this help")
+  local hk help_keys=()
+  fzx::split_keys "${FZX_KEYS[help]}" help_keys
+  for hk in "${help_keys[@]}"; do FZX_HELP+=("fzx"$'\t'"$hk"$'\t'"this help"); done
   fzx::_help_bind "$module"
   fzx::_layout_binds
   fzx::_trace_binds

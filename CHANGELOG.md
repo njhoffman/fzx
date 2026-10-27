@@ -6,6 +6,24 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.29.0] - 2026-10-27
+
+### Added
+
+- Several keys for one action: `FZX_KEYS` values and component row keys take a comma list
+  (`FZX_KEYS[back]="alt-left,ctrl-bspace"`); each key shows in f1 and is checked on its own.
+- f1 pressed again shows the keys as a grid: a row per modifier (ctrl, alt, alt-shift, shift, ctrl-alt,
+  ctrl-shift and none), every key fzf accepts with it, colored by who binds it (this screen, fzx, your
+  options, fzf) and dim when free. A third press brings the list back. (fzf has no shift-f1.)
+- `FZX_KEY_STYLE`: keys shown as `full` (fzf's names, the default), `short` (`^X`, `M-left`) or `glyph`
+  (`⌃X`, `⌥←`) in f1, the grid and the menu preview.
+- f2 lists every `FZX_*` parameter with the module's config loaded, arrays one element per row.
+
+### Changed
+
+- f1 opens with the components (modes, toggles, sort orders, actions), then the keys.
+- In the actions menu, its own key (`ctrl-\`) goes back to the screen it was opened from.
+
 ## [0.28.0] - 2026-10-27
 
 ### Added

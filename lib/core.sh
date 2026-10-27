@@ -27,6 +27,23 @@ fzx::require() {
   done
 }
 
+# fzx::split_keys <keys> <array var>: a comma list of keys into the array; a comma right after a
+# modifier's dash, or alone, is the comma key itself (alt-, and alt-.,ctrl-x are two keys each)
+fzx::split_keys() {
+  local _s="$1" _tok="" _c _i _out=()
+  for ((_i = 0; _i < ${#_s}; _i++)); do
+    _c="${_s:_i:1}"
+    if [[ "$_c" == , && -n "$_tok" && "$_tok" != *- ]]; then
+      _out+=("$_tok")
+      _tok=""
+    else
+      _tok+="$_c"
+    fi
+  done
+  [[ -n "$_tok" ]] && _out+=("$_tok")
+  eval "$2=(\"\${_out[@]}\")"
+}
+
 # fzx::version <var>: fzx's version, from the VERSION file ("unknown" without one)
 fzx::version() {
   local _v="unknown"
