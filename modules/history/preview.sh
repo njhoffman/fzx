@@ -27,6 +27,8 @@ history::preview() {
   fi
   printf '%s%s%s\n' "$D" "$(printf '%*s' "${FZF_PREVIEW_COLUMNS:-60}" '' | tr ' ' '-')" "$R"
 
+  local status_icon=failed
+  case "$status" in 0) status_icon=ok ;; none) status_icon=state ;; esac
   case "$status" in
     0) status="${GRN}0${R}" ;;
     none) status="${MAG}unknown${R}" ;;
@@ -36,12 +38,22 @@ history::preview() {
   elif ((secs > 300)); then secs="${RED}${secs}s${R}"
   elif ((secs > 60)); then secs="${WHT}${secs}s${R}"
   else secs="${secs}s"; fi
-  printf '%slast run%s   %s\n' "$B" "$R" "$when"
-  printf '%sstatus%s     %s\n' "$B" "$R" "$status"
-  printf '%sduration%s   %s\n' "$B" "$R" "$secs"
-  printf '%sdirectory%s  %s\n' "$B" "$R" "${dir/#$HOME/\~}"
-  printf '%shost%s       %s   %ssession %s%s\n' "$B" "$R" "$host" "$D" "$session" "$R"
-  printf '%sruns%s       %s' "$B" "$R" "$runs"
+  # labels with their icons (lib/icons.sh), padded to one width
+  local lb=1 l_when l_status l_secs l_dir l_host l_runs
+  [[ -n "${NO_COLOR+x}" ]] && lb=""
+  fzx::require icons
+  fzx::icon_label clock "last run " "$lb" l_when
+  fzx::icon_label "$status_icon" "status   " "$lb" l_status
+  fzx::icon_label duration "duration " "$lb" l_secs
+  fzx::icon_label folder "directory" "$lb" l_dir
+  fzx::icon_label host "host     " "$lb" l_host
+  fzx::icon_label threads "runs     " "$lb" l_runs
+  printf '%s  %s\n' "$l_when" "$when"
+  printf '%s  %s\n' "$l_status" "$status"
+  printf '%s  %s\n' "$l_secs" "$secs"
+  printf '%s  %s\n' "$l_dir" "${dir/#$HOME/\~}"
+  printf '%s  %s   %ssession %s%s\n' "$l_host" "$host" "$D" "$session" "$R"
+  printf '%s  %s' "$l_runs" "$runs"
   ((failed)) && printf '   %s%s failed%s' "$RED" "$failed" "$R"
   printf '   %ssince %s%s\n' "$D" "$first" "$R"
 
@@ -50,7 +62,9 @@ history::preview() {
     where h.command_id = (select command_id from history where id = $id)
     group by places.dir order by count(*) desc limit 8")"
   if [[ -n "$dirs" ]]; then
-    printf '\n%sdirectories%s\n' "$B" "$R"
+    local l_dirs
+    fzx::icon_label folder directories "$lb" l_dirs
+    printf '\n%s\n' "$l_dirs"
     awk -F'\x1f' -v home="$HOME" -v dim="$D" -v rst="$R" '
       { d = $2; if (index(d, home) == 1) d = "~" substr(d, length(home) + 1); printf "  %s%5d%s  %s\n", dim, $1, rst, d }' <<< "$dirs"
   fi

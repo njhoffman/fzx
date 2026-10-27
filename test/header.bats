@@ -15,6 +15,8 @@ line_for() {
   load_libs log config opts components
   fzx::config_load
   FZX_HEADER_STYLE="$1"
+  # the pill shapes are what these tests check, not the toggle markers
+  FZX_ICONS=none
   FZX_COMP=($'toggle\tk\t-\t-\t-')
   FZX_MODES=(a b) FZX_MODE=b FZX_TOGGLES=k FZX_SORT=""
   fzx::component_line LINE

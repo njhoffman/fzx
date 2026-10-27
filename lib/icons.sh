@@ -25,6 +25,21 @@ declare -gA FZX_ICONS_NERD=(
   [docker]=""    # a docker container
   [ok]=""        # succeeded
   [failed]=""    # failed
+  [toggle_on]="" # footer: a toggle that is on
+  [toggle_off]="" # footer: a toggle that is off
+  [sort]=""      # footer: the sort order
+  [user]=""      # preview: a user
+  [clock]=""     # preview: a time
+  [duration]=""  # preview: how long
+  [cpu]=""       # preview: cpu
+  [memory]=""    # preview: memory
+  [parent]=""    # preview: parent and children
+  [threads]=""   # preview: threads, counts
+  [state]=""     # preview: a state
+  [command]=""   # preview: a command line
+  [folder]=""    # preview: a directory
+  [host]=""      # preview: a host
+  [remote]=""    # preview: a remote
 )
 
 declare -gA FZX_ICONS_UNICODE=(
@@ -48,6 +63,21 @@ declare -gA FZX_ICONS_UNICODE=(
   [docker]="◆"
   [ok]="✓"
   [failed]="✗"
+  [toggle_on]="●"
+  [toggle_off]="○"
+  [sort]="↓"
+  [user]="☺"
+  [clock]="◷"
+  [duration]="⧗"
+  [cpu]="◫"
+  [memory]="▥"
+  [parent]="↰"
+  [threads]="≡"
+  [state]="◉"
+  [command]="$"
+  [folder]="⌂"
+  [host]="▭"
+  [remote]="⇄"
 )
 
 # fzx::icon <name> [var]: the icon, empty for an unknown name or FZX_ICONS=none; into var when given
@@ -68,4 +98,19 @@ fzx::icon_vars() {
     fzx::icon "$_name" _glyph
     FZX_ICON_VARS+=(-v "icon_${_name}=$_glyph")
   done
+}
+
+# fzx::icon_label <name> <label> <label SGR> <var>: "<icon> <label>" for a preview, the icon in
+# FZX_COLORS[preview_icon] and the label in the given SGR (no escapes when it is empty or NO_COLOR is set);
+# the label alone with FZX_ICONS=none
+fzx::icon_label() {
+  local __fzx_glyph __fzx_out="" __fzx_ic="${FZX_COLORS[preview_icon]:-38;5;110}"
+  fzx::icon "$1" __fzx_glyph
+  if [[ -n "${NO_COLOR+x}" || -z "$3" ]]; then
+    __fzx_out="${__fzx_glyph:+$__fzx_glyph }$2"
+  else
+    [[ -n "$__fzx_glyph" ]] && __fzx_out=$'\e['"${__fzx_ic}m$__fzx_glyph"$'\e[0m '
+    __fzx_out+=$'\e['"${3}m$2"$'\e[0m'
+  fi
+  printf -v "$4" '%s' "$__fzx_out"
 }

@@ -81,8 +81,13 @@ fzx::_layout_binds() {
 # FZX_HEADER_STYLE, active ones highlighted; empty when the module has none of them or the style is none
 # (locals _-prefixed: they would shadow the caller's variable)
 fzx::component_line() {
-  local _items=() _m _k _n _line="" _style="${FZX_HEADER_STYLE:-minimal}"
+  local _items=() _m _k _n _line="" _style="${FZX_HEADER_STYLE:-minimal}" _on _off _sort
   [[ "$_style" == none ]] && { printf -v "$1" '%s' ""; return; }
+  # toggles carry an on/off marker and the sort its icon (lib/icons.sh); FZX_ICONS=none: names only, ↓
+  fzx::require icons
+  fzx::icon toggle_on _on
+  fzx::icon toggle_off _off
+  fzx::icon sort _sort
   # items as "group<TAB>state<TAB>kind<TAB>text"; state is on or off
   if ((${#FZX_MODES[@]} > 1)); then
     for _m in "${FZX_MODES[@]}"; do
@@ -90,9 +95,9 @@ fzx::component_line() {
     done
   fi
   while IFS=$'\t' read -r _k _n _ _ _; do
-    if fzx::comp_on "$_n"; then _items+=($'2\ton\ttoggle\t'"$_n"); else _items+=($'2\toff\ttoggle\t'"$_n"); fi
+    if fzx::comp_on "$_n"; then _items+=($'2\ton\ttoggle\t'"${_on:+$_on }$_n"); else _items+=($'2\toff\ttoggle\t'"${_off:+$_off }$_n"); fi
   done < <(fzx::comp_rows toggle)
-  [[ -n "${FZX_SORT:-}" ]] && _items+=($'3\ton\tsort\t↓'"$FZX_SORT")
+  [[ -n "${FZX_SORT:-}" ]] && _items+=($'3\ton\tsort\t'"${_sort:-↓}${_sort:+ }$FZX_SORT")
   ((${#_items[@]})) || { printf -v "$1" '%s' ""; return; }
   case "$_style" in
     bubble | triangle) fzx::_component_pills _line "$_style" "${_items[@]}" ;;

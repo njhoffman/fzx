@@ -75,7 +75,8 @@ setup() {
 }
 
 @test "preview: shows details for a live pid" {
-  run "$PS_DIR/preview.sh" "$$"
+  # labels without their icons, so the lines start with them
+  FZX_ICONS=none run "$PS_DIR/preview.sh" "$$"
   [ "$status" -eq 0 ]
   [[ "${lines[0]}" =~ ^pid\ $$\ +parent\ [0-9]+\ .*user\ [a-z] ]]
   [[ "${lines[1]}" =~ ^state\ [A-Z].*threads\ [0-9]+.*started.*elapsed ]]

@@ -14,3 +14,7 @@ FZX_GIT_LOG_LIMIT=1000
 
 # diffs in the preview are piped through this when set, e.g. "delta --paging=never"
 FZX_GIT_DIFF_FILTER=""
+
+# git color settings applied to every git call here (`-c KEY=VALUE`), over the user's: git's defaults
+# draw tags, commit hashes and the decoration parentheses in yellow; cool colors instead
+FZX_GIT_COLOR_CONFIG=("color.decorate.tag=bold 117" "color.diff.commit=252")

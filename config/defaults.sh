@@ -89,6 +89,8 @@ declare -gA FZX_COLORS=(
   # the prompt icon once the list is loaded, and while it loads
   [prompt_loaded]="38;5;45;1"
   [prompt_loading]="38;5;240"
+  # the icons before preview labels (lib/icons.sh)
+  [preview_icon]="38;5;110"
 )
 
 # the prompt: {icon} is FZX_ICON (set per module in its config.sh) in FZX_COLORS[prompt_loaded], or in

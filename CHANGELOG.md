@@ -6,6 +6,20 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-10-26
+
+### Added
+
+- Icons in the footer: each toggle shows whether it is on or off, the sort its own icon.
+- Icons before the labels of the ps preview (pid, parent, user, state, threads, start, elapsed, cpu, mem,
+  children), the history preview (last run, status as succeeded or failed, duration, directory, host,
+  runs, directories) and the repos preview (path, remote, TODO). `FZX_COLORS[preview_icon]` colors them.
+
+### Changed
+
+- git: tags, commit hashes in `git show` and the parentheses around decorations are no longer yellow
+  (`FZX_GIT_COLOR_CONFIG` sets git's colors for the module; the repos preview uses the same).
+
 ## [0.13.0] - 2026-10-26
 
 ### Added

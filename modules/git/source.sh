@@ -39,7 +39,12 @@ git::args() {
   }
 }
 
-git::g() { command git -C "$GIT_TOP" "$@"; }
+# git::g <args...>: git in the work tree, with FZX_GIT_COLOR_CONFIG's color settings over the user's
+git::g() {
+  local cfg=() kv
+  for kv in "${FZX_GIT_COLOR_CONFIG[@]}"; do cfg+=(-c "$kv"); done
+  command git -C "$GIT_TOP" "${cfg[@]}" "$@"
+}
 
 # git::split [module args...] -- [ids...]: callbacks get the module args explicitly (they are not in the
 # environment, and a standalone run has no session to read them from); ids into GIT_IDS
