@@ -23,7 +23,7 @@ capture::opts() {
   fzx::in_session && capture::snapshot
   capture::header header
   FZX_OPTS+=(
-    --delimiter=$'\t' --with-nth=2 --accept-nth=1 --no-sort --multi
+    --delimiter=$'\t' --with-nth=2 --accept-nth=1 --tiebreak=index --multi
     --preview "$(fzx::cb preview "$cb_args" '{1}' '{3}')"
     '--preview-window=right,50%,wrap,nohidden'
     "--header=$header"

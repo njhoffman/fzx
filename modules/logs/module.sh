@@ -14,7 +14,7 @@ logs::opts() {
     --delimiter=$'\t'
     --with-nth=3
     --accept-nth=2
-    --no-sort
+    --tiebreak=index
     --preview "$(fzx::cb preview '{1}' '{2}')"
     "--preview-window=down,60%,follow,nowrap,nohidden"
   )

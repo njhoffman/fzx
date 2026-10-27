@@ -26,7 +26,7 @@ todos::opts() {
     --with-nth=2
     --accept-nth=3
     --multi
-    --no-sort
+    --tiebreak=index
     --preview "$(fzx::cb preview '{1}')"
     "--preview-window=down,40%,wrap,nohidden"
   )

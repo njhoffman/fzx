@@ -6,6 +6,15 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-10-27
+
+### Changed
+
+- Sorting is on in every module: actions, capture, colors, dirs, docker, git, logs, recent (g, v), repos,
+  tmux, todos and youtube turned it off to keep their order (frecency, recency, priority, the screen).
+  They now sort with `--tiebreak=index`, so the best matches rise to the top and equal matches keep that
+  order; with no query the list shows as before. Only ps's tree mode keeps sorting off.
+
 ## [0.21.0] - 2026-10-27
 
 ### Added

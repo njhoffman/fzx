@@ -221,6 +221,11 @@ The `restart` flag marks a mode that needs options fzf cannot change while runni
 it restarts fzf (query kept). fzf only has `toggle-sort` and does not export the sort state (the user's
 own `ctrl-s` toggles it too), so `ps` marks `tree`, which needs `--no-sort`.
 
+Lists whose order is a ranking (frecency, recency, priority, the screen) keep fzf's sorting on with
+`--tiebreak=index`: the best matches rise to the top and equal ones keep the list's order, and with no
+query the list shows as it came. After a `--scheme`, which sets its own tiebreak, the option has to come
+later to win. Only an order that is the content itself (ps's tree) turns sorting off.
+
 ### Toggles and sort
 
 `toggle` rows are independent switches (flag `on` = on at start), `sort` rows the sort orders (flag

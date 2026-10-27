@@ -15,7 +15,7 @@ youtube::opts() {
     --with-nth=7
     --accept-nth=1
     --disabled
-    --no-sort
+    --tiebreak=index
     "--header=type a search, enter runs it"
     --preview "$(fzx::cb preview '{1}' '{2}' '{3}' '{4}' '{5}' '{6}')"
     "--preview-window=right,45%,wrap,nohidden"

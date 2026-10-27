@@ -14,8 +14,9 @@ dirs::opts() {
     --delimiter=$'\t'
     --with-nth=2
     --accept-nth=1
-    --no-sort
     --scheme=path
+    # after --scheme, which brings its own tiebreak: equal matches keep the list's order
+    --tiebreak=index
     --preview "$(fzx::cb preview '{1}')"
     "--preview-window=right,50%,nohidden"
   )

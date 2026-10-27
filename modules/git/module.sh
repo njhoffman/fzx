@@ -39,7 +39,7 @@ git::opts() {
     --delimiter=$'\t'
     --with-nth=2
     --accept-nth=1
-    --no-sort
+    --tiebreak=index
     "--header=$(git::header)"
     --preview "$(fzx::cb preview "$a" '{1}' '{3}')"
     "--preview-window=right,60%,nohidden"

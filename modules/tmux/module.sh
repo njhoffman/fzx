@@ -16,7 +16,7 @@ tmux::opts() {
   ((${#FZX_ARGS[@]})) && printf -v args '%q ' "${FZX_ARGS[@]}"
   args+="--"
   FZX_OPTS+=(
-    --delimiter=$'\t' --with-nth=2 --accept-nth=1 --no-sort --multi
+    --delimiter=$'\t' --with-nth=2 --accept-nth=1 --tiebreak=index --multi
     --preview "$(fzx::cb preview "$args" '{1}' '{2}' '{3}')"
     '--preview-window=right,60%,wrap,nohidden'
   )

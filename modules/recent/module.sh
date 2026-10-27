@@ -15,8 +15,9 @@ recent::opts() {
     --delimiter=$'\t'
     --with-nth=2
     --accept-nth=1
-    --no-sort
     --scheme=path
+    # after --scheme, which brings its own tiebreak: equal matches keep the frecency order
+    --tiebreak=index
     --preview "$(fzx::cb preview '{1}')"
     "--preview-window=right,55%,nohidden"
   )
