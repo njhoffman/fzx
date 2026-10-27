@@ -2,10 +2,13 @@
 # git defaults; override in ~/.config/fzx/config.sh or ~/.config/fzx/modules/git/config.sh
 
 # shellcheck disable=SC2034  # settings here are read by lib/ and the module
-declare -gA FZX_KEYS
+declare -gA FZX_KEYS FZX_COLORS
 
 # prompt icon (Nerd Font); FZX_ICON="" keeps fzf's own prompt
 FZX_ICON=""
+
+# the icon's color in the menu
+FZX_COLORS[git_icon]="38;5;166"
 
 FZX_KEYS[git.into]=ctrl-o   # branches, tags: the log; log, reflog, stash: the commit's files; worktrees: status
 FZX_KEYS[git.view]=alt-v    # status, commit: the preview shows the diff or the blame

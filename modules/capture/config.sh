@@ -7,6 +7,9 @@ declare -gA FZX_KEYS FZX_COLORS
 # prompt icon (Nerd Font); FZX_ICON="" keeps fzf's own prompt
 FZX_ICON=""
 
+# the icon's color in the menu
+FZX_COLORS[capture_icon]="38;5;117"
+
 # capture another pane of the same window: the next and previous one (alt-[ is avoided: it is how
 # terminal escape sequences start)
 FZX_KEYS[capture.next]="alt-."

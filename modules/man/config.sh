@@ -7,6 +7,9 @@ declare -gA FZX_COLORS
 # prompt icon (Nerd Font); FZX_ICON="" keeps fzf's own prompt
 FZX_ICON="󰈙"
 
+# the icon's color in the menu
+FZX_COLORS[man_icon]="38;5;109"
+
 # the man database and tldr pages change rarely: lists are cached for a day (ctrl-r reads them again)
 FZX_PERSIST=cache:1d
 

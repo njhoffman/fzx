@@ -12,3 +12,9 @@ dirs::applicable() {
     *) command -v fd > /dev/null || command -v fdfind > /dev/null ;;
   esac
 }
+
+# no summary for the fd walk of ~: it can take longer than the summary timeout
+dirs::summary() {
+  [[ "$1" == dirs:bookmarks ]] || return 0
+  printf '%s bookmarks\n' "${#FZX_DIRS_BOOKMARKS[@]}"
+}

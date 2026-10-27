@@ -26,8 +26,24 @@ recent::applicable() {
 }
 
 recent::summary() {
+  local zl
   case "$1" in
+    recent)
+      if [[ -f "$FZX_RECENT_NVIM_DB" ]]; then
+        printf '%s files\n' "$(command sqlite3 -readonly "$FZX_RECENT_NVIM_DB" 'SELECT COUNT(*) FROM files')"
+      else
+        printf '%s files\n' "$(command fasd -f -l 2> /dev/null | wc -l)"
+      fi
+      ;;
+    recent:fasd) printf '%s files\n' "$(command fasd -f -l 2> /dev/null | wc -l)" ;;
+    recent:zlua)
+      # shellcheck source=./source.sh
+      source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
+      recent::zlua zl || return 0
+      printf '%s known directories\n' "$(command "$FZX_RECENT_ZLUA_LUA" "$zl" -l 2> /dev/null | wc -l)"
+      ;;
     recent:dirs) printf '%s known directories\n' "$(command zoxide query --list 2> /dev/null | wc -l)" ;;
+    recent:visited) printf '%s known directories\n' "$(command fasd -d -l 2> /dev/null | wc -l)" ;;
     *) return 0 ;;
   esac
 }

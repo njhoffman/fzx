@@ -4,7 +4,11 @@
 # shellcheck disable=SC2034  # settings here are read by lib/ and the module
 
 # prompt icon (Nerd Font); FZX_ICON="" keeps fzf's own prompt
-FZX_ICON=""
+FZX_ICON=""
+
+# the icon's color in the menu
+declare -gA FZX_COLORS
+FZX_COLORS[todos_icon]="38;5;114"
 
 # directories searched for TODO.md files in the all mode besides ghq's repositories, and single files
 FZX_TODOS_ROOTS=()

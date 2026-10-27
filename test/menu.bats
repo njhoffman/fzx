@@ -65,6 +65,33 @@ entry() {
   [[ "$output" == *$'\n'"ps#0|"?" ps "* ]]
 }
 
+@test "source: a mode's own icon and color, else the module's, else the target color" {
+  mkdir -p "$BATS_TEST_TMPDIR/mods/iconed"
+  cat > "$BATS_TEST_TMPDIR/mods/iconed/config.sh" << 'EOF'
+FZX_ICON="M"
+FZX_ICON_MODES[grep]="G"
+FZX_COLORS[iconed_icon]="38;5;75"
+FZX_COLORS[iconed_icon_grep]="38;5;170"
+EOF
+  cat > "$BATS_TEST_TMPDIR/mods/iconed/manifest.sh" << 'EOF'
+iconed::manifest() {
+  fzx::entry iconed "default mode"
+  fzx::entry iconed:grep "grep mode"
+  fzx::entry iconed:dirs "a mode without its own icon"
+}
+EOF
+  export FZX_MODULE_PATH="$BATS_TEST_TMPDIR/mods:$FZX_MODULE_PATH"
+  menu_session
+  run "$FZX" _cb source
+  [[ "$output" == *$'iconed#0\t\e[38;5;75mM\e[0m '* ]]
+  [[ "$output" == *$'iconed#1\t\e[38;5;170mG\e[0m '* ]]
+  [[ "$output" == *$'iconed#2\t\e[38;5;75mM\e[0m '* ]]
+  # the next module starts from the defaults: no icon, the target color
+  [[ "$output" == *$'counter#1\t\e[38;5;110m \e[0m '* ]]
+  FZX_ICONS=unicode run plain_lines
+  [[ "$(entry 'iconed#1')" == 'iconed#1|iconed:grep '* ]]
+}
+
 @test "source: applicable hides an entry without renumbering the others" {
   menu_session
   COUNTER_HIDE_TWO=1 run plain_lines

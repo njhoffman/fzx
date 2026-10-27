@@ -5,7 +5,10 @@
 declare -gA FZX_COLORS
 
 # prompt icon (Nerd Font); FZX_ICON="" keeps fzf's own prompt
-FZX_ICON=""
+FZX_ICON=""
+
+# the icon's color in the menu
+FZX_COLORS[history_icon]="38;5;151"
 
 # zsh-histdb's database
 FZX_HISTDB_FILE="${FZX_HISTDB_FILE:-${HISTDB_FILE:-$HOME/.histdb/zsh-history.db}}"

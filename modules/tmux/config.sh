@@ -9,6 +9,8 @@ FZX_PERSIST=none
 FZX_TMUX_HELPERS="${XDG_CONFIG_HOME:-$HOME/.config}/tmux/scripts"
 # shellcheck disable=SC2034
 declare -gA FZX_COLORS
+# the icon's color in the menu
+FZX_COLORS[tmux_icon]='38;5;34'
 FZX_COLORS[tmux_name]='38;5;81'
 FZX_COLORS[tmux_value]='38;5;150'
 FZX_COLORS[tmux_scope]='38;5;250'

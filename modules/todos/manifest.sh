@@ -8,17 +8,24 @@ todos::manifest() {
 
 todos::applicable() {
   case "$1" in
-    todos) local top; top="$(git rev-parse --show-toplevel 2> /dev/null)" || top="$PWD"; [[ -f "$top/TODO.md" ]] ;;
+    todos)
+      # shellcheck source=./source.sh
+      source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
+      todos::here > /dev/null
+      ;;
     *) return 0 ;;
   esac
 }
 
+# open items, and how many of them are urgent (p1) or overdue
 todos::summary() {
-  local top
-  case "$1" in
-    todos)
-      top="$(git rev-parse --show-toplevel 2> /dev/null)" || top="$PWD"
-      printf '%s open\n' "$(grep -c '^- \[ \] ' "$top/TODO.md" 2> /dev/null)"
-      ;;
-  esac
+  local mode=here files file
+  [[ "$1" == todos:all ]] && mode=all
+  # shellcheck source=./source.sh
+  source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
+  mapfile -t files < <(FZX_MODE="$mode" todos::files)
+  ((${#files[@]})) || return 0
+  for file in "${files[@]}"; do FZX_TOGGLES="" todos::parse "$file"; done |
+    awk -F'\t' -v files="${#files[@]}" -v mode="$mode" '{ n++; if ($7 == 1) u++; if ($6 == 1) o++ }
+      END { printf "%d open%s, %d urgent, %d overdue\n", n, mode == "all" ? " in " files " files" : "", u, o }'
 }

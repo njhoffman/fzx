@@ -97,6 +97,9 @@ declare -gA FZX_COLORS=(
 # [prompt_loading] while the list loads. A prompt that is empty or blank leaves fzf's own prompt alone,
 # so with no icon nothing changes. Prompts cannot contain ")".
 FZX_ICON=""
+# the menu's icon per mode ([mode]=glyph), for modes that differ from FZX_ICON; their colors are
+# FZX_COLORS[<module>_icon_<mode>], the module's FZX_COLORS[<module>_icon]
+declare -gA FZX_ICON_MODES=()
 FZX_PROMPT="{icon}  "
 FZX_PROMPT_LOADING="{icon}  "
 

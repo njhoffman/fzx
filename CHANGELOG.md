@@ -6,6 +6,24 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-10-27
+
+### Added
+
+- Every module has an icon in the menu, each in its own color (`FZX_COLORS[<module>_icon]`). A mode that
+  opens a different list can have its own icon and color (`FZX_ICON_MODES[mode]`,
+  `FZX_COLORS[<module>_icon_<mode>]`): files, files:dirs and files:grep now differ.
+- Menu summaries for tmux (sessions and how many are attached, windows across sessions, panes across
+  windows, buffers, key bindings across tables), keybindings (zsh from the saved dump, tmux, fzf yours and
+  the defaults), recent (every mode), man (commands, pages, tldr pages), todos (open, urgent and overdue
+  items, across files in todos:all), logs (log files), files:grep (the files a search reads and their
+  size) and dirs:bookmarks.
+
+### Fixed
+
+- The todos menu entry finds TODO.md the way the module does (the nearest one up to the repository's top),
+  not only at the top.
+
 ## [0.22.0] - 2026-10-27
 
 ### Changed

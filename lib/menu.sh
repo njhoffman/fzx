@@ -38,7 +38,7 @@ fzx::menu_modules() {
 }
 
 # fzx::menu_entries <module> <dir>: load the module's config (its applicable and summary hooks read it, the
-# menu shows its FZX_ICON), source the manifest and fill FZX_ENTRY_TARGETS/DESCS/ARGS. Callers run it in a
+# menu shows its icons), source the manifest and fill FZX_ENTRY_TARGETS/DESCS/ARGS. Callers run it in a
 # subshell per module, so one module's settings never reach the next.
 fzx::menu_entries() {
   FZX_ENTRY_TARGETS=() FZX_ENTRY_DESCS=() FZX_ENTRY_ARGS=()
@@ -84,7 +84,7 @@ fzx::menu_lines() {
         fzx::log warn "menu: manifest of $name failed"
         exit 0
       }
-      local i label summary file icon
+      local i label summary file icon mode color
       for i in "${!FZX_ENTRY_TARGETS[@]}"; do
         fzx::menu_entry_args "$i"
         if declare -F "$name::applicable" > /dev/null &&
@@ -97,11 +97,18 @@ fzx::menu_lines() {
           fzx::summary_path file "$name" "$i"
           [[ -f "$file" ]] && summary="$(< "$file")"
         fi
-        # the module's prompt icon (a Nerd Font glyph) in front, in the nerd icon style only
+        # an icon (a Nerd Font glyph) in front, in the nerd icon style only: the mode's (FZX_ICON_MODES),
+        # else the module's prompt icon, in FZX_COLORS[<module>_icon_<mode>] or [<module>_icon]
         icon=""
-        [[ "${FZX_ICONS:-nerd}" == nerd ]] && icon="${FZX_ICON:- } "
-        printf '%s\t\e[%sm%s%-24s\e[0m %-42s \e[%sm%s\e[0m\n' \
-          "$name#$i" "${FZX_COLORS[menu_target]:-0}" "$icon" "$label" "${FZX_ENTRY_DESCS[i]}" \
+        if [[ "${FZX_ICONS:-nerd}" == nerd ]]; then
+          mode=""
+          [[ "${FZX_ENTRY_TARGETS[i]}" == *:* ]] && mode="${FZX_ENTRY_TARGETS[i]#*:}"
+          icon="${FZX_ICON_MODES[$mode]:-${FZX_ICON:- }}"
+          color="${FZX_COLORS[${name}_icon_$mode]:-${FZX_COLORS[${name}_icon]:-${FZX_COLORS[menu_target]:-0}}}"
+          icon=$'\e['"${color}m$icon"$'\e[0m '
+        fi
+        printf '%s\t%s\e[%sm%-24s\e[0m %-42s \e[%sm%s\e[0m\n' \
+          "$name#$i" "$icon" "${FZX_COLORS[menu_target]:-0}" "$label" "${FZX_ENTRY_DESCS[i]}" \
           "${FZX_COLORS[menu_summary]:-0}" "$summary"
       done
     )

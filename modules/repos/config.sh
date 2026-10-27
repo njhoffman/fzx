@@ -5,7 +5,10 @@
 declare -gA FZX_KEYS FZX_COLORS
 
 # prompt icon (Nerd Font); FZX_ICON="" keeps fzf's own prompt
-FZX_ICON=""
+FZX_ICON=""
+
+# the icon's color in the menu
+FZX_COLORS[repos_icon]="38;5;141"
 
 FZX_KEYS[repos.git]=ctrl-o   # the git module on the repository
 FZX_KEYS[repos.files]=alt-o  # the files module on the repository

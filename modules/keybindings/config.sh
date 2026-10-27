@@ -7,6 +7,9 @@ declare -gA FZX_COLORS
 # prompt icon (Nerd Font); FZX_ICON="" keeps fzf's own prompt
 FZX_ICON="󰌌"
 
+# the icon's color in the menu
+FZX_COLORS[keybindings_icon]="38;5;146"
+
 # bindings change with the shell's config: read them on every open
 FZX_PERSIST=none
 

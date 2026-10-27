@@ -4,7 +4,11 @@
 # shellcheck disable=SC2034  # settings here are read by lib/ and the module
 
 # prompt icon (Nerd Font); FZX_ICON="" keeps fzf's own prompt
-FZX_ICON=""
+FZX_ICON="󰏘"
+
+# the icon's color in the menu
+declare -gA FZX_COLORS
+FZX_COLORS[colors_icon]="38;5;213"
 
 # fzx mode reads the current config: no cache
 FZX_PERSIST=none

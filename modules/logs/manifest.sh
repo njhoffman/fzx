@@ -26,6 +26,11 @@ logs::summary() {
       n="$(docker ps -q 2> /dev/null | wc -l)" || return 1
       printf '%s running containers\n' "${n// /}"
       ;;
-    *) return 0 ;; # no summary for log files
+    logs)
+      # shellcheck source=./source.sh
+      source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
+      n="$(logs::source_files | wc -l)"
+      printf '%s log files\n' "${n// /}"
+      ;;
   esac
 }

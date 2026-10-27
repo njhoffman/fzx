@@ -3,7 +3,11 @@
 # shellcheck disable=SC2034  # settings here are read by lib/ and the module
 
 # prompt icon (Nerd Font); FZX_ICON="" keeps fzf's own prompt
-FZX_ICON=""
+FZX_ICON=""
+
+# the icon's color in the menu
+declare -gA FZX_COLORS
+FZX_COLORS[youtube_icon]="38;5;196"
 
 # results per search (yt-dlp "ytsearchN:")
 FZX_YOUTUBE_RESULTS="${FZX_YOUTUBE_RESULTS:-30}"

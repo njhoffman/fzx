@@ -2,10 +2,19 @@
 # files defaults; override in ~/.config/fzx/config.sh or ~/.config/fzx/modules/files/config.sh
 
 # shellcheck disable=SC2034  # settings here are read by lib/ and the module
-declare -gA FZX_KEYS
+declare -gA FZX_KEYS FZX_COLORS
 
 # prompt icon (Nerd Font); FZX_ICON="" keeps fzf's own prompt
-FZX_ICON=""
+FZX_ICON="󰈢"
+
+# the menu's icons for modes that open different lists
+declare -gA FZX_ICON_MODES
+FZX_ICON_MODES[dirs]="󰉋"
+FZX_ICON_MODES[grep]="󰍉"
+# the icon's color in the menu
+FZX_COLORS[files_icon]="38;5;75"
+FZX_COLORS[files_icon_dirs]="38;5;214"
+FZX_COLORS[files_icon_grep]="38;5;170"
 
 FZX_KEYS[files.into]=ctrl-o  # browse the directory under the cursor (a file's own directory)
 FZX_KEYS[files.up]=alt-up    # browse the parent directory

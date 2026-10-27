@@ -336,7 +336,7 @@ resolved config: the callback loads the layers just before the first module func
 | `FZX_FZF_COLORS` | empty | passed as `--color` when set; empty keeps the user's fzf theme |
 | `FZX_HISTORY` | `1` | per-module `--history=$XDG_STATE_HOME/fzx/history/<module>`; `0` leaves fzf's history alone |
 | `FZX_ICON`, `FZX_PROMPT`, `FZX_PROMPT_LOADING` | icon per module (Nerd Font), `{icon} ` | the prompt: `{icon}` in `FZX_COLORS[prompt_loading]` from start until `load`, then `[prompt_loaded]`; every reload (ctrl-r, mode/toggle/sort switches, reload actions) goes back to loading first. A blank prompt (`FZX_ICON=""`) keeps fzf's own prompt and binds nothing. `)` is dropped (it would end `change-prompt(...)`) |
-| `FZX_ICONS` | `nerd` | icons in rows and previews (lib/icons.sh, `fzx::icon NAME`): `nerd` (Nerd Font glyphs), `unicode` (plain symbols, for terminals without a Nerd Font) or `none`. Used by the menu (each module's `FZX_ICON`, nerd only), git status (added, modified, deleted, renamed, untracked, conflict), repos (branch, changed, ahead, behind, todos), docker containers and logs (running, paused, stopped, created; file, unit), history (failed); the footer's toggles (on/off) and sort; the ps, history and repos previews' labels (`fzx::icon_label`, icons in `FZX_COLORS[preview_icon]`) |
+| `FZX_ICONS` | `nerd` | icons in rows and previews (lib/icons.sh, `fzx::icon NAME`): `nerd` (Nerd Font glyphs), `unicode` (plain symbols, for terminals without a Nerd Font) or `none`. Used by the menu (each module's `FZX_ICON`, or `FZX_ICON_MODES[mode]` for a mode that opens a different list, in `FZX_COLORS[<module>_icon_<mode>]` or `[<module>_icon]`; nerd only), git status (added, modified, deleted, renamed, untracked, conflict), repos (branch, changed, ahead, behind, todos), docker containers and logs (running, paused, stopped, created; file, unit), history (failed); the footer's toggles (on/off) and sort; the ps, history and repos previews' labels (`fzx::icon_label`, icons in `FZX_COLORS[preview_icon]`) |
 | `FZX_PREVIEW_LAYOUTS` | `0:down,50%,border-top` `120:` (menu: `0:down,50%,border-top` `180:right,40%`) | the preview window by terminal width, see below; `()` turns it off |
 | `FZX_PERSIST`, `FZX_POPUP_OPTS`, `FZX_FLOAT_OPTS`, `FZX_STATS`, `FZX_SUMMARY_TTL`, `FZX_TRACE`, ... | | see their sections |
 
@@ -540,6 +540,10 @@ immediately. `start:+bg-transform:fzx _cb transform refresh` then computes the s
 `FZX_SUMMARY_TIMEOUT` (default 3s), and answers with a single `reload` when anything changed. A
 failing or timed-out summary is cached empty, so it is not retried on every open. The timeout watcher
 must not hold the callback's stdout: fzf waits for every writer of a `bg-transform` to close it.
+A summary describes what the entry would open from here (counts, the state of a server or repository)
+and stays well under the timeout: one that would need an interactive shell or a walk of `~` (the zsh
+key bindings without a saved dump, `dirs`) prints nothing instead. The capture entries have none: they
+depend on the pane, which the per-directory cache cannot tell apart.
 
 **Preview** shows what the entry opens, its description and summary, and `fzx stats` for its module.
 Running `modules/menu/module.sh` directly lists entries but cannot open them.
