@@ -34,6 +34,6 @@ changing lib/ or adding a module).
 ## Roadmap and known issues
 
 `TODO.md`. Its open items are shown at session start (SessionStart hook in `.claude/settings.local.json`)
-and on demand with `/todo [section]`; both use `~/.shell/scripts/todo-status`. `/todo-pop` picks an item
-in a tmux popup (`~/.shell/scripts/todo-fzf`) and opens it in the editor. Tick items off as they
-land.
+and on demand with `/todo [section]`; both use `~/.shell/scripts/todo-status`. `/todo-pop` picks items
+in a tmux popup (`fzx -m todos --paste`, this repo's todos module) and pastes them into the prompt. Tick
+items off as they land.
