@@ -6,6 +6,16 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-10-27
+
+### Added
+
+- man module (`fzx -m man[:all|:tldr]`): man pages of commands (sections in `FZX_MAN_SECTIONS`, 1 and 8 by
+  default), every man page, or tldr pages with descriptions from tealdeer's pages (common, then
+  `FZX_MAN_TLDR_PLATFORMS`). The preview renders the page at its width through bat; enter opens it in
+  the pager, alt-n in nvim. Shorter names are listed first, so the exact name ranks first. Lists are
+  cached for a day.
+
 ## [0.18.0] - 2026-10-27
 
 ### Added

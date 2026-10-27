@@ -1,0 +1,7 @@
+# man components: kind  name  key  description  flags (see lib/components.sh)
+mode    commands  -  man pages of commands (sections in FZX_MAN_SECTIONS)  default
+mode    all       -  every man page                                      -
+mode    tldr      -  tldr pages (tealdeer), common and this platform's    -
+action  open      -       open the page in the pager                      foreground,default
+action  nvim      alt-n   open the page in nvim (:Man; tldr pages as markdown)  foreground
+action  copy      ctrl-y  copy the names                                  silent,builtin

@@ -243,9 +243,8 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       (sudo in execute): apt/dpkg modes, plus snap, flatpak, pip/pipx, cargo, npm/pnpm globals, gem.
       Refs: packages/fzf.apt.zsh, system/fzapt-{search,rm,up}, ref/mods/apt.sh, fzf-scripts/pkgsearch,
       pkgup, fzaur. Has: apt, dpkg, snap, flatpak, pip, pipx, cargo, pnpm/npm, gem. Missing: brew, aur.
-- [ ] **man** (p2) [module]: man pages by section with rendered preview, plus tldr and navi cheat sheets as modes.
-      Refs: system/fzf.man.zsh, development/fzr-man, aliases.zsh `fzf.cheat` (cheat.sh). Has: man, tldr,
-      navi. Missing: cheat.
+- [x] **man** (p2) [module]: modules/man: commands (sections 1, 8), all, tldr (tealdeer's pages); rendered
+      preview, pager and nvim (0.19.0). navi left out: no cheat sheets installed; cheat.sh needs the network.
 - [ ] **audio** (p2) [module]: pactl/wpctl sinks and sources (set default, volume), playerctl players.
       Refs: widgets/audio/*. Has: pactl, wpctl, playerctl.
 - [ ] **bluetooth** (p3) [module]: devices (connect, disconnect, pair). Has: bluetoothctl.
