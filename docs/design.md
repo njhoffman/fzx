@@ -576,8 +576,12 @@ failing or timed-out summary is cached empty, so it is not retried on every open
 must not hold the callback's stdout: fzf waits for every writer of a `bg-transform` to close it.
 A summary describes what the entry would open from here (counts, the state of a server or repository)
 and stays well under the timeout: one that would need an interactive shell or a walk of `~` (the zsh
-key bindings without a saved dump, `dirs`) prints nothing instead. The capture entries have none: they
-depend on the pane, which the per-directory cache cannot tell apart.
+key bindings without a saved dump, `dirs`) prints nothing instead. A summary that depends on more than the
+directory has its manifest define `<module>::summary_key <target>`, a fast command whose output joins the
+cache key: git prints HEAD's commit and the times the index, HEAD, refs, fetches and stashes changed (so a
+commit, stage, switch, fetch or stash shows at once; edits not yet staged wait for the TTL), capture the
+active pane with its history size and cursor line (its entries count the lines, URLs, paths and the rest
+there). Entries under old keys are left to `fzx gc` (`FZX_CACHE_MAX_AGE_DAYS`).
 
 **Preview** (`modules/menu/preview.sh`) shows the entry as the menu line does (icon, target), its
 description and summary; the module's modes (the entry's marked), toggles, sort orders and actions with

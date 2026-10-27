@@ -151,6 +151,18 @@ EOF
   [ "$c" != "$b" ]
 }
 
+@test "summary cache: a module's summary_key adds to the key, given the entry's target" {
+  load_libs menu
+  local a b c d
+  FZX_ENTRY_TARGETS=(x:one) FZX_ENTRY_ARGS=("")
+  fzx::summary_path a x 0
+  x::summary_key() { printf '%s %s\n' "$1" "$KEYV"; }
+  KEYV=1 fzx::summary_path b x 0
+  KEYV=1 fzx::summary_path c x 0
+  KEYV=2 fzx::summary_path d x 0
+  [ "$a" != "$b" ] && [ "$b" = "$c" ] && [ "$c" != "$d" ]
+}
+
 @test "refresh: summaries are per directory" {
   fixture_modules
   menu_session

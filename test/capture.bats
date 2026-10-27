@@ -38,6 +38,25 @@ fill() {
 }
 src() { FZX_MODE="$1" "$CAP/source.sh" "${@:2}"; }
 
+@test "menu: a summary per entry from the active pane, keyed by the pane and its output" {
+  source "$CAP/manifest.sh"
+  fill 'echo see https://example.com/a and /tmp/x.txt'
+  run capture::summary capture:urls
+  [ "$output" = "1 URLs" ]
+  run capture::summary capture:paths
+  [[ "$output" =~ ^[1-9][0-9]*\ paths$ ]]
+  local k1 k2
+  k1="$(capture::summary_key capture)"
+  [[ "$k1" == "$PANE:"* ]]
+  fill 'seq 30'
+  k2="$(capture::summary_key capture)"
+  [ "$k1" != "$k2" ]
+  # under the menu's session the source still reads the pane (no session state of its own)
+  fill 'echo https://example.com/b'
+  FZX_SESSION=nope FZX_SESSION_DIR="$BATS_TEST_TMPDIR/nope" run capture::summary capture:urls
+  [ "$output" = "$(capture::summary capture:urls)" ] && [ "$output" != "0 URLs" ]
+}
+
 @test "lines: the screen first, newest first, then the scrollback nearest first, each with its place" {
   fill "for i in \$(seq 1 30); do echo row-\$i; done"
   run src lines

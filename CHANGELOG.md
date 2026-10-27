@@ -6,6 +6,21 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.30.0] - 2026-10-27
+
+### Added
+
+- The capture menu entries have summaries: how many lines, URLs, paths, words, hashes and addresses the
+  active pane holds.
+- A module's manifest can define `<module>::summary_key`: more state to key its menu summaries on than
+  the directory.
+
+### Fixed
+
+- git's menu summaries no longer stay stale for up to five minutes after a commit, stage, branch switch,
+  fetch or stash: they are keyed on HEAD and on when the index and refs changed. (Edits not yet staged
+  still wait for `FZX_SUMMARY_TTL`.)
+
 ## [0.29.0] - 2026-10-27
 
 ### Added

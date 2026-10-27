@@ -22,6 +22,17 @@ git::applicable() {
   esac
 }
 
+# git::summary_key: what the summaries depend on besides the directory: HEAD's commit, and when the index,
+# HEAD, refs, fetches and stashes last changed (a commit, stage, switch, fetch or stash shows at once; edits
+# to files not yet staged wait for FZX_SUMMARY_TTL)
+git::summary_key() {
+  local dir
+  dir="$(command git rev-parse --absolute-git-dir 2> /dev/null)" || return 0
+  command git rev-parse -q --verify HEAD 2> /dev/null
+  stat -c %Y -- "$dir/index" "$dir/HEAD" "$dir/FETCH_HEAD" "$dir/packed-refs" "$dir/refs/heads" \
+    "$dir/refs/tags" "$dir/refs/stash" "$dir/logs/HEAD" 2> /dev/null | tr '\n' ' '
+}
+
 git::summary() {
   local target="$1" n counts ahead behind upstream
   shift

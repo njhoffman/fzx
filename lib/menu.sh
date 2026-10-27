@@ -7,6 +7,8 @@
 #   <module>::applicable <target> [args...]   fast exit-code check, run on every menu open
 #   <module>::summary <target> [args...]      one short line about the entry here (may be slow);
 #                                             cached per directory for FZX_SUMMARY_TTL seconds.
+#   <module>::summary_key <target>            optional, fast: more to key that cache on (the state the
+#                                             summary depends on beyond the directory)
 #                                             No output means no summary; a non-zero exit is logged
 
 # fzx::entry <target> <description> [args...]: called from <module>::manifest
@@ -58,11 +60,15 @@ fzx::menu_entry_args() {
 
 # fzx::summary_path <var> <module> <n>: summary cache file for the module's entry n (FZX_ENTRY_* loaded) in
 # the current directory. Keyed by what the entry opens (target and args), not its position, so a manifest
-# that gains, drops or reorders entries never shows one entry's summary on another.
+# that gains, drops or reorders entries never shows one entry's summary on another; plus what the module's
+# <module>::summary_key <target> prints, when it has one (git: HEAD and the index; capture: the pane), so
+# a change it can see makes a new entry at once instead of after FZX_SUMMARY_TTL. Old entries go with
+# `fzx gc` (FZX_CACHE_MAX_AGE_DAYS).
 fzx::summary_path() {
-  local _dir _key
+  local _dir _key _extra=""
   _dir="$(printf '%s' "$PWD" | md5sum)"
-  _key="$(printf '%s\n%s' "${FZX_ENTRY_TARGETS[$3]}" "${FZX_ENTRY_ARGS[$3]:-}" | md5sum)"
+  declare -F "$2::summary_key" > /dev/null && _extra="$("$2::summary_key" "${FZX_ENTRY_TARGETS[$3]}" 2>> "${FZX_LOG_FILE:-/dev/null}")"
+  _key="$(printf '%s\n%s\n%s' "${FZX_ENTRY_TARGETS[$3]}" "${FZX_ENTRY_ARGS[$3]:-}" "$_extra" | md5sum)"
   printf -v "$1" '%s/summary/%s/%s@%s' "$FZX_CACHE_DIR" "${_dir%% *}" "$2" "${_key:0:12}"
 }
 

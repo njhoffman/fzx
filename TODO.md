@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.29.0): the six steps of `docs/design.md` are done. Modules: actions, capture, colors, dirs,
+Status (0.30.0): the six steps of `docs/design.md` are done. Modules: actions, capture, colors, dirs,
 docker, files, git, github, history, keybindings, logs, man, menu, ps, recent, repos, systemd, tmux, todos,
 youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
@@ -21,11 +21,6 @@ Categories: module
 - [ ] **Menu ordering by use** (p1) [feature]: the menu lists about 70 entries in module order. Sort by
       `stats.tsv` (recent and frequent first), with a "recent" group on top, and consider group headers
       (shell, system, development) for the rest.
-- [ ] **Summaries keyed by more than the directory** (p2) [bug]: the cache is per directory, so git
-      summaries (ahead/behind, changes) stay stale for up to `FZX_SUMMARY_TTL` (5m) after a commit or stage,
-      and the capture entries have no summary because they depend on the pane. Let a manifest add to the
-      key (`<module>::summary_key`: HEAD and the index mtime for git, the pane for capture), or give a
-      module its own TTL.
 
 ## 2. Menu and presentation
 
