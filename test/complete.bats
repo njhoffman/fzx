@@ -49,19 +49,27 @@ setup() {
   # an interactive zsh in a pseudo-terminal: type the line and a tab, read what it lists
   cat > "$BATS_TEST_TMPDIR/drive.zsh" << 'EOF'
 zmodload zsh/zpty
+# complete_line <line> <text>: type the line and a tab, read until the listing shows the text (at most 20s:
+# a loaded machine starts zsh and runs compinit slowly)
 complete_line() {
-  local out="" chunk
+  local out="" chunk i
   zpty -b z zsh -f -i
   zpty -w z "PS1='> '; fpath=($FPATH_DIR \$fpath); autoload -Uz compinit; compinit -u -D; path=($BIN_DIR \$path); unsetopt beep; LISTMAX=0"
   zpty -w -n z "$1"$'\t'
-  sleep 2
+  for i in {1..100}; do
+    while zpty -r -t z chunk 2> /dev/null; do out+="$chunk"; done
+    [[ "$out" == *"$2"* ]] && break
+    sleep 0.2
+  done
+  # the rest of the listing
+  sleep 0.5
   while zpty -r -t z chunk 2> /dev/null; do out+="$chunk"; done
   zpty -d z
   print -r -- "$out" | tr -d '\r' | sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g'
 }
-print "== commands"; complete_line 'fzx '
-print "== targets"; complete_line 'fzx -m files:'
-print "== options"; complete_line 'fzx stats --'
+print "== commands"; complete_line 'fzx ' 'completion'
+print "== targets"; complete_line 'fzx -m files:' 'files:grep'
+print "== options"; complete_line 'fzx stats --' '--since'
 EOF
   FPATH_DIR="$BATS_TEST_TMPDIR/fpath" BIN_DIR="$FZX_REPO/bin" run timeout 60 zsh -f "$BATS_TEST_TMPDIR/drive.zsh"
   local commands targets options

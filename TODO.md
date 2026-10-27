@@ -1,7 +1,7 @@
 # fzx TODO
 
-Status (0.32.0): the six steps of `docs/design.md` are done. Modules: actions, capture, colors, dirs,
-docker, files, git, github, history, keybindings, logs, man, menu, network, ps, recent, repos, systemd, tmux, todos,
+Status (0.33.0): the six steps of `docs/design.md` are done. Modules: actions, capture, colors, dirs,
+docker, files, git, github, history, keybindings, logs, man, menu, network, ps, recent, repos, systemd, tasks, tmux, todos,
 youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
 
@@ -137,18 +137,6 @@ Built from the reference repos in `resources/` (fzfmenu widgets, proto-widgets, 
 completers, the fzf attempt's modules, fzf-scripts) and checked against what is installed here
 (2026-10-20). "has" lists tools found on PATH, "missing" what the old code used that is not installed.
 
-- [ ] **tasks** (p2) [module]: project scripts, named `project:task` (`musicman:build`, `musicman:run`,
-      `audit:lint`), run with execute. Three modes:
-      - all: every task found in the git repos (scan ghq/~/git for Makefile, justfile, package.json scripts,
-        and similar: Taskfile.yml, Cargo aliases, pyproject scripts);
-      - repos: every task of the selected repos;
-      - selected: the selected tasks of the selected repos (the default view).
-      - A repos view lists the repos found with task definitions; the preview shows that repo's definitions,
-        and selecting toggles the repo in or out; tasks are selected the same way from the other modes.
-      - The chosen projects persist (state outside the session, e.g. $FZX_STATE_DIR/tasks/projects) and the scan
-        is cached (`cache:<ttl>`), since walking every repo is slow.
-      - Task preview: the definition itself (the make target's rule, the just recipe, the npm script line).
-      Refs: vendors/completers/{make,npm,yarn}.zsh, list.md "asynctasks". Has: just, make, pnpm.
 - [ ] **github: issues, PRs, notifications** (p2) [module]: phase 2 of modules/github (search, files and
       fetch in 0.24.0; your repositories, stars and the search follow-ups in 0.25.0): issues and PRs of the
       repository here, or involving you elsewhere (view, checkout, comment, close), and notifications
@@ -213,10 +201,13 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 
 ## 7. Known issues
 
+- [ ] **CI has never passed** (p1) [test]: every run on main fails (31 of 31, 2026-10-27), on five tests that
+      pass locally: files.bats:68 (grep fallback, dot-named base), recent.bats:38 (nvim frecency order),
+      tmux.bats:98 (key notes), :224 (live key browser) and :279 (live capture; "can't find pane: picker").
+      Likely the runner's tmux, grep and sqlite versions; reproduce in the CI image (ubuntu-latest) and fix or
+      skip with a reason.
 - [ ] **Untested against the real thing** (p2) [test]: docker (stubbed only), systemd start/stop/enable (stubbed
       systemctl and sudo), Zellij popups (tmux only).
-- [ ] **Slow suite** (p2) [test]: about 500 tests take several minutes serially; `bats -j` needs GNU parallel
-      (this machine has the moreutils `parallel`). Install it or run files in parallel from the Justfile.
 - [ ] **Undocumented fzf behaviour we depend on** (p3) [test]: `become()` inside a `--popup` runs in the original
       terminal, so every launch re-requests the popup (`fzx::_placement`). Observed on fzf 0.74 (devel);
       re-check on every fzf upgrade with the popup test in design.md's popout notes.
@@ -243,9 +234,6 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 
 ## 8. Outside this repo
 
-- [ ] **Retire todo-fzf** (p3) [chore]: once fzx todos has been in daily use, drop the todo-fzf fallback
-      from /todo-pop, `todo.pop` and Alt-i and remove ~/.shell/scripts/todo-fzf with its tests. Kept for
-      now at the user's request (2026-10-26).
 - [ ] **prettypath follow-ups** (p3) [chore] (~/git/prettypath): moved to ~/git/prettypath/TODO.md (speed,
       `--base`, `--dirs`, a field of tabbed input, NO_COLOR, packaging bugs). When `--base` and `--dirs` land,
       drop fzx::pretty's prefix-strip awk and slash sed; when stat is automatic, drop `--stat_file=false`.

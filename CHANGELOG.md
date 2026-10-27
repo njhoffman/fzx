@@ -6,6 +6,22 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.33.0] - 2026-10-27
+
+### Added
+
+- The tasks module (`fzx -m tasks`): make targets, just recipes, package.json scripts, Taskfile tasks,
+  cargo aliases and pdm, poe and hatch scripts of every repository, named `project:task`. Enter runs the
+  task in its repository, alt-enter asks for arguments first, ctrl-t picks tasks into the default view
+  (which also lists the tasks of the repository you are in), and the projects mode chooses the
+  repositories the repos mode lists. The scan is cached for `FZX_TASKS_TTL` (1h) and refreshed in the
+  background.
+
+### Changed
+
+- `just test` runs the test files in parallel (`bats --jobs`, one per CPU) when GNU parallel is
+  installed; `FZX_TEST_JOBS=1` runs them one after another.
+
 ## [0.32.0] - 2026-10-27
 
 ### Added

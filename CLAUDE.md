@@ -5,7 +5,8 @@ changing lib/ or adding a module).
 
 ## Commands
 
-- `just test` (or `bats test`): full suite, ~2 minutes; `bats test/<file>.bats` for one area
+- `just test`: full suite, in parallel with GNU parallel installed (`FZX_TEST_JOBS=1`: serially, ~4 minutes);
+  `bats test/<file>.bats` for one area
 - `just lint`: shellcheck over every bash file (keep it clean; CI runs it); `.bats` files are not linted
 - `bin/fzx -m <module> --dry-run`: the resolved fzf command
 - `bin/fzx config -m <module>`: resolved config layers, keys, colors, settings

@@ -1,0 +1,13 @@
+# tasks components: kind  name  key  description  flags (see lib/components.sh)
+# Task ids are DIR|KIND|NAME (KIND: make, just, npm, task, cargo, pdm, poe, hatch); projects ids the
+# repository's directory.
+mode    selected  -  this repository's tasks and the ones you picked (ctrl-t)        default
+mode    repos     -  every task of the projects you chose (the projects mode)       -
+mode    all       -  every task of every repository (ghq, FZX_TASKS_ROOTS; cached)  -
+mode    projects  -  the repositories with tasks; enter or ctrl-t chooses one       -
+action  run     -          selected, repos, all: run the task in its repository; projects: choose or drop the repository  foreground,reload,default
+action  args    alt-enter  selected, repos, all: run the task with arguments (asked first)  foreground
+action  pick    ctrl-t     selected, repos, all: add the tasks to selected, or take them out; projects: choose or drop the repositories  silent,reload
+action  edit    ctrl-e     selected, repos, all: open the definition in $EDITOR at its line  foreground,reload
+action  rescan  alt-s      scan every repository again                                silent,reload
+action  copy    ctrl-y     copy project:task (projects: the directories)              silent,builtin

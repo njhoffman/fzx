@@ -1,9 +1,16 @@
 default:
     @just --list
 
-# run the bats test suite
+# run the bats test suite, every CPU at once when GNU parallel is installed (bats -j needs it; moreutils'
+# parallel is another program); FZX_TEST_JOBS=1 runs it serially
 test *ARGS:
-    bats {{ ARGS }} test
+    #!/usr/bin/env bash
+    set -euo pipefail
+    jobs="${FZX_TEST_JOBS:-$(nproc)}"
+    if ((jobs > 1)) && parallel --version 2> /dev/null | grep -q '^GNU parallel'; then
+      exec bats --jobs "$jobs" {{ ARGS }} test
+    fi
+    exec bats {{ ARGS }} test
 
 # shellcheck every bash file, executable components.tsv tables included (.bats files excluded: their
 # idioms trip most checks)
