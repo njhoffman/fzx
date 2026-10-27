@@ -1,0 +1,8 @@
+# colors components: kind  name  key  description  flags (see lib/components.sh)
+mode    256    -  the 256-color palette, with xterm names            default
+mode    names  -  X11 color names in true color, nearest 256 color  -
+mode    fzx    -  fzx's own colors (FZX_COLORS), by module           -
+action  copy    ctrl-y  copy the selection (numbers, names, keys)    silent,builtin
+action  hex     alt-h   256, names: copy the hex values              silent
+action  sgr     alt-s   copy the SGR parameters (38;5;N), as FZX_COLORS takes them  silent
+action  escape  alt-e   copy the escape sequences (\e[38;5;Nm)        silent

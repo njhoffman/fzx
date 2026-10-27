@@ -229,8 +229,8 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [ ] **i3** (p3) [module]: windows and workspaces (focus, move), scratchpads. Refs: list.md "i3". Has: i3-msg.
 - [ ] **displays** (p3) [module]: xrandr outputs and modes. Has: xrandr.
 - [ ] **fonts** (p3) [module]: fc-list families with a sample preview. Has: fc-list.
-- [ ] **colors** (p3) [module]: 256-color table and names, copy escape codes (fzf/modules/colors, development/
-      fzf.colors.zsh, colorpicker.py). Has: everything (data files in the old module).
+- [x] **colors** (p3) [module]: modules/colors: 256 palette, X11 names, fzx's FZX_COLORS; swatch preview,
+      copy hex/SGR/escape (0.20.0).
 
 ### System
 

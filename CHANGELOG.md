@@ -6,6 +6,16 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-10-27
+
+### Added
+
+- colors module (`fzx -m colors[:names|:fzx]`): the 256-color palette with xterm names, hex and rgb; X11
+  color names in true color with the nearest 256 color; fzx's own `FZX_COLORS` from every config layer,
+  by module. The preview shows a swatch, sample text on the terminal's, a dark and a light background,
+  and the codes. alt-h copies hex values, alt-s SGR parameters (as `FZX_COLORS` takes them), alt-e
+  escape sequences.
+
 ## [0.19.0] - 2026-10-27
 
 ### Added
