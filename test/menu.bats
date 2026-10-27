@@ -28,6 +28,11 @@ plain_lines() {
   "$FZX" _cb source | sed 's/\x1b\[[0-9;]*m//g; s/\t/|/'
 }
 
+# entry <id>: the plain line of one entry (real modules list alongside the fixtures, in name order)
+entry() {
+  printf '%s\n' "${lines[@]}" | grep -m1 -F "$1|"
+}
+
 @test "fzx::entry: stores args quoted, no args as empty" {
   FZX_ENTRY_TARGETS=() FZX_ENTRY_DESCS=() FZX_ENTRY_ARGS=()
   fzx::entry a "first"
@@ -55,15 +60,15 @@ plain_lines() {
   menu_session
   run plain_lines
   # the module's icon first (blank: the fixture sets none)
-  [[ "${lines[0]}" == "counter#0|  counter "*"Counter in its first mode"* ]]
-  [[ "${lines[1]}" == 'counter#1|  counter:two --x a\ b '*"Counter in mode two"* ]]
+  [[ "$(entry 'counter#0')" == "counter#0|  counter "*"Counter in its first mode"* ]]
+  [[ "$(entry 'counter#1')" == 'counter#1|  counter:two --x a\ b '*"Counter in mode two"* ]]
   [[ "$output" == *$'\n'"ps#0|"?" ps "* ]]
 }
 
 @test "source: applicable hides an entry without renumbering the others" {
   menu_session
   COUNTER_HIDE_TWO=1 run plain_lines
-  [[ "${lines[0]}" == counter#0* ]]
+  [ -n "$(entry 'counter#0')" ]
   [[ "$output" != *counter#1* ]]
   [[ "$output" == *$'\n'ps#0* ]]
 }
@@ -77,7 +82,7 @@ plain_lines() {
   menu_session
   run plain_lines
   [[ "$output" != *broken* && "$output" != *syntax* ]]
-  [[ "${lines[0]}" == counter#0* ]]
+  [ -n "$(entry 'counter#0')" ]
   grep -q 'menu: manifest of syntax failed' "$LOG"
 }
 
@@ -232,5 +237,5 @@ plain_lines() {
   run fzf_bind enter
   [ "$status" -eq 1 ]
   run "$MENU_DIR/source.sh"
-  [[ "${lines[0]}" == counter#0* ]]
+  [[ "$output" == *counter#0$'\t'* ]]
 }

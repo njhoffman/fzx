@@ -6,6 +6,13 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.20.1] - 2026-10-27
+
+### Fixed
+
+- The menu tests found the fixture's entries by position, which every real module named before "counter"
+  (colors) broke; they find them by id now.
+
 ## [0.20.0] - 2026-10-27
 
 ### Added
