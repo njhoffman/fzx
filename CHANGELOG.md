@@ -6,6 +6,24 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-10-27
+
+### Added
+
+- github module (`fzx -m github[:code]`), through gh: repository and code search, where enter runs the
+  query (GitHub qualifiers such as `language:go stars:>100` work) and an empty query lists the mode's recent
+  searches. Previews show a repository's details and README (glow when installed), a code hit's matching
+  fragments with the matches highlighted and then the whole file. ctrl-o browses a repository's files
+  (`github:tree`, at the commit a code hit came from). Actions: open in the browser, clone with ghq,
+  fetch files and directories, open a read-only copy in $EDITOR, open the search on github.com, copy.
+  Searches are cached per query for an hour, trees and file contents by their sha. In the menu: the
+  searches left this minute.
+- zsh (`shell/fzx.zsh`): `ghs [query]` and `ghsc [query]` open the repository and code searches;
+  `ghfetch URL... [--dest DIR]` downloads a file, or a directory under its own name, from a github.com or
+  raw.githubusercontent.com URL (a branch with slashes works), and clones a repository's URL with ghq.
+  `FZX_ZSH_NO_GITHUB=1` leaves them out. This replaces ~/.shell's gitman.
+- Icons for stars, forks, issues, archived and repositories (lib/icons.sh).
+
 ## [0.23.0] - 2026-10-27
 
 ### Added

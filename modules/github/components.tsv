@@ -1,0 +1,12 @@
+# github components: kind  name  key  description  flags (see lib/components.sh)
+# Searches run on enter (a new query), not as you type: GitHub allows 30 searches a minute, 10 for code.
+# Ids are github.com URLs, so every action works on any row: a repository, a file or a directory.
+mode  repos  -  search repositories (GitHub qualifiers in the query: language:go stars:>100)  default
+mode  code   -  search code (qualifiers: repo:o/r language:sh filename:x path:y)              -
+mode  tree   -  the files of a repository (--repo OWNER/REPO [--ref REF])                     hidden
+action  browser  alt-o   open in the browser                                                    silent
+action  clone    alt-c   clone the repository with ghq                                          foreground
+action  fetch    alt-d   repos: clone; code, tree: download the selected files and directories   foreground
+action  edit     ctrl-e  code, tree: open the file in $EDITOR (a read-only copy)                 foreground
+action  web      alt-w   repos, code: open the search on github.com                             silent
+action  copy     ctrl-y  copy the urls                                                          silent,builtin

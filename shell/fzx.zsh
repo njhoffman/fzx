@@ -7,6 +7,7 @@
 # A plain `fzf` (no options, nothing piped in) opens the files module instead, unless FZX_ZSH_NO_FZF=1.
 # g and gg cd to frecent directories, v opens frecent files (fzx jump), unless FZX_ZSH_NO_JUMP=1.
 # The shell's key bindings are dumped for the keybindings module unless FZX_ZSH_NO_KEYS_DUMP=1.
+# ghs and ghsc search GitHub, ghfetch downloads from a github.com URL, unless FZX_ZSH_NO_GITHUB=1.
 
 typeset -gA FZX_ZSH_KEYS
 : ${FZX_ZSH_KEYS[files]=$'\ef'} # insert file paths
@@ -182,6 +183,17 @@ if [[ "${FZX_ZSH_NO_FZF:-0}" != 1 ]]; then
       command fzf "$@"
     fi
   }
+fi
+
+# GitHub, unless FZX_ZSH_NO_GITHUB=1: ghs [query] searches repositories, ghsc [query] code, both in the
+# github module (qualifiers work, quoted for the shell: ghs fzf language:go 'stars:>100'); ghfetch URL...
+# [--dest DIR] downloads a file, or a directory under its own name, from a github.com URL into DIR (default
+# here), and clones a repository's URL with ghq
+if [[ "${FZX_ZSH_NO_GITHUB:-0}" != 1 ]]; then
+  _FZX_GITHUB_ACTIONS="${${(%):-%x}:A:h}/../modules/github/actions.sh"
+  function ghs { command "${FZX_ZSH_BIN:-fzx}" -m github ${1:+--query} ${1:+"$*"}; }
+  function ghsc { command "${FZX_ZSH_BIN:-fzx}" -m github:code ${1:+--query} ${1:+"$*"}; }
+  function ghfetch { "$_FZX_GITHUB_ACTIONS" fetch "$@"; }
 fi
 
 () {

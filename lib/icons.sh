@@ -40,6 +40,11 @@ declare -gA FZX_ICONS_NERD=(
   [folder]=""    # preview: a directory
   [host]=""      # preview: a host
   [remote]=""    # preview: a remote
+  [star]=""      # github: stars
+  [fork]=""      # github: forks
+  [issue]=""     # github: open issues
+  [archived]=""  # github: an archived repository
+  [repo]=""      # github: a repository
 )
 
 declare -gA FZX_ICONS_UNICODE=(
@@ -78,6 +83,11 @@ declare -gA FZX_ICONS_UNICODE=(
   [folder]="⌂"
   [host]="▭"
   [remote]="⇄"
+  [star]="★"
+  [fork]="⑂"
+  [issue]="!"
+  [archived]="▣"
+  [repo]="▤"
 )
 
 # fzx::icon <name> [var]: the icon, empty for an unknown name or FZX_ICONS=none; into var when given
