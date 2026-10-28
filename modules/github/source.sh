@@ -8,17 +8,23 @@
 #   code:    url    code    owner/name  search file  index  display
 #   blob:    url    blob    owner/name  sha:size     path   display   (tree: a file)
 #   tree:    url    tree    owner/name  -            path   display   (tree: a directory)
+#   issue:   url    issue   owner/name  list file    index  display   (issues; issues.sh)
+#   pr:      url    pr      owner/name  list file    index  display   (prs)
 #   recent:  query  search  mode        -            -      display   (enter searches it again)
 #   error:   text   error   -           -            -      display   (the search failed)
 # Searches are kept as gh's JSON in $FZX_CACHE_DIR/github/search/<mode> for FZX_GITHUB_CACHE_TTL, your
 # repositories and stars in $FZX_CACHE_DIR/github/list (the same fields as a search), trees and file
 # contents by their sha. Under fzx the query each mode's list shows is in state/github_query_<mode>.
 # Mode from $FZX_MODE: repos, code, mine (`--owner NAME`: that user's or organization's), starred, tree
-# (`--repo OWNER/REPO [--ref REF]`). Toggles (every repository list): private, public, sources, forks.
+# (`--repo OWNER/REPO [--ref REF]`), issues and prs (`--repo OWNER/REPO`, else the repository here).
+# Toggles (every repository list): private, public, sources, forks; issues and prs: closed, everywhere.
 
 GITHUB_REPO_FIELDS="fullName,url,description,language,stargazersCount,forksCount,openIssuesCount,watchersCount"
 GITHUB_REPO_FIELDS+=",pushedAt,createdAt,isArchived,isFork,isPrivate,license,homepage,defaultBranch,visibility,size"
 GITHUB_CODE_FIELDS="path,repository,sha,textMatches,url"
+
+# shellcheck source=./issues.sh
+source "$(dirname "${BASH_SOURCE[0]}")/issues.sh"
 
 # github::trim <text> <var>: without leading and trailing whitespace
 github::trim() {
@@ -74,6 +80,13 @@ github::cached() {
     mv -f -- "$tmp" "$file"
   fi
   printf '%s' "$file"
+}
+
+# github::login: your GitHub login (cached: it does not change)
+github::login() {
+  local file
+  file="$(github::cached "$FZX_CACHE_DIR/github/login" command gh api user --jq .login 2> /dev/null)" || return 1
+  command cat -- "$file"
 }
 
 # github::blob <owner/name> <sha> <var>: the file holding a blob's contents (immutable: cached by sha)
@@ -403,6 +416,11 @@ github::source() {
     tree)
       github::args "$@" || return
       github::tree_rows
+      return
+      ;;
+    issues | prs)
+      github::args "$@" || return
+      github::issue_source "$mode"
       return
       ;;
     mine | starred)

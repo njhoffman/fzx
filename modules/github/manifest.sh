@@ -6,6 +6,8 @@ github::manifest() {
   fzx::entry github:code "Search code on GitHub"
   fzx::entry github:mine "Your GitHub repositories"
   fzx::entry github:starred "GitHub repositories you starred"
+  fzx::entry github:issues "GitHub issues here, or involving you"
+  fzx::entry github:prs "Pull requests here, or involving you"
 }
 
 # once per menu listing, not once per entry: the token comes from the keyring (about 100ms)
@@ -51,6 +53,14 @@ github::summary() {
       # one star per page: the last page's number is the count
       n="$(command gh api -i 'user/starred?per_page=1' 2> /dev/null | sed -n 's/^[Ll]ink:.*[?&]page=\([0-9]*\)>; rel="last".*/\1/p')"
       printf '%s stars\n' "${n:-0}"
+      ;;
+    github:issues | github:prs)
+      # from the last list of this scope only: no request
+      local scope file
+      source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
+      FZX_TOGGLES="" github::issues_scope scope
+      FZX_TOGGLES="" github::issues_file "${1#github:}" "$scope" file
+      [[ -f "$file" ]] && command jq -r --arg s "${scope:-involving you}" 'length as $n | "\($n)\(if $n == 100 then "+" else "" end) open, \($s)"' -- "$file"
       ;;
   esac
 }

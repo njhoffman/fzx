@@ -108,6 +108,54 @@ github::preview_tree() {
     if .type == "tree" then "\(.path[($p | length):])/" else "\(.path[($p | length):])  \($d)\(.size) bytes\($r)" end' -- "$file"
 }
 
+# github::preview_issue <list file> <index>: from the list, the state, title, author, labels and dates; then
+# a pull request's branches, size, review and checks, and the body and comments as markdown. The details are
+# cached by the item's last update, so a new comment fetches them again
+github::preview_issue() {
+  local b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
+  local g=$'\e['"${FZX_COLORS[github_open]:-38;5;114}m" red=$'\e['"${FZX_COLORS[github_closed]:-38;5;203}m"
+  local m=$'\e['"${FZX_COLORS[github_merged]:-38;5;141}m" y=$'\e[33m'
+  local url repo num updated kind fields view md tmp
+  [[ -n "${NO_COLOR+x}" ]] && b="" d="" r="" g="" red="" m="" y=""
+  IFS=$'\t' read -r url repo num updated < <(command jq -r --argjson i "$2" '.[$i] | [.url, .repo, .number, .updatedAt] | @tsv' -- "$1")
+  [[ -n "$url" ]] || return 0
+  command jq -r --argjson i "$2" --arg b "$b" --arg d "$d" --arg r "$r" --arg g "$g" --arg red "$red" --arg m "$m" '.[$i] |
+    (if .state == "MERGED" then $m + "merged" elif .state == "CLOSED" then $red + "closed" elif .draft then $d + "draft"
+     else $g + "open" end) as $s |
+    "\($b)\(.repo) #\(.number)\($r)  \($s)\($r)", "\($b)\(.title)\($r)", "",
+    "\($d)author \($r) \(.author // "ghost")", "\($d)updated\($r) \(.updatedAt[0:16] | sub("T"; " "))",
+    (if (.labels | length) > 0 then "\($d)labels \($r) \(.labels | map(.name) | join(", "))" else empty end)' -- "$1"
+  kind=issue fields=body,comments
+  if [[ "$url" == */pull/* ]]; then
+    kind=pr fields+=,headRefName,baseRefName,changedFiles,additions,deletions,reviewDecision,statusCheckRollup
+  fi
+  view="$FZX_CACHE_DIR/github/view/${repo/\//__}-$num@${updated//[^0-9]/}.json"
+  if ! github::cached "$view" command gh "$kind" view "$url" --json "$fields" > /dev/null 2>&1; then
+    printf '\n%scannot read %s%s\n' "$d" "$url" "$r"
+    return 0
+  fi
+  if [[ "$kind" == pr ]]; then
+    command jq -r --arg d "$d" --arg r "$r" --arg g "$g" --arg red "$red" --arg y "$y" '
+      "\($d)branch \($r) \(.headRefName) -> \(.baseRefName)",
+      "\($d)changes\($r) \(.changedFiles) files, \($g)+\(.additions)\($r) \($red)-\(.deletions)\($r)",
+      (if (.reviewDecision // "") != "" then "\($d)review \($r) \(.reviewDecision | ascii_downcase | gsub("_"; " "))" else empty end),
+      (if (.statusCheckRollup | length) > 0 then "", "\($d)checks\($r)",
+        (.statusCheckRollup[] | (.conclusion // .state // .status // "") as $c |
+          (if $c == "SUCCESS" then $g elif ($c | test("FAILURE|ERROR|TIMED_OUT|CANCELLED|ACTION_REQUIRED")) then $red else $y end) as $col |
+          "  \($col)\($c | ascii_downcase | if . == "" then "pending" else . end)\($r)  \(.name // .context)")
+       else empty end)' -- "$view"
+  fi
+  # the body and the comments, one markdown file per version
+  md="${view%.json}.md"
+  # the temporary name taken here: $BASHPID in a redirection would be the child's
+  tmp="$md.$BASHPID"
+  [[ -f "$md" ]] || { command jq -r '((.body // "") | if . == "" then "*no description*" else . end),
+    (.comments[]? | "\n---\n\n**\(.author.login // "ghost")** \(.createdAt[0:10])\n\n\(.body)")' -- "$view" > "$tmp" &&
+    mv -f -- "$tmp" "$md"; }
+  printf '\n'
+  github::markdown "$md"
+}
+
 # github::debug: the f2 view's module section: every API rate limit (rate_limit itself is free)
 github::debug() {
   command gh api rate_limit --jq '.resources | to_entries[] |
@@ -124,6 +172,7 @@ github::preview() {
     code) github::preview_code "$4" "$5" ;;
     blob) github::preview_blob "$3" "$4" "$5" ;;
     tree) github::preview_tree "$1" "$3" "$5" ;;
+    issue | pr) github::preview_issue "$4" "$5" ;;
     search)
       printf '%senter%s searches %s again for %s%s%s\n' "$b" "$r" "$3" "$b" "$1" "$r"
       github::search_file "$3" "$1" file

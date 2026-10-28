@@ -11,10 +11,14 @@ FZX_ICON=""
 declare -gA FZX_ICON_MODES
 FZX_ICON_MODES[starred]=""
 FZX_ICON_MODES[code]=""
+FZX_ICON_MODES[issues]=""
+FZX_ICON_MODES[prs]=""
 # the icon's color in the menu
 FZX_COLORS[github_icon]="38;5;255"
 FZX_COLORS[github_icon_code]="38;5;177"
 FZX_COLORS[github_icon_starred]="38;5;220"
+FZX_COLORS[github_icon_issues]="38;5;114"
+FZX_COLORS[github_icon_prs]="38;5;141"
 
 FZX_KEYS[github.into]=ctrl-o   # repos, code, mine, starred: browse the repository's files
 FZX_KEYS[github.narrow]=alt-p  # code: search only the repository under the cursor; the others: its code
@@ -26,6 +30,8 @@ FZX_GITHUB_LIMIT="${FZX_GITHUB_LIMIT:-100}"
 # 90s, 5m, 2h, 1d; ctrl-r does not refresh them: star/unstar does, or `fzx gc`); file contents and trees
 # are cached by their sha and never expire
 FZX_GITHUB_CACHE_TTL="${FZX_GITHUB_CACHE_TTL:-1h}"
+# issue and pull request lists (they change more often) are kept this long; an action on one drops them
+FZX_GITHUB_ISSUES_TTL="${FZX_GITHUB_ISSUES_TTL:-2m}"
 # recent searches per mode, kept in $FZX_STATE_DIR/github/history-<mode>
 FZX_GITHUB_HISTORY_MAX="${FZX_GITHUB_HISTORY_MAX:-200}"
 # clones (alt-c, `clone`, `repos --clone-missing`) over ssh: mine (your own repositories, which you push
@@ -43,6 +49,11 @@ FZX_COLORS[github_name]="1;38;5;75"
 FZX_COLORS[github_star]="38;5;220"
 FZX_COLORS[github_count]="38;5;250"
 FZX_COLORS[github_match]="1;38;5;16;48;5;220"
+# issues and pull requests: open (and approved), closed (and changes requested), merged, draft
+FZX_COLORS[github_open]="38;5;114"
+FZX_COLORS[github_closed]="38;5;203"
+FZX_COLORS[github_merged]="38;5;141"
+FZX_COLORS[github_draft]="38;5;244"
 
 # searches are cached by the module itself (per query); the session keeps the list across mode switches
 FZX_PERSIST=session

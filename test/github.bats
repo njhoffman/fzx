@@ -34,6 +34,14 @@ if [[ "${args[0]}" == api ]]; then
 fi
 case "${args[0]} ${args[1]}" in
   "repo fork") ;;
+  "issue list" | "pr list")
+    [[ -n "${STUB_GH_FAIL:-}" ]] && { echo "HTTP 404: Not Found" >&2; exit 1; }
+    cat "$BATS_TEST_TMPDIR/${args[0]}s.json" ;;
+  "issue view" | "pr view") cat "$BATS_TEST_TMPDIR/view-${args[0]}.json" ;;
+  # checkout, develop, comment, close, reopen: where they ran
+  "pr checkout" | "issue develop") echo "${args[*]} in $PWD" >> "$BATS_TEST_TMPDIR/item.calls" ;;
+  "issue comment" | "pr comment" | "issue close" | "pr close" | "issue reopen" | "pr reopen")
+    echo "${args[*]}" >> "$BATS_TEST_TMPDIR/item.calls" ;;
   "repo view") [[ -n "${STUB_GH_HERE:-}" ]] && echo "here: 2 PRs, 5 issues" || exit 1 ;;
   "auth token") echo tok ;;
   "search repos" | "search code")
@@ -54,6 +62,7 @@ case "${args[0]} ${args[1]}" in
   "api "*)
     path="${args[1]}"
     case "$path" in
+      search/issues\?*) printf '%s\n' "$path" > "$BATS_TEST_TMPDIR/gh.issuesearch"; cat "$BATS_TEST_TMPDIR/search.json" ;;
       repos/*/commits/*)
         ref="${path#*/commits/}"
         case "$ref" in
@@ -112,6 +121,37 @@ JSON
    "stargazers_count":0,"forks_count":0,"open_issues_count":0,"watchers_count":0,"pushed_at":"2026-09-01T00:00:00Z",
    "created_at":"2020-01-01T00:00:00Z","archived":false,"fork":true,"private":false,"license":{"name":"MIT License"},
    "homepage":"","default_branch":"master","visibility":"public"}]]
+JSON
+  # gh issue list, gh pr list, the search API, gh issue/pr view
+  cat > "$BATS_TEST_TMPDIR/issues.json" << 'JSON'
+[{"number":12,"title":"Crash\ton start","state":"OPEN","author":{"login":"alice"},"updatedAt":"2026-01-01T00:00:00Z",
+  "labels":[{"name":"bug","color":"d73a4a"},{"name":"docs","color":"0075ca"}],"url":"https://github.com/o/r/issues/12"},
+ {"number":3,"title":"Old","state":"CLOSED","author":null,"labels":[],"updatedAt":"2020-01-01T00:00:00Z",
+  "url":"https://github.com/o/r/issues/3"}]
+JSON
+  cat > "$BATS_TEST_TMPDIR/prs.json" << 'JSON'
+[{"number":40,"title":"Add x","state":"OPEN","isDraft":false,"author":{"login":"bob"},"labels":[],"updatedAt":"2026-01-01T00:00:00Z",
+  "url":"https://github.com/o/r/pull/40","additions":10,"deletions":2,"reviewDecision":"APPROVED"},
+ {"number":41,"title":"WIP","state":"OPEN","isDraft":true,"author":{"login":"bob"},"labels":[],"updatedAt":"2026-01-01T00:00:00Z",
+  "url":"https://github.com/o/r/pull/41","additions":1,"deletions":0,"reviewDecision":"CHANGES_REQUESTED"},
+ {"number":39,"title":"Done","state":"MERGED","isDraft":false,"author":{"login":"bob"},"labels":[],"updatedAt":"2026-01-01T00:00:00Z",
+  "url":"https://github.com/o/r/pull/39","additions":5,"deletions":5,"reviewDecision":""}]
+JSON
+  cat > "$BATS_TEST_TMPDIR/search.json" << 'JSON'
+{"total_count":2,"items":[
+ {"html_url":"https://github.com/p/q/pull/7","number":7,"title":"Merged one","state":"closed","draft":false,
+  "pull_request":{"merged_at":"2026-01-02T00:00:00Z"},"user":{"login":"me"},"labels":[{"name":"x","color":"zzz"}],
+  "updated_at":"2026-01-02T00:00:00Z","repository_url":"https://api.github.com/repos/p/q"},
+ {"html_url":"https://github.com/longowner/repository/issues/1","number":1,"title":"Asked","state":"open",
+  "user":{"login":"carol"},"labels":[],"updated_at":"2026-01-01T00:00:00Z","repository_url":"https://api.github.com/repos/longowner/repository"}]}
+JSON
+  cat > "$BATS_TEST_TMPDIR/view-issue.json" << 'JSON'
+{"body":"The body","comments":[{"author":{"login":"carol"},"createdAt":"2026-01-01T10:00:00Z","body":"a comment"}]}
+JSON
+  cat > "$BATS_TEST_TMPDIR/view-pr.json" << 'JSON'
+{"body":"","comments":[],"headRefName":"feat/x","baseRefName":"main","changedFiles":3,"additions":10,"deletions":2,
+ "reviewDecision":"APPROVED","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","conclusion":"FAILURE","status":"COMPLETED"},
+ {"__typename":"StatusContext","context":"lint","state":"PENDING"}]}
 JSON
   cat > "$BATS_TEST_TMPDIR/tree.json" << 'JSON'
 {"sha":"t","truncated":false,"tree":[
@@ -470,7 +510,7 @@ searches() { grep -c '^search ' "$BATS_TEST_TMPDIR/gh.calls" 2> /dev/null || ech
   ! grep -q "not defined" "$LOG"
 }
 
-@test "menu: four entries; summaries for repos (parts in parallel), code, mine (from its list) and starred" {
+@test "menu: six entries; summaries for repos (parts in parallel), code, mine (from its list) and starred" {
   load_libs log config menu
   cat > "$STUBS/curl" << 'STUB'
 #!/usr/bin/env bash
@@ -478,7 +518,7 @@ echo '{"status":{"indicator":"minor","description":"Partial outage"}}'
 STUB
   chmod +x "$STUBS/curl"
   fzx::menu_entries github "$GH_DIR"
-  [ "${FZX_ENTRY_TARGETS[*]}" = "github github:code github:mine github:starred" ]
+  [ "${FZX_ENTRY_TARGETS[*]}" = "github github:code github:mine github:starred github:issues github:prs" ]
   STUB_GH_HERE=1 run github::summary github
   [ "$output" = "GitHub: Partial outage · here: 2 PRs, 5 issues · 3 unread · searches left: 29/30, code 9/10 (per minute)" ]
   run github::summary github:starred
@@ -516,4 +556,145 @@ STUB
   STUB_GHQ_HAVE="github.com/me/priv" run "$GH_DIR/actions.sh" clone-missing
   grep -qx 'get -p -- github.com/me/forked' "$BATS_TEST_TMPDIR/ghq.calls"
   [ "${lines[-1]}" = "1 of your repositories cloned" ]
+}
+
+# a clone of o/r (its origin over ssh) to run the issues and prs modes in
+clone_here() {
+  HERE="$BATS_TEST_TMPDIR/here"
+  mkdir -p "$HERE"
+  git -C "$HERE" init -q
+  git -C "$HERE" remote add origin "${1:-git@github.com:o/r.git}"
+  cd "$HERE"
+}
+
+@test "issues: the repository here (origin over ssh or https), --repo; the closed toggle; cached" {
+  clone_here
+  run src issues ""
+  [ "$status" -eq 0 ]
+  [ "${#lines[@]}" -eq 2 ]
+  IFS=$'\t' read -r url kind repo file index display <<< "${lines[0]}"
+  [ "$url $kind $repo $index" = "https://github.com/o/r/issues/12 issue o/r 0" ]
+  [ "$file" = "$FZX_CACHE_DIR/github/issues/issues-o__r-open.json" ]
+  # no repository column for one repository's list; tabs in titles become spaces; no author: ghost
+  [[ "$display" == "O #12   Crash on start [bug] [docs] alice "*[0-9]* ]]
+  [[ "${lines[1]}" == *$'\t'"C #3    Old ghost "*y ]]
+  grep -qx 'issue list -R o/r --state open -L 100 --json number,title,state,author,labels,updatedAt,url' "$BATS_TEST_TMPDIR/gh.calls"
+  src issues "" > /dev/null
+  [ "$(grep -c '^issue list' "$BATS_TEST_TMPDIR/gh.calls")" -eq 1 ]
+  FZX_TOGGLES=closed src issues "" > /dev/null
+  grep -q '^issue list -R o/r --state all ' "$BATS_TEST_TMPDIR/gh.calls"
+  git remote set-url origin https://github.com/o/other.git
+  src issues "" > /dev/null
+  grep -q '^issue list -R o/other ' "$BATS_TEST_TMPDIR/gh.calls"
+  src issues "" --repo x/y > /dev/null
+  grep -q '^issue list -R x/y ' "$BATS_TEST_TMPDIR/gh.calls"
+  STUB_GH_FAIL=1 run src issues "" --repo x/z
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"HTTP 404: Not Found "$'\t'"error"$'\t'*"cannot list issues: HTTP 404: Not Found"* ]]
+}
+
+@test "prs: draft, merged, the size and the review decision" {
+  clone_here
+  run src prs ""
+  [[ "${lines[0]}" == *$'\t'"O #40   Add x bob "*" +10 -2 approved" ]]
+  [[ "${lines[1]}" == *$'\t'"D #41   WIP bob "*" +1 -0 changes requested" ]]
+  [[ "${lines[2]}" == "https://github.com/o/r/pull/39"$'\t'"pr"*$'\t'"M #39   Done bob "*" +5 -5" ]]
+  grep -q '^pr list -R o/r --state open -L 100 --json number,title,state,isDraft,author,labels,updatedAt,url,additions,deletions,reviewDecision$' \
+    "$BATS_TEST_TMPDIR/gh.calls"
+}
+
+@test "issues and prs involving you: outside a GitHub repository or with everywhere; merged from the search" {
+  cd "$BATS_TEST_TMPDIR"
+  run src prs ""
+  [ "$status" -eq 0 ]
+  # the repository column is as wide as the widest (bad label colors as plain text)
+  [[ "${lines[0]}" == "https://github.com/p/q/pull/7"$'\t'"pr"$'\t'"p/q"*$'\t'"M p/q                  #7    Merged one [x] me "* ]]
+  [[ "${lines[1]}" == *$'\t'"O longowner/repository #1    Asked carol "* ]]
+  [ "$(cat "$BATS_TEST_TMPDIR/gh.issuesearch")" = "search/issues?q=involves%3Ame%20is%3Apr%20state%3Aopen&sort=updated&order=desc&per_page=100" ]
+  [ -f "$FZX_CACHE_DIR/github/issues/prs-involved-open.json" ]
+  clone_here
+  FZX_TOGGLES="everywhere closed" src issues "" > /dev/null
+  [ "$(cat "$BATS_TEST_TMPDIR/gh.issuesearch")" = "search/issues?q=involves%3Ame%20is%3Aissue&sort=updated&order=desc&per_page=100" ]
+  ! grep -q '^issue list' "$BATS_TEST_TMPDIR/gh.calls"
+}
+
+@test "issue rows: colored state icons and label chips in their GitHub colors" {
+  clone_here
+  env -u NO_COLOR FZX_ICONS=nerd FZX_MODE=issues "$GH_DIR/source.sh" > "$BATS_TEST_TMPDIR/out"
+  # bug's d73a4a is dark: white text; the open icon in the open color
+  grep -qF $'\e[48;2;215;58;74;97m bug \e[0m' "$BATS_TEST_TMPDIR/out"
+  grep -qF $'\e[38;5;114m\e[0m' "$BATS_TEST_TMPDIR/out"
+}
+
+@test "preview: an issue's details, body and comments; a pull request's branches, size and checks" {
+  clone_here
+  src issues "" > /dev/null
+  src prs "" > /dev/null
+  run env FZX_GITHUB_MARKDOWN=cat "$GH_DIR/preview.sh" https://github.com/o/r/issues/12 issue o/r \
+    "$FZX_CACHE_DIR/github/issues/issues-o__r-open.json" 0
+  [ "${lines[0]}" = "o/r #12  open" ]
+  [ "${lines[1]}" = "Crash	on start" ]
+  # (lines leaves out empty ones)
+  [ "${lines[2]}" = "author  alice" ]
+  [ "${lines[4]}" = "labels  bug, docs" ]
+  [[ "$output" == *$'The body\n\n---\n\n**carol** 2026-01-01\n\na comment' ]]
+  run env FZX_GITHUB_MARKDOWN=cat "$GH_DIR/preview.sh" https://github.com/o/r/pull/40 pr o/r \
+    "$FZX_CACHE_DIR/github/issues/prs-o__r-open.json" 0
+  [[ "$output" == *$'branch  feat/x -> main\nchanges 3 files, +10 -2\nreview  approved\n\nchecks\n  failure  ci\n  pending  lint'* ]]
+  [[ "$output" == *"*no description*" ]]
+  # cached by the last update: viewed once
+  "$GH_DIR/preview.sh" https://github.com/o/r/pull/40 pr o/r "$FZX_CACHE_DIR/github/issues/prs-o__r-open.json" 0 > /dev/null
+  [ "$(grep -c '^pr view' "$BATS_TEST_TMPDIR/gh.calls")" -eq 1 ]
+}
+
+@test "actions: checkout here or in the ghq clone, refused elsewhere; comment, close, reopen drop the lists" {
+  source "$GH_DIR/actions.sh" || :
+  clone_here
+  src issues "" > /dev/null
+  github::action checkout -- https://github.com/o/r/pull/40
+  [ "$(tail -1 "$BATS_TEST_TMPDIR/item.calls")" = "pr checkout 40 in $HERE" ]
+  github::action checkout -- https://github.com/o/r/issues/12
+  [ "$(tail -1 "$BATS_TEST_TMPDIR/item.calls")" = "issue develop 12 --checkout in $HERE" ]
+  # another repository: its ghq clone
+  mkdir -p "$BATS_TEST_TMPDIR/ghq/github.com/p/q"
+  github::action checkout -- https://github.com/p/q/pull/7
+  [ "$(tail -1 "$BATS_TEST_TMPDIR/item.calls")" = "pr checkout 7 in $BATS_TEST_TMPDIR/ghq/github.com/p/q" ]
+  run github::action checkout -- https://github.com/n/c/pull/1 < /dev/null
+  [[ "$output" == *"n/c is not cloned here"* ]]
+  github::action comment -- https://github.com/o/r/issues/12
+  [ "$(tail -1 "$BATS_TEST_TMPDIR/item.calls")" = "issue comment https://github.com/o/r/issues/12 --editor" ]
+  [ ! -d "$FZX_CACHE_DIR/github/issues" ]
+  github::action close -- https://github.com/o/r/issues/12 https://github.com/o/r/pull/40 https://github.com/o/r
+  [ "$(tail -2 "$BATS_TEST_TMPDIR/item.calls" | tr '\n' '|')" = "issue close https://github.com/o/r/issues/12|pr close https://github.com/o/r/pull/40|" ]
+  github::action reopen -- https://github.com/o/r/pull/40
+  [ "$(tail -1 "$BATS_TEST_TMPDIR/item.calls")" = "pr reopen https://github.com/o/r/pull/40" ]
+}
+
+@test "under fzx: issues and prs accept on enter; the header names the repository and the toggle's key" {
+  load_libs log session
+  fzx::session_create github "$GH_DIR"
+  fzx::state_set mode issues
+  FZF_QUERY="x" run "$FZX" _cb transform enter -- https://github.com/o/r/issues/12 issue o/r
+  [ "$output" = accept ]
+  stub_fzf
+  clone_here
+  run "$FZX" -m github:prs
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *" --header=pull requests of o/r, last updated first (alt-7: involving you anywhere) "* ]]
+  [[ "$(fzf_bind alt-k)" == *"_cb action checkout -- {+1}"* ]]
+  cd "$BATS_TEST_TMPDIR"
+  run "$FZX" -m github:issues
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *" --header=issues involving you, last updated first "* ]]
+}
+
+@test "menu: issues and prs summaries from the last list only" {
+  load_libs log config menu
+  fzx::menu_entries github "$GH_DIR"
+  clone_here
+  run github::summary github:issues
+  [ -z "$output" ]
+  src issues "" > /dev/null
+  run github::summary github:issues
+  [ "$output" = "2 open, o/r" ]
 }

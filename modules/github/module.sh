@@ -36,6 +36,16 @@ github::opts() {
       ;;
     mine) FZX_OPTS+=("--header=${GITHUB_OWNER:-your} repositories, last pushed first") ;;
     starred) FZX_OPTS+=("--header=your stars, last starred first") ;;
+    issues | prs)
+      # the repository's own list (the everywhere toggle aside); the toggle's key from the components table
+      local scope what=issues key=""
+      [[ "$FZX_MODE" == prs ]] && what="pull requests"
+      FZX_TOGGLES="" github::issues_scope scope
+      fzx::comp_field toggle everywhere key key 2> /dev/null || key=""
+      header="$what involving you, last updated first"
+      [[ -n "$scope" ]] && header="$what of $scope, last updated first${key:+ ($key: involving you anywhere)}"
+      FZX_OPTS+=("--header=$header")
+      ;;
     *)
       github::search_header header
       FZX_OPTS+=(--disabled "--header=$header")

@@ -7,11 +7,15 @@ mode  code     -  search code (qualifiers: repo:o/r language:sh filename:x path:
 mode  mine     -  your repositories (--owner NAME: someone else's), last pushed first          restart
 mode  starred  -  the repositories you starred, last starred first                             restart
 mode  tree     -  the files of a repository (--repo OWNER/REPO [--ref REF])                     hidden
+mode  issues   -  issues of the repository here (--repo OWNER/REPO), else involving you       restart
+mode  prs      -  pull requests of the repository here (--repo OWNER/REPO), else involving you  restart
 toggle  private  alt-1  private repositories only (with public: both)                          -
 toggle  public   alt-2  public repositories only (with private: both)                          -
 toggle  sources  alt-3  repositories that are not forks (with forks: both)                     -
 toggle  forks    alt-4  forks only (with sources: both)                                        -
 toggle  missing  alt-5  only repositories not cloned here yet (cloned ones are marked)        -
+toggle  closed      alt-6  issues, prs: closed (and merged) ones too                            -
+toggle  everywhere  alt-7  issues, prs: the ones involving you anywhere, not the repository's   -
 sort    listed   -      mine: last push first; starred: most recently starred first          default
 sort    stars    -      mine, starred: most stars first                                       -
 sort    name     -      mine, starred: by name                                                -
@@ -24,3 +28,7 @@ action  fork      alt-F   fork the repository to your account (no clone)        
 action  settings  alt-e   open the repository's settings page in the browser                     silent
 action  web       alt-w   repos, code: open the search on github.com                             silent
 action  copy      ctrl-y  copy the urls                                                          silent,builtin
+action  checkout  alt-k   issues, prs: check the pull request out (an issue: a branch for it) in the repository here or its ghq clone  foreground
+action  comment   alt-m   issues, prs: comment (in $EDITOR)                                      foreground,reload
+action  close     alt-x   issues, prs: close the selected ones                                    foreground,confirm,reload
+action  reopen    alt-X   issues, prs: reopen the selected ones                                   foreground,confirm,reload

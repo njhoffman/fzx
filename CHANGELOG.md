@@ -6,6 +6,22 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.35.0] - 2026-10-28
+
+### Added
+
+- github: `issues` and `prs` modes (menu: `github:issues`, `github:prs`). They list the repository you are
+  in (from its origin remote), or `--repo OWNER/REPO`'s; outside a GitHub repository, or with the
+  `everywhere` toggle (alt-7), the ones involving you anywhere. Open ones by default; the `closed` toggle
+  (alt-6) adds closed and merged ones. Rows show a state icon, the labels in their GitHub colors, the
+  author and age, and for a repository's pull requests their size and review decision.
+- github preview of an issue or pull request: its details, a pull request's branches, size, review and
+  checks, then the body and comments rendered as markdown (cached until the item changes).
+- github actions on issues and pull requests: alt-k checkout (`gh pr checkout`, or a branch for an issue,
+  in the repository here or its ghq clone), alt-m comment in $EDITOR, alt-x close and alt-X reopen (both
+  ask first).
+- `FZX_GITHUB_ISSUES_TTL` (2m): how long issue and pull request lists are kept; their actions drop them.
+
 ## [0.34.1] - 2026-10-27
 
 ### Changed

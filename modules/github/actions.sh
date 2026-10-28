@@ -60,13 +60,6 @@ github::link() {
   fzx::link_repo "$1" || :
 }
 
-# github::login: your GitHub login (cached: it does not change)
-github::login() {
-  local file
-  file="$(github::cached "$FZX_CACHE_DIR/github/login" command gh api user --jq .login 2> /dev/null)" || return 1
-  command cat -- "$file"
-}
-
 # github::ssh <owner/name>: clone over ssh? FZX_GITHUB_CLONE_SSH: mine (your own repositories, which you
 # push to), always or never
 github::ssh() {
@@ -206,7 +199,67 @@ github::open() {
   done
 }
 
-# github::action <browser|clone|fetch|edit|web> [module args...] -- <urls...>: rows without a URL (recent
+# github::item <url>: GH_REPO, GH_ITEM (issue or pr) and GH_NUMBER of an issue or pull request URL
+github::item() {
+  [[ "$1" =~ ^https://github\.com/([A-Za-z0-9-]+/[A-Za-z0-9_.-]+)/(issues|pull)/([0-9]+)$ ]] || return 1
+  declare -g GH_REPO="${BASH_REMATCH[1]}" GH_ITEM=issue GH_NUMBER="${BASH_REMATCH[3]}"
+  [[ "${BASH_REMATCH[2]}" == pull ]] && GH_ITEM="pr"
+  return 0
+}
+
+# github::workdir <owner/name> <var>: where to check out: the repository here when it is that one, else its
+# ghq clone; fails when it is neither
+github::workdir() {
+  local _here="" _dir=""
+  github::remote_repo _here && [[ "${_here,,}" == "${1,,}" ]] && _dir="$(command git rev-parse --show-toplevel 2> /dev/null)"
+  if [[ -z "$_dir" ]] && command -v ghq > /dev/null; then
+    _dir="$(command ghq list -p -e -- "github.com/$1" 2> /dev/null)"
+  fi
+  [[ -n "$_dir" && -d "$_dir" ]] || return 1
+  printf -v "$2" '%s' "$_dir"
+}
+
+# github::item_action <checkout|comment|close|reopen> <url...>: issues and pull requests; other rows skipped.
+# checkout and comment take the first; close and reopen every one. The lists are dropped afterwards
+github::item_action() {
+  local action="$1" u dir repo rc=0
+  shift
+  for u in "$@"; do
+    github::item "$u" || continue
+    case "$action" in
+      checkout)
+        # (workdir parses the remote here, which sets GH_REPO)
+        repo="$GH_REPO"
+        if ! github::workdir "$repo" dir; then
+          printf 'github: %s is not cloned here (alt-c clones it)\n' "$repo"
+          github::_report 1
+          return
+        fi
+        printf '%s\n' "$dir"
+        if [[ "$GH_ITEM" == pr ]]; then
+          (cd -- "$dir" && command gh pr checkout "$GH_NUMBER") || rc=$?
+        else
+          (cd -- "$dir" && command gh issue develop "$GH_NUMBER" --checkout) || rc=$?
+        fi
+        github::_report "$rc" && github::_pause
+        return "$rc"
+        ;;
+      comment)
+        command gh "$GH_ITEM" comment "$u" --editor || rc=$?
+        github::issues_drop
+        github::_report "$rc"
+        return
+        ;;
+      close | reopen)
+        command gh "$GH_ITEM" "$action" "$u" || rc=$?
+        ;;
+    esac
+  done
+  github::issues_drop
+  github::_report "$rc"
+}
+
+# github::action <browser|clone|fetch|edit|web|...> [module args...] -- <urls...>: rows without a URL (recent
 # searches, errors) are skipped
 github::action() {
   local action="${1:-}" urls=() u repos=() file type=repositories
@@ -236,6 +289,7 @@ github::action() {
   ((${#urls[@]})) || return 0
   case "$action" in
     browser) github::open "${urls[@]}" ;;
+    checkout | comment | close | reopen) github::item_action "$action" "${urls[@]}" ;;
     clone)
       for u in "${urls[@]}"; do
         github::parse_url "$u" && [[ " ${repos[*]} " != *" $GH_REPO "* ]] && repos+=("$GH_REPO")
@@ -323,7 +377,7 @@ github::transform() {
   text="${1:-}" kind="${2:-}" repo="${3:-}"
   case "$name" in
     enter)
-      case "$kind" in search | error) ;; *) [[ "$mode" =~ ^(tree|mine|starred)$ ]] && { printf 'accept'; return 0; } ;; esac
+      case "$kind" in search | error) ;; *) [[ "$mode" =~ ^(tree|mine|starred|issues|prs)$ ]] && { printf 'accept'; return 0; } ;; esac
       github::trim "${FZF_QUERY:-}" query
       fzx::state_get "github_query_$mode" last || last=""
       fzx::state_get "github_filter_$mode" filter 2> /dev/null || filter=""

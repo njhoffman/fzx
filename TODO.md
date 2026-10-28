@@ -137,11 +137,15 @@ Built from the reference repos in `resources/` (fzfmenu widgets, proto-widgets, 
 completers, the fzf attempt's modules, fzf-scripts) and checked against what is installed here
 (2026-10-20). "has" lists tools found on PATH, "missing" what the old code used that is not installed.
 
-- [ ] **github: issues, PRs, notifications** (p2) [module]: phase 2 of modules/github (search, files and
-      fetch in 0.24.0; your repositories, stars and the search follow-ups in 0.25.0): issues and PRs of the
-      repository here, or involving you elsewhere (view, checkout, comment, close), and notifications
-      (open, mark read). Then from any repository row: its PRs, issues and workflow runs (from gh-gitman's
-      api.sh `repo_cmd`). Refs: vendors/widgets/fzf-github-*, gh-fzf (`gh fzf`), gh-dash's key hints.
+- [ ] **github: notifications, repository drill-down** (p2) [module]: phase 2 of modules/github (search,
+      files and fetch in 0.24.0; your repositories, stars and the search follow-ups in 0.25.0; issues and
+      PRs in 0.35.0). Left: notifications (open, mark read), then from any repository row its PRs, issues
+      (`github:issues --repo`, already there) and workflow runs (from gh-gitman's api.sh `repo_cmd`).
+      Refs: vendors/widgets/fzf-github-*, gh-fzf (`gh fzf`), gh-dash's key hints.
+- [ ] **github: header after the everywhere toggle** (p3) [bug]: the issues and prs header is set when fzf
+      starts ("issues of o/r ..."), so after alt-7 it still names the repository while the list shows
+      everything involving you. Toggles reload in place with no header hook; the fix is a toggle flag or
+      change-header in the reload (lib/opts.sh).
 - [ ] **shell** (p2) [module]: modes for executables on PATH, aliases and shell functions (man/tldr or
       definition preview, the man module's renderer), and environment variables and parameters with values.
       The function and parameter lists come from zsh, so reuse the keybindings module's dump approach
