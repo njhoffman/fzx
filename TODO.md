@@ -20,6 +20,8 @@ Reviewed: 2026-10-28
       (edit-command-line), alt-d (_close-shell) and alt-g (Telescope projects) in ~/.shell/zsh/keymaps.zsh, so
       the postloader sets FZX_ZSH_NO_BIND=1 (widgets defined, unbound): the widgets go unused. Pick free keys
       (`fzx -m keybindings` shows the zsh side, `fzx keys` fzf's) and set FZX_ZSH_KEYS, or bind by hand.
+      Wanted: ctrl-space opens fzx (the menu), ctrl-g opens it in a tmux popup. Check both against
+      ~/.shell/zsh/keymaps.zsh first (ctrl-space is often autosuggest-accept or set-mark; ctrl-g is send-break).
       0.37.0 adds fzx-shell-widget (default alt-s, free in viins and vicmd; emacs's spell-word otherwise).
 - [ ] **Menu ordering by use** (p1) [feature]: the menu lists about 70 entries in module order. Sort by
       `stats.tsv` (recent and frequent first), with a "recent" group on top, and consider group headers
@@ -46,12 +48,20 @@ Reviewed: 2026-10-28
       calling pane, since the popup covers split panes. Per-module settings like the preview layouts.
 - [ ] **Resize the popup with the window** (p3) [feature]: on `resize`, recompute the popup geometry; fzf
       cannot resize a running popup, so this likely means a relaunch (become with the new --popup options).
-- [ ] **Copy feedback in the footer** (p3) [feature]: replace the copy notify-send (fzx actions and ctrl-y/alt-y
+- [ ] **Copy feedback in the footer** (p2) [feature]: yanks notify in fzf's footer, not system wide: replace the copy notify-send (fzx actions and ctrl-y/alt-y
       in ~/.config/fzf/fzfrc) with a footer message that pops in and clears itself:
       `enter:execute-silent(...)+bell`, `+transform-footer(echo Copied {})`, `+bg-cancel+bg-transform-footer(sleep 1)`.
 - [ ] **Summary wording** (p3) [chore]: summaries print "1 buffers", "1 recent searches"; a small plural
       helper for the manifests.
 
+- [ ] **No bright yellows** (p2) [feature]: move fzx's colors (FZX_COLORS defaults, module palettes,
+      icons) away from bright yellow and yellow-green, toward shades of white, aqua and turquoise. Where a
+      background is highlighted (current line, selected mode/toggle), keep it subtle: a dark tint, not a
+      bright fill. Goes with the theme selector.
+- [ ] **Toggle and mode styles** (p2) [feature]: a setting for how the footer draws toggles and modes:
+      `minimal` (no icon, the new default), `icon`, `round` (powerline rounded caps around each item) or
+      `triangle` (powerline triangle caps). Sort keeps its icons whatever the style. Toggles' on/off icon
+      configurable too (the switch glyph, or an empty/filled dot).
 ## 3. Keys and help
 
 - [ ] **Keys from i3, tmux and autokey** (p2) [feature]: scan ~/.config/i3/config, tmux's root table (-n binds;
@@ -64,6 +74,18 @@ Reviewed: 2026-10-28
 - [ ] **All keys list** (p3) [feature]: a mode of the keybindings module listing fzf's `--keys` names (every
       key fzf knows), marking the bound ones with their action.
 
+- [ ] **Toggles on alt-1, alt-2, ...** (p2) [feature]: bind each toggle to alt-N by its order in
+      components.tsv, on top of its own key. alt-9 and alt-0 are mode_prev/mode_next, so at most eight.
+- [ ] **ctrl-_ for the next sort** (p3) [feature]: bind it with f12 (`FZX_KEYS[sort_next]="f12,ctrl-/"`; fzf
+      calls it ctrl-/, terminals send ctrl-_ for both).
+- [ ] **alt-^ flips popup and inline** (p3) [feature]: a second placement key that switches only between the
+      popup and the plain terminal, skipping split and float (ctrl-^, `FZX_KEYS[popout]`, keeps the full cycle).
+      Check what the terminal sends for alt-shift-6 and that fzf accepts `alt-^`.
+- [ ] **Free keys list misses keys** (p2) [bug]: `fzx keys` (lib/keys.sh, the "free" section) only offers
+      ctrl-a..z, alt-a..z/0..9, alt-A..Z and f1..f12. Add ctrl-space, ctrl-delete, ctrl-\\, ctrl-], ctrl-^
+      (ctrl-6), ctrl-/ (ctrl-_); alt- with punctuation (alt--, alt-_, alt-., alt-,, ...); page-up/page-down
+      with modifiers; shift-f1..f12 if fzf and the terminal tell them apart from f1..f12 (check fzf's key
+      names; drop what fzf cannot bind).
 ## 4. Core features
 
 - [ ] **Preferred finder and grepper** (p2) [feature]: config values for the file/directory finder and the
@@ -72,6 +94,8 @@ Reviewed: 2026-10-28
       (the grep term moves to the header label or after the prompt) and freeze the grep term while in fzf
       search mode (switch back to edit it). A key that puts the grepper/finder arguments into the prompt,
       enter applies them; show the current arguments in the preview's top line or a label.
+      Prior art: resources/ (older setups) and fzf's ADVANCED.md / CHANGELOG ("ripgrep integration", switching
+      between ripgrep and fzf mode with `transform`/`rebind`). Seeing and editing the arguments can come last.
 - [ ] **Preview script upgrade** (p2) [feature] (~/.shell/scripts/fzf-preview): handle more file types, and report
       which detector and renderer it chose (to fzx's log, or a debug header) so it is clear why content
       looks the way it does. The same detection then serves piping (below): what kind of content is piped in.
@@ -120,6 +144,10 @@ Reviewed: 2026-10-28
 - [ ] **youtube follow-ups** (p3) [feature]: thumbnails in the preview; after a result is chosen, list its
       formats (`yt-dlp <url> --list-formats`) to pick the download from. The mp3 action
       (`yt-dlp -x --audio-format mp3`) already covers the audio case.
+- [ ] **files: trash action** (p2) [feature]: a trash action for files and dirs (gio trash, trash-put
+      when installed), with the confirm prompt the delete-like actions use.
+- [ ] **github: octo.nvim styling** (p3) [feature]: borrow from pwntester/octo.nvim's look: more icons
+      (state, review, draft, merged), labels drawn as colored chips, nicer issue/PR rows and previews.
 - [ ] **top in ps** (p3) [feature]: a refreshing mode of `ps` (`every(N):reload`) rather than a module.
       Refs: system/fzf.top.zsh, fzf-scripts/fztop.
 - [ ] **colors: absorb ~/.shell/scripts/colors/** (p2) [feature]: move what belongs in a picker into the colors
