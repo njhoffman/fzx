@@ -72,7 +72,7 @@ lines_of() { (cd "$1" && FZX_MODE="${2:-here}" "$TODOS/source.sh") | cut -f3; }
 }
 
 @test "display: box, priority, category, section up to its colon, overdue in red" {
-  run bash -c "cd '$P' && FZX_MODE=here '$TODOS/source.sh' | head -1 | cut -f2"
+  run bash -c "cd '$P' && FZX_MODE=here '$TODOS/source.sh' | sed '1!d' | cut -f2"
   [[ "$output" == *$'\e[1;31m[due 2026-10-01, OVERDUE]'* ]]
   [[ "$(plain <<< "$output")" == '☐  P2  feature   Roadmap                       Late  [due 2026-10-01, OVERDUE]' ]]
 }

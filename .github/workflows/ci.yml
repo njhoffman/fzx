@@ -4,15 +4,20 @@ on:
   push:
   pull_request:
 
+env:
+  FZF_VERSION: 0.74.5
+
 jobs:
   test:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends shellcheck bats just zsh jq fd-find ripgrep gawk procps psmisc git curl python3
+          sudo apt-get install -y --no-install-recommends shellcheck bats just zsh jq fd-find ripgrep gawk procps psmisc git curl python3 tmux sqlite3
+          # fzf from its release: Ubuntu's is too old for fzx, and the live tests drive a real one
+          curl -fsSL "https://github.com/junegunn/fzf/releases/download/v${FZF_VERSION}/fzf-${FZF_VERSION}-linux_amd64.tar.gz" | sudo tar -xz -C /usr/local/bin fzf
           # Debian ships fd as fdfind; the files module handles both, the tests look for fd
           sudo ln -sf "$(command -v fdfind)" /usr/local/bin/fd
           git config --global user.name ci && git config --global user.email ci@example.com

@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.33.1] - 2026-10-27
+
+### Fixed
+
+- tmux 3.4 (no `list-keys -F`): the keys mode shows the bindings' notes again (`list-keys -N`).
+- CI passes: it installs fzf (0.74.5), tmux and sqlite3, and the tests no longer depend on where
+  ripgrep is installed or on SIGPIPE being delivered.
+
 ## [0.33.0] - 2026-10-27
 
 ### Added

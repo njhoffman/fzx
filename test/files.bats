@@ -61,9 +61,18 @@ rel() { (FZX_MODE="$1" "$FILES/source.sh" "$B") | cut -f1 | sed "s:^$B/::"; }
   want="$(printf '%s\n' .dot .gitignore .hid/z a-b/y a/x top)"
   run bash -c "FZX_MODE=grep FZF_QUERY=needle '$FILES/source.sh' '$B' | cut -f1 | sed 's:^$B/::' | sort"
   [ "$output" = "$(sort <<< "${want/.gitignore$'\n'/}")" ]
-  # no rg on PATH: grep -E; it has no ignore files, so ign/ is searched too
-  local norg
-  norg="$(tr : '\n' <<< "$PATH" | while read -r d; do [[ -x "$d/rg" ]] || printf '%s:' "$d"; done)"
+  # no rg on PATH: grep -E; it has no ignore files, so ign/ is searched too. A directory holding rg is
+  # replaced by links to everything else in it (rg shares /usr/bin with bash on Debian)
+  local norg="" d m n=0
+  while read -r d; do
+    if [[ -x "$d/rg" ]]; then
+      m="$BATS_TEST_TMPDIR/norg/$((n++))"
+      mkdir -p "$m"
+      find "$d" -maxdepth 1 -mindepth 1 ! -name rg -exec ln -s -t "$m" {} + 2> /dev/null
+      d="$m"
+    fi
+    norg+="$d:"
+  done < <(tr : '\n' <<< "$PATH")
   run env PATH="${norg%:}" FZX_TOGGLES="" FZX_MODE=grep FZF_QUERY=NEEDLE bash -c "'$FILES/source.sh' '$B' | cut -f1,2"
   [ -z "$output" ]
   run env PATH="${norg%:}" FZX_TOGGLES="" FZX_MODE=grep FZF_QUERY=needle bash -c "'$FILES/source.sh' '$B' | cut -f1 | sed 's:^$B/::' | sort"

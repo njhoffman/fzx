@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.33.0): the six steps of `docs/design.md` are done. Modules: actions, capture, colors, dirs,
+Status (0.33.1): the six steps of `docs/design.md` are done. Modules: actions, capture, colors, dirs,
 docker, files, git, github, history, keybindings, logs, man, menu, network, ps, recent, repos, systemd, tasks, tmux, todos,
 youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
@@ -201,11 +201,6 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 
 ## 7. Known issues
 
-- [ ] **CI has never passed** (p1) [test]: every run on main fails (31 of 31, 2026-10-27), on five tests that
-      pass locally: files.bats:68 (grep fallback, dot-named base), recent.bats:38 (nvim frecency order),
-      tmux.bats:98 (key notes), :224 (live key browser) and :279 (live capture; "can't find pane: picker").
-      Likely the runner's tmux, grep and sqlite versions; reproduce in the CI image (ubuntu-latest) and fix or
-      skip with a reason.
 - [ ] **Untested against the real thing** (p2) [test]: docker (stubbed only), systemd start/stop/enable (stubbed
       systemctl and sudo), Zellij popups (tmux only).
 - [ ] **Undocumented fzf behaviour we depend on** (p3) [test]: `become()` inside a `--popup` runs in the original

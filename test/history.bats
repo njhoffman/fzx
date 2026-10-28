@@ -90,9 +90,9 @@ src() { FZX_MODE="$1" "$HIST/source.sh" | plain; }
   FZX_SORT=frequent run src host
   [[ "${lines[0]}" == *'make test' ]]
   # the sorted column underlined: the count, or the time
-  run bash -c "FZX_MODE=host FZX_SORT=frequent '$HIST/source.sh' | head -1"
+  run bash -c "FZX_MODE=host FZX_SORT=frequent '$HIST/source.sh' | sed '1!d'"
   [[ "$output" == *$'\e[4m2x\e[0m'* ]]
-  run bash -c "FZX_MODE=host '$HIST/source.sh' | head -1"
+  run bash -c "FZX_MODE=host '$HIST/source.sh' | sed '1!d'"
   [[ "$output" =~ $'\e[4m'[0-9/:]+$'\e[0m' ]]
 }
 

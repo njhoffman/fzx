@@ -208,6 +208,7 @@ DATA
 }
 
 @test "tmux: live colored key browser previews notes and accepts only the plain binding" {
+  command -v fzf > /dev/null || skip "fzf not installed"
   tmux bind-key -r -T prefix -N 'Styled test note UniqueTmuxFzx' F12 display-message 'chosen value'
   local picker state screen n
   printf -v picker '%q -m tmux:keys --query %q --table prefix > %q' "$FZX" "'UniqueTmuxFzx" "$BATS_TEST_TMPDIR/accepted"
@@ -268,6 +269,7 @@ DATA
 }
 
 @test "tmux: live fzf opens the capture module on a pane and uses Escape to return and quit" {
+  command -v fzf > /dev/null || skip "fzf not installed"
   local picker state sid root n
   printf -v picker '%q -m tmux:panes --pane %q' "$FZX" "$PANE"
   tmux new-window -d -n picker "$picker"

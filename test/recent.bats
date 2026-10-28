@@ -34,18 +34,20 @@ STUB
 @test "nvim mode: telescope-frecency's score order, missing files dropped; it is the default" {
   run bash -c "'$RECENT/source.sh' | cut -f1"
   [ "$output" = "$T/proj/docs/a.md"$'\n'"$T/proj/docs/b.md"$'\n'"$T/other.txt"$'\n'"$T/proj/old.md" ]
-  run bash -c "'$RECENT/source.sh' | head -1 | cut -f2 | sed 's/\x1b\[[0-9;]*m//g'"
+  # sed 1!d reads it all: head would close the pipe early, and where SIGPIPE is ignored (GitHub's
+  # runners) the source's printf reports the broken pipe on stderr
+  run bash -c "'$RECENT/source.sh' | sed '1!d' | cut -f2 | sed 's/\x1b\[[0-9;]*m//g'"
   [[ "$output" == "  200  "*"a.md" ]]
   run "$FZX" -m recent
   [ "$(< "$BATS_TEST_TMPDIR/fzf.mode")" = nvim ]
 }
 
 @test "sort: the ranking (score underlined) or by path (path underlined)" {
-  run bash -c "'$RECENT/source.sh' | head -1 | cut -f2"
+  run bash -c "'$RECENT/source.sh' | sed '1!d' | cut -f2"
   [[ "$output" == *$'\e[4m200\e[0m'* ]]
   run bash -c "FZX_SORT=path '$RECENT/source.sh' | cut -f1"
   [ "$output" = "$T/other.txt"$'\n'"$T/proj/docs/a.md"$'\n'"$T/proj/docs/b.md"$'\n'"$T/proj/old.md" ]
-  run bash -c "FZX_SORT=path '$RECENT/source.sh' | head -1 | cut -f2"
+  run bash -c "FZX_SORT=path '$RECENT/source.sh' | sed '1!d' | cut -f2"
   [[ "$output" == *$'\e[4m'*other.txt* && "$output" != *$'\e[4m'[0-9]* ]]
 }
 

@@ -205,7 +205,8 @@ def read_keys():
     raw = tmux("list-keys", "-F", KEY_FORMAT, optional=True)
     if raw:
         return key_rows(raw)
-    # Older tmux versions do not support list-keys -F.
+    # Older tmux versions (3.4) do not support list-keys -F: parse the bind-key lines, and take the notes
+    # from list-keys -N per table ("KEY  note"; newer versions put the prefix key first in the prefix table)
     result = []
     for line in tmux("list-keys").splitlines():
         match = re.match(r"bind-key\s+(-r\s+)?-T\s+(\S+)\s+(\S+)\s+(.*)", line)
@@ -220,6 +221,14 @@ def read_keys():
                     "command": command,
                 }
             )
+    notes = {}
+    for table in sorted({row["table"] for row in result}):
+        for line in tmux("list-keys", "-N", "-T", table, optional=True).splitlines():
+            parts = line.split(None, 1)
+            if len(parts) == 2:
+                notes[(table, parts[0].lstrip("\\"))] = parts[1].strip()
+    for row in result:
+        row["note"] = notes.get((row["table"], row["key"]), "")
     return result
 
 

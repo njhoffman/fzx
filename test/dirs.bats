@@ -25,9 +25,9 @@ bookmarks() {
   FZX_MODE=bookmarks run bash -c "'$DIRS/source.sh' bet | cut -f1"
   [ "$output" = "$T/beta" ]
   # the sorted column underlined: the name (default), or the path
-  FZX_MODE=bookmarks FZX_SORT=name run bash -c "'$DIRS/source.sh' | head -1 | cut -f2"
+  FZX_MODE=bookmarks FZX_SORT=name run bash -c "'$DIRS/source.sh' | sed '1!d' | cut -f2"
   [[ "$output" == *$'\e[4ma\e[0m'* ]]
-  FZX_MODE=bookmarks FZX_SORT=path run bash -c "'$DIRS/source.sh' | head -1 | cut -f2"
+  FZX_MODE=bookmarks FZX_SORT=path run bash -c "'$DIRS/source.sh' | sed '1!d' | cut -f2"
   [[ "$output" != *$'\e[4ma\e[0m'* && "$output" == *$'\e[4m'*alpha* ]]
 }
 
