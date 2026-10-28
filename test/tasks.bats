@@ -88,7 +88,8 @@ act() { FZX_MODE="$1" "$TASKS/actions.sh" "${@:2}"; }
   cd "$A"
   run src selected
   [ "${#lines[@]}" -eq 6 ]
-  [[ "${lines[0]}" == "$A|make|build"$'\t'"alpha:build"$'\t'"⌂ alpha:build"*"make"*"compile everything" ]]
+  [[ "${lines[0]}" == "$A|make|build"$'\t'"alpha:build"$'\t'"⌂ alpha:build"*" make"*"compile everything" ]]
+  [[ "${lines[4]}" == *" npm"* ]]
   # pick a task of beta: it joins selected, marked
   act all pick "$B|poe|serve"
   run src selected
@@ -99,8 +100,19 @@ act() { FZX_MODE="$1" "$TASKS/actions.sh" "${@:2}"; }
   run src repos
   [ "${#lines[@]}" -eq 3 ]
   run src projects
-  [[ "${lines[0]}" == "$A"$'\t'"$A"$'\t'"⌂ alpha"*"4 make, 2 npm"* ]]
-  [[ "${lines[1]}" == "$B"$'\t'"$B"$'\t'"● beta"*"1 cargo, 2 poe"* ]]
+  [[ "${lines[0]}" == "$A"$'\t'"$A"$'\t'"⌂ alpha"*" 4   2"* ]]
+  [[ "${lines[1]}" == "$B"$'\t'"$B"$'\t'"● beta"*" 1   2"* ]]
+  # icons pad like the text: the path starts in the same column either way
+  local with without
+  with="$(src projects | head -1 | cut -f3)"
+  FZX_ICONS=unicode run src projects
+  [[ "${lines[0]}" == *"⌂ alpha"*"4 make, 2 npm"* ]]
+  [[ "${lines[1]}" == *"● beta"*"1 cargo, 2 poe"* ]]
+  without="$(printf '%s\n' "${lines[0]}" | cut -f3)"
+  with="${with%%/*}" without="${without%%/*}"
+  [ -n "$with" ] && [ "${#with}" -eq "${#without}" ]
+  FZX_ICONS=none run src selected
+  [[ "${lines[0]}" == *"alpha:build make"*"compile everything" ]]
   # picking again takes it out
   act all pick "$B|poe|serve"
   act projects pick "$B"

@@ -45,6 +45,12 @@ declare -gA FZX_ICONS_NERD=(
   [issue]=""     # github: open issues
   [archived]=""  # github: an archived repository
   [repo]=""      # github: a repository
+  [task_make]="" # tasks: make targets
+  [task_just]="" # tasks: just recipes
+  [task_npm]=""  # tasks: package.json scripts
+  [task_task]="" # tasks: go-task (Taskfile.yml)
+  [task_cargo]="" # tasks: cargo aliases
+  [task_python]="" # tasks: pdm, poe and hatch scripts
 )
 
 declare -gA FZX_ICONS_UNICODE=(
@@ -88,6 +94,12 @@ declare -gA FZX_ICONS_UNICODE=(
   [issue]="!"
   [archived]="▣"
   [repo]="▤"
+  [task_make]="⚒"
+  [task_just]="⚖"
+  [task_npm]="⬢"
+  [task_task]="☑"
+  [task_cargo]="⚙"
+  [task_python]="λ"
 )
 
 # fzx::icon <name> [var]: the icon, empty for an unknown name or FZX_ICONS=none; into var when given

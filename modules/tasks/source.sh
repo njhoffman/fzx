@@ -198,11 +198,32 @@ tasks::rows() {
       }'
 }
 
+# tasks::kinds: "kind<US>icon<US>SGR" per runner, newline-separated, for the awk in display and projects;
+# the icon is empty without Nerd Font icons: the Unicode forms are no help beside the runner's name
+tasks::kinds() {
+  local kind name glyph color
+  fzx::require icons
+  for kind in make just npm task cargo pdm poe hatch; do
+    case "$kind" in
+      make) name=make color='38;5;108' ;;
+      just) name=just color='38;5;180' ;;
+      npm) name=npm color='38;5;167' ;;
+      task) name=task color='38;5;80' ;;
+      cargo) name=cargo color='38;5;208' ;;
+      *) name=python color='38;5;221' ;;
+    esac
+    glyph=""
+    [[ "${FZX_ICONS:-nerd}" == nerd ]] && fzx::icon "task_$name" glyph
+    printf '%s\037%s\037%s\n' "$kind" "$glyph" "${FZX_COLORS[tasks_kind_$kind]:-$color}"
+  done
+}
+
 # tasks::display: rows from tasks::rows -> "id<TAB>project:task<TAB>display"
 tasks::display() {
   awk -F'\t' -v nocolor="${NO_COLOR+x}" -v proj="${FZX_COLORS[tasks_project]:-38;5;111}" -v name="${FZX_COLORS[tasks_name]:-1;38;5;255}" \
-    -v markc="${FZX_COLORS[tasks_mark]:-38;5;114}" -v dim="${FZX_COLORS[dim]:-38;5;244}" '
-    function c(code, text) { return nocolor != "" || text == "" ? text : "\033[" code "m" text "\033[0m" }
+    -v markc="${FZX_COLORS[tasks_mark]:-38;5;114}" -v dim="${FZX_COLORS[dim]:-38;5;244}" -v kindspec="$(tasks::kinds)" '
+    function c(code, text) { return nocolor != "" || text == "" || code == "" ? text : "\033[" code "m" text "\033[0m" }
+    BEGIN { nk = split(kindspec, ks, "\n"); for (i = 1; i <= nk; i++) { split(ks[i], f, "\037"); icon[f[1]] = f[2]; kc[f[1]] = f[3] } }
     {
       p = $1; sub(/.*\//, "", p)
       r++; id[r] = $1 "|" $2 "|" $3; label[r] = p ":" $3; kind[r] = $2; desc[r] = $4; mark[r] = $5; pl[r] = p
@@ -215,7 +236,7 @@ tasks::display() {
         d = desc[i]; if (length(d) > 100) d = substr(d, 1, 99) "…"
         pad = w - length(label[i]); if (pad < 0) pad = 0
         printf "%s\t%s\t%s %s%s%s %s %s\n", id[i], label[i], m, c(proj, pl[i] ":"), c(name, substr(label[i], length(pl[i]) + 2)),
-          sprintf("%" pad "s", ""), c(dim, sprintf("%-5s", kind[i])), c(dim, d)
+          sprintf("%" pad "s", ""), (icon[kind[i]] != "" ? c(kc[kind[i]], icon[kind[i]]) " " : "") c(dim, sprintf("%-5s", kind[i])), c(dim, d)
       }
     }'
 }
@@ -227,19 +248,28 @@ tasks::projects() {
   chosen="$(tasks::state_dir)/projects"
   here="$(tasks::here)" || here=""
   awk -F'\t' -v chosen="$chosen" -v here="$here" -v home="$HOME" -v nocolor="${NO_COLOR+x}" \
-    -v proj="${FZX_COLORS[tasks_project]:-38;5;111}" -v markc="${FZX_COLORS[tasks_mark]:-38;5;114}" -v dim="${FZX_COLORS[dim]:-38;5;244}" '
-    function c(code, text) { return nocolor != "" || text == "" ? text : "\033[" code "m" text "\033[0m" }
-    BEGIN { while ((getline line < chosen) > 0) on[line] = 1 }
+    -v proj="${FZX_COLORS[tasks_project]:-38;5;111}" -v markc="${FZX_COLORS[tasks_mark]:-38;5;114}" -v dim="${FZX_COLORS[dim]:-38;5;244}" \
+    -v kindspec="$(tasks::kinds)" '
+    function c(code, text) { return nocolor != "" || text == "" || code == "" ? text : "\033[" code "m" text "\033[0m" }
+    BEGIN {
+      while ((getline line < chosen) > 0) on[line] = 1
+      nk = split(kindspec, ks, "\n"); for (i = 1; i <= nk; i++) { split(ks[i], f, "\037"); icon[f[1]] = f[2]; kc[f[1]] = f[3] }
+    }
     !($1 in n) { order[++r] = $1 }
     { n[$1]++; k[$1, $2]++; if (!(($1, $2) in seen)) { seen[$1, $2] = 1; kinds[$1] = kinds[$1] " " $2 } }
     END {
       for (i = 1; i <= r; i++) {
         d = order[i]; p = d; sub(/.*\//, "", p)
-        counts = ""; split(substr(kinds[d], 2), ks, " ")
-        for (j = 1; j in ks; j++) counts = counts (counts == "" ? "" : ", ") k[d, ks[j]] " " ks[j]
+        # "<icon> 4  <icon> 2" with icons, else "4 make, 2 npm"; w is the width on screen (an icon is one cell)
+        counts = ""; w = 0; delete ks; split(substr(kinds[d], 2), ks, " ")
+        for (j = 1; j in ks; j++) {
+          kk = ks[j]; sep = counts == "" ? "" : (icon[kk] != "" ? "  " : ", ")
+          item = icon[kk] != "" ? c(kc[kk], icon[kk]) " " k[d, kk] : k[d, kk] " " kk
+          counts = counts sep item; w += length(sep) + (icon[kk] != "" ? 2 + length(k[d, kk]) : length(k[d, kk] " " kk))
+        }
         short = d; if (index(short, home "/") == 1) short = "~" substr(short, length(home) + 1)
         m = (d in on) ? c(markc, "●") : d == here ? c(markc, "⌂") : " "
-        printf "%s\t%s\t%s %s %s %s\n", d, d, m, c(proj, sprintf("%-28s", p)), sprintf("%-28s", counts), c(dim, short)
+        printf "%s\t%s\t%s %s %s %s\n", d, d, m, c(proj, sprintf("%-28s", p)), counts sprintf("%" (w < 28 ? 28 - w : 0) "s", ""), c(dim, short)
       }
     }' "$index"
 }

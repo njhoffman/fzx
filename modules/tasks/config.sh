@@ -13,6 +13,15 @@ FZX_COLORS[tasks_icon]="38;5;179"
 FZX_COLORS[tasks_project]='38;5;111'
 FZX_COLORS[tasks_name]='1;38;5;255'
 FZX_COLORS[tasks_mark]='38;5;114'
+# each runner's icon (Nerd Font icons only; with FZX_ICONS=unicode or none the rows show the runner's name)
+FZX_COLORS[tasks_kind_make]='38;5;108'
+FZX_COLORS[tasks_kind_just]='38;5;180'
+FZX_COLORS[tasks_kind_npm]='38;5;167'
+FZX_COLORS[tasks_kind_task]='38;5;80'
+FZX_COLORS[tasks_kind_cargo]='38;5;208'
+FZX_COLORS[tasks_kind_pdm]='38;5;221'
+FZX_COLORS[tasks_kind_poe]='38;5;221'
+FZX_COLORS[tasks_kind_hatch]='38;5;221'
 
 # directories searched for repositories besides ghq's (FZX_TASKS_DEPTH levels deep)
 FZX_TASKS_ROOTS=()

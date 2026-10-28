@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.34.0] - 2026-10-27
+
+### Added
+
+- tasks: each row shows its runner (make, just, npm, go-task, cargo, pdm/poe/hatch) as a colored Nerd Font
+  icon before the runner's name, and the projects mode counts tasks by icon. Colors are
+  `FZX_COLORS[tasks_kind_<runner>]`; with `FZX_ICONS=unicode` or `none` the rows are as before.
+
 ## [0.33.1] - 2026-10-27
 
 ### Fixed
