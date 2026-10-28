@@ -63,6 +63,8 @@ case "${args[0]} ${args[1]}" in
     path="${args[1]}"
     case "$path" in
       search/issues\?*) printf '%s\n' "$path" > "$BATS_TEST_TMPDIR/gh.issuesearch"; cat "$BATS_TEST_TMPDIR/search.json" ;;
+      notifications\?all=*) cat "$BATS_TEST_TMPDIR/notifications.json" ;;
+      notifications/threads/*) echo "$method $path" >> "$BATS_TEST_TMPDIR/read.calls" ;;
       repos/*/commits/*)
         ref="${path#*/commits/}"
         case "$ref" in
@@ -147,6 +149,21 @@ JSON
  {"html_url":"https://github.com/someorganization/a-repository-with-a-long-name/issues/2","number":2,"title":"Long","state":"open",
   "user":{"login":"dan"},"labels":[],"updated_at":"2026-01-01T00:00:00Z",
   "repository_url":"https://api.github.com/repos/someorganization/a-repository-with-a-long-name"}]}
+JSON
+  # one notification per subject type; the API's urls, null for check suites and discussions
+  cat > "$BATS_TEST_TMPDIR/notifications.json" << 'JSON'
+[{"id":"101","unread":true,"reason":"review_requested","updated_at":"2026-01-01T00:00:00Z","repository":{"full_name":"o/r"},
+  "subject":{"type":"PullRequest","title":"Add x","url":"https://api.github.com/repos/o/r/pulls/40"}},
+ {"id":"102","unread":false,"reason":"mention","updated_at":"2026-01-01T00:00:00Z","repository":{"full_name":"p/q"},
+  "subject":{"type":"Issue","title":"Bug\there","url":"https://api.github.com/repos/p/q/issues/5"}},
+ {"id":"103","unread":true,"reason":"ci_activity","updated_at":"2026-01-01T00:00:00Z","repository":{"full_name":"o/r"},
+  "subject":{"type":"CheckSuite","title":"CI failed","url":null}},
+ {"id":"104","unread":true,"reason":"subscribed","updated_at":"2026-01-01T00:00:00Z","repository":{"full_name":"o/r"},
+  "subject":{"type":"Release","title":"v1","url":"https://api.github.com/repos/o/r/releases/123"}},
+ {"id":"105","unread":true,"reason":"author","updated_at":"2026-01-01T00:00:00Z","repository":{"full_name":"o/r"},
+  "subject":{"type":"Commit","title":"Fix","url":"https://api.github.com/repos/o/r/commits/abc"}},
+ {"id":"106","unread":true,"reason":"subscribed","updated_at":"2026-01-01T00:00:00Z","repository":{"full_name":"o/r"},
+  "subject":{"type":"Discussion","title":"Ideas","url":null}}]
 JSON
   cat > "$BATS_TEST_TMPDIR/view-issue.json" << 'JSON'
 {"body":"The body","comments":[{"author":{"login":"carol"},"createdAt":"2026-01-01T10:00:00Z","body":"a comment"}]}
@@ -513,7 +530,7 @@ searches() { grep -c '^search ' "$BATS_TEST_TMPDIR/gh.calls" 2> /dev/null || ech
   ! grep -q "not defined" "$LOG"
 }
 
-@test "menu: six entries; summaries for repos (parts in parallel), code, mine (from its list) and starred" {
+@test "menu: seven entries; summaries for repos (parts in parallel), code, mine (from its list) and starred" {
   load_libs log config menu
   cat > "$STUBS/curl" << 'STUB'
 #!/usr/bin/env bash
@@ -521,7 +538,7 @@ echo '{"status":{"indicator":"minor","description":"Partial outage"}}'
 STUB
   chmod +x "$STUBS/curl"
   fzx::menu_entries github "$GH_DIR"
-  [ "${FZX_ENTRY_TARGETS[*]}" = "github github:code github:mine github:starred github:issues github:prs" ]
+  [ "${FZX_ENTRY_TARGETS[*]}" = "github github:code github:mine github:starred github:issues github:prs github:notifications" ]
   STUB_GH_HERE=1 run github::summary github
   [ "$output" = "GitHub: Partial outage · here: 2 PRs, 5 issues · 3 unread · searches left: 29/30, code 9/10 (per minute)" ]
   run github::summary github:starred
@@ -706,4 +723,56 @@ clone_here() {
   src issues "" > /dev/null
   run github::summary github:issues
   [ "$output" = "2 open, o/r" ]
+}
+
+@test "notifications: unread ones, a page per subject; the read toggle; read marks the selected threads" {
+  run src notifications ""
+  [ "$status" -eq 0 ]
+  [ "${#lines[@]}" -eq 6 ]
+  [ "$(printf '%s\n' "${lines[@]}" | cut -f1 | tr '\n' '|')" = "https://github.com/o/r/pull/40|https://github.com/p/q/issues/5|https://github.com/o/r/actions|https://github.com/o/r/releases|https://github.com/o/r/commit/abc|https://github.com/o/r/discussions|" ]
+  [[ "${lines[0]}" == *$'\t'"notification"$'\t'"o/r"$'\t'"$FZX_CACHE_DIR/github/issues/notifications-unread.json"$'\t'"0"$'\t'"● P o/r Add x review requested "* ]]
+  [[ "${lines[1]}" == *$'\t'"  I p/q Bug here mention "* ]]
+  [[ "${lines[2]}" == *$'\t'"● A o/r CI failed ci activity "* ]]
+  grep -qx 'api notifications?all=false&per_page=50' "$BATS_TEST_TMPDIR/gh.calls"
+  src notifications "" > /dev/null
+  [ "$(grep -c '^api notifications?all' "$BATS_TEST_TMPDIR/gh.calls")" -eq 1 ]
+  FZX_TOGGLES=read src notifications "" > /dev/null
+  grep -qx 'api notifications?all=true&per_page=50' "$BATS_TEST_TMPDIR/gh.calls"
+  source "$GH_DIR/actions.sh" || :
+  FZX_MODE=notifications github::action read -- https://github.com/o/r/pull/40 https://github.com/o/r/actions
+  [ "$(cat "$BATS_TEST_TMPDIR/read.calls" | tr '\n' '|')" = "PATCH notifications/threads/101|PATCH notifications/threads/103|" ]
+  [ ! -d "$FZX_CACHE_DIR/github/issues" ]
+}
+
+@test "preview: a notification; an issue's or pull request's details below it" {
+  src notifications "" > /dev/null
+  local f="$FZX_CACHE_DIR/github/issues/notifications-unread.json"
+  run env FZX_GITHUB_MARKDOWN=cat "$GH_DIR/preview.sh" https://github.com/o/r/pull/40 notification o/r "$f" 0
+  [ "${lines[0]}" = "o/r  pull request  unread" ]
+  [ "${lines[2]}" = "reason  review requested" ]
+  [[ "$output" == *"branch  feat/x -> main"*"*no description*" ]]
+  run env FZX_GITHUB_MARKDOWN=cat "$GH_DIR/preview.sh" https://github.com/o/r/actions notification o/r "$f" 2
+  [ "${lines[0]}" = "o/r  check suite  unread" ]
+  [ "${lines[-1]}" = "url     https://github.com/o/r/actions" ]
+  ! grep -q '^issue view\|^pr view.*actions' "$BATS_TEST_TMPDIR/gh.calls"
+}
+
+@test "under fzx: notifications accept on enter; header and keys; menu summary from the last list" {
+  load_libs log session
+  fzx::session_create github "$GH_DIR"
+  fzx::state_set mode notifications
+  FZF_QUERY="x" run "$FZX" _cb transform enter -- https://github.com/o/r/pull/40 notification o/r
+  [ "$output" = accept ]
+  stub_fzf
+  run "$FZX" -m github:notifications
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *" --header=your unread notifications, latest first (alt-8: read ones too) "* ]]
+  [[ "$(fzf_bind alt-u)" == *"_cb action read -- {+1}"* ]]
+  load_libs config menu
+  fzx::menu_entries github "$GH_DIR"
+  run github::summary github:notifications
+  [ -z "$output" ]
+  src notifications "" > /dev/null
+  run github::summary github:notifications
+  [ "$output" = "6 unread" ]
 }

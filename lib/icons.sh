@@ -57,6 +57,10 @@ declare -gA FZX_ICONS_NERD=(
   [pr_merged]="" # github: a merged pull request
   [pr_closed]="" # github: a closed pull request
   [pr_draft]="" # github: a draft pull request
+  [release]="" # github: a release
+  [discussion]="" # github: a discussion
+  [commit]="" # github: a commit
+  [checks]="" # github: checks (a check suite)
 )
 
 declare -gA FZX_ICONS_UNICODE=(
@@ -112,6 +116,10 @@ declare -gA FZX_ICONS_UNICODE=(
   [pr_merged]="⤳"
   [pr_closed]="✗"
   [pr_draft]="◌"
+  [release]="⚑"
+  [discussion]="❝"
+  [commit]="•"
+  [checks]="☑"
 )
 
 # fzx::icon <name> [var]: the icon, empty for an unknown name or FZX_ICONS=none; into var when given

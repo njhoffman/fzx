@@ -137,10 +137,10 @@ Built from the reference repos in `resources/` (fzfmenu widgets, proto-widgets, 
 completers, the fzf attempt's modules, fzf-scripts) and checked against what is installed here
 (2026-10-20). "has" lists tools found on PATH, "missing" what the old code used that is not installed.
 
-- [ ] **github: notifications, repository drill-down** (p2) [module]: phase 2 of modules/github (search,
-      files and fetch in 0.24.0; your repositories, stars and the search follow-ups in 0.25.0; issues and
-      PRs in 0.35.0). Left: notifications (open, mark read), then from any repository row its PRs, issues
-      (`github:issues --repo`, already there) and workflow runs (from gh-gitman's api.sh `repo_cmd`).
+- [ ] **github: repository drill-down** (p2) [module]: phase 2 of modules/github (search, files and fetch
+      in 0.24.0; your repositories, stars and the search follow-ups in 0.25.0; issues and PRs in 0.35.0;
+      notifications in 0.36.0). Left: from any repository row its PRs, issues (`github:issues --repo`,
+      already there) and workflow runs (from gh-gitman's api.sh `repo_cmd`).
       Refs: vendors/widgets/fzf-github-*, gh-fzf (`gh fzf`), gh-dash's key hints.
 - [ ] **github: header after the everywhere toggle** (p3) [bug]: the issues and prs header is set when fzf
       starts ("issues of o/r ..."), so after alt-7 it still names the repository while the list shows

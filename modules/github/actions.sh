@@ -290,6 +290,15 @@ github::action() {
   case "$action" in
     browser) github::open "${urls[@]}" ;;
     checkout | comment | close | reopen) github::item_action "$action" "${urls[@]}" ;;
+    read)
+      # the notifications about the selected pages, marked read
+      local id ids=()
+      mapfile -t ids < <(github::notification_ids "${urls[@]}")
+      for id in "${ids[@]}"; do
+        command gh api -X PATCH "notifications/threads/$id" --silent || { github::_report $?; return; }
+      done
+      github::issues_drop
+      ;;
     clone)
       for u in "${urls[@]}"; do
         github::parse_url "$u" && [[ " ${repos[*]} " != *" $GH_REPO "* ]] && repos+=("$GH_REPO")
@@ -377,7 +386,7 @@ github::transform() {
   text="${1:-}" kind="${2:-}" repo="${3:-}"
   case "$name" in
     enter)
-      case "$kind" in search | error) ;; *) [[ "$mode" =~ ^(tree|mine|starred|issues|prs)$ ]] && { printf 'accept'; return 0; } ;; esac
+      case "$kind" in search | error) ;; *) [[ "$mode" =~ ^(tree|mine|starred|issues|prs|notifications)$ ]] && { printf 'accept'; return 0; } ;; esac
       github::trim "${FZF_QUERY:-}" query
       fzx::state_get "github_query_$mode" last || last=""
       fzx::state_get "github_filter_$mode" filter 2> /dev/null || filter=""

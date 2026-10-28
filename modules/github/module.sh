@@ -36,6 +36,11 @@ github::opts() {
       ;;
     mine) FZX_OPTS+=("--header=${GITHUB_OWNER:-your} repositories, last pushed first") ;;
     starred) FZX_OPTS+=("--header=your stars, last starred first") ;;
+    notifications)
+      local key=""
+      fzx::comp_field toggle read key key 2> /dev/null || key=""
+      FZX_OPTS+=("--header=your unread notifications, latest first${key:+ ($key: read ones too)}")
+      ;;
     issues | prs)
       # the repository's own list (the everywhere toggle aside); the toggle's key from the components table
       local scope what=issues key=""

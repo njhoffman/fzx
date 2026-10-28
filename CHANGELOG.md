@@ -6,6 +6,16 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.36.0] - 2026-10-28
+
+### Added
+
+- github: a `notifications` mode (menu: `github:notifications`) with your unread notifications, the latest
+  50; the `read` toggle (alt-8) adds read ones. Each row shows an unread mark, the subject's type, the
+  repository, the title, why you got it and its age, and links to the subject's page: an issue's or pull
+  request's preview and actions (checkout, comment, close, reopen) work on it.
+- github action alt-u: mark the selected notifications read.
+
 ## [0.35.1] - 2026-10-28
 
 ### Fixed

@@ -8,6 +8,7 @@ github::manifest() {
   fzx::entry github:starred "GitHub repositories you starred"
   fzx::entry github:issues "GitHub issues here, or involving you"
   fzx::entry github:prs "Pull requests here, or involving you"
+  fzx::entry github:notifications "Your GitHub notifications"
 }
 
 # once per menu listing, not once per entry: the token comes from the keyring (about 100ms)
@@ -53,6 +54,11 @@ github::summary() {
       # one star per page: the last page's number is the count
       n="$(command gh api -i 'user/starred?per_page=1' 2> /dev/null | sed -n 's/^[Ll]ink:.*[?&]page=\([0-9]*\)>; rel="last".*/\1/p')"
       printf '%s stars\n' "${n:-0}"
+      ;;
+    github:notifications)
+      # from the last list only: the repos entry's summary asks GitHub for the unread count
+      local file="$FZX_CACHE_DIR/github/issues/notifications-unread.json"
+      [[ -f "$file" ]] && command jq -r 'length | if . == 50 then "50+ unread" else "\(.) unread" end' -- "$file"
       ;;
     github:issues | github:prs)
       # from the last list of this scope only: no request
