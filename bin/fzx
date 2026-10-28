@@ -17,6 +17,7 @@ usage: fzx                        open the menu of modules
        fzx jump [--pick] [--] [WORDS...]   the directory g / gg cd into (shell/fzx.zsh)
        fzx keys [KEY...]          keys in use (KEYs as fzx's, your fzf binds, fzf's defaults) and free keys
        fzx builtin copy|copy-line|view|confirm [ARGS...]
+       fzx preview PATH[:LINE] [LINE]  a file rendered by its type (plain fzf: ~/.shell/scripts/fzf-preview)
        fzx debug ls | tail [SID] | attach [SID] | state [SID] [N] | send ACTION [SID]
        fzx completion zsh          print the zsh completion (#compdef fzx; modules and modes are looked up
                                    as you complete): fzx completion zsh > "${fpath[1]}/_fzx"
@@ -75,6 +76,12 @@ main() {
       shift
       fzx::require log builtin
       fzx::builtin "$@"
+      return
+      ;;
+    preview)
+      shift
+      fzx::require log preview
+      fzx::preview "$@"
       return
       ;;
     stats)

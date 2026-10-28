@@ -96,12 +96,6 @@ Reviewed: 2026-10-28
       enter applies them; show the current arguments in the preview's top line or a label.
       Prior art: resources/ (older setups) and fzf's ADVANCED.md / CHANGELOG ("ripgrep integration", switching
       between ripgrep and fzf mode with `transform`/`rebind`). Seeing and editing the arguments can come last.
-- [ ] **Preview script upgrade** (p2) [feature] (~/.shell/scripts/fzf-preview): handle more file types, and report
-      which detector and renderer it chose (to fzx's log, or a debug header) so it is clear why content
-      looks the way it does. The same detection then serves piping (below): what kind of content is piped in.
-- [ ] **Previewer command setting** (p2) [feature]: an env variable / config value for the syntax viewer command
-      line (preferred: `nvimpager -c`; default `bat`), plus per-file-type viewers (e.g. a map of glob or mime
-      to command). The logic belongs in the preview script (above), with fzx passing the setting through.
 - [ ] **Sessions module** (p3) [module]: a picker over `fzx debug ls` that resumes a kept or running session from
       another terminal.
 - [ ] **Piping** (p3) [feature]: when stdin is not a tty and no module is given, match each manifest's `detect`
@@ -259,10 +253,15 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       the run never gets an `exit` stat.
 - [ ] **Stats prune** (p3) [bug] can drop rows appended while the file is being rewritten.
 - [ ] **`fzx stats` needs `strftime` in awk** (p3) [bug] (gawk, or mawk 1.3.4+).
-- [ ] **Renderers duplicated across module previews** (p2) [refactor]: files, github, history, logs, man, shell
-      and todos each probe for bat/glow/mdpreview and build their own bat command line (themes, widths,
-      NO_COLOR handling differ). A shared `lib/preview.sh` (see "Preview script upgrade") would give one place
-      for the viewer setting and the fallbacks.
+- [ ] **Renderers duplicated across module previews** (p2) [refactor]: github, history, logs, man, shell and
+      todos each probe for bat/glow/mdpreview and build their own bat command line (themes, widths, NO_COLOR
+      handling differ). The files module uses lib/preview.sh (0.38.0); move the others onto its renderers
+      (`fzx::_pv_markdown`, `fzx::_pv_text`, made public) so FZX_PREVIEW_VIEWERS applies everywhere.
+- [ ] **mdpreview is slow for previews** (p3) [perf]: about 250-900ms per focus change (it starts Neovim).
+      Cache its output under $FZX_CACHE_DIR keyed by path, mtime and width, or keep one Neovim running.
+- [ ] **fzfrc passes {1} to fzf-preview** (p3) [bug]: ~/.config/fzf/fzfrc runs `fzf-preview {1} {2}`, so a
+      path with spaces is cut at the first one before the preview sees it. `{}` (the whole line) works now
+      that grep hits are split by the previewer; check the fzf callers that rely on field 1 first.
 - [ ] **No README** (p3) [docs]: the repo has CLAUDE.md, PLAN.md and docs/, but nothing a new reader lands on:
       what fzx is, install (`just install`, sourcing shell/fzx.zsh), the module list, where docs live.
 - [ ] **PLAN.md is the original brief** (p3) [docs]: the 106-line prompt that started the project, now covered by

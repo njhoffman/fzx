@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# files preview: a header line (the path under ~, its size; a directory's entry count), then the file's
-# contents (bat when available), an image (chafa), a directory tree, or a grep hit in context.
+# files preview: a header line (the path under ~, its size; a directory's entry count), then the contents
+# rendered by type (lib/preview.sh: code, markdown, images, media tags, archives, ...) or a grep hit in context.
 
 # files::size <bytes>: 1023B, 14.4K, 3.1M, ...
 files::size() {
@@ -28,37 +28,19 @@ files::header() {
 
 # files::preview <path> [line]
 files::preview() {
-  local path="${1:-}" line="${2:-}" cols="${FZF_PREVIEW_COLUMNS:-80}" lines="${FZF_PREVIEW_LINES:-40}"
+  local path="${1:-}" line="${2:-}" lines="${FZF_PREVIEW_LINES:-40}"
   [[ -e "$path" ]] || {
     printf 'no such file: %s\n' "$path"
     return 1
   }
   files::header "$path"
-  if [[ -d "$path" ]]; then
-    if command -v eza > /dev/null; then
-      command eza --color=always --icons --group-directories-first -a --tree --level=2 -- "$path" | tail -n +2
-    else
-      command ls -la --color=always -- "$path"
-    fi
-    return 0
-  fi
-  case "${path,,}" in
-    *.png | *.jpg | *.jpeg | *.gif | *.webp | *.bmp | *.tif | *.tiff | *.ico | *.avif)
-      if command -v chafa > /dev/null; then
-        command chafa --format="${FZX_FILES_IMAGE_FORMAT:-symbols}" --size="${cols}x$((lines > 2 ? lines - 1 : 1))" \
-          --animate=off -- "$path" 2> /dev/null && return 0
-      fi
-      command -v file > /dev/null && command file -b -- "$path"
-      return 0
-      ;;
-  esac
-  if command -v bat > /dev/null; then
-    local range=()
-    [[ "$line" =~ ^[0-9]+$ ]] && range=(--highlight-line "$line" --line-range "$((line > 10 ? line - 10 : 1)):")
-    command bat --color=always --style=numbers --paging=never "${range[@]}" -- "$path"
-  else
-    command cat -- "$path"
-  fi
+  declare -F fzx::preview_body > /dev/null || fzx::require preview
+  FZX_PREVIEW_IMAGE_FORMAT="${FZX_FILES_IMAGE_FORMAT:-symbols}" FZX_PREVIEW_BAT_STYLE="${FZX_PREVIEW_BAT_STYLE:-numbers}" \
+    FZF_PREVIEW_LINES="$((lines > 2 ? lines - 1 : 1))" fzx::preview_body "$path" "$line"
 }
 
-[[ "${BASH_SOURCE[0]}" == "$0" ]] && files::preview "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  # shellcheck source=../../lib/core.sh
+  source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../../lib/core.sh"
+  files::preview "$@"
+fi

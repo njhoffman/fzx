@@ -6,6 +6,29 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.38.0] - 2026-10-28
+
+### Added
+
+- File previews by type (lib/preview.sh), shared by the files module and plain fzf: `fzx preview PATH`
+  (~/.shell/scripts/fzf-preview runs it). Besides code (bat) and images (chafa, now with a size line):
+  markdown through mdpreview, mp3 tags (named, in a fixed order, cover summarised, under the duration and
+  bitrate), audio and video through mediainfo, PDFs (first pages as text), archives and .deb listings,
+  compressed files (decompressed and highlighted), JSON through jq, SQLite tables and schema, certificates
+  through openssl (private keys are named, never shown), office documents and epub through pandoc, and a
+  hex dump for other binaries.
+- Grep hits (`path:line:col:text`) preview the file at that line, also from plain fzf.
+- `FZX_PREVIEW_VIEWERS` picks the command per type or file-name glob (`markdown=glow -s dark;*.log=lnav`),
+  `FZX_PREVIEW_TEXT` the text viewer.
+- `FZX_PREVIEW_DEBUG=1` starts each file preview with how the file was detected, what drew it and how long
+  it took; the same goes to the log at debug level.
+- `fzx preview` in the zsh completion.
+
+### Changed
+
+- The files module's directory tree, images and text come from the shared previewer; directories show
+  hidden entries two levels deep as before.
+
 ## [0.37.0] - 2026-10-28
 
 ### Added

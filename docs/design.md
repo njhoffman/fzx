@@ -369,6 +369,9 @@ resolved config: the callback loads the layers just before the first module func
 | `FZX_ICON`, `FZX_PROMPT`, `FZX_PROMPT_LOADING` | icon per module (Nerd Font), `{icon} ` | the prompt: `{icon}` in `FZX_COLORS[prompt_loading]` from start until `load`, then `[prompt_loaded]`; every reload (ctrl-r, mode/toggle/sort switches, reload actions) goes back to loading first. A blank prompt (`FZX_ICON=""`) keeps fzf's own prompt and binds nothing. `)` is dropped (it would end `change-prompt(...)`) |
 | `FZX_ICONS` | `nerd` | icons in rows and previews (lib/icons.sh, `fzx::icon NAME`): `nerd` (Nerd Font glyphs), `unicode` (plain symbols, for terminals without a Nerd Font) or `none`. Used by the menu (each module's `FZX_ICON`, or `FZX_ICON_MODES[mode]` for a mode that opens a different list, in `FZX_COLORS[<module>_icon_<mode>]` or `[<module>_icon]`; nerd only), git status (added, modified, deleted, renamed, untracked, conflict), repos (branch, changed, ahead, behind, todos), docker containers and logs (running, paused, stopped, created; file, unit), history (failed); the footer's toggles (on/off) and sort; the ps, history and repos previews' labels (`fzx::icon_label`, icons in `FZX_COLORS[preview_icon]`) |
 | `FZX_PREVIEW_LAYOUTS` | `0:down,50%,border-top` `120:` (menu: `0:down,50%,border-top` `180:right,40%`) | the preview window by terminal width, see below; `()` turns it off |
+| `FZX_PREVIEW_TEXT` | empty (bat) | the command file previews (lib/preview.sh) use for text and code; the path is appended, or replaces `{}` |
+| `FZX_PREVIEW_VIEWERS` | empty | per-type preview commands, `KEY=COMMAND;KEY=COMMAND`: KEY is a type (`markdown`, `mp3`, `audio`, `video`, `image`, `pdf`, `archive`, `compressed`, `json`, `sqlite`, `cert`, `document`, `binary`, `text`) or a glob on the file name (`*.log`); a glob wins over a type, a type over `FZX_PREVIEW_TEXT`. Commands run through bash, so they may hold options and pipes, but not `;` |
+| `FZX_PREVIEW_DEBUG` | `0` | `1`: file previews start with a dim line saying how the file was detected, what drew it and how long it took (`ext:md -> mdpreview (230ms)`) |
 | `FZX_PERSIST`, `FZX_POPUP_OPTS`, `FZX_FLOAT_OPTS`, `FZX_STATS`, `FZX_SUMMARY_TTL`, `FZX_TRACE`, ... | | see their sections |
 
 **Responsive preview.** `FZX_PREVIEW_LAYOUTS` entries are `MINCOLS:SPEC`; the entry with the largest
@@ -390,6 +393,21 @@ new layout. A preview shown by hand (the last entry hid it) stays when the new e
 
 `fzx config [-m MODULE]` prints the layers that were loaded and the resolved keys, colors, base options
 and settings.
+
+**File previews.** `lib/preview.sh` draws a file by its type, for the files module (under its own
+header line) and for plain fzf through `fzx preview ITEM [LINE]` (~/.shell/scripts/fzf-preview runs it).
+ITEM may be a grep hit, `path:line[:col:text]`: the shortest prefix that exists, followed by digits, is the
+path. Detection takes the extension first and runs `file --mime` only for names it does not know (about
+20ms); a `.db` must start with SQLite's magic. Each type has a chain, the first tool installed and
+succeeding wins: text and code bat (cat); markdown mdpreview (bat); mp3 mid3v2's tags named and ordered,
+under mediainfo's stream line (mediainfo, ffprobe); audio and video mediainfo (ffprobe); images a size line
+and chafa (an svg's source); pdf pdftotext's first three pages; archives bsdtar (7z, unzip; dpkg-deb for
+.deb); compressed files their decompressed first megabyte, highlighted for the inner name; json jq up to
+1M (bat); sqlite the tables and schema, read-only; certificates openssl, PEM or DER, while a private key
+is named and never shown; office documents and epub pandoc; other binaries file's description and hexyl
+(xxd below 79 columns); directories eza's tree two levels deep (lsd, ls). Every preview logs
+`preview PATH: ext:TYPE -> TOOL (Nms)` at debug level. The other modules' previews still call bat and
+friends themselves (TODO.md, "Renderers duplicated").
 
 ## Modules
 

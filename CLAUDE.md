@@ -10,6 +10,7 @@ changing lib/ or adding a module).
 - `just lint`: shellcheck over every bash file (keep it clean; CI runs it); `.bats` files are not linted
 - `bin/fzx -m <module> --dry-run`: the resolved fzf command
 - `bin/fzx config -m <module>`: resolved config layers, keys, colors, settings
+- `bin/fzx preview <path>[:line]`: a file as previews draw it (`FZX_PREVIEW_DEBUG=1`: which detector and renderer)
 - `just install`: symlink `bin/fzx` into ~/.local/bin; `shell/fzx.zsh`: zsh widgets (source from zshrc)
 - `bin/fzx completion zsh`: the zsh completion (lists come from `fzx _complete` at completion time)
 - `FZX_LOG_LEVEL=debug` then `bin/fzx debug tail`: callbacks, their durations and the fzf actions they return

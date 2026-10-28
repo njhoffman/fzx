@@ -111,6 +111,7 @@ _fzx() {
     'jump:the directory g and gg cd into'
     'keys:keys in use and free keys'
     'builtin:the built-in actions (copy, copy-line, view, confirm)'
+    'preview:a file rendered by its type'
     'debug:inspect and drive sessions'
     'completion:print a shell completion script'
   )
@@ -131,6 +132,7 @@ _fzx() {
       jump) _arguments '--pick[pick even when one directory matches]' '*:word: ' && ret=0 ;;
       keys) _arguments '*:fzf key: ' && ret=0 ;;
       builtin) _arguments '1:built-in action:(copy copy-line view confirm)' '*:argument: ' && ret=0 ;;
+      preview) _arguments '1:file:_files' '2::line: ' && ret=0 ;;
       debug)
         _arguments '1:debug command:((ls\:"the sessions" tail\:"follow the log" attach\:"a prompt on a session" state\:"a session'"'"'s state" send\:"send an fzf action"))' \
           '*::argument:->debug' && ret=0
