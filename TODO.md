@@ -82,7 +82,7 @@ Reviewed: 2026-10-28
       popup and the plain terminal, skipping split and float (ctrl-^, `FZX_KEYS[popout]`, keeps the full cycle).
       Check what the terminal sends for alt-shift-6 and that fzf accepts `alt-^`.
 - [ ] **Free keys list misses keys** (p2) [bug]: `fzx keys` (lib/keys.sh, the "free" section) only offers
-      ctrl-a..z, alt-a..z/0..9, alt-A..Z and f1..f12. Add ctrl-space, ctrl-delete, ctrl-\\, ctrl-], ctrl-^
+      ctrl-a..z, alt-a..z/0..9, alt-A..Z and f1..f12. Add ctrl-space, ctrl-delete, ctrl-\, ctrl-], ctrl-^
       (ctrl-6), ctrl-/ (ctrl-_); alt- with punctuation (alt--, alt-_, alt-., alt-,, ...); page-up/page-down
       with modifiers; shift-f1..f12 if fzf and the terminal tell them apart from f1..f12 (check fzf's key
       names; drop what fzf cannot bind).
