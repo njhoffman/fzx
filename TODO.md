@@ -45,7 +45,7 @@ Categories: module
 - [ ] **Resize the popup with the window** (p3) [feature]: on `resize`, recompute the popup geometry; fzf
       cannot resize a running popup, so this likely means a relaunch (become with the new --popup options).
 - [ ] **Copy feedback in the footer** (p3) [feature]: replace the copy notify-send (fzx actions and ctrl-y/alt-y
-      in ~/.fzf/.fzfrc) with a footer message that pops in and clears itself:
+      in ~/.config/fzf/fzfrc) with a footer message that pops in and clears itself:
       `enter:execute-silent(...)+bell`, `+transform-footer(echo Copied {})`, `+bg-cancel+bg-transform-footer(sleep 1)`.
 - [ ] **Summary wording** (p3) [chore]: summaries print "1 buffers", "1 recent searches"; a small plural
       helper for the manifests.
@@ -70,7 +70,7 @@ Categories: module
       (the grep term moves to the header label or after the prompt) and freeze the grep term while in fzf
       search mode (switch back to edit it). A key that puts the grepper/finder arguments into the prompt,
       enter applies them; show the current arguments in the preview's top line or a label.
-- [ ] **Preview script upgrade** (p2) [feature] (~/.fzf/core/preview.sh): handle more file types, and report
+- [ ] **Preview script upgrade** (p2) [feature] (~/.shell/scripts/fzf-preview): handle more file types, and report
       which detector and renderer it chose (to fzx's log, or a debug header) so it is clear why content
       looks the way it does. The same detection then serves piping (below): what kind of content is piped in.
 - [ ] **Previewer command setting** (p2) [feature]: an env variable / config value for the syntax viewer command
@@ -129,7 +129,7 @@ Categories: module
         theme presets item in section 2; `change-theme.sh` and `randomize-theme.sh` (nvim and terminal
         themes, `term-detect`) are actions for that screen or stay shell commands.
       - `ls-pygmentize.sh` is not about colors: keep it in ~/.shell, or drop it if unused.
-- [ ] **ps: plain-left PIDs** (p3) [refactor]: since ~/.fzf/.fzfrc dropped its `--delimiter`, the ps source no
+- [ ] **ps: plain-left PIDs** (p3) [refactor]: since ~/.config/fzf/fzfrc dropped its `--delimiter`, the ps source no
       longer needs left-aligned PIDs for `{1}`; right-align them like the other numeric columns.
 
 ## 6. New modules
