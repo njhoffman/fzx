@@ -1,2 +1,5 @@
 # per-machine Claude Code settings (SessionStart TODO hook lives here)
 .claude/settings.local.json
+
+# reference code from older fzf setups (old ~/.fzf, fzfmenu, fzfer, fzfg, fzf-rsc), read but not part of fzx
+/resources/
