@@ -7,6 +7,7 @@
 # A plain `fzf` (no options, nothing piped in) opens the files module instead, unless FZX_ZSH_NO_FZF=1.
 # g and gg cd to frecent directories, v opens frecent files (fzx jump), unless FZX_ZSH_NO_JUMP=1.
 # The shell's key bindings are dumped for the keybindings module unless FZX_ZSH_NO_KEYS_DUMP=1.
+# Its aliases, functions and parameters are dumped for the shell module unless FZX_ZSH_NO_SHELL_DUMP=1.
 # ghs and ghsc search GitHub, ghfetch downloads from a github.com URL, unless FZX_ZSH_NO_GITHUB=1.
 # clone and repos clone repositories and keep their ~/git links, unless FZX_ZSH_NO_REPOS=1.
 
@@ -19,6 +20,7 @@ typeset -gA FZX_ZSH_KEYS
 : ${FZX_ZSH_KEYS[menu]=$'\em'}  # open the menu, insert what it returns
 : ${FZX_ZSH_KEYS[history]='^R'}  # histdb history: replace the line (alt-enter runs it)
 : ${FZX_ZSH_KEYS[repos]=$'\er'} # cd into a git repository (repos module)
+: ${FZX_ZSH_KEYS[shell]=$'\es'} # insert a command, alias, function or parameter name (shell module)
 
 # keybindings: the shell's bindings for the keybindings module (fzx-keys-dump-file, from the module's
 # dump.zsh), written at the first prompt (once the startup files have bound everything) and again, in the
@@ -34,6 +36,17 @@ _fzx_keys_first_prompt() {
 }
 autoload -Uz add-zsh-hook
 add-zsh-hook precmd _fzx_keys_first_prompt
+
+# shell: the shell's aliases, functions and parameters for the shell module (fzx-shell-dump-file, from the
+# module's dump.zsh, about 0.2s), written in the background at the first prompt, and before the shell
+# widget opens the module, so the module shows this shell as it is now
+source "${${(%):-%x}:A:h}/../modules/shell/dump.zsh"
+_fzx_shell_first_prompt() {
+  add-zsh-hook -d precmd _fzx_shell_first_prompt
+  [[ "${FZX_ZSH_NO_SHELL_DUMP:-0}" == 1 ]] && return 0
+  { fzx-shell-dump-file > /dev/null 2>&1 } &!
+}
+add-zsh-hook precmd _fzx_shell_first_prompt
 
 # fzx-format: selection lines on stdin -> one shell-quoted word each, space-separated; paths under the
 # current directory become relative (the directory itself becomes "."). Both the logical $PWD and its
@@ -124,6 +137,10 @@ fzx-cd-widget-run() {
 fzx-dirs-widget() { fzx-cd-widget-run -m files:dirs; }
 fzx-jump-widget() { fzx-cd-widget-run jump; }
 fzx-repos-widget() { fzx-cd-widget-run -m repos; }
+fzx-shell-widget() {
+  [[ "${FZX_ZSH_NO_SHELL_DUMP:-0}" == 1 ]] || fzx-shell-dump-file 2> /dev/null
+  fzx-insert -m shell
+}
 
 # fzx-jump [--pick] [--] [words...]: cd where `fzx jump` says (see lib/jump.sh), then show where that is
 fzx-jump() {
@@ -227,12 +244,12 @@ fi
 
 () {
   local name
-  for name in files dirs jump git ps menu history repos; do
+  for name in files dirs jump git ps menu history repos shell; do
     zle -N "fzx-$name-widget"
   done
   [[ "${FZX_ZSH_NO_BIND:-0}" == 1 ]] && return
   local map
-  for name in files dirs jump git ps menu history repos; do
+  for name in files dirs jump git ps menu history repos shell; do
     [[ -n "${FZX_ZSH_KEYS[$name]}" ]] || continue
     for map in emacs viins vicmd; do
       bindkey -M "$map" "${FZX_ZSH_KEYS[$name]}" "fzx-$name-widget"

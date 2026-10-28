@@ -6,6 +6,23 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.37.0] - 2026-10-28
+
+### Added
+
+- The `shell` module (menu: `shell`, `shell:aliases`, `shell:functions`, `shell:params`): commands on PATH
+  and zsh's builtins and reserved words, aliases, functions and parameters. The preview shows a command's
+  locations and its tldr or man page (a builtin's zshbuiltins entry), an alias's definition and what it
+  runs, a function's definition, and a parameter's whole value (arrays and associations an element a line,
+  `*PATH` values a directory a line).
+- Values of parameters whose names look secret (`FZX_SHELL_SECRETS`: TOKEN, SECRET, PASSWORD, `_KEY`, ...)
+  are masked and never written to disk; the `reveal` toggle (alt-3) shows exported ones.
+- Actions: ctrl-e opens a function's file at its definition (or a command's script) in $EDITOR, alt-n the
+  tldr or man page in the pager, alt-y copies parameter values.
+- zsh: `fzx-shell-widget` (alt-s) dumps the shell, so its current aliases, functions and parameters show,
+  and inserts the picked names; shell/fzx.zsh also dumps the shell at the first prompt
+  (`FZX_ZSH_NO_SHELL_DUMP=1` turns both off).
+
 ## [0.36.0] - 2026-10-28
 
 ### Added

@@ -45,6 +45,8 @@ zsh_run() {
   [ "${lines[2]}" = '"^[f" fzx-files-widget' ]
   [[ "$output" == *'"^[d" fzx-dirs-widget'* && "$output" == *'"^[g" fzx-git-widget'* ]]
   [[ "$output" == *'"^[p" fzx-ps-widget'* && "$output" == *'"^[m" fzx-menu-widget'* ]]
+  run zsh_run 'bindkey -M viins "^[s"'
+  [ "$output" = '"^[s" fzx-shell-widget' ]
 }
 
 @test "keys can be changed or unbound before sourcing; FZX_ZSH_NO_BIND binds nothing" {
@@ -54,7 +56,7 @@ zsh_run() {
   [ "${lines[2]}" = '"^[d" fzx-dirs-widget' ]
   run zsh -f -i -c "FZX_ZSH_NO_BIND=1 source '$ZSH_INT'; bindkey -M viins '^[f'; zle -l | grep -c '^fzx-'" 2> /dev/null
   [[ "${lines[0]}" != *fzx-files-widget* ]]
-  [ "${lines[1]}" = 8 ]
+  [ "${lines[1]}" = 9 ]
 }
 
 @test "fzf with no options at a terminal opens the files module; anything else is the real fzf" {

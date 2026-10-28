@@ -18,6 +18,7 @@ Categories: module
       (edit-command-line), alt-d (_close-shell) and alt-g (Telescope projects) in ~/.shell/zsh/keymaps.zsh, so
       the postloader sets FZX_ZSH_NO_BIND=1 (widgets defined, unbound): the widgets go unused. Pick free keys
       (`fzx -m keybindings` shows the zsh side, `fzx keys` fzf's) and set FZX_ZSH_KEYS, or bind by hand.
+      0.37.0 adds fzx-shell-widget (default alt-s, free in viins and vicmd; emacs's spell-word otherwise).
 - [ ] **Menu ordering by use** (p1) [feature]: the menu lists about 70 entries in module order. Sort by
       `stats.tsv` (recent and frequent first), with a "recent" group on top, and consider group headers
       (shell, system, development) for the rest.
@@ -146,11 +147,9 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       starts ("issues of o/r ..."), so after alt-7 it still names the repository while the list shows
       everything involving you. Toggles reload in place with no header hook; the fix is a toggle flag or
       change-header in the reload (lib/opts.sh).
-- [ ] **shell** (p2) [module]: modes for executables on PATH, aliases and shell functions (man/tldr or
+- [x] **shell** (p2) [module]: modes for executables on PATH, aliases and shell functions (man/tldr or
       definition preview, the man module's renderer), and environment variables and parameters with values.
-      The function and parameter lists come from zsh, so reuse the keybindings module's dump approach
-      (shell/fzx.zsh writes them, `zsh -ic` as the fallback). Refs: fzfmenu system/fz-commands,
-      system/fz-funcs, system/fzf.params.zsh, vendors/completers/env.zsh. Has: man, tldr.
+      Done in 0.37.0 (modules/shell).
 - [ ] **packages** (p2) [module]: installed and available packages with info preview, install/remove/upgrade
       (sudo in execute): apt/dpkg modes, plus snap, flatpak, pip/pipx, cargo, npm/pnpm globals, gem.
       Refs: packages/fzf.apt.zsh, system/fzapt-{search,rm,up}, ref/mods/apt.sh, fzf-scripts/pkgsearch,
