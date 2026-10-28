@@ -5,10 +5,16 @@
 declare -gA FZX_COLORS
 
 # prompt icon (Nerd Font); FZX_ICON="" keeps fzf's own prompt
-FZX_ICON=""
+FZX_ICON=""
 
-# the icon's color in the menu
+# the menu's icons for modes that open different lists
+declare -gA FZX_ICON_MODES
+FZX_ICON_MODES[repos]="󰳐"
+FZX_ICON_MODES[all]="󰝖"
+# the icons' colors in the menu
 FZX_COLORS[tasks_icon]="38;5;179"
+FZX_COLORS[tasks_icon_repos]="38;5;111"
+FZX_COLORS[tasks_icon_all]="38;5;141"
 
 FZX_COLORS[tasks_project]='38;5;111'
 FZX_COLORS[tasks_name]='1;38;5;255'

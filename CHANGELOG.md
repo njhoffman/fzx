@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.34.1] - 2026-10-27
+
+### Changed
+
+- tasks: the menu's three tasks entries have colored icons of their own (here, chosen projects, every
+  repository) and the prompt shows the tasks icon; colors are `FZX_COLORS[tasks_icon]`,
+  `[tasks_icon_repos]` and `[tasks_icon_all]`.
+
 ## [0.34.0] - 2026-10-27
 
 ### Added
