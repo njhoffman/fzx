@@ -21,7 +21,9 @@ github::markdown() {
   local how="${FZX_GITHUB_MARKDOWN:-auto}"
   [[ "$how" == auto ]] && { command -v glow > /dev/null && how=glow || how=bat; }
   case "$how" in
-    glow) command glow -s dark -w "${FZF_PREVIEW_COLUMNS:-80}" -- "$1" ;;
+    # stdin from /dev/null: glow reads a stdin that is no terminal even when given a file, and an open pipe
+    # would never end
+    glow) command glow -s dark -w "${FZF_PREVIEW_COLUMNS:-80}" -- "$1" < /dev/null ;;
     bat) github::show "$1" README.md ;;
     *) command cat -- "$1" ;;
   esac

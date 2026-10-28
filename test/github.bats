@@ -143,7 +143,10 @@ JSON
   "pull_request":{"merged_at":"2026-01-02T00:00:00Z"},"user":{"login":"me"},"labels":[{"name":"x","color":"zzz"}],
   "updated_at":"2026-01-02T00:00:00Z","repository_url":"https://api.github.com/repos/p/q"},
  {"html_url":"https://github.com/longowner/repository/issues/1","number":1,"title":"Asked","state":"open",
-  "user":{"login":"carol"},"labels":[],"updated_at":"2026-01-01T00:00:00Z","repository_url":"https://api.github.com/repos/longowner/repository"}]}
+  "user":{"login":"carol"},"labels":[],"updated_at":"2026-01-01T00:00:00Z","repository_url":"https://api.github.com/repos/longowner/repository"},
+ {"html_url":"https://github.com/someorganization/a-repository-with-a-long-name/issues/2","number":2,"title":"Long","state":"open",
+  "user":{"login":"dan"},"labels":[],"updated_at":"2026-01-01T00:00:00Z",
+  "repository_url":"https://api.github.com/repos/someorganization/a-repository-with-a-long-name"}]}
 JSON
   cat > "$BATS_TEST_TMPDIR/view-issue.json" << 'JSON'
 {"body":"The body","comments":[{"author":{"login":"carol"},"createdAt":"2026-01-01T10:00:00Z","body":"a comment"}]}
@@ -607,9 +610,10 @@ clone_here() {
   cd "$BATS_TEST_TMPDIR"
   run src prs ""
   [ "$status" -eq 0 ]
-  # the repository column is as wide as the widest (bad label colors as plain text)
-  [[ "${lines[0]}" == "https://github.com/p/q/pull/7"$'\t'"pr"$'\t'"p/q"*$'\t'"M p/q                  #7    Merged one [x] me "* ]]
-  [[ "${lines[1]}" == *$'\t'"O longowner/repository #1    Asked carol "* ]]
+  # the repository column is as wide as the widest, at most 32 (longer names cut); bad label colors as text
+  [[ "${lines[0]}" == "https://github.com/p/q/pull/7"$'\t'"pr"$'\t'"p/q"*$'\t'"M p/q                              #7    Merged one [x] me "* ]]
+  [[ "${lines[1]}" == *$'\t'"O longowner/repository             #1    Asked carol "* ]]
+  [[ "${lines[2]}" == *$'\t'"O someorganization/a-repository-w… #2    Long dan "* ]]
   [ "$(cat "$BATS_TEST_TMPDIR/gh.issuesearch")" = "search/issues?q=involves%3Ame%20is%3Apr%20state%3Aopen&sort=updated&order=desc&per_page=100" ]
   [ -f "$FZX_CACHE_DIR/github/issues/prs-involved-open.json" ]
   clone_here
@@ -643,7 +647,12 @@ clone_here() {
   [[ "$output" == *$'branch  feat/x -> main\nchanges 3 files, +10 -2\nreview  approved\n\nchecks\n  failure  ci\n  pending  lint'* ]]
   [[ "$output" == *"*no description*" ]]
   # cached by the last update: viewed once
-  "$GH_DIR/preview.sh" https://github.com/o/r/pull/40 pr o/r "$FZX_CACHE_DIR/github/issues/prs-o__r-open.json" 0 > /dev/null
+  # glow gets no stdin (it reads one that is not a terminal, file argument or not, and a pipe never ends)
+  printf '#!/usr/bin/env bash\nIFS= read -r x && echo "stdin: $x"\necho rendered\n' > "$STUBS/glow"
+  chmod +x "$STUBS/glow"
+  run bash -c 'echo leak | FZX_GITHUB_MARKDOWN=glow "$0" https://github.com/o/r/pull/40 pr o/r "$1" 0' \
+    "$GH_DIR/preview.sh" "$FZX_CACHE_DIR/github/issues/prs-o__r-open.json"
+  [[ "$output" == *rendered && "$output" != *"stdin: leak"* ]]
   [ "$(grep -c '^pr view' "$BATS_TEST_TMPDIR/gh.calls")" -eq 1 ]
 }
 

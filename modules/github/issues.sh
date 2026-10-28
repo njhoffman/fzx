@@ -133,9 +133,12 @@ github::issue_rows() {
        (if .state == "MERGED" then [$i_merged, $c_merged] elif .state == "CLOSED" then [$i_prclosed, $c_closed]
         elif .draft then [$i_draft, $c_draft] else [$i_pr, $c_open] end)
      else (if .state == "CLOSED" then [$i_closed, $c_closed] else [$i_open, $c_open] end) end) as $s |
-    (.repo | split("/")) as $on | (.repo | length) as $rl |
+    # the repository column: names longer than it are cut, ending in "…"
+    (if (.repo | length) > $w then .repo[0:$w - 1] + "…" else .repo end) as $shown |
+    ($shown | split("/")) as $on | ($shown | length) as $rl |
     ([$s[1] + $s[0] + $r,
-      (if $scope == "" then $o + $on[0] + "/" + $r + $n + $on[1] + $r + spaces($w - $rl) else empty end),
+      (if $scope == "" then (if ($on | length) > 1 then $o + $on[0] + "/" + $r + $n + $on[1] + $r else $n + $on[0] + $r end) +
+         spaces($w - $rl) else empty end),
       $b + ("#\(.number)" | pad(6)) + $r + (.title | gsub("[\t\r\n]+"; " ")),
       (.labels | map(chip) | join(" ") | select(. != "")),
       $d + "\(.author // "ghost") \(.updatedAt | age)" + $r,

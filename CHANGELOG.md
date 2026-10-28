@@ -6,6 +6,15 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.35.1] - 2026-10-28
+
+### Fixed
+
+- github issues and prs involving you: repository names longer than the column (32) are cut with "…", so
+  the rest of their row lines up with the others.
+- github previews rendered with glow (READMEs, issues, pull requests) no longer hang when the preview's
+  stdin is an open pipe: glow 3 reads stdin even when given a file.
+
 ## [0.35.0] - 2026-10-28
 
 ### Added
