@@ -1,8 +1,8 @@
 # fzx TODO
 
-Status (0.33.1): the six steps of `docs/design.md` are done. Modules: actions, capture, colors, dirs,
-docker, files, git, github, history, keybindings, logs, man, menu, network, ps, recent, repos, systemd, tasks, tmux, todos,
-youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
+Status (0.37.0): the six steps of `docs/design.md` are done. Modules: actions, capture, colors, dirs,
+docker, files, git, github, history, keybindings, logs, man, menu, network, ps, recent, repos, shell, systemd, tasks, tmux,
+todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
 
 Every item carries a priority in its first line, `(p1)` high, `(p2)` normal or `(p3)` low, and a
@@ -11,6 +11,8 @@ category: `[bug]` `[feature]` `[refactor]` `[docs]` `[test]` `[chore]` `[perf]`,
 (`fzx -m todos`) sort and mark by them; `todo-status --check` lists untagged items.
 
 Categories: module
+
+Reviewed: 2026-10-28
 
 ## 1. Next up
 
@@ -229,6 +231,14 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       the run never gets an `exit` stat.
 - [ ] **Stats prune** (p3) [bug] can drop rows appended while the file is being rewritten.
 - [ ] **`fzx stats` needs `strftime` in awk** (p3) [bug] (gawk, or mawk 1.3.4+).
+- [ ] **Renderers duplicated across module previews** (p2) [refactor]: files, github, history, logs, man, shell
+      and todos each probe for bat/glow/mdpreview and build their own bat command line (themes, widths,
+      NO_COLOR handling differ). A shared `lib/preview.sh` (see "Preview script upgrade") would give one place
+      for the viewer setting and the fallbacks.
+- [ ] **No README** (p3) [docs]: the repo has CLAUDE.md, PLAN.md and docs/, but nothing a new reader lands on:
+      what fzx is, install (`just install`, sourcing shell/fzx.zsh), the module list, where docs live.
+- [ ] **PLAN.md is the original brief** (p3) [docs]: the 106-line prompt that started the project, now covered by
+      docs/design.md; move it to docs/ as history (or drop it) so it is not read as the current plan.
 
 ## 8. Outside this repo
 
