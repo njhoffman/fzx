@@ -253,6 +253,8 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       the run never gets an `exit` stat.
 - [ ] **Stats prune** (p3) [bug] can drop rows appended while the file is being rewritten.
 - [ ] **`fzx stats` needs `strftime` in awk** (p3) [bug] (gawk, or mawk 1.3.4+).
+- [ ] **man preview fails on `[`** (p3) [bug]: the first row of `fzx -m man`, `[ (1)`, logs
+      `cb preview [(1) rc=16` and shows nothing; the page name needs quoting or `--` (modules/man/preview.sh).
 - [ ] **Renderers duplicated across module previews** (p2) [refactor]: github, history, logs, man, shell and
       todos each probe for bat/glow/mdpreview and build their own bat command line (themes, widths, NO_COLOR
       handling differ). The files module uses lib/preview.sh (0.38.0); move the others onto its renderers
