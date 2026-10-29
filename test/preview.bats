@@ -54,6 +54,21 @@ detect() {
   [ "$p" = "$D/nope:12" ] && [ -z "$l" ]
 }
 
+@test "split: a line that is no path falls back to its first field; a path with spaces stays whole" {
+  printf 'x' > "$D/a.txt"
+  printf 'x' > "$D/with space.txt"
+  fzx::preview_split "$D/a.txt   12K  2026-10-28" p l
+  [ "$p" = "$D/a.txt" ] && [ -z "$l" ]
+  fzx::preview_split "  $D/a.txt:3:hit and more words" p l
+  [ "$p" = "$D/a.txt" ] && [ "$l" = 3 ]
+  fzx::preview_split "$D/with space.txt" p l
+  [ "$p" = "$D/with space.txt" ] && [ -z "$l" ]
+  fzx::preview_split "$D/with space.txt:9:x" p l
+  [ "$p" = "$D/with space.txt" ] && [ "$l" = 9 ]
+  fzx::preview_split "just some text" p l
+  [ "$p" = "just some text" ] && [ -z "$l" ]
+}
+
 @test "detect: by extension, case-insensitive, without file(1)" {
   stub file 'echo should-not-run >&2; exit 1'
   local f expect

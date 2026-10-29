@@ -174,6 +174,21 @@ run_with_load() {
   [ -f "$FZX_CACHE_DIR/m/j/new" ]
 }
 
+@test "gc: rotates the log past FZX_LOG_MAX_KB, replacing the old generation" {
+  mkdir -p "$FZX_STATE_DIR"
+  echo previous > "$LOG.1"
+  head -c 3000 /dev/zero | tr '\0' x > "$LOG"
+  run "$FZX" gc
+  grep -q previous "$LOG.1"
+  mkdir -p "$FZX_CONFIG_DIR"
+  echo 'FZX_LOG_MAX_KB=2' > "$FZX_CONFIG_DIR/config.sh"
+  run "$FZX" gc
+  [ "$(wc -c < "$LOG.1")" -ge 3000 ]
+  ! grep -q previous "$LOG.1"
+  grep -q 'log rotated at' "$LOG"
+  [ "$(wc -l < "$LOG")" -le 3 ]
+}
+
 @test "gc: unknown option fails with 2" {
   run "$FZX" gc --bogus
   [ "$status" -eq 2 ]

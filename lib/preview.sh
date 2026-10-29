@@ -19,18 +19,30 @@ _FZX_PREVIEW_JSON_MAX=$((1024 * 1024))
 _FZX_PREVIEW_HEX_BYTES=512
 
 # fzx::preview_split <item> <path var> <line var>: "path", "path:line" or "path:line:col:..." (grep hits)
-# into a path and a line number; the whole item is the path when it names a file as it is
+# into a path and a line number; the whole item is the path when it names a file as it is. A line that is
+# none of these is tried again by its first field ("path  size  date" listings, plain fzf's {}), and is the
+# path unchanged when that fails too.
 fzx::preview_split() {
-  local _item="$1" _path="$1" _line="" _head="" _rest="$1"
-  # the shortest prefix that exists and is followed by :digits (a path may itself hold colons)
-  while [[ ! -e "$_item" && "$_rest" == *:* ]]; do
-    _head+="${_rest%%:*}"
-    _rest="${_rest#*:}"
-    if [[ -e "$_head" && "$_rest" =~ ^([0-9]+)(:|$) ]]; then
-      _path="$_head" _line="${BASH_REMATCH[1]}"
+  local _item _path="$1" _line="" _head _rest _first
+  _first="${1#"${1%%[![:space:]]*}"}"
+  _first="${_first%%[[:space:]]*}"
+  for _item in "$1" "$_first"; do
+    [[ -n "$_item" ]] || continue
+    if [[ -e "$_item" ]]; then
+      _path="$_item"
       break
     fi
-    _head+=:
+    _head="" _rest="$_item"
+    # the shortest prefix that exists and is followed by :digits (a path may itself hold colons)
+    while [[ "$_rest" == *:* ]]; do
+      _head+="${_rest%%:*}"
+      _rest="${_rest#*:}"
+      if [[ -e "$_head" && "$_rest" =~ ^([0-9]+)(:|$) ]]; then
+        _path="$_head" _line="${BASH_REMATCH[1]}"
+        break 2
+      fi
+      _head+=:
+    done
   done
   printf -v "$2" '%s' "$_path"
   printf -v "$3" '%s' "$_line"

@@ -45,8 +45,20 @@ fzx::gc() {
 
   fzx::require stats
   fzx::stats_prune
+  fzx::_gc_log_rotate
 
   ((trees + orphans + files)) && fzx::log info "gc: removed $trees trees, $orphans orphans, $files cache files"
   ((quiet)) || printf 'removed %s session trees, %s orphaned sessions, %s cache files\n' "$trees" "$orphans" "$files"
   return 0
+}
+
+# fzx::_gc_log_rotate: one old generation. fzx::log opens the file for each line, so lines written after
+# the rename start the new file and none are lost; `fzx debug tail` (tail -F) follows across.
+fzx::_gc_log_rotate() {
+  local size
+  [[ -f "$FZX_LOG_FILE" ]] || return 0
+  size="$(stat -c %s -- "$FZX_LOG_FILE" 2> /dev/null)" || return 0
+  ((size > ${FZX_LOG_MAX_KB:-1024} * 1024)) || return 0
+  mv -f -- "$FZX_LOG_FILE" "$FZX_LOG_FILE.1" || return 0
+  fzx::log info "log rotated at $((size / 1024))K (previous: ${FZX_LOG_FILE##*/}.1)"
 }

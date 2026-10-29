@@ -233,8 +233,6 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [ ] **Undocumented fzf behaviour we depend on** (p3) [test]: `become()` inside a `--popup` runs in the original
       terminal, so every launch re-requests the popup (`fzx::_placement`). Observed on fzf 0.74 (devel);
       re-check on every fzf upgrade with the popup test in design.md's popout notes.
-- [ ] **Log rotation** (p3) [bug]: `$XDG_STATE_HOME/fzx/fzx.log` is never rotated or pruned (260K after a week at
-      the info level); add it to `fzx gc` like the stats file.
 - [ ] **grep mode stats noise** (p3) [bug]: every keystroke in `files:grep` records a `source reload` row;
       record live-search reloads as their own event or not at all.
 - [ ] **tmux formats screen is slow** (p3) [perf]: `fzx -m tmux:formats` takes 1-7s on the main server: one
@@ -242,15 +240,8 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       templates into one `display-message` mis-splits (tmux's parser runs across them), and a `;` command
       sequence of display-messages also came back short; find out why (modules/tmux/reference.py
       `tmux_sequence`), or skip `#(...)` when rendering samples.
-- [ ] **Float is two cells smaller than a popup** (p3) [bug]: for the same spec (`center,80%` in a 200x49
-      window) the fzf popup's content is 160x39 and the float's is 158x37, because `fzx::float_geometry` gives
-      new-pane the outer size and the border takes a cell on each side. Add the border to the size (clamped
-      to the window) so cycling popup -> float does not shrink the list.
 - [ ] **`files` alt-up** (p3) [bug]: each parent directory becomes a new child session instead of reusing an
       existing ancestor in the tree; harmless (cleaned on exit) but deep trees and long labels.
-- [ ] **`persist=none` sources have no item count** (p3) [bug] in stats (output streams straight to fzf).
-- [ ] **Exit row missing** (p3) [bug] when the terminal is killed (SIGHUP); the dead tree is swept by gc but
-      the run never gets an `exit` stat.
 - [ ] **Stats prune** (p3) [bug] can drop rows appended while the file is being rewritten.
 - [ ] **`fzx stats` needs `strftime` in awk** (p3) [bug] (gawk, or mawk 1.3.4+).
 - [ ] **man preview fails on `[`** (p3) [bug]: the first row of `fzx -m man`, `[ (1)`, logs
@@ -261,9 +252,6 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       (`fzx::_pv_markdown`, `fzx::_pv_text`, made public) so FZX_PREVIEW_VIEWERS applies everywhere.
 - [ ] **mdpreview is slow for previews** (p3) [perf]: about 250-900ms per focus change (it starts Neovim).
       Cache its output under $FZX_CACHE_DIR keyed by path, mtime and width, or keep one Neovim running.
-- [ ] **fzfrc passes {1} to fzf-preview** (p3) [bug]: ~/.config/fzf/fzfrc runs `fzf-preview {1} {2}`, so a
-      path with spaces is cut at the first one before the preview sees it. `{}` (the whole line) works now
-      that grep hits are split by the previewer; check the fzf callers that rely on field 1 first.
 - [ ] **No README** (p3) [docs]: the repo has CLAUDE.md, PLAN.md and docs/, but nothing a new reader lands on:
       what fzx is, install (`just install`, sourcing shell/fzx.zsh), the module list, where docs live.
 - [ ] **PLAN.md is the original brief** (p3) [docs]: the 106-line prompt that started the project, now covered by

@@ -16,11 +16,14 @@ fzx::run_new() {
   fzx::session_create "$module" "$dir" "$@" || fzx::die 1 "cannot create session in $FZX_SESSIONS_DIR"
   _FZX_OWNER=1
   _FZX_ROOT_SESSION="$FZX_SESSION"
-  if ((keep)); then
-    fzx::meta_set keep 1
-  else
-    trap 'fzx::_owner_cleanup' EXIT
-  fi
+  ((keep)) && fzx::meta_set keep 1
+  # the exit row and cleanup also run when the terminal goes away (SIGHUP) or the owner is killed
+  # a dry run records no exit row
+  _FZX_EXIT_STATED="$dry_run"
+  trap 'fzx::_owner_exit $? '"$keep" EXIT
+  # $? in the EXIT trap is the last command's status, not the signal's: exit with 128+N so the row says why
+  trap 'exit 129' HUP
+  trap 'exit 143' TERM
   [[ -n "$placement" ]] && fzx::state_set placement "$placement"
   # --query: the first launch restores it like a query saved before become()
   [[ -n "${_FZX_START_QUERY:-}" ]] && fzx::state_set query "$_FZX_START_QUERY"
@@ -38,6 +41,7 @@ fzx::run_new() {
     rc=$?
   done
   ((dry_run)) || fzx::_stat_exit "$rc"
+  _FZX_EXIT_STATED=1
   return "$rc"
 }
 
@@ -56,14 +60,19 @@ fzx::_stat_exit() {
     1) kind=nomatch ;;
     2) kind=error ;;
     130) kind=abort ;;
+    129) kind=hangup ;;
+    143) kind=term ;;
     *) kind=rc ;;
   esac
   fzx::stat exit "$((now - started))" - "rc:$rc $kind"
   fzx::session_attach "$_FZX_ROOT_SESSION"
 }
 
-fzx::_owner_cleanup() {
-  fzx::session_attach "$_FZX_ROOT_SESSION" && fzx::session_destroy
+# fzx::_owner_exit <rc> <keep>: the EXIT trap; an owner ended by a signal never got its exit row
+fzx::_owner_exit() {
+  # only a run that got as far as its start row gets an exit row
+  [[ -n "${_FZX_STARTED:-}" ]] && ((!_FZX_EXIT_STATED)) && fzx::_stat_exit "$1"
+  (($2)) || { fzx::session_attach "$_FZX_ROOT_SESSION" && fzx::session_destroy; }
 }
 
 # fzx::run_resume <sid> <dry_run> [mode]; never cleans up, the owner does
@@ -321,7 +330,7 @@ fzx::_fzf_float() {
 }
 
 # fzx::float_geometry <spec> <window width> <window height> <var>: new-pane's "-x W -y H -X X -Y Y" in cells
-# for a spec in fzf's --popup syntax. One size is both sides at the center, the width on the left or
+# for a spec in fzf's --popup syntax, border included. One size is both sides at the center, the width on the left or
 # right (full height) and the height at the top or bottom (full width).
 fzx::float_geometry() {
   local _spec="$1" _ww="$2" _wh="$3" _pos=center _sizes=() _t _w _h _x _y
@@ -344,6 +353,8 @@ fzx::float_geometry() {
   esac
   [[ "$_w" == *% ]] && _w=$((_ww * ${_w%\%} / 100))
   [[ "$_h" == *% ]] && _h=$((_wh * ${_h%\%} / 100))
+  # the spec sizes what is inside, as fzf's popup does; new-pane's border takes a cell on each side
+  _w=$((_w + 2)) _h=$((_h + 2))
   ((_w > _ww)) && _w="$_ww"
   ((_h > _wh)) && _h="$_wh"
   _x=$(((_ww - _w) / 2)) _y=$(((_wh - _h) / 2))

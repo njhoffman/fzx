@@ -112,25 +112,25 @@ kept() {
   [ "$status" -eq 0 ]
   [ "$output" = picked ]
   # FZX_FLOAT_OPTS center,80% of a 200x50 window
-  grep -q -- "^new-pane -P -F #{pane_id} -c $PWD -x 160 -y 40 -X 20 -Y 5 " "$BATS_TEST_TMPDIR/tmux.calls"
+  grep -q -- "^new-pane -P -F #{pane_id} -c $PWD -x 162 -y 42 -X 19 -Y 4 " "$BATS_TEST_TMPDIR/tmux.calls"
   grep -q 'fzf exec module=counter' "$LOG"
   [ -z "$(session_dirs)" ]
   rm "$BATS_TEST_TMPDIR/tmux.calls"
   run "$FZX" -m counter --float=bottom,30%
-  grep -q -- "^new-pane .* -x 200 -y 15 -X 0 -Y 35 " "$BATS_TEST_TMPDIR/tmux.calls"
+  grep -q -- "^new-pane .* -x 200 -y 17 -X 0 -Y 33 " "$BATS_TEST_TMPDIR/tmux.calls"
   run "$FZX" -m counter --float=sideways
   [ "$status" -eq 2 ]
 }
 
-@test "float geometry: positions and sizes like fzf's --popup" {
+@test "float geometry: positions and sizes like fzf's --popup, the border added outside" {
   load_libs log run
   local g
-  fzx::float_geometry center,80% 200 50 g && [ "$g" = "-x 160 -y 40 -X 20 -Y 5" ]
-  fzx::float_geometry "" 200 50 g && [ "$g" = "-x 100 -y 25 -X 50 -Y 12" ]
-  fzx::float_geometry right,40% 200 50 g && [ "$g" = "-x 80 -y 50 -X 120 -Y 0" ]
-  fzx::float_geometry left,30 200 50 g && [ "$g" = "-x 30 -y 50 -X 0 -Y 0" ]
-  fzx::float_geometry top,80%,40% 200 50 g && [ "$g" = "-x 160 -y 20 -X 20 -Y 0" ]
-  fzx::float_geometry center,300,90%,border-native 200 50 g && [ "$g" = "-x 200 -y 45 -X 0 -Y 2" ]
+  fzx::float_geometry center,80% 200 50 g && [ "$g" = "-x 162 -y 42 -X 19 -Y 4" ]
+  fzx::float_geometry "" 200 50 g && [ "$g" = "-x 102 -y 27 -X 49 -Y 11" ]
+  fzx::float_geometry right,40% 200 50 g && [ "$g" = "-x 82 -y 50 -X 118 -Y 0" ]
+  fzx::float_geometry left,30 200 50 g && [ "$g" = "-x 32 -y 50 -X 0 -Y 0" ]
+  fzx::float_geometry top,80%,40% 200 50 g && [ "$g" = "-x 162 -y 22 -X 19 -Y 0" ]
+  fzx::float_geometry center,300,90%,border-native 200 50 g && [ "$g" = "-x 200 -y 47 -X 0 -Y 1" ]
   ! fzx::float_geometry middle,50% 200 50 g
 }
 

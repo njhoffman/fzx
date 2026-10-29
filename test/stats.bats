@@ -42,6 +42,19 @@ kept_session() {
   [ "$(rows exit | cut -d' ' -f4- | tr '\n' ',')" = "rc:130 abort,rc:1 nomatch,rc:2 error," ]
 }
 
+@test "an owner ended by SIGHUP (the terminal closed) still records its exit and cleans up" {
+  STUB_FZF_RUN='touch "$BATS_TEST_TMPDIR/fzf.up"; sleep 10' "$FZX" -m counter > /dev/null 2>&1 &
+  local owner=$! i
+  for i in $(seq 100); do [ -e "$BATS_TEST_TMPDIR/fzf.up" ] && break; sleep 0.05; done
+  [ -e "$BATS_TEST_TMPDIR/fzf.up" ]
+  # a closed terminal hangs up both: the owner runs its traps once fzf is gone
+  kill -HUP "$owner"
+  pkill -HUP -f "$BATS_TEST_TMPDIR/bin/fzf" || true
+  wait "$owner" || true
+  [ "$(rows exit)" = "counter one - rc:129 hangup" ]
+  [ -z "$(session_dirs)" ]
+}
+
 @test "the exit row names the session the user ended in" {
   local nav="n=\$(cat \"\$BATS_TEST_TMPDIR/calls\" 2> /dev/null || echo 0); echo \$((n + 1)) > \"\$BATS_TEST_TMPDIR/calls\"; if [ \"\$n\" -eq 0 ]; then c=\$('$FZX' _cb nav goto counter:three --y); c=\${c% -m*}; '$FZX' --resume \${c##* } -m :three; exit \$?; fi"
   STUB_FZF_RUN="$nav" STUB_FZF_RC=130 run "$FZX" -m counter
@@ -84,13 +97,17 @@ kept_session() {
   [ "$(rows cache)" = "counter one 2 persistent" ]
 }
 
-@test "a failing source is recorded with its exit code; persist=none has no line count" {
+@test "a failing source is recorded with its exit code; persist=none still counts its lines" {
   kept_session
   COUNTER_FAIL=1 "$FZX" _cb source > /dev/null || true
   [ "$(rows source)" = "counter one - fail:3" ]
   fzx::meta_set persist none
-  "$FZX" _cb load > /dev/null
-  [ "$(rows source | tail -n 1)" = "counter one - miss" ]
+  run "$FZX" _cb load
+  [ "$(rows source | tail -n 1)" = "counter one ${#lines[@]} miss" ]
+  [ "${#lines[@]}" -gt 0 ]
+  COUNTER_FAIL=1 "$FZX" _cb source > /dev/null || true
+  [ "$(rows source | tail -n 1)" = "counter one - fail:3" ]
+  [ -z "$(ls "$FZX_SESSION_DIR" | grep '^count\.')" ]
 }
 
 @test "actions record item count and exit code" {

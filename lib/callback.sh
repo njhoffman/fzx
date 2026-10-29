@@ -190,11 +190,15 @@ fzx::_cb_source() {
   fzx::session_args
 
   if [[ "$persist" == none ]]; then
-    "$FZX_MODULE::source" "${FZX_ARGS[@]}" 2>> "$FZX_LOG_FILE"
-    rc=$?
+    # output streams straight to fzf (fd 3); tee hands a copy to wc for the stats row's line count
+    local count="$FZX_SESSION_DIR/count.$BASHPID"
+    { "$FZX_MODULE::source" "${FZX_ARGS[@]}" 2>> "$FZX_LOG_FILE" | tee /dev/fd/3 | wc -l > "$count"; } 3>&1
+    rc="${PIPESTATUS[0]}"
+    lines=-
+    [[ -s "$count" ]] && read -r lines < "$count"
+    rm -f -- "$count"
     ((rc == 0)) || fzx::log error "source failed mode=$FZX_MODE rc=$rc"
-    # output streams straight to fzf, so the line count is unknown
-    if ((rc == 0)); then _FZX_STAT=(source - "$why"); else _FZX_STAT=(source - "fail:$rc"); fi
+    if ((rc == 0)); then _FZX_STAT=(source "${lines// /}" "$why"); else _FZX_STAT=(source - "fail:$rc"); fi
     return "$rc"
   fi
 

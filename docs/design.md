@@ -506,6 +506,7 @@ prompt; list parsing forces `SYSTEMD_COLORS=0` because users commonly export it.
 - Log: `$XDG_STATE_HOME/fzx/fzx.log`, one line per event tagged with session id and pid. Every callback
   logs its verb, arguments, exit code and duration. Stderr of source/action scripts goes to the log.
   Kept outside the session dir so it survives cleanup. Level via `FZX_LOG_LEVEL` (debug|info|warn|error).
+  `fzx gc` moves it to `fzx.log.1` once it passes `FZX_LOG_MAX_KB` (1024), one old generation kept.
 - Callbacks that answer with fzf actions (`transform`, `mode`, `nav`) log what they print at debug level
   (`actions: become:...`), so what fzf was told to do is visible in `fzx debug tail`.
 - `FZX_TRACE=start,load,resize` (or `all`; also settable in the environment for one run) logs fzf events
@@ -540,8 +541,8 @@ Append-only `$XDG_STATE_HOME/fzx/stats.tsv`, one row per event:
 | Event | Recorded by | count | detail |
 |---|---|---|---|
 | `start` | owner, first launch | - | module and args |
-| `exit` | owner, when the tree ends; duration is the whole run; sid/module/mode are where the user ended (`state/current` on the root) | - | `rc:<n> accept\|nomatch\|error\|abort\|rc` |
-| `source` | load miss or hard reload | lines (`-` for `persist=none`, which streams) | `miss`, `reload`, `fail:<rc>` |
+| `exit` | owner, when the tree ends, also from its EXIT trap when the terminal hangs up or it is killed (not SIGKILL); duration is the whole run; sid/module/mode are where the user ended (`state/current` on the root) | - | `rc:<n> accept\|nomatch\|error\|abort\|hangup\|term\|rc` (hangup and term count as aborts in `fzx stats`) |
+| `source` | load miss or hard reload | lines (`persist=none` streams to fzf through `tee`, a copy counted by `wc -l`) | `miss`, `reload`, `fail:<rc>` |
 | `cache` | load served from cache | lines | `session`, `persistent` |
 | `action` | module action | items | `<action>:<rc>` |
 | `mode` | mode switch; mode column is the mode switched from | - | `<from>><to>[:restart]` |

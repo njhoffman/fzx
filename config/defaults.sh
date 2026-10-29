@@ -60,6 +60,10 @@ FZX_PERSIST=session
 # persistent cache entries older than this many days are removed by `fzx gc`
 FZX_CACHE_MAX_AGE_DAYS=7
 
+# once the log ($FZX_STATE_DIR/fzx.log) passes this many KiB, `fzx gc` moves it to fzx.log.1 (replacing the
+# previous one) and the next line starts a new file
+FZX_LOG_MAX_KB=1024
+
 # menu entry summaries are cached per directory for this many seconds, and each may run this long
 FZX_SUMMARY_TTL=300
 

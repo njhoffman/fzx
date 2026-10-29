@@ -4,7 +4,7 @@
 # columns: ts_ms root sid module mode event duration_ms count detail
 #   start   the owner launched a new tree             detail: module args
 #   exit    the tree ended                            duration: whole run, sid/module/mode: where it ended,
-#                                                     detail: rc:<n> <accept|nomatch|error|abort|rc>
+#                                                     detail: rc:<n> <accept|nomatch|error|abort|hangup|term|rc>
 #   source  the module source ran                     count: lines, detail: miss|reload|fail:<rc>
 #   cache   data served from cache                    count: lines, detail: session|persistent
 #   action  a module action ran                       count: items, detail: <action>:<rc>
@@ -84,7 +84,7 @@ fzx::stats() {
     # an exit is credited to the module the tree started in
     $6 == "exit"   { rm = startmod[$2] != "" ? startmod[$2] : m
                      exits[rm]++; tsum[rm] += $7; if ($7 > tmax[rm]) tmax[rm] = $7
-                     split($9, ex, " "); kind[rm, ex[2]]++ }
+                     split($9, ex, " "); k = ex[2] == "hangup" || ex[2] == "term" ? "abort" : ex[2]; kind[rm, k]++ }
     $6 == "start"  { startmod[$2] = m }
     $6 == "source" && $9 !~ /^fail/ { src[m]++; ssum[m] += $7; if ($7 > smax[m]) smax[m] = $7
                                       if ($8 != "-") { isum[m] += $8; in_[m]++ }

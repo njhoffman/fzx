@@ -6,6 +6,21 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.38.1] - 2026-10-28
+
+### Fixed
+
+- A run ended by a closed terminal (SIGHUP) or SIGTERM records its `exit` row (`hangup`, `term`; counted
+  as aborts in `fzx stats`); before, only the cleanup ran.
+- `persist=none` sources record their line count in stats (a copy of the stream is counted).
+- A float is the size a popup is for the same options: the spec sizes the inside, the border is added.
+- Previews of a line that is not a path try its first field (`path  size  date` listings); with
+  ~/.config/fzf/fzfrc passing the whole line, paths with spaces preview in plain fzf.
+
+### Added
+
+- `fzx gc` rotates the log to `fzx.log.1` once it passes `FZX_LOG_MAX_KB` (1024).
+
 ## [0.38.0] - 2026-10-28
 
 ### Added
