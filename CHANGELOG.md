@@ -6,6 +6,15 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.52.0] - 2026-11-01
+
+### Added
+
+- colors: a 16 mode, the terminal's own colors (30-37 and 90-97) in normal, bold, faint and inverted, with
+  the background twin, the 256-color index and every attribute in the preview (from ~/.shell's colorcodes).
+- colors: the names preview ends in a true-color gradient: banding means the terminal or tmux maps true
+  color to the 256 palette (from ~/.shell's termcolors_16).
+
 ## [0.51.0] - 2026-11-01
 
 ### Added

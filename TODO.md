@@ -101,15 +101,6 @@ Reviewed: 2026-10-28
       (state, review, draft, merged), labels drawn as colored chips, nicer issue/PR rows and previews.
 - [ ] **top in ps** (p3) [feature]: a refreshing mode of `ps` (`every(N):reload`) rather than a module.
       Refs: system/fzf.top.zsh, fzf-scripts/fztop.
-- [ ] **colors: absorb ~/.shell/scripts/colors/** (p2) [feature]: move what belongs in a picker into the colors
-      module and leave the rest as ~/.shell commands, then remove the moved scripts there.
-      - Into colors: the 8/16-color palette by attribute (bold, bright, normal, faint) from `colorcodes`, the
-        `termcolors*` 16/256/truecolor tables and `zsh-colors` (zsh's `$fg[...]` names) as modes, with
-        `to256.py`'s hex to 256 conversion as an action or a preview line.
-      - Theme modes, if wanted: `theme-preview.sh`/`theme-gallery.sh` (iTerm2-Color-Schemes) overlap the
-        theme presets item in section 2; `change-theme.sh` and `randomize-theme.sh` (nvim and terminal
-        themes, `term-detect`) are actions for that screen or stay shell commands.
-      - `ls-pygmentize.sh` is not about colors: keep it in ~/.shell, or drop it if unused.
 - [ ] **ps: plain-left PIDs** (p3) [refactor]: since ~/.config/fzf/fzfrc dropped its `--delimiter`, the ps source no
       longer needs left-aligned PIDs for `{1}`; right-align them like the other numeric columns.
 

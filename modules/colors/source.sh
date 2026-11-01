@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # colors source. Lines are "id<TAB>display<TAB>hex<TAB>sgr": the id is the color number, the X11 name or
 # the FZX_COLORS key; hex is empty for fzx colors; sgr is the foreground's SGR parameters.
-# Mode from $FZX_MODE: 256 (xterm-256.tsv), names (FZX_COLORS_RGB_TXT), fzx (every config layer).
+# Mode from $FZX_MODE: 256 (xterm-256.tsv), 16 (the terminal's own 8 colors and their bright twins; no hex:
+# the terminal sets them), names (FZX_COLORS_RGB_TXT), fzx (every config layer).
 
 COLORS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -24,6 +25,18 @@ colors::palette() {
     rgb = $4; sub(/^rgb/, "", rgb)
     printf "%s\t\033[48;5;%sm      \033[0m \033[38;5;%sm%3s %-20s\033[0m %s \033[38;5;244m%s\033[0m\t%s\t38;5;%s\n", $1, $1, $1, $1, $2, $3, rgb, $3, $1 }' \
     "$COLORS_DIR/xterm-256.tsv"
+}
+
+# colors::sixteen: 30-37 and 90-97, each as a background swatch, then normal, bold, faint and on its
+# background; the id is the foreground's SGR code
+colors::sixteen() {
+  local names=(black red green yellow blue magenta cyan white) i c
+  for i in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+    if ((i < 8)); then c=$((30 + i)); else c=$((82 + i)); fi
+    printf '%s\t\e[%sm    \e[0m %2d %-15s \e[%sm%-6s\e[0m \e[1;%sm%-6s\e[0m \e[2;%sm%-6s\e[0m \e[%s;7m %-6s\e[0m\t\t%s\n' \
+      "$c" "$((c + 10))" "$c" "$( ((i < 8)) && echo "${names[i]}" || echo "bright ${names[i - 8]}")" \
+      "$c" normal "$c" bold "$c" faint "$c" invert "$c"
+  done
 }
 
 colors::names() {
@@ -75,6 +88,7 @@ colors::fzx() {
 colors::source() {
   case "${FZX_MODE:-256}" in
     256) colors::palette ;;
+    16) colors::sixteen ;;
     names) colors::names ;;
     fzx) colors::fzx ;;
     *)

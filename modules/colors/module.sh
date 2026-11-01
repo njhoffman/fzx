@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# colors: the 256-color palette, X11 color names and fzx's own FZX_COLORS, with swatches and samples.
-# `fzx -m colors[:names|:fzx]`. Enter prints numbers, names or keys; alt-h/alt-s/alt-e copy codes.
+# colors: the 256-color palette, the terminal's 16 colors, X11 color names and fzx's own FZX_COLORS, with swatches and samples.
+# `fzx -m colors[:16|:names|:fzx]`. Enter prints numbers, names or keys; alt-h/alt-s/alt-e copy codes.
 
 FZX_MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../lib/core.sh

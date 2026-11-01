@@ -1,5 +1,6 @@
 # colors components: kind  name  key  description  flags (see lib/components.sh)
 mode    256    -  the 256-color palette, with xterm names            default
+mode    16     -  the terminal's 16 colors (30-37, 90-97): normal, bold, faint, inverted  -
 mode    names  -  X11 color names in true color, nearest 256 color  -
 mode    fzx    -  fzx's own colors (FZX_COLORS), by module           -
 action  copy    ctrl-y  copy the selection (numbers, names, keys)    silent,builtin

@@ -3,6 +3,7 @@
 
 colors::manifest() {
   fzx::entry colors "The 256-color palette"
+  fzx::entry colors:16 "The terminal's 16 colors"
   fzx::entry colors:names "X11 color names"
   fzx::entry colors:fzx "fzx's own colors"
 }

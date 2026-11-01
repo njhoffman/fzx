@@ -74,3 +74,27 @@ src() { FZX_MODE="$1" "$COLORS/source.sh" | sed 's/\x1b\[[0-9;]*m//g'; }
   [[ "$(fzf_bind alt-h)" == *'_cb notify hex {+3}'* ]]
   [[ "$(fzf_bind alt-e)" == *'_cb notify escape {+4}'* ]]
 }
+
+@test "16: 30-37 and 90-97 with their names and attribute samples; no hex, the code as SGR" {
+  run src 16
+  [ "${#lines[@]}" -eq 16 ]
+  [ "$(printf '%s\n' "${lines[@]}" | cut -f1 | tr '\n' ' ')" = "30 31 32 33 34 35 36 37 90 91 92 93 94 95 96 97 " ]
+  [[ "${lines[1]}" == 31$'\t'"     31 red             normal bold   faint   invert"$'\t\t31' ]]
+  [[ "${lines[9]}" == 91$'\t'*" 91 bright red "* ]]
+  # the swatch is the background twin
+  FZX_MODE=16 "$COLORS/source.sh" | grep -qF $'91\t\e[101m    \e[0m'
+}
+
+@test "preview: a 16 color's background swatch, index and attributes; true color under names" {
+  FZF_PREVIEW_COLUMNS=20 FZX_MODE=16 run "$COLORS/preview.sh" 91 '' 91
+  [[ "${lines[0]}" == $'\e[101m'"$(printf '%20s' '')"* ]]
+  [[ "$output" == *"91 (bright, 256-color index 9)"* ]]
+  [[ "$output" == *$'\e[1;91mbold'*'\e[1;91m'* && "$output" == *'\e[101m'* ]]
+  FZX_MODE=16 run "$COLORS/preview.sh" 32 '' 32
+  [[ "$output" == *"32 (normal, 256-color index 2)"* ]]
+  FZF_PREVIEW_COLUMNS=40 FZX_MODE=names run "$COLORS/preview.sh" SteelBlue '#4682b4' '38;2;70;130;180'
+  [[ "$output" == *"true color"*$'\e[48;2;255;0;0m \e[0m'* ]]
+  # too narrow for a gradient: none
+  FZF_PREVIEW_COLUMNS=12 FZX_MODE=names run "$COLORS/preview.sh" SteelBlue '#4682b4' '38;2;70;130;180'
+  [[ "$output" != *"true color"* ]]
+}
