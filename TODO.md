@@ -242,12 +242,10 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [ ] **`fzx stats` needs `strftime` in awk** (p3) [bug] (gawk, or mawk 1.3.4+).
 - [ ] **man preview fails on `[`** (p3) [bug]: the first row of `fzx -m man`, `[ (1)`, logs
       `cb preview [(1) rc=16` and shows nothing; the page name needs quoting or `--` (modules/man/preview.sh).
-- [ ] **Renderers duplicated across module previews** (p2) [refactor]: github, history, logs, man, shell and
-      todos each probe for bat/glow/mdpreview and build their own bat command line (themes, widths, NO_COLOR
-      handling differ). The files module uses lib/preview.sh (0.38.0); move the others onto its renderers
-      (`fzx::_pv_markdown`, `fzx::_pv_text`, made public) so FZX_PREVIEW_VIEWERS applies everywhere.
-- [ ] **mdpreview is slow for previews** (p3) [perf]: about 250-900ms per focus change (it starts Neovim).
-      Cache its output under $FZX_CACHE_DIR keyed by path, mtime and width, or keep one Neovim running.
+- [ ] **nvcat is slow for previews** (p3) [perf]: about 300-1200ms per focus change (it starts Neovim), for
+      markdown and every filetype `nvcat-dispatch` claims (any *.conf, systemd units, ...); files over
+      FZX_PREVIEW_NVCAT_MAX_LINES already go to bat. Cache its output under $FZX_CACHE_DIR keyed by path,
+      mtime and width (lib/render.sh, fzx::_render_nvcat), or keep one Neovim running.
 - [ ] **No README** (p3) [docs]: the repo has CLAUDE.md, PLAN.md and docs/, but nothing a new reader lands on:
       what fzx is, install (`just install`, sourcing shell/fzx.zsh), the module list, where docs live.
 - [ ] **PLAN.md is the original brief** (p3) [docs]: the 106-line prompt that started the project, now covered by

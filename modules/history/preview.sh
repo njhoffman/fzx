@@ -3,11 +3,13 @@
 # how often it ran and failed, and the directories it ran in most
 # shellcheck source=./source.sh
 source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
+# shellcheck source=../../lib/render.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../../lib/render.sh"
 
 # history::preview <history id>
 history::preview() {
   local id="${1:-}" argv row when status secs dir host session runs failed first dirs
-  local B=$'\e[1m' D=$'\e[2m' R=$'\e[0m' RED=$'\e[31m' WHT=$'\e[38;5;255m' MAG=$'\e[35m' GRN=$'\e[32m'
+  local D=$'\e[2m' R=$'\e[0m' RED=$'\e[31m' WHT=$'\e[38;5;255m' MAG=$'\e[35m' GRN=$'\e[32m'
   [[ "$id" =~ ^[0-9]+$ ]] || return 0
   argv="$(history::argv "$id" | tr -d '\0')"
   row="$(history::sql "
@@ -19,12 +21,7 @@ history::preview() {
     from history h left join places on places.id = h.place_id where h.id = $id")"
   IFS=$'\x1f' read -r when status secs dir host session runs failed first <<< "$row"
 
-  if command -v bat > /dev/null; then
-    printf '%s\n' "$argv" | command bat --color=always --style=plain --language=zsh --paging=never \
-      --terminal-width="${FZF_PREVIEW_COLUMNS:-80}" --wrap=auto
-  else
-    printf '%s%s%s\n' "$B" "$argv" "$R"
-  fi
+  printf '%s\n' "$argv" | FZF_PREVIEW_COLUMNS="${FZF_PREVIEW_COLUMNS:-80}" fzx::render_text --language zsh --style plain --wrap
   printf '%s%s%s\n' "$D" "$(printf '%*s' "${FZF_PREVIEW_COLUMNS:-60}" '' | tr ' ' '-')" "$R"
 
   local status_icon=failed

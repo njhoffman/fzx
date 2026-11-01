@@ -135,13 +135,19 @@ detect() {
   [ "$output" = plain ]
 }
 
-@test "markdown: mdpreview at the preview's width, else bat in plain style" {
+@test "markdown: nvcat at the preview's width, every markdown extension in any case, else bat in plain style" {
   printf '# t\n' > "$D/r.md"
-  stub mdpreview
+  stub nvcat
   stub bat
   run pv "$D/r.md"
-  [ "$output" = "mdpreview --columns 80 --all -- $D/r.md" ]
-  stub mdpreview 'exit 1'
+  [ "$output" = "nvcat --columns 80 --all --cat --fallback none --filetype markdown -- $D/r.md" ]
+  local ext
+  for ext in markdown mdown mdwn mkd mkdn MD Markdown; do
+    printf '# t\n' > "$D/r.$ext"
+    run pv "$D/r.$ext"
+    [[ "$output" == "nvcat "*"--filetype markdown -- $D/r.$ext" ]]
+  done
+  stub nvcat 'exit 1'
   run pv "$D/r.md"
   [[ "$output" == "bat --color=always --paging=never --style=plain "* ]]
 }
@@ -321,9 +327,9 @@ EOF"
   run pv "$D/a.sh"
   [ "$output" = "text-setting $D/a.sh" ]
   # FZX_PREVIEW_TEXT is for text only
-  stub mdpreview
+  stub nvcat
   run pv "$D/r.md"
-  [[ "$output" == mdpreview* ]]
+  [[ "$output" == nvcat* ]]
 }
 
 @test "viewers: a path with spaces and quotes reaches the command as one argument" {
@@ -351,4 +357,99 @@ EOF"
   [ "$status" -eq 0 ]
   [[ "$output" == *'"a"'* ]]
   grep -q "preview $D/j.json: ext:json -> " "$LOG"
+}
+
+# lib/render.sh, as the modules' previews use it (stdin, a language, a name)
+render() {
+  PATH="$STUBS" "$@"
+}
+
+@test "render text: stdin with a language and style; NO_COLOR turns colors off; marks highlight lines" {
+  stub bat 'printf "bat %s\n" "$*"; cat'
+  run render fzx::render_text --language zsh --style plain <<< 'ls -la'
+  [ "${lines[0]}" = "bat --color=always --paging=never --style=plain --language=zsh --terminal-width=80" ]
+  [ "${lines[1]}" = "ls -la" ]
+  NO_COLOR=1 run render fzx::render_text --language man <<< page
+  [[ "${lines[0]}" == "bat --color=never "* ]]
+  printf 'x\n' > "$D/a.sh"
+  run render fzx::render_text --name a.sh --style numbers --mark 3 --mark 5 -- "$D/a.sh" < /dev/null
+  [ "${lines[0]}" = "bat --color=always --paging=never --style=numbers --file-name=a.sh --terminal-width=80 --highlight-line 3 --highlight-line 5 -- $D/a.sh" ]
+  # without bat: as it is
+  rm "$STUBS/bat"
+  run render fzx::render_text --language zsh <<< 'echo hi'
+  [ "$output" = "echo hi" ]
+}
+
+@test "render text: a user viewer for named files only; stdin reaches it as a file named like the name" {
+  ln -sf "$(command -v mktemp)" "$STUBS/mktemp"
+  ln -sf "$(command -v rm)" "$STUBS/rm"
+  stub bat
+  export FZX_PREVIEW_VIEWERS='*.py=echo viewer'
+  printf 'x\n' > "$D/a.py"
+  run render fzx::render_text --name src/a.py -- "$D/a.py"
+  [ "$output" = "viewer $D/a.py" ]
+  run render fzx::render_text --name a.py <<< 'print(1)'
+  [[ "$output" =~ ^viewer\ .*/render\.[A-Za-z0-9]+\.py$ ]]
+  # a snippet with only a language: bat, whatever the viewers say
+  FZX_PREVIEW_TEXT='echo text-setting' run render fzx::render_text --language python <<< 'print(1)'
+  [[ "$output" == bat* ]]
+}
+
+@test "render markdown: viewer, nvcat, glow, then bat; stdin spooled and removed; no stdin for the tools" {
+  ln -sf "$(command -v mktemp)" "$STUBS/mktemp"
+  ln -sf "$(command -v rm)" "$STUBS/rm"
+  export TMPDIR="$BATS_TEST_TMPDIR/tmp"
+  mkdir -p "$TMPDIR"
+  stub bat
+  stub glow 'IFS= read -r x && echo "stdin: $x"; printf "glow %s\n" "$*"'
+  run render fzx::render_markdown --width 50 <<< '# t'
+  [[ "$output" =~ ^glow\ -s\ dark\ -w\ 50\ --\ .*/render\.[A-Za-z0-9]+\.md$ ]]
+  [ -z "$(ls -A "$TMPDIR")" ]
+  stub nvcat
+  printf '# t\n' > "$D/r.md"
+  run render fzx::render_markdown -- "$D/r.md"
+  [ "$output" = "nvcat --columns 80 --all --cat --fallback none --filetype markdown -- $D/r.md" ]
+  FZX_PREVIEW_VIEWERS='markdown=echo md' run render fzx::render_markdown -- "$D/r.md"
+  [ "$output" = "md $D/r.md" ]
+  # NO_COLOR: no renderer that draws in colors
+  NO_COLOR=1 run render fzx::render_markdown -- "$D/r.md"
+  [[ "$output" == "bat --color=never --paging=never --style=plain --language=markdown --terminal-width=80 --wrap=auto -- $D/r.md" ]]
+  stub nvcat 'exit 1'
+  rm "$STUBS/glow"
+  run render fzx::render_markdown -- "$D/r.md"
+  [[ "$output" == "bat --color=always --paging=never --style=plain --language=markdown "* ]]
+}
+
+@test "render text: files nvcat-dispatch claims go to nvcat with its filetype; grep hits, snippets and failures to bat" {
+  stub bat
+  stub nvcat
+  stub nvcat-dispatch '[[ "$2" == *kitty.conf || "$2" == */Justfile ]] && { case "$2" in *kitty*) echo kitty ;; *) echo just ;; esac; exit 0; }; exit 1'
+  printf 'x\n' > "$D/kitty.conf"
+  printf 'x\n' > "$D/a.sh"
+  run pv "$D/kitty.conf"
+  [ "$output" = "nvcat --columns 80 --all --cat --fallback none --filetype kitty -- $D/kitty.conf" ]
+  run pv "$D/a.sh"
+  [[ "$output" == bat* ]]
+  # a grep hit: bat highlights the line
+  run pv "$D/kitty.conf:3"
+  [[ "$output" == bat*"--highlight-line 3"* ]]
+  # a github blob: matched by its repository path, not the cache file's name
+  run render fzx::render_text --name proj/Justfile -- "$D/a.sh" < /dev/null
+  [ "$output" = "nvcat --columns 80 --all --cat --fallback none --filetype just -- $D/a.sh" ]
+  NO_COLOR=1 run pv "$D/kitty.conf"
+  [[ "$output" == "bat --color=never"* ]]
+  stub nvcat 'exit 1'
+  run pv "$D/kitty.conf"
+  [[ "$output" == bat* ]]
+  # longer than the cap: bat, without asking nvcat-dispatch; markdown skips glow too
+  stub nvcat
+  stub glow
+  seq 301 > "$D/kitty.conf"
+  run pv "$D/kitty.conf"
+  [[ "$output" == bat* ]]
+  { echo '# t'; seq 300; } > "$D/long.md"
+  run pv "$D/long.md"
+  [[ "$output" == "bat "*"--language=markdown"* ]]
+  FZX_PREVIEW_NVCAT_MAX_LINES=400 run pv "$D/long.md"
+  [[ "$output" == nvcat* ]]
 }

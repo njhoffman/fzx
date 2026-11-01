@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # todos preview: todo-fzf's card. The section, the item's state, priority, category and due date, its title
 # and file:line, then its details (the text after the title, continuation lines joined into paragraphs) as
-# markdown through mdpreview, else bat, else glow, else plain.
+# markdown (lib/render.sh: FZX_PREVIEW_VIEWERS, nvcat, glow, bat, plain).
 # shellcheck source=./source.sh
 source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
+# shellcheck source=../../lib/render.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../../lib/render.sh"
 
 # todos::preview <id>: id is "file\x1fstart line\x1ftitle"
 todos::preview() {
@@ -43,19 +45,8 @@ todos::preview() {
     END { print "" }')"
   if [[ "$md" != *[![:space:]]* ]]; then
     printf '%s(no details)%s\n' "$DIM" "$R"
-  elif command -v mdpreview > /dev/null; then
-    # mdpreview opens its argument by name: a real file, not a process substitution
-    local tmp
-    tmp="$(mktemp --suffix=.md)"
-    printf '%s\n' "$md" > "$tmp"
-    mdpreview --columns "$width" "$tmp"
-    rm -f -- "$tmp"
-  elif command -v bat > /dev/null; then
-    printf '%s\n' "$md" | command bat --color=always --style=plain --language=markdown --wrap=auto --terminal-width="$width"
-  elif command -v glow > /dev/null; then
-    printf '%s\n' "$md" | glow -s dark -w "$width" -
   else
-    printf '%s\n' "$md"
+    printf '%s\n' "$md" | fzx::render_markdown --width "$width"
   fi
 }
 

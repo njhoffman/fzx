@@ -44,8 +44,6 @@ FZX_GITHUB_CLONE_SSH="${FZX_GITHUB_CLONE_SSH:-mine}"
 FZX_GITHUB_FETCH_DIR="${FZX_GITHUB_FETCH_DIR:-}"
 # files larger than this (bytes) are not previewed
 FZX_GITHUB_PREVIEW_MAX="${FZX_GITHUB_PREVIEW_MAX:-1000000}"
-# READMEs in the preview: glow when installed (auto), bat, or cat
-FZX_GITHUB_MARKDOWN="${FZX_GITHUB_MARKDOWN:-auto}"
 
 FZX_COLORS[github_owner]="38;5;244"
 FZX_COLORS[github_name]="1;38;5;75"

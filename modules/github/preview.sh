@@ -6,28 +6,14 @@
 # shellcheck source=./source.sh
 source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
 
-# github::show <file> <path>: a file's contents, highlighted for its name (bat), within the preview width
-github::show() {
-  if command -v bat > /dev/null; then
-    command bat --color=always --style=numbers --paging=never --terminal-width="${FZF_PREVIEW_COLUMNS:-80}" \
-      --file-name="$2" "${@:3}" -- "$1"
-  else
-    command cat -- "$1"
-  fi
-}
+# shellcheck source=../../lib/render.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../../lib/render.sh"
 
-# github::markdown <file>: a README, rendered (FZX_GITHUB_MARKDOWN: auto, glow, bat or cat)
-github::markdown() {
-  local how="${FZX_GITHUB_MARKDOWN:-auto}"
-  [[ "$how" == auto ]] && { command -v glow > /dev/null && how=glow || how=bat; }
-  case "$how" in
-    # stdin from /dev/null: glow reads a stdin that is no terminal even when given a file, and an open pipe
-    # would never end
-    glow) command glow -s dark -w "${FZF_PREVIEW_COLUMNS:-80}" -- "$1" < /dev/null ;;
-    bat) github::show "$1" README.md ;;
-    *) command cat -- "$1" ;;
-  esac
-}
+# github::show <file> <path> [--mark N]...: a file's contents, highlighted for its name, line numbers on
+github::show() { fzx::render_text --name "$2" --style numbers "${@:3}" -- "$1"; }
+
+# github::markdown <file>: a README, issue or pull request body, rendered (lib/render.sh)
+github::markdown() { fzx::render_markdown -- "$1"; }
 
 # github::limits: the search rate limits left (the rate_limit endpoint itself is free)
 github::limits() {
@@ -78,7 +64,7 @@ github::preview_code() {
     grep -v '^$' | grep -n -F -f - -- "$blob" | cut -d: -f1 | head -50)
   printf '\n%s──── %s%s\n' "$d" "$path" "$r"
   local marks=()
-  for n in "${lines[@]}"; do marks+=(--highlight-line "$n"); done
+  for n in "${lines[@]}"; do marks+=(--mark "$n"); done
   github::show "$blob" "$path" "${marks[@]}"
 }
 

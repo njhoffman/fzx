@@ -6,15 +6,11 @@
 
 # shellcheck source=./source.sh
 source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
+# shellcheck source=../../lib/render.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../../lib/render.sh"
 
 # shell::zsh_code: stdin highlighted as zsh (bat), within the preview's width
-shell::zsh_code() {
-  if command -v bat > /dev/null; then
-    command bat --language zsh --style plain --color "$([[ -n "${NO_COLOR+x}" ]] && echo never || echo always)" --paging never --terminal-width "${FZF_PREVIEW_COLUMNS:-80}"
-  else
-    command cat
-  fi
-}
+shell::zsh_code() { FZF_PREVIEW_COLUMNS="${FZF_PREVIEW_COLUMNS:-80}" fzx::render_text --language zsh --style plain; }
 
 # shell::help <name>: the tldr page, else the man page rendered at the preview's width; fails with neither
 shell::help() {
@@ -22,11 +18,7 @@ shell::help() {
   command -v tldr > /dev/null && command tldr --color always -- "$1" 2> /dev/null && return 0
   page="$(MANWIDTH="$cols" command man -- "$1" 2> /dev/null | command col -bx)" || return 1
   [[ -n "$page" ]] || return 1
-  if command -v bat > /dev/null; then
-    command bat --language man --style plain --color always --paging never <<< "$page"
-  else
-    printf '%s\n' "$page"
-  fi
+  fzx::render_text --language man --style plain <<< "$page"
 }
 
 # shell::builtin_doc <name>: the builtin's entry in zshbuiltins(1): from its heading to the next one

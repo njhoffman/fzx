@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# man preview: the page rendered at the preview's width (through bat when installed), or the tldr page
+# man preview: the page rendered at the preview's width (lib/render.sh: bat when installed), or the tldr page
 
 # shellcheck source=./source.sh
 source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
+# shellcheck source=../../lib/render.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../../lib/render.sh"
 
 # man::split <id> <name var> <section var>: "name(section)" apart; a bare name has no section
 man::split() {
@@ -31,11 +33,7 @@ man::preview() {
     command tldr --color always -- "$id" 2> /dev/null || printf 'no tldr page: %s\n' "$id"
     return 0
   fi
-  if command -v bat > /dev/null; then
-    MANWIDTH="$cols" man::page "$id" | command bat --language man --style plain --color always --paging never
-  else
-    MANWIDTH="$cols" man::page "$id"
-  fi
+  MANWIDTH="$cols" man::page "$id" | fzx::render_text --language man --style plain
 }
 
 [[ "${BASH_SOURCE[0]}" == "$0" ]] && man::preview "$@"

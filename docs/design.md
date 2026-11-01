@@ -371,7 +371,8 @@ resolved config: the callback loads the layers just before the first module func
 | `FZX_PREVIEW_LAYOUTS` | `0:down,50%,border-top` `120:` (menu: `0:down,50%,border-top` `180:right,40%`) | the preview window by terminal width, see below; `()` turns it off |
 | `FZX_PREVIEW_TEXT` | empty (bat) | the command file previews (lib/preview.sh) use for text and code; the path is appended, or replaces `{}` |
 | `FZX_PREVIEW_VIEWERS` | empty | per-type preview commands, `KEY=COMMAND;KEY=COMMAND`: KEY is a type (`markdown`, `mp3`, `audio`, `video`, `image`, `pdf`, `archive`, `compressed`, `json`, `sqlite`, `cert`, `document`, `binary`, `text`) or a glob on the file name (`*.log`); a glob wins over a type, a type over `FZX_PREVIEW_TEXT`. Commands run through bash, so they may hold options and pipes, but not `;` |
-| `FZX_PREVIEW_DEBUG` | `0` | `1`: file previews start with a dim line saying how the file was detected, what drew it and how long it took (`ext:md -> mdpreview (230ms)`) |
+| `FZX_PREVIEW_DEBUG` | `0` | `1`: file previews start with a dim line saying how the file was detected, what drew it and how long it took (`ext:markdown -> nvcat (230ms)`) |
+| `FZX_PREVIEW_NVCAT_MAX_LINES` | `300` | the longest file (source lines) nvcat draws; longer ones go to bat, since nvcat's complete output stops at 1000 screen rows and reaching that took seconds |
 | `FZX_PERSIST`, `FZX_POPUP_OPTS`, `FZX_FLOAT_OPTS`, `FZX_STATS`, `FZX_SUMMARY_TTL`, `FZX_TRACE`, ... | | see their sections |
 
 **Responsive preview.** `FZX_PREVIEW_LAYOUTS` entries are `MINCOLS:SPEC`; the entry with the largest
@@ -399,15 +400,24 @@ header line) and for plain fzf through `fzx preview ITEM [LINE]` (~/.shell/scrip
 ITEM may be a grep hit, `path:line[:col:text]`: the shortest prefix that exists, followed by digits, is the
 path. Detection takes the extension first and runs `file --mime` only for names it does not know (about
 20ms); a `.db` must start with SQLite's magic. Each type has a chain, the first tool installed and
-succeeding wins: text and code bat (cat); markdown mdpreview (bat); mp3 mid3v2's tags named and ordered,
+succeeding wins: text and code bat (cat), or nvcat for the files `nvcat-dispatch --print` claims (config
+formats bat has no syntax for; not for a grep hit's line, which bat highlights); markdown nvcat (glow, bat); mp3 mid3v2's tags named and ordered,
 under mediainfo's stream line (mediainfo, ffprobe); audio and video mediainfo (ffprobe); images a size line
 and chafa (an svg's source); pdf pdftotext's first three pages; archives bsdtar (7z, unzip; dpkg-deb for
 .deb); compressed files their decompressed first megabyte, highlighted for the inner name; json jq up to
 1M (bat); sqlite the tables and schema, read-only; certificates openssl, PEM or DER, while a private key
 is named and never shown; office documents and epub pandoc; other binaries file's description and hexyl
 (xxd below 79 columns); directories eza's tree two levels deep (lsd, ls). Every preview logs
-`preview PATH: ext:TYPE -> TOOL (Nms)` at debug level. The other modules' previews still call bat and
-friends themselves (TODO.md, "Renderers duplicated").
+`preview PATH: ext:TYPE -> TOOL (Nms)` at debug level. nvcat is skipped (bat draws) under `NO_COLOR` and
+for files over `FZX_PREVIEW_NVCAT_MAX_LINES`.
+
+**Renderers.** `lib/render.sh` holds the text and markdown renderers for every preview: `lib/preview.sh` and
+the modules' own (github, history, logs, man, shell, todos) source it by path, since module previews run as
+scripts without core.sh. `fzx::render_text [--language L] [--name NAME] [--style S] [--line N] [--mark N]
+[--wrap] [FILE]` and `fzx::render_markdown [--width N] [FILE]` read stdin without a FILE (spooled to a
+temporary file for the tools that open their input by name), honor `NO_COLOR` and `FZF_PREVIEW_COLUMNS`, and
+apply `FZX_PREVIEW_VIEWERS`: a markdown viewer always, a text viewer when `--name` names the file. Snippets
+given only a `--language` (zsh commands, man pages, logs) go to bat.
 
 ## Modules
 

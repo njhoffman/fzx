@@ -6,6 +6,25 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.39.0] - 2026-10-31
+
+### Changed
+
+- Markdown previews use nvcat instead of mdpreview (then glow, then bat), in the files module, `fzx preview`
+  and the github and todos previews alike.
+- Files that `nvcat-dispatch --print` claims (kitty, tmux, systemd units, justfiles, *.conf and the other
+  formats bat has no syntax for) preview through nvcat with their filetype; a grep hit's line stays on bat,
+  which highlights it.
+- Files over `FZX_PREVIEW_NVCAT_MAX_LINES` source lines (300) skip nvcat and preview with bat: nvcat stops
+  at 1000 screen rows and failing there took seconds.
+- Every module preview (github, history, logs, man, shell, todos) renders through one set of renderers
+  (lib/render.sh): `FZX_PREVIEW_VIEWERS` applies to their markdown, and `NO_COLOR` turns bat's colors off
+  everywhere.
+
+### Removed
+
+- `FZX_GITHUB_MARKDOWN`: set a markdown viewer in `FZX_PREVIEW_VIEWERS` instead (`markdown=glow`).
+
 ## [0.38.2] - 2026-10-31
 
 ### Fixed

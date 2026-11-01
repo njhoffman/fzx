@@ -12,6 +12,10 @@
 #   FZX_PREVIEW_DEBUG    1: a first line saying how the file was detected and rendered, and how long it took
 #   FZX_PREVIEW_IMAGE_FORMAT  chafa's --format (default symbols)
 #   FZX_PREVIEW_BAT_STYLE     bat's --style (default: bat's own config)
+#   FZX_PREVIEW_NVCAT_MAX_LINES  longest file nvcat draws (default 300); longer ones go to bat
+
+# the text and markdown renderers, and the FZX_PREVIEW_VIEWERS lookup
+declare -F fzx::render_text > /dev/null || source "$(dirname "${BASH_SOURCE[0]}")/render.sh"
 
 # largest JSON file jq pretty-prints; bigger ones go to bat, which streams
 _FZX_PREVIEW_JSON_MAX=$((1024 * 1024))
@@ -110,62 +114,12 @@ fzx::preview_detect() {
   printf -v "$3" '%s' "$_how"
 }
 
-# fzx::preview_viewer <path> <type> <var>: the user's command for this file (FZX_PREVIEW_VIEWERS; text also
-# FZX_PREVIEW_TEXT), empty when there is none
-fzx::preview_viewer() {
-  local _name="${1##*/}" _type="$2" _entry _key _glob="" _bytype="" _entries
-  IFS=';' read -r -a _entries <<< "${FZX_PREVIEW_VIEWERS:-}"
-  for _entry in "${_entries[@]}"; do
-    [[ "$_entry" == *=* ]] || continue
-    _key="${_entry%%=*}"
-    _key="${_key//[[:space:]]/}"
-    if [[ "$_key" == *[*?[]* ]]; then
-      # shellcheck disable=SC2053  # the key is a glob
-      [[ -z "$_glob" && "$_name" == $_key ]] && _glob="${_entry#*=}"
-    elif [[ -z "$_bytype" && "$_key" == "$_type" ]]; then
-      _bytype="${_entry#*=}"
-    fi
-  done
-  [[ -z "$_glob$_bytype" && "$_type" == text ]] && _bytype="${FZX_PREVIEW_TEXT:-}"
-  printf -v "$3" '%s' "${_glob:-$_bytype}"
-}
-
-# fzx::_preview_user <command> <path>: a user command, through bash so it may hold options and pipes; the
-# path replaces {} or is appended
-fzx::_preview_user() {
-  local cmd="$1"
-  if [[ "$cmd" == *"{}"* ]]; then
-    cmd="${cmd//\{\}/\"\$1\"}"
-  else
-    # shellcheck disable=SC2016  # $1 is the inner bash's
-    cmd+=' "$1"'
-  fi
-  bash -c "$cmd" fzx-preview "$2"
-}
-
 # renderers: fzx::_pv_<type> <path> <line>; each sets _FZX_PV_RENDERER to the tool that drew the preview
 # and fails when none of its tools could
 
-fzx::_pv_text() {
-  if command -v bat > /dev/null; then
-    local args=(--color=always --paging=never) line="$2"
-    [[ -n "${FZX_PREVIEW_BAT_STYLE:-}" ]] && args+=("--style=$FZX_PREVIEW_BAT_STYLE")
-    [[ -n "${FZF_PREVIEW_COLUMNS:-}" ]] && args+=("--terminal-width=$FZF_PREVIEW_COLUMNS")
-    [[ "$line" =~ ^[0-9]+$ ]] && args+=(--highlight-line "$line" --line-range "$((line > 10 ? line - 10 : 1)):")
-    _FZX_PV_RENDERER=bat
-    command bat "${args[@]}" -- "$1" && return 0
-  fi
-  _FZX_PV_RENDERER="cat"
-  command cat -- "$1"
-}
+fzx::_pv_text() { fzx::render_text --line "$2" -- "$1"; }
 
-fzx::_pv_markdown() {
-  if command -v mdpreview > /dev/null; then
-    _FZX_PV_RENDERER=mdpreview
-    command mdpreview --columns "${FZF_PREVIEW_COLUMNS:-80}" --all -- "$1" 2> /dev/null < /dev/null && return 0
-  fi
-  FZX_PREVIEW_BAT_STYLE="${FZX_PREVIEW_BAT_STYLE:-plain}" fzx::_pv_text "$@"
-}
+fzx::_pv_markdown() { fzx::render_markdown -- "$1"; }
 
 # fzx::preview_id3: mid3v2's frames as "Name  value" rows, the common ones first in a fixed order: frame ids
 # named, the cover summarised, noise frames (iTunes normalisation, unrepresentable data) dropped

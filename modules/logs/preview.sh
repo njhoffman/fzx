@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # logs preview: the last FZX_LOGS_LINES lines of a file, unit journal or container.
+# shellcheck source=../../lib/render.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../../lib/render.sh"
 
 # logs::show <kind> <target> <follow 0|1>: print (or follow) a log
 logs::show() {
@@ -26,8 +28,8 @@ logs::show() {
 
 # logs::preview <kind> <target>
 logs::preview() {
-  if [[ "${1:-}" == file ]] && command -v bat > /dev/null; then
-    logs::show "$1" "${2:-}" 0 | command bat --color=always --style=plain --paging=never -l log
+  if [[ "${1:-}" == file ]]; then
+    logs::show "$1" "${2:-}" 0 | fzx::render_text --language log --style plain
   else
     logs::show "${1:-}" "${2:-}" 0
   fi

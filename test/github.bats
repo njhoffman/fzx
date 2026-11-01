@@ -271,10 +271,10 @@ searches() { grep -c '^search ' "$BATS_TEST_TMPDIR/gh.calls" 2> /dev/null || ech
   src repos fzx > /dev/null
   local file
   file="$(cut -f4 "$BATS_TEST_TMPDIR/src.out" | head -1)"
-  FZX_GITHUB_MARKDOWN=cat run "$GH_DIR/preview.sh" https://github.com/junegunn/fzf repo junegunn/fzf "$file" 0
+  FZX_PREVIEW_VIEWERS=markdown=cat run "$GH_DIR/preview.sh" https://github.com/junegunn/fzf repo junegunn/fzf "$file" 0
   [ "${lines[0]}" = junegunn/fzf ]
   [[ "$output" == *"license     MIT License"* && "$output" == *"# The readme"* ]]
-  FZX_GITHUB_MARKDOWN=cat run "$GH_DIR/preview.sh" https://github.com/o/noreadme repo o/noreadme "$file" 1
+  FZX_PREVIEW_VIEWERS=markdown=cat run "$GH_DIR/preview.sh" https://github.com/o/noreadme repo o/noreadme "$file" 1
   [[ "${lines[0]}" == "o/noreadme  archived" && "$output" == *"no README"* ]]
 }
 
@@ -442,7 +442,7 @@ searches() { grep -c '^search ' "$BATS_TEST_TMPDIR/gh.calls" 2> /dev/null || ech
 @test "emoji: GitHub's shortcodes as their characters, in rows and the preview; its own ones kept" {
   run src mine ""
   [[ "${lines[0]}" == *"mine 🌸 and :atom:" ]]
-  FZX_GITHUB_MARKDOWN=cat run "$GH_DIR/preview.sh" https://github.com/me/priv repo me/priv "$FZX_CACHE_DIR/github/list/mine.json" 0
+  FZX_PREVIEW_VIEWERS=markdown=cat run "$GH_DIR/preview.sh" https://github.com/me/priv repo me/priv "$FZX_CACHE_DIR/github/list/mine.json" 0
   [[ "$output" == *"mine 🌸 and :atom:"* && "$output" == *"visibility  private"* ]]
   [ "$(grep -c '^api emojis' "$BATS_TEST_TMPDIR/gh.calls")" -eq 1 ]
 }
@@ -651,7 +651,7 @@ clone_here() {
   clone_here
   src issues "" > /dev/null
   src prs "" > /dev/null
-  run env FZX_GITHUB_MARKDOWN=cat "$GH_DIR/preview.sh" https://github.com/o/r/issues/12 issue o/r \
+  run env FZX_PREVIEW_VIEWERS=markdown=cat "$GH_DIR/preview.sh" https://github.com/o/r/issues/12 issue o/r \
     "$FZX_CACHE_DIR/github/issues/issues-o__r-open.json" 0
   [ "${lines[0]}" = "o/r #12  open" ]
   [ "${lines[1]}" = "Crash	on start" ]
@@ -659,7 +659,7 @@ clone_here() {
   [ "${lines[2]}" = "author  alice" ]
   [ "${lines[4]}" = "labels  bug, docs" ]
   [[ "$output" == *$'The body\n\n---\n\n**carol** 2026-01-01\n\na comment' ]]
-  run env FZX_GITHUB_MARKDOWN=cat "$GH_DIR/preview.sh" https://github.com/o/r/pull/40 pr o/r \
+  run env FZX_PREVIEW_VIEWERS=markdown=cat "$GH_DIR/preview.sh" https://github.com/o/r/pull/40 pr o/r \
     "$FZX_CACHE_DIR/github/issues/prs-o__r-open.json" 0
   [[ "$output" == *$'branch  feat/x -> main\nchanges 3 files, +10 -2\nreview  approved\n\nchecks\n  failure  ci\n  pending  lint'* ]]
   [[ "$output" == *"*no description*" ]]
@@ -667,7 +667,7 @@ clone_here() {
   # glow gets no stdin (it reads one that is not a terminal, file argument or not, and a pipe never ends)
   printf '#!/usr/bin/env bash\nIFS= read -r x && echo "stdin: $x"\necho rendered\n' > "$STUBS/glow"
   chmod +x "$STUBS/glow"
-  run bash -c 'echo leak | FZX_GITHUB_MARKDOWN=glow "$0" https://github.com/o/r/pull/40 pr o/r "$1" 0' \
+  run bash -c 'echo leak | FZX_PREVIEW_VIEWERS=markdown=glow "$0" https://github.com/o/r/pull/40 pr o/r "$1" 0' \
     "$GH_DIR/preview.sh" "$FZX_CACHE_DIR/github/issues/prs-o__r-open.json"
   [[ "$output" == *rendered && "$output" != *"stdin: leak"* ]]
   [ "$(grep -c '^pr view' "$BATS_TEST_TMPDIR/gh.calls")" -eq 1 ]
@@ -747,11 +747,11 @@ clone_here() {
 @test "preview: a notification; an issue's or pull request's details below it" {
   src notifications "" > /dev/null
   local f="$FZX_CACHE_DIR/github/issues/notifications-unread.json"
-  run env FZX_GITHUB_MARKDOWN=cat "$GH_DIR/preview.sh" https://github.com/o/r/pull/40 notification o/r "$f" 0
+  run env FZX_PREVIEW_VIEWERS=markdown=cat "$GH_DIR/preview.sh" https://github.com/o/r/pull/40 notification o/r "$f" 0
   [ "${lines[0]}" = "o/r  pull request  unread" ]
   [ "${lines[2]}" = "reason  review requested" ]
   [[ "$output" == *"branch  feat/x -> main"*"*no description*" ]]
-  run env FZX_GITHUB_MARKDOWN=cat "$GH_DIR/preview.sh" https://github.com/o/r/actions notification o/r "$f" 2
+  run env FZX_PREVIEW_VIEWERS=markdown=cat "$GH_DIR/preview.sh" https://github.com/o/r/actions notification o/r "$f" 2
   [ "${lines[0]}" = "o/r  check suite  unread" ]
   [ "${lines[-1]}" = "url     https://github.com/o/r/actions" ]
   ! grep -q '^issue view\|^pr view.*actions' "$BATS_TEST_TMPDIR/gh.calls"
