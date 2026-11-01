@@ -156,6 +156,71 @@ kept() {
   done
 }
 
+@test "resize hook: a popup launch in tmux sets it once per tree, records the geometry; the owner removes it" {
+  rm -f "$BATS_TEST_TMPDIR/tmux.calls"
+  TMUX_PANE=%3 run "$FZX" -m counter --popup --dry-run
+  ! grep -q set-hook "$BATS_TEST_TMPDIR/tmux.calls"
+  # the stub fzf goes to a child and back, both popup launches: one hook
+  STUB_FZF_RUN='[[ -f $BATS_TEST_TMPDIR/again ]] || { touch $BATS_TEST_TMPDIR/again; cp $FZX_SESSION_DIR/state/popup_geometry $BATS_TEST_TMPDIR/geo; cp $FZX_SESSION_DIR/state/resize_hook $BATS_TEST_TMPDIR/hook; }' \
+    TMUX_PANE=%3 run "$FZX" -m counter --popup
+  [ "$status" -eq 0 ]
+  [ "$(< "$BATS_TEST_TMPDIR/geo")" = "center,90%,85% 200x50" ]
+  [[ "$(< "$BATS_TEST_TMPDIR/hook")" =~ ^[0-9]+\ %3$ ]]
+  local idx
+  idx="$(cut -d' ' -f1 "$BATS_TEST_TMPDIR/hook")"
+  [ "$(grep -c '^set-hook -w' "$BATS_TEST_TMPDIR/tmux.calls")" -eq 1 ]
+  grep -q "^set-hook -w -t %3 window-resized\[$idx\] run-shell -b '.*/fzx _resized .*/sessions/[^ ]* $idx %3'$" "$BATS_TEST_TMPDIR/tmux.calls"
+  grep -q "^set-hook -uw -t %3 window-resized\[$idx\]$" "$BATS_TEST_TMPDIR/tmux.calls"
+  # inline: no hook
+  rm -f "$BATS_TEST_TMPDIR/tmux.calls"
+  TMUX_PANE=%3 run "$FZX" -m counter
+  ! grep -q set-hook "$BATS_TEST_TMPDIR/tmux.calls"
+}
+
+@test "relayout: a popup restarts when the window's size or the spec changed, nothing otherwise" {
+  TMUX_PANE=%3 kept --popup
+  [ "$(< "$DIR/state/popup_geometry")" = "center,90%,85% 200x50" ]
+  FZX_SESSION="$SID" run "$FZX" _cb nav relayout
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  STUB_TMUX_SIZE="201 50" FZX_SESSION="$SID" run "$FZX" _cb nav relayout
+  [ "$output" = "become:$FZX --resume $SID" ]
+  grep -q 'nav relayout: popup center,90%,85% 200x50 -> center,90%,85% 201x50' "$LOG"
+  # an explicit spec follows the window too; inline and splits are left alone
+  echo popup:top,40% > "$DIR/state/placement"
+  FZX_SESSION="$SID" run "$FZX" _cb nav relayout
+  [ "$output" = "become:$FZX --resume $SID" ]
+  rm "$DIR/state/placement"
+  STUB_TMUX_SIZE="90 20" FZX_SESSION="$SID" run "$FZX" _cb nav relayout
+  [ -z "$output" ]
+}
+
+@test "resized: tells the fzf on screen to relayout once the size settles; a gone tree removes its hook" {
+  cat > "$BATS_TEST_TMPDIR/bin/curl" << 'STUB'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$BATS_TEST_TMPDIR/curl.calls"
+STUB
+  chmod +x "$BATS_TEST_TMPDIR/bin/curl"
+  kept
+  printf '%s' "$SID" > "$DIR/state/current"
+  python3 -c 'import socket,sys; socket.socket(socket.AF_UNIX).bind(sys.argv[1])' "$DIR/fzf.sock"
+  FZX_RESIZE_SETTLE_MS=0 run "$FZX" _resized "$DIR" 1234 %3
+  [ "$status" -eq 0 ]
+  grep -q -- "--unix-socket $DIR/fzf.sock -X POST http://localhost --data-binary transform:$FZX _cb nav relayout" "$BATS_TEST_TMPDIR/curl.calls"
+  # still changing: nothing is sent
+  rm "$BATS_TEST_TMPDIR/curl.calls"
+  cat > "$BATS_TEST_TMPDIR/size" << 'EOF2'
+#!/usr/bin/env bash
+n=$(cat "$BATS_TEST_TMPDIR/n" 2> /dev/null || echo 0); echo $((n + 1)) > "$BATS_TEST_TMPDIR/n"; echo "$((100 + n)) 50"
+EOF2
+  sed -i 's|display-message) echo .*|display-message) [ -n "${STUB_TMUX_GROW:-}" ] \&\& exec bash "$BATS_TEST_TMPDIR/size"; echo "${STUB_TMUX_SIZE:-200 50}" ;;|' "$BATS_TEST_TMPDIR/bin/tmux"
+  STUB_TMUX_GROW=1 FZX_RESIZE_SETTLE_MS=0 run "$FZX" _resized "$DIR" 1234 %3
+  [ ! -f "$BATS_TEST_TMPDIR/curl.calls" ]
+  # the tree is gone: the hook goes
+  FZX_RESIZE_SETTLE_MS=0 run "$FZX" _resized "$BATS_TEST_TMPDIR/nonexistent" 1234 %3
+  grep -q '^set-hook -uw -t %3 window-resized\[1234\]$' "$BATS_TEST_TMPDIR/tmux.calls"
+}
+
 @test "window size: tmux's window, else COLUMNS/LINES, else tput; fails when unknown" {
   load_libs log run
   local w h

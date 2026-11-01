@@ -72,6 +72,7 @@ fzx::_stat_exit() {
 fzx::_owner_exit() {
   # only a run that got as far as its start row gets an exit row
   [[ -n "${_FZX_STARTED:-}" ]] && ((!_FZX_EXIT_STATED)) && fzx::_stat_exit "$1"
+  fzx::_resize_hook_unset "$FZX_SESSIONS_DIR/$_FZX_ROOT_SESSION"
   (($2)) || { fzx::session_attach "$_FZX_ROOT_SESSION" && fzx::session_destroy; }
 }
 
@@ -143,7 +144,7 @@ fzx::_launch() {
   [[ -n "$FZX_SORT" ]] && fzx::state_set sort "$FZX_SORT"
 
   fzx::opts_build "$FZX_MODULE" || fzx::die 1 "$FZX_MODULE::opts failed"
-  fzx::_placement
+  fzx::_placement "$dry_run"
 
   fzx::require stats
   export FZX_STATS FZX_STATS_FILE
@@ -238,17 +239,85 @@ fzx::placement_from_fzf_tmux() {
 
 # popups are fzf's own --popup, asked for on every launch: become() inside a popup runs in the caller's
 # terminal, so a launch that did not ask again would drop back inline. Splits are made by the owner
-# (fzx::_fzf_split); launches inside the split pane are not the owner and run inline there.
+# (fzx::_fzf_split); launches inside the split pane are not the owner and run inline there. A popup
+# launch records its geometry (fzx::popup_geometry) and, in tmux, makes sure the window's resize hook is
+# set (fzx::_resize_hook_set), so the popup follows the window.
 fzx::_placement() {
-  local p
+  local dry_run="${1:-0}" p spec geo
   fzx::placement p
   case "$p" in
-    popup)
-      fzx::popup_opts popup p
-      FZX_OPTS+=("--popup=$p")
+    popup | popup:*)
+      if [[ "$p" == popup ]]; then fzx::popup_opts popup spec; else spec="${p#popup:}"; fi
+      FZX_OPTS+=("--popup=$spec")
+      if ((!dry_run)) && fzx::in_session; then
+        fzx::popup_geometry "$spec" geo && fzx::state_set popup_geometry "$geo"
+        fzx::_resize_hook_set
+      fi
       ;;
-    popup:*) FZX_OPTS+=("--popup=${p#popup:}") ;;
   esac
+}
+
+# fzx::popup_geometry <spec> <var>: what a popup's size depends on, "SPEC WxH" (the spec and the window's
+# size, fzx::window_size); a launch and a later resize compare it to tell whether the popup must change
+fzx::popup_geometry() {
+  local _ww _wh
+  fzx::window_size _ww _wh || return 1
+  printf -v "$2" '%s %sx%s' "$1" "$_ww" "$_wh"
+}
+
+# fzx::_resize_hook_set: once per session tree, on the root's first popup launch in tmux: a window-resized
+# hook on the calling pane's window that runs `fzx _resized ROOT_DIR INDEX PANE` (fzx::resized). The
+# index (from the root's id) keeps other hooks and other fzx trees in the same window apart. Recorded in
+# the root's state/resize_hook ("INDEX PANE"); the owner removes it on exit (fzx::_resize_hook_unset).
+fzx::_resize_hook_set() {
+  [[ -n "${TMUX:-}" && -n "${TMUX_PANE:-}" ]] || return 0
+  local root root_dir idx cmd
+  fzx::meta_get root root || root="$FZX_SESSION"
+  root_dir="$FZX_SESSIONS_DIR/$root"
+  [[ -f "$root_dir/state/resize_hook" ]] && return 0
+  idx="$(cksum <<< "$root")"
+  idx=$((${idx%% *} % 1000000 + 1000))
+  if [[ "$FZX_BIN$root_dir$TMUX_PANE" == *[\'\"\\\;]* ]]; then
+    fzx::log warn "resize hook: a quote or ; in $FZX_BIN or $root_dir, the popup will not follow the window"
+    return 0
+  fi
+  printf -v cmd '%q _resized %q %q %q' "$FZX_BIN" "$root_dir" "$idx" "$TMUX_PANE"
+  if tmux set-hook -w -t "$TMUX_PANE" "window-resized[$idx]" "run-shell -b '$cmd'" 2>> "$FZX_LOG_FILE"; then
+    fzx::_kv_set "$root_dir/state/resize_hook" "$idx $TMUX_PANE"
+    fzx::log info "resize hook window-resized[$idx] set on $TMUX_PANE's window"
+  else
+    fzx::log warn "resize hook: tmux set-hook failed, the popup will not follow the window"
+  fi
+}
+
+# fzx::_resize_hook_unset <root dir>: remove the tree's resize hook, if it set one
+fzx::_resize_hook_unset() {
+  local hook=""
+  fzx::_kv_get "$1/state/resize_hook" hook || return 0
+  tmux set-hook -uw -t "${hook#* }" "window-resized[${hook%% *}]" 2> /dev/null || :
+  rm -f -- "$1/state/resize_hook"
+}
+
+# fzx::resized <root dir> <index> <pane>: the window-resized hook (tmux runs it, outside any session's
+# environment). A tree that is gone removes its hook. While the window keeps changing (a drag) only the last
+# event acts: the size is read twice, FZX_RESIZE_SETTLE_MS apart. Then the fzf on screen (the root's
+# state/current) is sent `transform(fzx _cb nav relayout)` on its --listen socket, which restarts it in a
+# popup sized for the window when its geometry changed.
+fzx::resized() {
+  local root_dir="$1" idx="$2" pane="$3" current="" sock w1 h1 w2 h2 cmd
+  if [[ ! -d "$root_dir" ]]; then
+    tmux set-hook -uw -t "$pane" "window-resized[$idx]" 2> /dev/null || :
+    return 0
+  fi
+  read -r w1 h1 < <(tmux display-message -p -t "$pane" '#{window_width} #{window_height}' 2> /dev/null) || return 0
+  sleep "$(printf '%d.%03d' $((${FZX_RESIZE_SETTLE_MS:-300} / 1000)) $((${FZX_RESIZE_SETTLE_MS:-300} % 1000)))"
+  read -r w2 h2 < <(tmux display-message -p -t "$pane" '#{window_width} #{window_height}' 2> /dev/null) || return 0
+  [[ "${w1}x$h1" == "${w2}x$h2" ]] || return 0
+  fzx::_kv_get "$root_dir/state/current" current || return 0
+  sock="${root_dir%/*}/$current/fzf.sock"
+  [[ -S "$sock" ]] || return 0
+  printf -v cmd 'transform:%q _cb nav relayout' "$FZX_BIN"
+  command curl -s -m 2 --unix-socket "$sock" -X POST http://localhost --data-binary "$cmd" > /dev/null 2>&1 || :
 }
 
 fzx::_mode_valid() {

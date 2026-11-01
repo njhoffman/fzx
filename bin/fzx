@@ -54,6 +54,12 @@ main() {
       fzx::callback "$@"
       return
       ;;
+    _resized)
+      shift
+      fzx::require log session run
+      fzx::resized "$@"
+      return
+      ;;
     debug)
       shift
       fzx::require log session debug

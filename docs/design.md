@@ -149,6 +149,17 @@ layouts, or none that fits, `center,80%`. Explicit OPTS (`--popup=OPTS`, `popup:
 both. Every popup launch asks for the popup again, so a `become()` into another module opens at that
 module's size; the width is read at each launch.
 
+**Popups follow the window.** tmux does not resize a running popup when its window grows, and only clamps it
+when the window shrinks, so the first popup launch of a tree in tmux sets a `window-resized` hook on the
+caller's window (`window-resized[N]`, N from the root's id, recorded in the root's `state/resize_hook`;
+the owner removes it on exit, and a hook whose tree is gone removes itself). The hook runs
+`fzx _resized ROOT_DIR N PANE`, which waits `FZX_RESIZE_SETTLE_MS` (300) and acts only if the size held, so
+a drag relaunches once, then posts `transform(fzx _cb nav relayout)` to the fzf on screen (the root's
+`state/current`). relayout compares the popup's geometry, its spec and the window's size, with the one
+its launch recorded (`state/popup_geometry`) and restarts it in place through `become()` when they differ;
+the query and position are saved as for any navigation. Explicit popup OPTS follow the window too, since
+their percentages do. Floats do not follow it yet.
+
 With `FZF_TMUX` set (fzf's shell integration setting, not `0`) and inside tmux, a new run without a
 placement flag starts where `FZF_TMUX_OPTS` points, read in fzf-tmux syntax: `-p[W[,H]]` (and `-w`/`-h`)
 a popup, `-d`/`-u`/`-l`/`-r` `[SIZE]` a split; no options, or none recognised, a popup (fzf's own
@@ -419,6 +430,7 @@ resolved config: the callback loads the layers just before the first module func
 | `FZX_PREVIEW_NVCAT_MAX_LINES` | `300` | the longest file (source lines) nvcat draws; longer ones go to bat, since nvcat's complete output stops at 1000 screen rows and reaching that took seconds |
 | `FZX_READ0` | `0` | `1` (a module's opts hook may set it): the source's items end with NUL and may span lines; fzf gets `--read0 --highlight-line`, and the callbacks count items by NUL (`meta/read0`). history sets it unless `FZX_HISTORY_MULTILINE=0` |
 | `FZX_POPUP_LAYOUTS` | `0:center,100%` `140:center,90%,85%` `220:center,80%` | popup and float size by the tmux window's width, see "Popup geometry" |
+| `FZX_RESIZE_SETTLE_MS` | `300` | how long the window's size must hold before a popup is reopened at the new size |
 | `FZX_PERSIST`, `FZX_POPUP_OPTS`, `FZX_FLOAT_OPTS`, `FZX_STATS`, `FZX_SUMMARY_TTL`, `FZX_TRACE`, ... | | see their sections |
 
 **Responsive preview.** `FZX_PREVIEW_LAYOUTS` entries are `MINCOLS:SPEC`; the entry with the largest

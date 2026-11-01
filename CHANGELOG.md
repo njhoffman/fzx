@@ -6,6 +6,15 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.56.0] - 2026-11-01
+
+### Added
+
+- Popups follow the tmux window: when the window is resized, an open popup is reopened at the size its
+  module's `FZX_POPUP_LAYOUTS` calls for at the new width (and for the new size, with percentages), keeping
+  the query and position. A drag reopens it once, after the size has held for `FZX_RESIZE_SETTLE_MS` (300).
+  Before, a popup stayed at its old size when the window grew and was clipped when it shrank.
+
 ## [0.55.0] - 2026-11-01
 
 ### Added

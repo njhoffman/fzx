@@ -195,6 +195,7 @@ fzx::nav() {
     back) fzx::_nav_back ;;
     escape) fzx::_nav_back abort ;;
     placement) fzx::_nav_placement "$@" ;;
+    relayout) fzx::_nav_relayout ;;
     # the old name of the placement key's action
     popout) fzx::_nav_placement next ;;
     goto) fzx::_nav_goto "$@" ;;
@@ -270,6 +271,28 @@ fzx::_nav_placement() {
   else
     fzx::_nav_become "$FZX_SESSION"
   fi
+}
+
+# fzx::_nav_relayout: the window was resized (fzx::resized sends this to the fzf on screen). A popup whose
+# geometry (spec and window size, fzx::popup_geometry) differs from the one it was launched with restarts
+# in place through become(), so it is opened again at the size the window now calls for; anything else
+# prints nothing.
+fzx::_nav_relayout() {
+  local p spec geo="" old=""
+  fzx::require config run
+  fzx::config_load "$FZX_MODULE_DIR" "$FZX_MODULE"
+  fzx::placement p
+  case "$p" in
+    popup) fzx::popup_opts popup spec ;;
+    popup:*) spec="${p#popup:}" ;;
+    *) return 0 ;;
+  esac
+  fzx::popup_geometry "$spec" geo || return 0
+  fzx::state_get popup_geometry old || :
+  [[ "$geo" == "$old" ]] && return 0
+  fzx::log info "nav relayout: popup ${old:-?} -> $geo"
+  _FZX_STAT=(nav - relayout)
+  fzx::_nav_become "$FZX_SESSION"
 }
 
 # go to the n-th entry of a module's manifest (what the menu opens)
