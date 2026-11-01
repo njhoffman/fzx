@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.37.0): the six steps of `docs/design.md` are done. Modules: actions, capture, colors, dirs,
+Status (0.37.0): the six steps of `docs/design.md` are done. Modules: actions, audio, capture, colors, dirs,
 docker, files, git, github, glyphs, history, keybindings, logs, man, menu, network, ps, recent, repos, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
@@ -126,8 +126,6 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       Has: jq, awk, sed. Missing: yq (fzr-yq mode).
 - [ ] **pass** (p2) [module]: password-store entries, copy password or a field with a clear timer.
       Refs: system/fzpass.sh, fzpass2.sh, ffpass.sh. Has: pass, gpg, ~/.password-store.
-- [ ] **audio** (p2) [module]: pactl/wpctl sinks and sources (set default, volume), playerctl players.
-      Refs: widgets/audio/*. Has: pactl, wpctl, playerctl.
 - [ ] **music** (p2) [module]: a navigable interface to mpc or musicman (~/ghq/github.com/njhoffman/musicman,
       its cli/), moving forward and back between areas (artists -> albums -> tracks, queue, playlists) as
       child sessions, so back and the cached lists come from the session tree. Play, add, remove as action
@@ -163,6 +161,9 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 
 ## 7. Known issues
 
+- [ ] **menu_scores test flakes under load** (p3) [test]: test/menu.bats "menu_scores: launches by module ..."
+      stamps rows "now minus N days" and compares the decayed scores to six decimals; under the parallel suite
+      a second's delay gives 0.999999 (seen 2026-11-01, passes alone). Compare rounded to 3 decimals.
 - [ ] **Zellij popups untested** (p3) [test]: popups are only checked on tmux; zellij is not installed here.
 - [ ] **Undocumented fzf behaviour we depend on** (p3) [test]: `become()` inside a `--popup` runs in the original
       terminal, so every launch re-requests the popup (`fzx::_placement`). Observed on fzf 0.74 (devel);

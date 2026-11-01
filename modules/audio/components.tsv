@@ -1,0 +1,13 @@
+# audio components: kind  name  key  description  flags (see lib/components.sh)
+# Enter: sinks, sources: make it the default; streams: pick its new output; players: play or pause.
+mode    sinks     -          outputs, the default marked                                           default
+mode    sources   -          inputs, the default marked (monitors with the toggle)                 -
+mode    streams   -          what is playing, per application, and to which output                -
+mode    players   -          media players (MPRIS, through playerctl) and their tracks              -
+toggle  monitors  alt-1      sources: the outputs' monitors too                                    -
+action  up        alt-up     volume up (FZX_AUDIO_STEP)                                             silent,reload
+action  down      alt-down   volume down                                                            silent,reload
+action  mute      alt-m      sinks, sources, streams: mute or unmute; players: play or pause        silent,reload
+action  next      alt-n      players: the next track                                                silent,reload
+action  previous  alt-p      players: the previous track                                            silent,reload
+action  copy      ctrl-y     copy the names (streams: indexes)                                      silent,builtin

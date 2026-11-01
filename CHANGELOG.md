@@ -6,6 +6,16 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.54.0] - 2026-11-01
+
+### Added
+
+- audio: a new module for outputs, inputs, playing streams and media players, through pactl (PulseAudio
+  or PipeWire) and playerctl. Enter makes an output or input the default, plays or pauses a player, or on
+  a stream opens the outputs to move it to. alt-up and alt-down change the volume (capped at
+  `FZX_AUDIO_MAX`), alt-m mutes, alt-n and alt-p skip tracks. The preview shows a device's channels, port,
+  bus and codec and what plays on it.
+
 ## [0.53.0] - 2026-11-01
 
 ### Added
