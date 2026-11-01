@@ -217,8 +217,7 @@ What a module ships with, beyond the scripts above:
 - **Docs**: a paragraph under Modules below, a CHANGELOG entry, and the module in TODO.md's status line.
 
 Modules still missing parts (2026-11-01): preview layouts in colors, dirs, docker, git, keybindings,
-logs, man, network, ps, recent, shell, systemd, tasks, tmux and youtube; a test file of their own for
-logs and systemd (test/modules.bats covers them in part).
+logs, man, network, ps, recent, shell, systemd, tasks, tmux and youtube.
 
 ### Modes
 

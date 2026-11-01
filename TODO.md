@@ -37,8 +37,6 @@ Reviewed: 2026-10-28
 - [ ] **history: exit 130 counts as failed** (p3) [bug]: a TUI quit with ctrl-c or esc (fzf, fzx, less)
       exits 130 and shows red with the failed icon (fzx here: 81 of 92 runs "failed"). Show interrupted
       runs apart (dim, their own icon) and leave them out of the failed toggle and the success rate.
-- [ ] **logs and systemd test files** (p3) [test]: test/modules.bats covers them in part; give each its own
-      file (sources per mode and toggle, previews, actions, bindings under fzx), as the checklist asks.
 - [ ] **Popup geometry per module** (p2) [feature]: popup size and position from the module's content and
       purpose, measured against the whole tmux window (`#{window_width}`/`#{window_height}`), not the
       calling pane, since the popup covers split panes. Per-module settings like the preview layouts.

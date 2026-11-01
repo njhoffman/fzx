@@ -6,6 +6,13 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.49.1] - 2026-11-01
+
+### Changed
+
+- logs and systemd have test files of their own (test/logs.bats, test/systemd.bats), covering their
+  previews, every action, the menu entries and summaries, and the bindings under fzx.
+
 ## [0.49.0] - 2026-11-01
 
 ### Added
