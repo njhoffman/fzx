@@ -6,6 +6,17 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.42.1] - 2026-11-01
+
+### Changed
+
+- Colors move off bright yellow toward white, aqua and turquoise: the dirs, tasks and logs icons, files'
+  dirs mode, tasks' python runners and tmux option values. The network module's middling signal and
+  github's pending checks are a muted tan. GitHub stars stay gold.
+- Highlighted backgrounds are dark tints now: selected items in the `round` and `triangle` component
+  styles (`FZX_COLORS[pill_on]` 24, text 195 instead of a bright blue fill) and github's code matches
+  (dark teal instead of yellow).
+
 ## [0.42.0] - 2026-11-01
 
 ### Added

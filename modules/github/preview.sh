@@ -48,7 +48,7 @@ github::preview_repo() {
 # github::preview_code <search file> <index>: the fragments GitHub matched, the matches highlighted, then the
 # file itself with every line holding a match marked
 github::preview_code() {
-  local hl=$'\e['"${FZX_COLORS[github_match]:-1;38;5;16;48;5;220}m" b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
+  local hl=$'\e['"${FZX_COLORS[github_match]:-1;38;5;195;48;5;23}m" b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
   local repo path sha blob lines=() n
   [[ -n "${NO_COLOR+x}" ]] && hl="" b="" d="" r=""
   IFS=$'\t' read -r repo path sha < <(command jq -r --argjson i "$2" '.[$i] | [.repository.nameWithOwner, .path, .sha] | join("\t")' -- "$1")
@@ -120,7 +120,7 @@ github::preview_issue() {
 # again
 github::item_details() {
   local url="$1" repo="$2" num="$3" updated="$4" kind fields view md tmp
-  local d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m' y=$'\e[33m'
+  local d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m' y=$'\e[38;5;180m'
   local g=$'\e['"${FZX_COLORS[github_open]:-38;5;114}m" red=$'\e['"${FZX_COLORS[github_closed]:-38;5;203}m"
   [[ -n "${NO_COLOR+x}" ]] && d="" r="" y="" g="" red=""
   kind=issue fields=body,comments

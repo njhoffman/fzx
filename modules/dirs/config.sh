@@ -8,7 +8,7 @@ declare -gA FZX_KEYS FZX_COLORS
 FZX_ICON=""
 
 # the icon's color in the menu
-FZX_COLORS[dirs_icon]="38;5;179"
+FZX_COLORS[dirs_icon]="38;5;116"
 
 FZX_KEYS[dirs.files]=ctrl-o  # browse the directory in the files module
 

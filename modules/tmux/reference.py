@@ -19,7 +19,7 @@ from pathlib import Path
 RESET = "\033[0m"
 PALETTE = {
     "name": "38;5;81",
-    "value": "38;5;150",
+    "value": "38;5;152",
     "scope": "38;5;250",
     "key": "1;38;5;255",
     "changed": "1;38;5;159",

@@ -49,7 +49,7 @@ FZX_COLORS[github_owner]="38;5;244"
 FZX_COLORS[github_name]="1;38;5;75"
 FZX_COLORS[github_star]="38;5;220"
 FZX_COLORS[github_count]="38;5;250"
-FZX_COLORS[github_match]="1;38;5;16;48;5;220"
+FZX_COLORS[github_match]="1;38;5;195;48;5;23"
 # issues and pull requests: open (and approved), closed (and changes requested), merged, draft
 FZX_COLORS[github_open]="38;5;114"
 FZX_COLORS[github_closed]="38;5;203"

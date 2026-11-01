@@ -210,7 +210,7 @@ tasks::kinds() {
       npm) name=npm color='38;5;167' ;;
       task) name=task color='38;5;80' ;;
       cargo) name=cargo color='38;5;208' ;;
-      *) name=python color='38;5;221' ;;
+      *) name=python color='38;5;159' ;;
     esac
     glyph=""
     [[ "${FZX_ICONS:-nerd}" == nerd ]] && fzx::icon "task_$name" glyph

@@ -95,8 +95,8 @@ declare -gA FZX_COLORS=(
   # added to the column a list is sorted by (ps, docker, tmux, ...), on top of the column's own color
   [sorted]="4"
   # round and triangle component styles: 256-color numbers for the background and text of on/off items
-  [pill_on]=39
-  [pill_on_fg]=16
+  [pill_on]=24
+  [pill_on_fg]=195
   [pill_off]=237
   [pill_off_fg]=248
   [menu_target]="38;5;110"

@@ -8,7 +8,7 @@ declare -gA FZX_KEYS FZX_COLORS
 FZX_ICON=""
 
 # the icon's color in the menu
-FZX_COLORS[logs_icon]="38;5;186"
+FZX_COLORS[logs_icon]="38;5;152"
 
 
 # named log files; missing or unreadable ones are skipped

@@ -54,10 +54,6 @@ Reviewed: 2026-10-28
 - [ ] **Summary wording** (p3) [chore]: summaries print "1 buffers", "1 recent searches"; a small plural
       helper for the manifests.
 
-- [ ] **No bright yellows** (p2) [feature]: move fzx's colors (FZX_COLORS defaults, module palettes,
-      icons) away from bright yellow and yellow-green, toward shades of white, aqua and turquoise. Where a
-      background is highlighted (current line, selected mode/toggle), keep it subtle: a dark tint, not a
-      bright fill. Goes with the theme selector.
 ## 3. Keys and help
 
 - [ ] **Keys from i3, tmux and autokey** (p2) [feature]: scan ~/.config/i3/config, tmux's root table (-n binds;

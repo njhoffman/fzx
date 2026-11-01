@@ -25,19 +25,19 @@ line_for() {
 @test "round: rounded pills, on/off backgrounds from FZX_COLORS" {
   line_for round
   [[ "$LINE" == *$'\e[48;5;237;38;5;248ma\e[0m'* ]]
-  [[ "$LINE" == *$'\e[48;5;39;38;5;16mb\e[0m'* ]]
-  [[ "$LINE" == *$'\e[48;5;39;38;5;16mk\e[0m'* ]]
+  [[ "$LINE" == *$'\e[48;5;24;38;5;195mb\e[0m'* ]]
+  [[ "$LINE" == *$'\e[48;5;24;38;5;195mk\e[0m'* ]]
 }
 
 @test "triangle: one powerline with an arrow between items" {
   line_for triangle
-  [[ "$LINE" == *$'\e[48;5;237;38;5;248m a \e[38;5;237;48;5;39m'* ]]
-  [[ "$LINE" == *$'\e[0m\e[38;5;39m\e[0m' ]]
+  [[ "$LINE" == *$'\e[48;5;237;38;5;248m a \e[38;5;237;48;5;24m'* ]]
+  [[ "$LINE" == *$'\e[0m\e[38;5;24m\e[0m' ]]
 }
 
 @test "bubble and FZX_HEADER_STYLE, the older names, still work" {
   line_for bubble
-  [[ "$LINE" == *$'\e[48;5;39;38;5;16mk\e[0m'* ]]
+  [[ "$LINE" == *$'\e[48;5;24;38;5;195mk\e[0m'* ]]
   load_libs log config opts components
   FZX_COMPONENT_STYLE="" FZX_HEADER_STYLE=triangle
   fzx::component_style s

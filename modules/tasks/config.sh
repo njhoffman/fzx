@@ -12,7 +12,7 @@ declare -gA FZX_ICON_MODES
 FZX_ICON_MODES[repos]="󰳐"
 FZX_ICON_MODES[all]="󰝖"
 # the icons' colors in the menu
-FZX_COLORS[tasks_icon]="38;5;179"
+FZX_COLORS[tasks_icon]="38;5;80"
 FZX_COLORS[tasks_icon_repos]="38;5;111"
 FZX_COLORS[tasks_icon_all]="38;5;141"
 
@@ -25,9 +25,9 @@ FZX_COLORS[tasks_kind_just]='38;5;180'
 FZX_COLORS[tasks_kind_npm]='38;5;167'
 FZX_COLORS[tasks_kind_task]='38;5;80'
 FZX_COLORS[tasks_kind_cargo]='38;5;208'
-FZX_COLORS[tasks_kind_pdm]='38;5;221'
-FZX_COLORS[tasks_kind_poe]='38;5;221'
-FZX_COLORS[tasks_kind_hatch]='38;5;221'
+FZX_COLORS[tasks_kind_pdm]='38;5;159'
+FZX_COLORS[tasks_kind_poe]='38;5;159'
+FZX_COLORS[tasks_kind_hatch]='38;5;159'
 
 # directories searched for repositories besides ghq's (FZX_TASKS_DEPTH levels deep)
 FZX_TASKS_ROOTS=()

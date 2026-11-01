@@ -174,7 +174,7 @@ network::wifi() {
         for (k = 1; k <= r; k++) {
           i = order[k]; s = sig[i]
           print id[i] "\t" (t[i, 2] == "--" ? "" : t[i, 2]) "\t" col(1, up, t[i, 1]) " " col(2, on[i] ? up ";1" : t[i, 2] == "--" ? dim : name, t[i, 2]) " " \
-            col(3, s >= 50 ? up : s >= 25 ? "38;5;221" : down, t[i, 3]) " " col(4, dim, t[i, 4], 1) " " col(5, dim, t[i, 5]) " " c(t[i, 6] == "" ? down : dim, t[i, 6] == "" ? "open" : t[i, 6])
+            col(3, s >= 50 ? up : s >= 25 ? "38;5;180" : down, t[i, 3]) " " col(4, dim, t[i, 4], 1) " " col(5, dim, t[i, 5]) " " c(t[i, 6] == "" ? down : dim, t[i, 6] == "" ? "open" : t[i, 6])
         }
       }'
 }

@@ -13,7 +13,7 @@ FZX_ICON_MODES[dirs]="󰉋"
 FZX_ICON_MODES[grep]="󰍉"
 # the icon's color in the menu
 FZX_COLORS[files_icon]="38;5;75"
-FZX_COLORS[files_icon_dirs]="38;5;214"
+FZX_COLORS[files_icon_dirs]="38;5;116"
 FZX_COLORS[files_icon_grep]="38;5;170"
 
 FZX_KEYS[files.into]=ctrl-o  # browse the directory under the cursor (a file's own directory)
