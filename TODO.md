@@ -1,7 +1,7 @@
 # fzx TODO
 
 Status (0.37.0): the six steps of `docs/design.md` are done. Modules: actions, capture, colors, dirs,
-docker, files, git, github, history, keybindings, logs, man, menu, network, ps, recent, repos, shell, systemd, tasks, tmux,
+docker, files, git, github, glyphs, history, keybindings, logs, man, menu, network, ps, recent, repos, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
 
@@ -141,14 +141,6 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [ ] **zsh docs** (p3) [module]: the zsh manual index (option, builtin, parameter) opening the right section;
       possibly a mode of the man module. Refs: fzfmenu system/zman*, zmandata.tsv.
 - [ ] **i3** (p3) [module]: windows and workspaces (focus, move), scratchpads. Refs: list.md "i3". Has: i3-msg.
-- [ ] **glyphs** (p2) [module]: absorb ~/.shell/scripts/{nerdfont-symbols,unicode-symbols,unicode-all}: modes
-      for Nerd Font glyphs (share/glyphs/nerdfont-glyphs.json, nerdfont-symbols.json, ~9k entries with names)
-      and Unicode symbols (unicode-symbols.json), each row the glyph, its name and code point; copy or insert
-      the glyph, its code (`\uXXXX`, `nf-...`) or the escape; preview the glyph large with neighbours in its
-      block. `unicode-all` (every code point to a UTF-16 file) becomes a mode over the Unicode blocks
-      instead of a dump. Would have helped pick the menu icons; lib/icons.sh could reference names from it.
-      Remove the scripts from ~/.shell once the module covers them (aliases for the old names if wanted).
-      There is no `scripts/unicode` (only unicode-all and unicode-symbols).
 - [ ] **fonts** (p3) [module]: fc-list families with a sample preview. Has: fc-list.
 - [ ] **displays** (p3) [module]: xrandr outputs and modes. Has: xrandr.
 - [ ] **bluetooth** (p3) [module]: devices (connect, disconnect, pair). Has: bluetoothctl.

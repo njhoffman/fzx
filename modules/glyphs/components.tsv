@@ -1,0 +1,11 @@
+# glyphs components: kind  name  key  description  flags (see lib/components.sh)
+# Enter prints the glyph (the zsh widget inserts it); in blocks it opens the block.
+mode    nerd     -       Nerd Font glyphs by name (nf-set-name), with their code points             default
+mode    unicode  -       named Unicode characters with their block (--block NAME: one block's)     -
+mode    blocks   -       the Unicode blocks: enter or ctrl-o opens one                             -
+mode    emoji    -       emoji by name, with their group and subgroup                               -
+action  copy     ctrl-y  copy the glyphs                                                            silent,builtin
+action  code     alt-c   copy the code points (U+EB99)                                              silent,notify
+action  name     alt-n   copy the names (nerd: nf-cod-account)                                      silent,notify
+action  escape   alt-e   copy them as escapes (, \U0001F600 above FFFF)                       silent,notify
+action  update   alt-U   nerd: download the latest Nerd Font glyph names                            foreground,reload

@@ -6,6 +6,17 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.53.0] - 2026-11-01
+
+### Added
+
+- glyphs: a new module for picking characters. Nerd Font glyphs by name (Nerd Fonts 3.5.1, shipped with the
+  module; alt-U downloads the latest names), named Unicode characters with their block, the Unicode blocks
+  (enter opens one), and emoji by name with their group. Enter prints the glyph; alt-c, alt-n and alt-e
+  copy its code points, name or `\u` escape. The preview shows the glyph, its codes, UTF-8 bytes and HTML
+  reference, and a grid of its neighbours. Replaces ~/.shell's nerdfont-symbols, unicode-symbols and
+  unicode-all; the Unicode modes read the unicode-data package's files.
+
 ## [0.52.0] - 2026-11-01
 
 ### Added
