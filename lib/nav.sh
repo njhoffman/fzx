@@ -71,6 +71,20 @@ fzx::_nav_refresh() {
   printf 'change-border-label( %s )+%s+%s' "$label" "$place" "$reload"
 }
 
+# fzx::nav_footer: the footer text: the component line when it sits in the footer, else nothing
+fzx::nav_footer() {
+  local line=""
+  fzx::require config opts components
+  fzx::config_load "$FZX_MODULE_DIR" "$FZX_MODULE"
+  [[ "${FZX_HEADER_POSITION:-footer}" == header ]] && return 0
+  fzx::comp_load_session
+  fzx::session_modes
+  fzx::session_mode FZX_MODE
+  fzx::comp_current
+  fzx::component_line line
+  printf '%s\n' "$line"
+}
+
 # fzx::nav_header: the header text for header placement: the component line, then the module's header
 fzx::nav_header() {
   local line h=""

@@ -48,9 +48,6 @@ Reviewed: 2026-10-28
       calling pane, since the popup covers split panes. Per-module settings like the preview layouts.
 - [ ] **Resize the popup with the window** (p3) [feature]: on `resize`, recompute the popup geometry; fzf
       cannot resize a running popup, so this likely means a relaunch (become with the new --popup options).
-- [ ] **Copy feedback in the footer** (p2) [feature]: yanks notify in fzf's footer, not system wide: replace the copy notify-send (fzx actions and ctrl-y/alt-y
-      in ~/.config/fzf/fzfrc) with a footer message that pops in and clears itself:
-      `enter:execute-silent(...)+bell`, `+transform-footer(echo Copied {})`, `+bg-cancel+bg-transform-footer(sleep 1)`.
 - [ ] **Summary wording** (p3) [chore]: summaries print "1 buffers", "1 recent searches"; a small plural
       helper for the manifests.
 

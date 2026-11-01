@@ -8,5 +8,5 @@ toggle  exported    alt-2   params: exported ones only                          
 toggle  reveal      alt-3   params: show the values of exported secrets (FZX_SHELL_SECRETS)          -
 action  edit        ctrl-e  functions: the file at the definition; commands: a script, in $EDITOR    foreground
 action  help        alt-n   the tldr or man page in the pager (an alias: its command's; a builtin: zshbuiltins)  foreground
-action  value       alt-y   params: copy the values (masked ones skipped)                            silent
+action  value       alt-y   params: copy the values (masked ones skipped)                            silent,notify
 action  copy        ctrl-y  copy the names                                                          silent,builtin

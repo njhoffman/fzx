@@ -26,6 +26,16 @@ fzx::callback() {
       (exit "$rc")
       ;;
     transform) fzx::_cb_actions fzx::_cb_call actions transform "$@" ;;
+    notify)
+      fzx::_cb_actions fzx::_cb_notify "$@"
+      rc=$?
+      _FZX_STAT=(action "$(($# > 0 ? $# - 1 : 0))" "${1:-}:$_FZX_NOTIFY_RC")
+      (exit "$rc")
+      ;;
+    footer)
+      fzx::require nav
+      fzx::nav_footer
+      ;;
     mode)
       fzx::require nav
       fzx::_cb_actions fzx::nav_mode "$@"
@@ -267,6 +277,51 @@ fzx::_cb_action() {
     fi
   fi
   fzx::_cb_call actions action "$@"
+}
+
+# fzx::_cb_notify <action> [args...]: run the action (its output discarded), then show what happened in the
+# footer for FZX_NOTIFY_SECONDS and put the component line back (`fzx _cb footer`, from the state then)
+fzx::_cb_notify() {
+  local name="${1:-}" err="$FZX_SESSION_DIR/notify.$BASHPID" line="" desc="" msg color items=("${@:2}") i act
+  fzx::_cb_action "$@" > /dev/null 2> "$err"
+  _FZX_NOTIFY_RC=$?
+  # the selection only: module args before a "--" are not what was acted on
+  for ((i = ${#items[@]} - 1; i >= 0; i--)); do
+    [[ "${items[i]}" == -- ]] && { items=("${items[@]:i+1}"); break; }
+  done
+  fzx::require config
+  [[ -n "${_FZX_CB_CONFIG:-}" ]] || fzx::config_load "$FZX_MODULE_DIR" "$FZX_MODULE"
+  if ((_FZX_NOTIFY_RC == 0)); then
+    color="${FZX_COLORS[notify_ok]:-}"
+    if [[ "$name" == copy || "$name" == copy-line ]]; then
+      if ((${#items[@]} == 1)); then msg="copied ${items[0]}"; else msg="copied ${#items[@]} items"; fi
+    else
+      fzx::comp_field action "$name" description desc || desc=""
+      [[ "$desc" == - ]] && desc=""
+      # a mode-scoped description: the current mode's part
+      local mode="" modes=() row
+      fzx::state_get mode mode 2> /dev/null || mode=""
+      while IFS=$'\t' read -r _ row _; do modes+=("$row"); done < <(fzx::comp_rows mode)
+      ((${#modes[@]})) && { fzx::mode_desc "$desc" "$mode" desc "${modes[@]}" || :; }
+      desc="${desc:-$name}"
+      msg="✓ $desc"
+      ((${#items[@]} > 1)) && msg+=" (${#items[@]})"
+    fi
+  else
+    color="${FZX_COLORS[notify_fail]:-}"
+    IFS= read -r line < "$err" || :
+    msg="✗ $name failed${line:+: $line}"
+  fi
+  cat -- "$err" >> "$FZX_LOG_FILE" 2> /dev/null || :
+  rm -f -- "$err"
+  fzx::log info "notify $name rc=$_FZX_NOTIFY_RC: $msg"
+  # one line, short enough for the footer, no characters that end the action
+  msg="${msg//[$'\n\t\r']/ }"
+  ((${#msg} > 120)) && msg="${msg:0:119}…"
+  [[ -n "$color" && -z "${NO_COLOR+x}" ]] && msg=$'\e['"${color}m$msg"$'\e[0m'
+  fzx::require opts
+  fzx::action_arg change-footer "$msg" act || act="change-footer(${msg//[()]/})"
+  printf '%s+bg-cancel+bg-transform-footer(sleep %s; %s)' "$act" "${FZX_NOTIFY_SECONDS:-2}" "$(fzx::cb footer)"
 }
 
 # fzx::_cb_call <script> <function> [args...]

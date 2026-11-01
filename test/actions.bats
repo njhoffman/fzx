@@ -65,7 +65,8 @@ fake_clipboard() {
 @test "built-ins: copy, copy-line and view, with arguments; view takes the preview's" {
   echo 'action  copy  alt-c  =  =' >> "$FZX_CONFIG_DIR/modules/counter/components.tsv"
   run "$FZX" -m counter
-  [ "$(fzf_bind alt-c)" = "alt-c:execute-silent($FZX _cb action copy {+1})" ]
+  # copy reports in the footer, so under fzx it runs through the notify callback
+  [ "$(fzf_bind alt-c)" = "alt-c:transform($FZX _cb notify copy {+1})" ]
   local bind
   bind="$(fzf_bind 'ctrl-\')"
   [ "$bind" = "ctrl-\\:transform:$FZX _cb nav goto actions mark,edit,pick,zap,open,copy {+1} --fzx-- copy-line {+} --fzx-- view {1} --fzx--" ]
@@ -105,6 +106,51 @@ fake_clipboard() {
   [ "$status" -eq 0 ]
   [ "$(< "$BATS_TEST_TMPDIR/clip")" = $'x\ny' ]
   [ "$(< "$COUNTER_FILE.actions")" = "mark a b" ]
+}
+
+@test "notify: a row flagged notify runs through the callback; standalone it stays execute-silent" {
+  echo 'action  ping  alt-n  ping the items  silent,notify,reload' >> "$FZX_CONFIG_DIR/modules/counter/components.tsv"
+  run "$FZX" -m counter
+  [ "$(fzf_bind alt-n)" = "alt-n:transform($FZX _cb notify ping {+1})+reload($FZX _cb source)" ]
+  run "$FZX_REPO/test/fixtures/modules/counter/module.sh"
+  local dir="$FZX_REPO/test/fixtures/modules/counter"
+  [ "$(fzf_bind alt-n)" = "alt-n:execute-silent($dir/actions.sh ping {+1})+reload($dir/source.sh)" ]
+}
+
+@test "notify callback: copies, then the message and the timed return of the component line" {
+  fake_clipboard
+  echo 'FZX_NOTIFY_SECONDS=0.5' > "$FZX_CONFIG_DIR/config.sh"
+  kept
+  FZX_SESSION="$SID" run "$FZX" _cb notify copy 'a (b)'
+  [ "$status" -eq 0 ]
+  [ "$(< "$BATS_TEST_TMPDIR/clip")" = 'a (b)' ]
+  [[ "$output" == "change-footer["*"copied a (b)"*"]+bg-cancel+bg-transform-footer(sleep 0.5; $FZX _cb footer)" ]]
+  FZX_SESSION="$SID" run "$FZX" _cb notify copy x y z
+  [[ "$output" == "change-footer("*"copied 3 items"*")+"* ]]
+}
+
+@test "notify callback: module actions show their description, failures the first stderr line" {
+  echo 'action  ping  -  ping the items  silent,notify' >> "$FZX_CONFIG_DIR/modules/counter/components.tsv"
+  echo 'action  fail  -  -               silent,notify' >> "$FZX_CONFIG_DIR/modules/counter/components.tsv"
+  kept
+  FZX_SESSION="$SID" run "$FZX" _cb notify ping a b
+  [[ "$output" == "change-footer"?*"✓ ping the items (2)"*"+bg-cancel+"* ]]
+  [ "$(< "$COUNTER_FILE.actions")" = "ping a b" ]
+  FZX_SESSION="$SID" run "$FZX" _cb notify fail a
+  [ "$status" -eq 0 ]
+  [[ "$output" == "change-footer"?*"✗ fail failed: action stderr"*"+bg-cancel+"* ]]
+  grep -q "action stderr" "$LOG"
+}
+
+@test "footer callback: the component line from the current state; nothing when it is in the header" {
+  printf '%s\n' 'toggle  hidden  -  hidden  -' >> "$FZX_CONFIG_DIR/modules/counter/components.tsv"
+  kept
+  FZX_SESSION="$SID" "$FZX" _cb toggle hidden > /dev/null
+  FZX_SESSION="$SID" run "$FZX" _cb footer
+  [[ "$output" == *hidden* ]]
+  echo 'FZX_HEADER_POSITION=header' > "$FZX_CONFIG_DIR/config.sh"
+  FZX_SESSION="$SID" run "$FZX" _cb footer
+  [ -z "$output" ]
 }
 
 @test "callback: view pages the module's preview" {

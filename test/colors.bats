@@ -71,6 +71,6 @@ src() { FZX_MODE="$1" "$COLORS/source.sh" | sed 's/\x1b\[[0-9;]*m//g'; }
   run "$FZX" -m colors
   [ "$status" -eq 0 ]
   [ "$(fzf_flag --preview)" = "$FZX _cb preview {1} {3} {4}" ]
-  [[ "$(fzf_bind alt-h)" == *'_cb action hex {+3}'* ]]
-  [[ "$(fzf_bind alt-e)" == *'_cb action escape {+4}'* ]]
+  [[ "$(fzf_bind alt-h)" == *'_cb notify hex {+3}'* ]]
+  [[ "$(fzf_bind alt-e)" == *'_cb notify escape {+4}'* ]]
 }

@@ -62,7 +62,8 @@ Toggling and sort changes reload in place (state in `state/toggles`, `state/sort
 
 - Kinds as flags: `silent` (execute-silent), `foreground` (execute; sudo, editors, followers),
   `become` (replace fzf, e.g. open in an editor and leave), `print` (accept and print a value); plus
-  `reload` / `restart` afterwards and `confirm` (ask first).
+  `reload` / `restart` afterwards, `confirm` (ask first) and `notify` (a message in the footer; the copy
+  built-ins always notify).
 - Built-in defaults every module gets unless it overrides the name: `copy` (the ids), `copy-line`,
   `view` (the preview in a pager), `popout` (the placement toggle). A module's `actions.sh` handles its
   own names; built-ins live in lib/.

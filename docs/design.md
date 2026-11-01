@@ -274,6 +274,7 @@ todos (urgency) sort without a column to mark.
 | `confirm` | ask `[y/N]` on the terminal first (in the callback; standalone in the binding); runs in the foreground |
 | `default` | also bound to enter; without one, enter prints the selection as before |
 | `builtin` | fzx's own (`lib/builtin.sh`), not the module's `actions.sh` |
+| `notify` | silent, and under fzx `transform(fzx _cb notify NAME ARGS)`: the callback runs the action, puts "copied ITEM", "copied N items" or "✓ DESCRIPTION" (on failure "✗ NAME failed: first stderr line") in the footer and brings the component line back after `FZX_NOTIFY_SECONDS` (`bg-transform-footer(sleep N; fzx _cb footer)`, from the state then). The `copy` and `copy-line` built-ins always notify |
 
 Built-ins come from `config/components.tsv` and every module gets them, listed after its own rows:
 `copy` (the ids, `{+1}`), `copy-line` (`{+}`) and `view` (the module's preview of the item in `$PAGER`).
@@ -369,6 +370,7 @@ resolved config: the callback loads the layers just before the first module func
 | `FZX_RESERVED_KEYS` | ctrl-f ctrl-b ctrl-u ctrl-w ctrl-g alt-g ctrl-p ctrl-n up down alt-b alt-f scroll-up scroll-down | keys modules may not bind (the user's scrolling and query editing); `fzx::bind` skips a module binding on one and logs a warning. fzx's own keys are not checked. Modules may still take keys the user binds elsewhere (ctrl-e edit replaces the user's `become(nvim)` with a per-module editor action) |
 | `FZX_COLORS` | `mode_active`, `mode_inactive`, `menu_target`, `menu_summary`, `dim`, `sorted` | SGR parameters for what fzx draws itself (`sorted`: added to the column a list is sorted by) |
 | `FZX_FZF_COLORS` | empty | passed as `--color` when set; empty keeps the user's fzf theme |
+| `FZX_NOTIFY_SECONDS` | `2` | how long an action's footer message stays (`FZX_COLORS[notify_ok\|notify_fail]`) |
 | `FZX_HISTORY` | `1` | per-module `--history=$XDG_STATE_HOME/fzx/history/<module>`; `0` leaves fzf's history alone |
 | `FZX_ICON`, `FZX_PROMPT`, `FZX_PROMPT_LOADING` | icon per module (Nerd Font), `{icon} ` | the prompt: `{icon}` in `FZX_COLORS[prompt_loading]` from start until `load`, then `[prompt_loaded]`; every reload (ctrl-r, mode/toggle/sort switches, reload actions) goes back to loading first. A blank prompt (`FZX_ICON=""`) keeps fzf's own prompt and binds nothing. `)` is dropped (it would end `change-prompt(...)`) |
 | `FZX_ICONS` | `nerd` | icons in rows and previews (lib/icons.sh, `fzx::icon NAME`): `nerd` (Nerd Font glyphs), `unicode` (plain symbols, for terminals without a Nerd Font) or `none`. Used by the menu (each module's `FZX_ICON`, or `FZX_ICON_MODES[mode]` for a mode that opens a different list, in `FZX_COLORS[<module>_icon_<mode>]` or `[<module>_icon]`; nerd only), git status (added, modified, deleted, renamed, untracked, conflict), repos (branch, changed, ahead, behind, todos), docker containers and logs (running, paused, stopped, created; file, unit), history (failed); the footer's toggles (on/off) and sort; the ps, history and repos previews' labels (`fzx::icon_label`, icons in `FZX_COLORS[preview_icon]`) |

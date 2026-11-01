@@ -11,6 +11,8 @@
 #   confirm     ask on the terminal first (so it runs in the foreground)
 #   default     bound to enter as well; without one, enter prints the selection
 #   builtin     one of fzx's own (lib/builtin.sh, config/components.tsv), not the module's actions.sh
+#   notify      silent, and under fzx a message in the footer says it ran (or why it failed); the copy
+#               and copy-line built-ins always notify
 # Arguments: the module's opts hook may set FZX_ACTION_ARGS (all of its actions, default {+1}) and
 # FZX_ACTION_ARGS_FOR[name] (one action, built-ins included). Built-ins default to copy {+1},
 # copy-line {+} and view the preview's own arguments.
@@ -69,6 +71,12 @@ fzx::_action_cmd() {
   printf -v "$4" '%s' "$__ac_cmd"
 }
 
+# fzx::_action_notifies <name> <flags>: the action reports in the footer (flag notify, or the copy built-ins)
+fzx::_action_notifies() {
+  [[ ",$2," == *,notify,* ]] && return 0
+  [[ ",$2," == *,builtin,* && ("$1" == copy || "$1" == copy-line) ]]
+}
+
 # fzx::_action_bind_string <name> <flags> <var>: the fzf action list for one action row
 fzx::_action_bind_string() {
   local _name="$1" _flags=",$2," _args _cmd _act
@@ -78,7 +86,9 @@ fzx::_action_bind_string() {
     printf -v "$3" 'become(%s)' "$_cmd"
     return
   fi
-  if [[ "$_flags" == *,silent,* && "$_flags" != *,confirm,* ]]; then
+  if fzx::_action_notifies "$_name" "$2" && fzx::in_session && [[ "$_flags" != *,confirm,* ]]; then
+    _act="transform($(fzx::cb notify "$_name" "$_args"))"
+  elif [[ "$_flags" == *,silent,* || "$_flags" == *,notify,* ]] && [[ "$_flags" != *,confirm,* ]]; then
     _act="execute-silent($_cmd)"
   else
     _act="execute($_cmd)"

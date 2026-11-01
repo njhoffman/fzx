@@ -193,7 +193,7 @@ src() { FZX_MODE="$1" "$SH/source.sh"; }
   [ "$status" -eq 0 ]
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " == *" --with-nth=3 "* && " ${FZF_ARGS[*]} " == *" --accept-nth=1 "* ]]
-  [[ "$(fzf_bind alt-y)" == *"_cb action value {+1}"* ]]
+  [[ "$(fzf_bind alt-y)" == *"_cb notify value {+1}"* ]]
   [[ "$(fzf_bind alt-3)" == *reveal* ]]
 }
 

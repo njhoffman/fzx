@@ -111,6 +111,9 @@ declare -gA FZX_COLORS=(
   # the prompt icon once the list is loaded, and while it loads
   [prompt_loaded]="38;5;45;1"
   [prompt_loading]="38;5;240"
+  # footer messages after an action that notifies (copies): done, failed
+  [notify_ok]="38;5;116"
+  [notify_fail]="38;5;203"
   # the icons before preview labels (lib/icons.sh)
   [preview_icon]="38;5;110"
 )
@@ -138,6 +141,10 @@ FZX_COMPONENT_STYLE=""
 FZX_TOGGLE_ICONS=switch
 # where it goes: footer, or header (merged with a header the module sets itself)
 FZX_HEADER_POSITION=footer
+
+# how long a footer message after an action that notifies (copy, copy-line, rows flagged notify) stays
+# before the component line comes back, in seconds (sleep's syntax)
+FZX_NOTIFY_SECONDS=2
 
 # icons and colors from prettypath in the files and dirs lists: auto (when it is installed), 1 or 0
 FZX_PRETTY="${FZX_PRETTY:-auto}"

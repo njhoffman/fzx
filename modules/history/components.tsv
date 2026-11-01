@@ -8,5 +8,5 @@ sort    recent     -  most recently run first                                def
 sort    frequent   -  most often run first                                   -
 action  insert     -       put the command on the command line               default,print
 action  run        alt-enter  run the command (the zsh widget accepts the line)  print
-action  copy       -       copy the commands                                 silent
+action  copy       -       copy the commands                                 silent,notify
 action  delete     ctrl-x  forget every run of the selected commands         confirm,reload

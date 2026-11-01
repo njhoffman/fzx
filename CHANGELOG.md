@@ -6,6 +6,17 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.43.0] - 2026-11-01
+
+### Added
+
+- Copying says so in the footer: under fzx, the copy and copy-line actions show "copied ITEM" (or "copied
+  N items") for `FZX_NOTIFY_SECONDS` (2), then the component line comes back. A failure shows its first
+  error line instead (no clipboard tool, say).
+- The action flag `notify` does the same for a module's own actions ("✓" and the action's description);
+  history's copy, shell's value copy (alt-y) and the colors module's hex, SGR and escape copies use it.
+- `FZX_COLORS[notify_ok]` and `[notify_fail]` color those messages.
+
 ## [0.42.1] - 2026-11-01
 
 ### Changed
