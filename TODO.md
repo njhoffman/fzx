@@ -196,8 +196,10 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 
 ## 7. Known issues
 
-- [ ] **Untested against the real thing** (p2) [test]: docker (stubbed only), systemd start/stop/enable (stubbed
-      systemctl and sudo).
+- [ ] **systemd lists loaded units only** (p2) [bug]: the source runs `list-units --all`, so a unit that is
+      installed but not loaded (disabled, never started: 23 user units here) is missing and cannot be
+      started or enabled from fzx. Merge `list-unit-files` (state from the file: disabled, static, masked).
+      Found by test/live.bats.
 - [ ] **Zellij popups untested** (p3) [test]: popups are only checked on tmux; zellij is not installed here.
 - [ ] **Undocumented fzf behaviour we depend on** (p3) [test]: `become()` inside a `--popup` runs in the original
       terminal, so every launch re-requests the popup (`fzx::_placement`). Observed on fzf 0.74 (devel);

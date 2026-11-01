@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.45.1] - 2026-11-01
+
+### Added
+
+- `just test-live` (test/live.bats, opt-in with `FZX_TEST_LIVE=1`): the docker module's containers, volumes,
+  networks and previews and the systemd module's user-unit actions run against the real daemon and user
+  manager, with throwaway fzx-live-* objects removed afterwards. Nothing is pulled.
+
 ## [0.45.0] - 2026-11-01
 
 ### Added

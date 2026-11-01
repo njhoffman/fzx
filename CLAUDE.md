@@ -7,6 +7,8 @@ changing lib/ or adding a module; a new module follows its "New-module checklist
 
 - `just test`: full suite, in parallel with GNU parallel installed (`FZX_TEST_JOBS=1`: serially, ~4 minutes);
   `bats test/<file>.bats` for one area
+- `just test-live`: docker and systemd against the real daemon and user manager (test/live.bats; it makes
+  and removes fzx-live-* containers, volumes, networks and a user unit; skipped by `just test`)
 - `just lint`: shellcheck over every bash file (keep it clean; CI runs it); `.bats` files are not linted
 - `bin/fzx -m <module> --dry-run`: the resolved fzf command
 - `bin/fzx config -m <module>`: resolved config layers, keys, colors, settings

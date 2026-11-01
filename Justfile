@@ -12,6 +12,11 @@ test *ARGS:
     fi
     exec bats {{ ARGS }} test
 
+# docker and systemd against the real daemon and user manager (test/live.bats; skipped in `just test`):
+# makes and removes a container, volume, network and user unit named fzx-live-*
+test-live *ARGS:
+    FZX_TEST_LIVE=1 bats {{ ARGS }} test/live.bats
+
 # shellcheck every bash file, executable components.tsv tables included (.bats files excluded: their
 # idioms trip most checks)
 lint:
