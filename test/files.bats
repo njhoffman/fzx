@@ -106,3 +106,44 @@ rel() { (FZX_MODE="$1" "$FILES/source.sh" "$B") | cut -f1 | sed "s:^$B/::"; }
   [[ "$(fzf_bind alt-i)" == *'_cb toggle ignored'* ]]
   [[ "$(fzf_bind alt-l)" == *'_cb toggle follow'* ]]
 }
+
+@test "grep: ctrl-t filters the matches with fzf, the term frozen for reloads; again greps the term" {
+  load_libs log session
+  fzx::session_create files "$FILES" "$B"
+  fzx::state_set mode grep
+  # the options: the key in grep mode only, and a filter left from an earlier visit dropped
+  fzx::state_set files_grep_filter 1
+  run "$FZX" -m files:grep --dry-run "$B"
+  [[ "$output" == *"ctrl-t:transform:"*"_cb transform filter"* ]]
+  run "$FZX" -m files --dry-run "$B"
+  [[ "$output" != *"_cb transform filter"* ]]
+  fzx::state_set files_grep_filter ""
+  FZF_QUERY="needle" run "$FZX" _cb transform filter
+  [ "$output" = "unbind(change)+enable-search+change-query()+change-header[~${B#"$HOME"}  grep: needle  (ctrl-t greps again)]" ] ||
+    [ "$output" = "unbind(change)+enable-search+change-query()+change-header[$B  grep: needle  (ctrl-t greps again)]" ]
+  [ "$(cat "$FZX_SESSION_DIR/state/files_grep_term")" = needle ]
+  # filtering: the source greps the frozen term, whatever fzf's query
+  run bash -c "source '$FZX_REPO/lib/core.sh'; fzx::require log session; source '$FILES/source.sh'; FZX_MODE=grep FZF_QUERY=x files::source '$B' | cut -f1 | sed 's:^$B/::' | sort"
+  [ "${lines[0]}" = .dot ] && [[ "$output" == *top* ]]
+  FZF_QUERY="top" run "$FZX" _cb transform filter
+  [[ "$output" == "rebind(change)+disable-search+change-query(needle)+change-header("*")+"*"reload("*"_cb source)" ]]
+  [ -z "$(cat "$FZX_SESSION_DIR/state/files_grep_filter")" ]
+  # grepping again: fzf's query is the term
+  run bash -c "source '$FZX_REPO/lib/core.sh'; fzx::require log session; source '$FILES/source.sh'; FZX_MODE=grep FZF_QUERY=nomatch files::source '$B'"
+  [ -z "$output" ]
+  # the header position: the text goes to meta/header, which the header callback draws under the components
+  mkdir -p "$FZX_CONFIG_DIR"
+  echo 'FZX_HEADER_POSITION=header' > "$FZX_CONFIG_DIR/config.sh"
+  FZF_QUERY="needle" run "$FZX" _cb transform filter
+  [[ "$output" == "unbind(change)+enable-search+change-query()+transform-header("*"_cb header)" ]]
+  [[ "$(cat "$FZX_SESSION_DIR/meta/header")" == *"  grep: needle  (ctrl-t greps again)" ]]
+  run "$FZX" _cb header
+  [[ "$output" == *"grep: needle  (ctrl-t greps again)" ]]
+  run "$FZX" _cb transform filter
+  [[ "$(cat "$FZX_SESSION_DIR/meta/header")" != *"grep: needle"* ]]
+  rm "$FZX_CONFIG_DIR/config.sh"
+  # other modes: nothing
+  fzx::state_set mode files
+  run "$FZX" _cb transform filter
+  [ -z "$output" ]
+}

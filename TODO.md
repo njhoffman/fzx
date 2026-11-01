@@ -84,14 +84,10 @@ Reviewed: 2026-10-28
 
 ## 4. Core features
 
-- [ ] **Preferred finder and grepper** (p2) [feature]: config values for the file/directory finder and the
-      grepper (the user wants `fdfind` and `ripgrep`). In grep mode, a toggle between the query driving the
-      grepper (reload per keystroke) and filtering the grepped results within fzf; show which one is active
-      (the grep term moves to the header label or after the prompt) and freeze the grep term while in fzf
-      search mode (switch back to edit it). A key that puts the grepper/finder arguments into the prompt,
-      enter applies them; show the current arguments in the preview's top line or a label.
-      Prior art: resources/ (older setups) and fzf's ADVANCED.md / CHANGELOG ("ripgrep integration", switching
-      between ripgrep and fzf mode with `transform`/`rebind`). Seeing and editing the arguments can come last.
+- [ ] **Grepper and finder arguments in the prompt** (p2) [feature]: in files (grep and the finder modes), a
+      key that puts the rg/fd arguments into the query, enter applies them; show the current arguments in
+      the preview's top line or a label. Prior art: resources/ (older setups). Grep mode's switch between
+      grepping and fzf filtering (ctrl-t) shipped in 0.40.0; fd and ripgrep are already the tools used.
 - [ ] **Sessions module** (p3) [module]: a picker over `fzx debug ls` that resumes a kept or running session from
       another terminal.
 - [ ] **Piping** (p3) [feature]: when stdin is not a tty and no module is given, match each manifest's `detect`

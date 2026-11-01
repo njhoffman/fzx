@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.40.0] - 2026-10-31
+
+### Added
+
+- `files` grep mode: ctrl-t (`FZX_KEYS[files.filter]`) switches from grepping as you type to filtering the
+  matches with fzf, the grep term frozen and shown in the header (reloads and toggles keep grepping it);
+  ctrl-t again puts the term back in the query and greps.
+
 ## [0.39.0] - 2026-10-31
 
 ### Changed

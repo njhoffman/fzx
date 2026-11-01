@@ -39,6 +39,19 @@ fzx::prompt() {
   printf -v "$2" '%s' "$_t"
 }
 
+# fzx::action_arg <action> <text> [var]: action(text) with a delimiter pair fzf accepts that the text does
+# not close, into var when given, else printed; fails when the text holds every closing delimiter
+fzx::action_arg() {
+  local _d _out
+  for _d in '()' '[]' '{}' '<>' '~~' '!!' '@@' '##' '$$' '%%' '^^' '&&' '**' ';;' '//' '||'; do
+    [[ "$2" == *"${_d:1:1}"* ]] && continue
+    _out="$1${_d:0:1}$2${_d:1:1}"
+    if [[ -n "${3:-}" ]]; then printf -v "$3" '%s' "$_out"; else printf '%s' "$_out"; fi
+    return 0
+  done
+  return 1
+}
+
 # fzx::reload_action <command> <var>: reload(command), switching the prompt to its loading form first
 # (the load event switches it back)
 fzx::reload_action() {

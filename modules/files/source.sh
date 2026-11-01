@@ -2,7 +2,7 @@
 # files source. Lines are "absolute path<TAB>display" (files, dirs), sorted by path, or
 # "absolute path<TAB>line<TAB>display" (grep). Mode from $FZX_MODE: files (default), dirs, grep.
 # grep searches for $FZF_QUERY, which fzf exports to the reload it runs on every query change, with ripgrep,
-# else grep. Toggles: hidden (on at start), ignored, follow (symbolic links listed, not entered, while off).
+# else grep; while fzf filters the matches (files::transform filter) it searches the term frozen then. Toggles: hidden (on at start), ignored, follow (symbolic links listed, not entered, while off).
 # Sorts: path, recent.
 
 # files::base [DIR]: absolute base directory into FILES_BASE; a file argument means its directory
@@ -104,6 +104,17 @@ files::grep() {
   fi
 }
 
+# files::grep_term <var>: the term grep mode searches while fzf filters its matches (the var is left alone
+# otherwise, and outside a session)
+files::grep_term() {
+  local _on="" _term=""
+  [[ -n "${FZX_SESSION_DIR:-}" ]] && declare -F fzx::state_get > /dev/null || return 0
+  fzx::state_get files_grep_filter _on 2> /dev/null || return 0
+  [[ -n "$_on" ]] || return 0
+  fzx::state_get files_grep_term _term 2> /dev/null || _term=""
+  printf -v "$1" '%s' "$_term"
+}
+
 # files::source [DIR]
 files::source() {
   local mode="${FZX_MODE:-files}" dim=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" rst=$'\e[0m'
@@ -130,6 +141,7 @@ files::source() {
       ;;
     grep)
       local query="${FZF_QUERY:-}" rc
+      files::grep_term query
       [[ -n "$query" ]] || return 0
       files::grep "$query" |
         awk -v base="$FILES_BASE/" -v dim="$dim" -v rst="$rst" '

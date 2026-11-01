@@ -18,6 +18,7 @@ FZX_COLORS[files_icon_grep]="38;5;170"
 
 FZX_KEYS[files.into]=ctrl-o  # browse the directory under the cursor (a file's own directory)
 FZX_KEYS[files.up]=alt-up    # browse the parent directory
+FZX_KEYS[files.filter]=ctrl-t # grep: filter the matches with fzf instead of grepping, and back
 
 # file lists can be large and change rarely within a few minutes: reuse them across runs
 FZX_PERSIST=cache:5m

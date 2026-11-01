@@ -424,7 +424,7 @@ given only a `--language` (zsh commands, man pages, logs) go to bat.
 | Module | Modes | Args | Keys | Enter prints |
 |---|---|---|---|---|
 | `ps` | user, all, tree | `--ppid PID` | ctrl-x SIGTERM, kill (SIGKILL, confirm; menu only), ctrl-o children | pids |
-| `files` | files, dirs, grep (as you type); toggles hidden (on), ignored, follow; sort path/recent | `[DIR]` | ctrl-e edit, ctrl-o into directory, alt-up parent, alt-h/alt-i/alt-l toggles | absolute paths (`path:line` in grep) |
+| `files` | files, dirs, grep (as you type); toggles hidden (on), ignored, follow; sort path/recent | `[DIR]` | ctrl-e edit, ctrl-o into directory, alt-up parent, ctrl-t grep/filter, alt-h/alt-i/alt-l toggles | absolute paths (`path:line` in grep) |
 | `keybindings` | zsh (every keymap; zle descriptions from zshzle(1), user widgets from the comment above their function), tmux (the tmux module's keys), fzf (yours, then fzf's defaults) | | ctrl-y copy | bindkey / bind-key lines, fzf keys |
 | `logs` | files (newest first), units, docker | | alt-F follow (ctrl-c returns) | path, unit or container id |
 | `man` | commands (`FZX_MAN_SECTIONS`, 1 and 8), all, tldr (descriptions from tealdeer's pages); cached a day | | enter opens in the pager, alt-n nvim (`:Man`, a tldr page's markdown), ctrl-y copy | (enter opens) |
@@ -472,7 +472,11 @@ symbolic links are listed by their target's kind but not entered: fd's `--type f
 a second `--type l` pass sorts them into files or dirs and drops broken ones. grep mode uses ripgrep, else
 `grep -E` (smart case emulated, binary files skipped, no ignore files); it runs from inside the base with
 `--exclude-dir='.?*'`, since GNU grep matches `--exclude-dir='.*'` against a `.` or dot-named base itself
-and searches nothing. The preview starts with one line: the path under ~ and the size (a directory's
+and searches nothing. ctrl-t (`FZX_KEYS[files.filter]`, sessions only) switches grep mode between grepping
+(the query is the term, a reload per change) and fzf filtering the matches (`unbind(change)+enable-search`;
+the term is frozen in `state/files_grep_term`, the source greps it on reloads and toggles, and the header
+shows it, through `meta/header` in the header position); again restores the term as the query and greps.
+Entering the mode starts grepping. The preview starts with one line: the path under ~ and the size (a directory's
 entry count, a link's target); images go through chafa (`FZX_FILES_IMAGE_FORMAT`, symbols by default).
 `shell/fzx.zsh` also defines `fzf`: with no options and a terminal on stdin it runs `fzx -m files`,
 otherwise the real fzf (`FZX_ZSH_NO_FZF=1` before sourcing leaves fzf alone).

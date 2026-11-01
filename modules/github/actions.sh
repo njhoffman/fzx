@@ -354,17 +354,10 @@ github::action() {
   esac
 }
 
-# github::_arg <action> <text> [var]: action(text) with a delimiter pair fzf accepts that text does not
-# close, into var when given, else printed
+# github::_arg <action> <text> [var]: fzx::action_arg (lib/opts.sh)
 github::_arg() {
-  local _d _out
-  for _d in '()' '[]' '{}' '<>' '~~' '!!' '@@' '##' '$$' '%%' '^^' '&&' '**' ';;' '//' '||'; do
-    [[ "$2" == *"${_d:1:1}"* ]] && continue
-    _out="$1${_d:0:1}$2${_d:1:1}"
-    if [[ -n "${3:-}" ]]; then printf -v "$3" '%s' "$_out"; else printf '%s' "$_out"; fi
-    return 0
-  done
-  return 1
+  fzx::require opts
+  fzx::action_arg "$@"
 }
 
 # github::transform <enter|into|narrow|filter> [module args...] -- <first field> <kind> <repo>

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # files: find files and directories, or grep their contents. `fzx -m files[:dirs|:grep] [DIR]`.
-# Enter prints absolute paths (path:line for grep).
+# Enter prints absolute paths (path:line for grep). In grep mode ctrl-t switches between grepping as you type
+# and fzf filtering the matches (the grep term frozen), and back (files::transform).
 
 FZX_MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../lib/core.sh
@@ -32,6 +33,12 @@ files::opts() {
       --scheme=path
       --preview "$(fzx::cb preview '{1}')"
     )
+  fi
+  if [[ "$FZX_MODE" == grep ]] && fzx::in_session; then
+    # grep starts grepping: a filter left on by an earlier visit to the mode is dropped
+    fzx::state_set files_grep_filter ""
+    fzx::bind "${FZX_KEYS[files.filter]}" "transform:$(fzx::cb transform filter)" \
+      "grep: filter the matches with fzf (the grep term frozen), and back to grepping"
   fi
   if fzx::in_session; then
     local parent="${FILES_BASE%/*}"

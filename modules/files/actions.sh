@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# files actions
+# files actions, and grep mode's filter transform
+
+# shellcheck source=./source.sh
+source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
 
 # files::action edit <path...> | (grep mode) edit <path> <line>: open in $EDITOR (foreground)
 files::action() {
@@ -16,6 +19,51 @@ files::action() {
       return 2
       ;;
   esac
+}
+
+# files::_header <text> <var>: the action that makes text the module's header. In the footer position
+# change-header; in the header position the component line sits above it and in-place refreshes rebuild
+# both from meta/header, so the text goes there and the header callback draws them.
+files::_header() {
+  if [[ "${FZX_HEADER_POSITION:-footer}" == header ]]; then
+    fzx::meta_set header "$1"
+    printf -v "$2" 'transform-header(%s)' "$(fzx::cb header)"
+  else
+    fzx::action_arg change-header "$1" "$2" || printf -v "$2" '%s' "change-header()"
+  fi
+}
+
+# files::transform filter: in grep mode, ctrl-t. Grepping, fzf takes over: the query's term is frozen (the
+# source keeps grepping it on reloads and toggles) and the header shows it; filtering, the term returns to
+# the query and grepping resumes. fzf keeps its filtered matches when search goes off: the reload restores
+# them all.
+files::transform() {
+  local on="" term="" text header q reload
+  [[ "${1:-}" == filter ]] || {
+    printf 'files: unknown transform: %s\n' "${1:-}" >&2
+    return 2
+  }
+  [[ "${FZX_MODE:-}" == grep ]] || return 0
+  # the base directory for the header: the session's arguments, which transforms are not given
+  fzx::session_args
+  files::base "${FZX_ARGS[0]:-}" || return
+  text="${FILES_BASE/#$HOME/\~}"
+  fzx::require opts
+  fzx::state_get files_grep_filter on 2> /dev/null || on=""
+  if [[ -z "$on" ]]; then
+    term="${FZF_QUERY:-}"
+    fzx::state_set files_grep_term "$term"
+    fzx::state_set files_grep_filter 1
+    files::_header "$text  grep: $term  (${FZX_KEYS[files.filter]:-ctrl-t} greps again)" header
+    printf 'unbind(change)+enable-search+change-query()+%s' "$header"
+  else
+    fzx::state_get files_grep_term term 2> /dev/null || term=""
+    fzx::state_set files_grep_filter ""
+    fzx::action_arg change-query "$term" q || q="change-query()"
+    files::_header "$text" header
+    fzx::reload_action "$(fzx::cb source)" reload
+    printf 'rebind(change)+disable-search+%s+%s+%s' "$q" "$header" "$reload"
+  fi
 }
 
 [[ "${BASH_SOURCE[0]}" == "$0" ]] && files::action "$@"
