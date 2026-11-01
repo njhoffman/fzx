@@ -17,6 +17,15 @@ setup_fzx() {
   export FZX_PRETTY=0
   export COUNTER_FILE="$BATS_TEST_TMPDIR/counter"
   LOG="$FZX_STATE_DIR/fzx.log"
+  # renderers that start Neovim or draw by the user's own config (lib/render.sh) fail, so previews go to
+  # bat or cat whatever is installed; a test's own stubs, put on PATH later, come first
+  local t
+  mkdir -p "$BATS_TEST_TMPDIR/norender"
+  for t in nvcat nvcat-dispatch glow; do
+    printf '#!/bin/sh\nexit 1\n' > "$BATS_TEST_TMPDIR/norender/$t"
+    chmod +x "$BATS_TEST_TMPDIR/norender/$t"
+  done
+  export PATH="$BATS_TEST_TMPDIR/norender:$PATH"
 }
 
 # source the libraries into the test shell
