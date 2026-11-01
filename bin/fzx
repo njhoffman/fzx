@@ -26,8 +26,8 @@ usage: fzx                        open the menu of modules
                      run MODULE (searched in $FZX_MODULE_PATH), optionally in MODE
       --resume[=SID] restart the interface for an existing session, reusing its cached data
                      (SID defaults to $FZX_SESSION)
-      --popup[=OPTS] start in a tmux/Zellij popup (fzf --popup syntax, default $FZX_POPUP_OPTS)
-      --float[=OPTS] start in a floating tmux pane (tmux new-pane; --popup syntax, default $FZX_FLOAT_OPTS)
+      --popup[=OPTS] start in a tmux/Zellij popup (fzf --popup syntax, default from FZX_POPUP_LAYOUTS)
+      --float[=OPTS] start in a floating tmux pane (tmux new-pane; --popup syntax, default from FZX_POPUP_LAYOUTS)
       --split[=DIR,SIZE]
                      start in a tmux split pane (DIR up|down|left|right, default down,40%)
       --query=QUERY  start with QUERY typed in

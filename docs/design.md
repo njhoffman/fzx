@@ -136,8 +136,18 @@ Zellij, splits tmux, floats a tmux with `new-pane`).
 
 Floats are floating tmux panes (`tmux new-pane`), made by the owner like splits (`fzx::_fzf_pane`), not
 fzf's `--popup`: inside one, `become()` keeps working as in a split. OPTS use the `--popup` syntax
-(`[center|top|bottom|left|right][,W[%]][,H[%]]`, default `FZX_FLOAT_OPTS`), resolved to cells against the
-window's size, since `new-pane` places a pane by its top-left corner.
+(`[center|top|bottom|left|right][,W[%]][,H[%]]`), resolved to cells against the window's size, since
+`new-pane` places a pane by its top-left corner.
+
+**Popup geometry.** A plain `popup` or `float` (no OPTS) is sized by `FZX_POPUP_LAYOUTS`, `MINCOLS:SPEC`
+entries like the preview layouts: the entry with the largest MINCOLS at most the width of the whole tmux
+window applies (`#{window_width}`, not the calling pane: popups and floats cover its splits; outside tmux
+the terminal's width). SPEC is in `--popup` syntax. Modules set their own in `config.sh` (default
+`0:center,100%` `140:center,90%,85%` `220:center,80%`). `FZX_POPUP_OPTS` / `FZX_FLOAT_OPTS`, when set, are
+one fixed spec that wins over the layouts (a user's global setting, which no module undoes); with no
+layouts, or none that fits, `center,80%`. Explicit OPTS (`--popup=OPTS`, `popup:OPTS` placements) win over
+both. Every popup launch asks for the popup again, so a `become()` into another module opens at that
+module's size; the width is read at each launch.
 
 With `FZF_TMUX` set (fzf's shell integration setting, not `0`) and inside tmux, a new run without a
 placement flag starts where `FZF_TMUX_OPTS` points, read in fzf-tmux syntax: `-p[W[,H]]` (and `-w`/`-h`)
@@ -408,6 +418,7 @@ resolved config: the callback loads the layers just before the first module func
 | `FZX_PREVIEW_DEBUG` | `0` | `1`: file previews start with a dim line saying how the file was detected, what drew it and how long it took (`ext:markdown -> nvcat (230ms)`) |
 | `FZX_PREVIEW_NVCAT_MAX_LINES` | `300` | the longest file (source lines) nvcat draws; longer ones go to bat, since nvcat's complete output stops at 1000 screen rows and reaching that took seconds |
 | `FZX_READ0` | `0` | `1` (a module's opts hook may set it): the source's items end with NUL and may span lines; fzf gets `--read0 --highlight-line`, and the callbacks count items by NUL (`meta/read0`). history sets it unless `FZX_HISTORY_MULTILINE=0` |
+| `FZX_POPUP_LAYOUTS` | `0:center,100%` `140:center,90%,85%` `220:center,80%` | popup and float size by the tmux window's width, see "Popup geometry" |
 | `FZX_PERSIST`, `FZX_POPUP_OPTS`, `FZX_FLOAT_OPTS`, `FZX_STATS`, `FZX_SUMMARY_TTL`, `FZX_TRACE`, ... | | see their sections |
 
 **Responsive preview.** `FZX_PREVIEW_LAYOUTS` entries are `MINCOLS:SPEC`; the entry with the largest

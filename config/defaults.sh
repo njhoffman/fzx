@@ -34,19 +34,25 @@ FZX_KEY_STYLE=full
 # to let modules have it
 FZX_RESERVED_KEYS=(ctrl-f ctrl-b ctrl-u ctrl-w ctrl-g alt-g ctrl-p ctrl-n up down alt-b alt-f scroll-up scroll-down)
 
-# placement of a popup (fzf's --popup on tmux/Zellij) and of a floating tmux pane (tmux new-pane), both in
-# fzf's --popup syntax: [center|top|bottom|left|right][,W[%]][,H[%]]
-FZX_POPUP_OPTS="center,80%"
-FZX_FLOAT_OPTS="center,80%"
+# size and position of a plain popup (fzf's --popup on tmux/Zellij) and float (a floating tmux pane, tmux
+# new-pane) by the width of the whole tmux window (not the calling pane: they cover its splits), else the
+# terminal: "MINCOLS:SPEC" entries, the one with the largest MINCOLS that fits applies. SPEC is fzf's
+# --popup syntax, [center|top|bottom|left|right][,W[%]][,H[%]]. Set per module in its config.sh;
+# --popup=OPTS / --float=OPTS and popup:OPTS / float:OPTS placements win.
+FZX_POPUP_LAYOUTS=("0:center,100%" "140:center,90%,85%" "220:center,80%")
+# one fixed spec for every popup / float instead (set in the user's config.sh, it wins over every module's
+# FZX_POPUP_LAYOUTS); empty uses the layouts, and center,80% when they are () or no entry fits
+FZX_POPUP_OPTS=""
+FZX_FLOAT_OPTS=""
 
 # what the placement key (ctrl-^, FZX_KEYS[popout]) cycles through; entries that cannot run here are
 # skipped (popup needs tmux or Zellij, split needs tmux, float needs a tmux with new-pane). With FZF_TMUX
 # set (fzf's shell integration setting), FZF_TMUX_OPTS (fzf-tmux syntax) picks where fzx starts:
 # -p[W[,H]] a popup, -d/-u/-l/-r [SIZE] a split, anything else a popup; --popup/--split/--float win:
 #   inline              in the calling terminal
-#   popup[:OPTS]        an fzf popup (--popup syntax; plain "popup" uses FZX_POPUP_OPTS)
+#   popup[:OPTS]        an fzf popup (--popup syntax; plain "popup" uses FZX_POPUP_LAYOUTS)
 #   split:DIR[,SIZE]    a tmux split pane: DIR up, down, left or right; SIZE lines, columns or a percentage
-#   float[:OPTS]        a floating tmux pane (plain "float" uses FZX_FLOAT_OPTS)
+#   float[:OPTS]        a floating tmux pane (plain "float" uses FZX_POPUP_LAYOUTS)
 FZX_PLACEMENTS=(inline "split:down,40%" popup float)
 
 # the preview window by terminal width: "MINCOLS:SPEC" entries, the one with the largest MINCOLS that fits

@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.37.0): the six steps of `docs/design.md` are done. Modules: actions, audio, capture, colors, dirs,
+Status (0.55.0): the six steps of `docs/design.md` are done. Modules: actions, audio, capture, colors, dirs,
 docker, files, git, github, glyphs, history, keybindings, logs, man, menu, network, ps, recent, repos, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
@@ -30,9 +30,6 @@ Reviewed: 2026-10-28
 - [ ] **Preview layouts for the rest** (p2) [feature]: `FZX_PREVIEW_LAYOUTS` tuned to each module's content
       (design.md, "New-module checklist") for colors, dirs, docker, git, keybindings, logs, man, network, ps,
       recent, shell, systemd, tasks, tmux and youtube; check each live at 80, 120 and 200 columns.
-- [ ] **Popup geometry per module** (p2) [feature]: popup size and position from the module's content and
-      purpose, measured against the whole tmux window (`#{window_width}`/`#{window_height}`), not the
-      calling pane, since the popup covers split panes. Per-module settings like the preview layouts.
 - [ ] **Resize the popup with the window** (p3) [feature]: on `resize`, recompute the popup geometry; fzf
       cannot resize a running popup, so this likely means a relaunch (become with the new --popup options).
 - [ ] **Summary wording** (p3) [chore]: summaries print "1 buffers", "1 recent searches"; a small plural

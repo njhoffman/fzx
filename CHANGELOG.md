@@ -6,6 +6,21 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.55.0] - 2026-11-01
+
+### Added
+
+- Popup geometry per module: a plain popup or float is sized by `FZX_POPUP_LAYOUTS`, `MINCOLS:SPEC`
+  entries (`--popup` syntax) picked by the width of the whole tmux window, not the calling pane, since the
+  popup covers its splits. Modules can set their own in `config.sh`; the default is `center,100%` below
+  140 columns, `center,90%,85%` to 220 and `center,80%` above. Moving to another module in a popup opens
+  it at that module's size.
+
+### Changed
+
+- `FZX_POPUP_OPTS` and `FZX_FLOAT_OPTS` are empty by default. When set, they are one fixed size that wins
+  over every module's layouts, so a size set in your config.sh keeps applying everywhere.
+
 ## [0.54.0] - 2026-11-01
 
 ### Added

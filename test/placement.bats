@@ -14,14 +14,14 @@ setup() {
 
 # stub tmux: split-window and new-pane run the pane's command in the background and print a pane id;
 # list-panes lists that pane while the command runs (never, with $BATS_TEST_TMPDIR/closed); the window is
-# 200x50; list-commands fails with $STUB_TMUX_OLD (a tmux without new-pane). Calls go to tmux.calls.
+# 200x50 ($STUB_TMUX_SIZE "W H" for another); list-commands fails with $STUB_TMUX_OLD (a tmux without new-pane). Calls go to tmux.calls.
 stub_tmux() {
   cat > "$BATS_TEST_TMPDIR/bin/tmux" << 'STUB'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "$BATS_TEST_TMPDIR/tmux.calls"
 case "$1" in
   list-commands) [[ -z "${STUB_TMUX_OLD:-}" ]] || exit 1 ;;
-  display-message) echo "200 50" ;;
+  display-message) echo "${STUB_TMUX_SIZE:-200 50}" ;;
   split-window | new-pane)
     sh -c "${!#}" > /dev/null 2>&1 < /dev/null &
     echo "$!" > "$BATS_TEST_TMPDIR/pane.pid"
@@ -111,8 +111,8 @@ kept() {
   STUB_FZF_OUT=picked run "$FZX" -m counter --float
   [ "$status" -eq 0 ]
   [ "$output" = picked ]
-  # FZX_FLOAT_OPTS center,80% of a 200x50 window
-  grep -q -- "^new-pane -P -F #{pane_id} -c $PWD -x 162 -y 42 -X 19 -Y 4 " "$BATS_TEST_TMPDIR/tmux.calls"
+  # FZX_POPUP_LAYOUTS' 140 entry, center,90%,85%, of a 200x50 window
+  grep -q -- "^new-pane -P -F #{pane_id} -c $PWD -x 182 -y 44 -X 9 -Y 3 " "$BATS_TEST_TMPDIR/tmux.calls"
   grep -q 'fzf exec module=counter' "$LOG"
   [ -z "$(session_dirs)" ]
   rm "$BATS_TEST_TMPDIR/tmux.calls"
@@ -120,6 +120,51 @@ kept() {
   grep -q -- "^new-pane .* -x 200 -y 17 -X 0 -Y 33 " "$BATS_TEST_TMPDIR/tmux.calls"
   run "$FZX" -m counter --float=sideways
   [ "$status" -eq 2 ]
+}
+
+@test "popup layouts: the entry for the tmux window's width, not the pane's; per module; the fallbacks" {
+  local w l
+  for w in "100 40:center,100%" "140 40:center,90%,85%" "219 60:center,90%,85%" "300 80:center,80%"; do
+    STUB_TMUX_SIZE="${w%%:*}" COLUMNS=60 run "$FZX" -m counter --popup
+    read_fzf_args
+    [[ " ${FZF_ARGS[*]} " == *" --popup=${w#*:} "* ]]
+  done
+  # a module's config.sh (here the user's layer for it) sets its own
+  mkdir -p "$FZX_CONFIG_DIR/modules/counter"
+  echo 'FZX_POPUP_LAYOUTS=("0:bottom,60%" "180:right,40%")' > "$FZX_CONFIG_DIR/modules/counter/config.sh"
+  run "$FZX" -m counter --popup
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *" --popup=right,40% "* ]]
+  # explicit options win
+  run "$FZX" -m counter --popup=top,30%
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *" --popup=top,30% "* ]]
+  # FZX_POPUP_OPTS / FZX_FLOAT_OPTS, when set, win over the layouts
+  echo 'FZX_POPUP_OPTS=left,50%; FZX_FLOAT_OPTS=top,20%' > "$FZX_CONFIG_DIR/modules/counter/config.sh"
+  run "$FZX" -m counter --popup
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *" --popup=left,50% "* ]]
+  rm -f "$BATS_TEST_TMPDIR/tmux.calls"
+  run "$FZX" -m counter --float
+  grep -q -- "^new-pane .* -x 200 -y 12 -X 0 -Y 0 " "$BATS_TEST_TMPDIR/tmux.calls"
+  # no layouts, or none fits: center,80%
+  for l in '()' '("300:center,50%")'; do
+    echo "FZX_POPUP_LAYOUTS=$l" > "$FZX_CONFIG_DIR/modules/counter/config.sh"
+    run "$FZX" -m counter --popup
+    read_fzf_args
+    [[ " ${FZF_ARGS[*]} " == *" --popup=center,80% "* ]]
+  done
+}
+
+@test "window size: tmux's window, else COLUMNS/LINES, else tput; fails when unknown" {
+  load_libs log run
+  local w h
+  fzx::window_size w h && [ "$w $h" = "200 50" ]
+  TMUX="" COLUMNS=91 LINES=33 fzx::window_size w h && [ "$w $h" = "91 33" ]
+  STUB_TMUX_SIZE="x y" COLUMNS=91 LINES=33 fzx::window_size w h && [ "$w $h" = "91 33" ]
+  printf '#!/bin/sh\nexit 1\n' > "$BATS_TEST_TMPDIR/bin/tput"
+  chmod +x "$BATS_TEST_TMPDIR/bin/tput"
+  ! TMUX="" COLUMNS="" LINES="" fzx::window_size w h
 }
 
 @test "float geometry: positions and sizes like fzf's --popup, the border added outside" {

@@ -10,16 +10,26 @@ fzx::layout_entries() {
   IFS=$'\t' read -ra "$1" <<< "$_raw"
 }
 
-# fzx::layout_pick <cols> <var>: the entry with the largest MINCOLS that is <= cols; fails when none is
-fzx::layout_pick() {
-  local _e _best="" _min=-1 _entries=()
-  fzx::layout_entries _entries
-  for _e in "${_entries[@]}"; do
-    ((${_e%%:*} <= $1 && ${_e%%:*} > _min)) || continue
+# fzx::breakpoint_pick <cols> <var> <entry...>: of "MINCOLS:SPEC" entries, the one with the largest MINCOLS
+# that is <= cols (FZX_PREVIEW_LAYOUTS, FZX_POPUP_LAYOUTS); entries not starting with a number are skipped;
+# fails when none fits
+fzx::breakpoint_pick() {
+  local _cols="$1" _var="$2" _e _best="" _min=-1
+  shift 2
+  for _e in "$@"; do
+    [[ "$_e" =~ ^[0-9]+: ]] || continue
+    ((${_e%%:*} <= _cols && ${_e%%:*} > _min)) || continue
     _min="${_e%%:*}" _best="$_e"
   done
   [[ -n "$_best" ]] || return 1
-  printf -v "$2" '%s' "$_best"
+  printf -v "$_var" '%s' "$_best"
+}
+
+# fzx::layout_pick <cols> <var>: the session's preview layout entry for that width; fails when none is
+fzx::layout_pick() {
+  local _entries=()
+  fzx::layout_entries _entries
+  fzx::breakpoint_pick "$1" "$2" "${_entries[@]}"
 }
 
 # fzx::layout <start|resize>: prints change-preview-window(...) for the entry the width falls in.

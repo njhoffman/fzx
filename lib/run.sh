@@ -243,7 +243,10 @@ fzx::_placement() {
   local p
   fzx::placement p
   case "$p" in
-    popup) FZX_OPTS+=("--popup=$FZX_POPUP_OPTS") ;;
+    popup)
+      fzx::popup_opts popup p
+      FZX_OPTS+=("--popup=$p")
+      ;;
     popup:*) FZX_OPTS+=("--popup=${p#popup:}") ;;
   esac
 }
@@ -314,11 +317,48 @@ fzx::_fzf_split() {
   fzx::_fzf_pane split-window "${flags[@]}"
 }
 
+# fzx::window_size <wvar> <hvar>: the size popups and floats are measured against: the tmux window (they
+# cover its split panes, so the calling pane's size would undersize them), else the terminal. Fails when
+# neither is known.
+fzx::window_size() {
+  local _w="" _h=""
+  if [[ -n "${TMUX:-}" ]]; then
+    read -r _w _h < <(tmux display-message -p '#{window_width} #{window_height}' 2> /dev/null) || :
+  fi
+  if ! [[ "$_w" =~ ^[0-9]+$ && "$_h" =~ ^[0-9]+$ ]]; then
+    _w="${COLUMNS:-}" _h="${LINES:-}"
+    [[ "$_w" =~ ^[0-9]+$ ]] || _w="$(tput cols 2> /dev/null)"
+    [[ "$_h" =~ ^[0-9]+$ ]] || _h="$(tput lines 2> /dev/null)"
+  fi
+  [[ "$_w" =~ ^[0-9]+$ && "$_h" =~ ^[0-9]+$ ]] || return 1
+  printf -v "$1" '%s' "$_w"
+  printf -v "$2" '%s' "$_h"
+}
+
+# fzx::popup_opts <popup|float> <var>: the --popup spec for a plain popup or float: FZX_POPUP_OPTS /
+# FZX_FLOAT_OPTS when set (one fixed spec, the user's override), else the FZX_POPUP_LAYOUTS entry for the
+# window's width (fzx::window_size), else center,80% (no layouts, an unknown width or no entry fits). An
+# explicit popup:OPTS / float:OPTS skips this.
+fzx::popup_opts() {
+  local _kind="$1" _var="$2" _ww _wh _entry _spec=center,80% _fixed
+  if [[ "$_kind" == float ]]; then _fixed="${FZX_FLOAT_OPTS:-}"; else _fixed="${FZX_POPUP_OPTS:-}"; fi
+  if [[ -n "$_fixed" ]]; then
+    _spec="$_fixed"
+  elif ((${#FZX_POPUP_LAYOUTS[@]})) && fzx::window_size _ww _wh; then
+    fzx::require layout
+    if fzx::breakpoint_pick "$_ww" _entry "${FZX_POPUP_LAYOUTS[@]}"; then
+      _spec="${_entry#*:}"
+      fzx::log debug "popup layout for a ${_ww}-column window: $_entry"
+    fi
+  fi
+  printf -v "$_var" '%s' "$_spec"
+}
+
 # fzx::_fzf_float <:OPTS|"">: run the current session in a new floating tmux pane (tmux new-pane), placed
-# like fzf's --popup: [center|top|bottom|left|right][,W[%]][,H[%]], default FZX_FLOAT_OPTS
+# like fzf's --popup: [center|top|bottom|left|right][,W[%]][,H[%]], default fzx::popup_opts
 fzx::_fzf_float() {
   local spec="${1#:}" geo ww wh
-  [[ -n "$spec" ]] || spec="${FZX_FLOAT_OPTS:-center,80%}"
+  [[ -n "$spec" ]] || fzx::popup_opts float spec
   if ! read -r ww wh < <(tmux display-message -p '#{window_width} #{window_height}' 2> /dev/null) ||
     ! fzx::float_geometry "$spec" "$ww" "$wh" geo; then
     fzx::log error "bad float options or no window size: $spec"

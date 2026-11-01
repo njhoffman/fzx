@@ -245,18 +245,19 @@ two_placements() {
   child="$(FZX_SESSION="$root" "$FZX" _cb nav goto counter --x)"
   child="${child##* }"
   TMUX=fake FZX_SESSION="$child" "$FZX" _cb nav popout > /dev/null
-  TMUX=fake run "$FZX" --resume "$child"
+  # no tmux answers for TMUX=fake: the popup is sized by the terminal's COLUMNS (FZX_POPUP_LAYOUTS)
+  COLUMNS=100 LINES=40 TMUX=fake run "$FZX" --resume "$child"
   read_fzf_args
-  [[ " ${FZF_ARGS[*]} " == *" --popup=center,80% "* ]]
-  TMUX=fake run "$FZX" --resume "$root"
+  [[ " ${FZF_ARGS[*]} " == *" --popup=center,100% "* ]]
+  COLUMNS=100 LINES=40 TMUX=fake run "$FZX" --resume "$root"
   read_fzf_args
-  [[ " ${FZF_ARGS[*]} " == *" --popup=center,80% "* ]]
+  [[ " ${FZF_ARGS[*]} " == *" --popup=center,100% "* ]]
 }
 
 @test "--popup starts in a popup inside tmux; custom options are passed through" {
-  TMUX=fake run "$FZX" -m counter --popup
+  COLUMNS=100 LINES=40 TMUX=fake run "$FZX" -m counter --popup
   read_fzf_args
-  [[ " ${FZF_ARGS[*]} " == *" --popup=center,80% "* ]]
+  [[ " ${FZF_ARGS[*]} " == *" --popup=center,100% "* ]]
   TMUX=fake run "$FZX" -m counter --popup=top,40%
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " == *" --popup=top,40% "* ]]
