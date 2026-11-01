@@ -1,7 +1,7 @@
 # fzx
 
 fzf module manager in bash. Design, process model and module contract: `docs/design.md` (read it before
-changing lib/ or adding a module).
+changing lib/ or adding a module; a new module follows its "New-module checklist").
 
 ## Commands
 

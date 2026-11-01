@@ -6,6 +6,13 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.43.1] - 2026-11-01
+
+### Added
+
+- docs/design.md: a new-module checklist (components, previews and their layouts, icon and menu color,
+  menu entries and summaries within their timeouts, tests, docs), with the modules still missing parts.
+
 ## [0.43.0] - 2026-11-01
 
 ### Added

@@ -38,11 +38,11 @@ Reviewed: 2026-10-28
       interactively, and see it in a live sample fzf launched with the new colors; save to the user config.
 - [ ] **Theme presets** (p3) [feature]: presets generated from common color schemes (the 182 base16 schemes
       in fzf-rsc/colors as a start), browsable and previewed in the theme selector.
-- [ ] **New-module checklist** (p2) [docs]: what a module ships with now: components, previews and their
-      layouts (`FZX_PREVIEW_LAYOUTS`, tuned to its content; done for files, todos, menu, repos, history,
-      capture), an icon and its menu color, menu summaries that stay under the timeout, tests. Put it in
-      design.md's module contract and CLAUDE.md, then fill the gaps in the existing modules (layouts for
-      git, logs, ps, systemd, docker, tmux, man, colors, keybindings).
+- [ ] **Preview layouts for the rest** (p2) [feature]: `FZX_PREVIEW_LAYOUTS` tuned to each module's content
+      (design.md, "New-module checklist") for colors, dirs, docker, git, keybindings, logs, man, network, ps,
+      recent, shell, systemd, tasks, tmux and youtube; check each live at 80, 120 and 200 columns.
+- [ ] **logs and systemd test files** (p3) [test]: test/modules.bats covers them in part; give each its own
+      file (sources per mode and toggle, previews, actions, bindings under fzx), as the checklist asks.
 - [ ] **Popup geometry per module** (p2) [feature]: popup size and position from the module's content and
       purpose, measured against the whole tmux window (`#{window_width}`/`#{window_height}`), not the
       calling pane, since the popup covers split panes. Per-module settings like the preview layouts.

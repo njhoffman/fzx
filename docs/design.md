@@ -193,6 +193,32 @@ log; stderr from `preview` shows in the preview window.
 Functions that return through a variable name (`fzx::session_label label`) prefix their locals with `_`,
 because bash's dynamic scoping would otherwise let a same-named local swallow the result.
 
+### New-module checklist
+
+What a module ships with, beyond the scripts above:
+
+- **Components**: modes, toggles, sort orders and actions in `components.tsv`, each with a description
+  (f1 lists them). Order toggles by how often they are used: alt-1 .. alt-8 follow the table. Copies and
+  other silent actions whose effect is not visible get the `notify` flag (the copy built-ins have it).
+- **Preview**: `preview.sh` draws from the item's fields, colors through `FZX_COLORS` (no hard-coded
+  escapes, nothing that reads as bright yellow), icons through `fzx::icon` / `fzx::icon_label`.
+- **Preview layouts**: `FZX_PREVIEW_LAYOUTS` in `config.sh`, tuned to the content: long lines (logs,
+  diffs, man pages) want the preview below on narrow terminals and wide on the right; short metadata
+  (processes, containers, units) fits a narrow right preview early.
+- **Icon and menu color**: `FZX_ICON` and `FZX_COLORS[<module>_icon]`; modes with an icon of their own in
+  `FZX_ICON_MODES` and `FZX_COLORS[<module>_icon_<mode>]`.
+- **Menu**: `manifest.sh` with an entry per mode worth listing, `<module>::applicable` when the module
+  needs a tool or a place (a git repository), and `<module>::summary` lines that stay within
+  `FZX_SUMMARY_TIMEOUT` (and the manifest within `FZX_APPLICABLE_TIMEOUT`); slow counts belong in the
+  cache, not in the summary.
+- **Tests**: `test/<module>.bats` through `setup_fzx`: the source per mode and toggle (with stubbed tools
+  where the real ones are not on every machine), the preview, the actions, and the bindings under fzx.
+- **Docs**: a paragraph under Modules below, a CHANGELOG entry, and the module in TODO.md's status line.
+
+Modules still missing parts (2026-11-01): preview layouts in colors, dirs, docker, git, keybindings,
+logs, man, network, ps, recent, shell, systemd, tasks, tmux and youtube; a test file of their own for
+logs and systemd (test/modules.bats covers them in part).
+
 ### Modes
 
 Modes (and the other components, `docs/components.md`) are rows of the module's `components.tsv`:
