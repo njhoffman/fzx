@@ -47,7 +47,7 @@ fzx::menu_modules() {
 fzx::menu_entries() {
   FZX_ENTRY_TARGETS=() FZX_ENTRY_DESCS=() FZX_ENTRY_ARGS=()
   fzx::require config
-  FZX_ICON=""
+  FZX_ICON="" FZX_MENU_GROUP=""
   fzx::config_load "$2" "$1" 2>> "${FZX_LOG_FILE:-/dev/null}" || return 1
   # shellcheck source=/dev/null
   source "$2/manifest.sh" || return 1
@@ -93,11 +93,16 @@ fzx::_summary_fresh() {
   ((EPOCHSECONDS - mtime < ${FZX_SUMMARY_TTL:-300}))
 }
 
-# print the menu: "id<TAB>display" per applicable entry, display padded into columns.
+# print the menu: "id<TAB>display<TAB>header" per line, arranged by fzx::_menu_arrange for FZX_MODE.
+fzx::menu_lines() {
+  fzx::_menu_collect | fzx::_menu_arrange "${FZX_MODE:-groups}"
+}
+
+# every applicable entry as "id<TAB>display<TAB>target<TAB>group", display padded into columns.
 # Every module runs at once, each in a subshell writing its own file (so a broken manifest only drops that
 # module), and the files are printed in module order. A module whose manifest and applicable checks take
 # longer than FZX_APPLICABLE_TIMEOUT seconds is left out of this listing and logged.
-fzx::menu_lines() {
+fzx::_menu_collect() {
   local name dir n=0 tmp pids=() names=() watcher
   tmp="$(mktemp -d "${FZX_SESSION_DIR:-${TMPDIR:-/tmp}}/menu.XXXXXX")" || return
   while IFS=$'\t' read -r name dir; do
@@ -140,7 +145,7 @@ fzx::_menu_module() {
       fzx::log warn "menu: manifest of $name failed"
       exit 0
     }
-    local i label summary file icon mode color
+    local i label summary file icon mode color group="${FZX_MENU_GROUP:-other}"
     for i in "${!FZX_ENTRY_TARGETS[@]}"; do
       fzx::menu_entry_args "$i"
       if declare -F "$name::applicable" > /dev/null &&
@@ -163,14 +168,96 @@ fzx::_menu_module() {
         color="${FZX_COLORS[${name}_icon_$mode]:-${FZX_COLORS[${name}_icon]:-${FZX_COLORS[menu_target]:-0}}}"
         icon=$'\e['"${color}m$icon"$'\e[0m '
       fi
-      printf '%s\t%s\e[%sm%-24s\e[0m %-42s \e[%sm%s\e[0m\n' \
+      printf '%s\t%s\e[%sm%-24s\e[0m %-42s \e[%sm%s\e[0m\t%s\t%s\n' \
         "$name#$i" "$icon" "${FZX_COLORS[menu_target]:-0}" "$label" "${FZX_ENTRY_DESCS[i]}" \
-        "${FZX_COLORS[menu_summary]:-0}" "$summary"
+        "${FZX_COLORS[menu_summary]:-0}" "$summary" "${FZX_ENTRY_TARGETS[i]}" "${group//[$'\t\n']/ }"
     done
   ) > "$out.part"
   mv -- "$out.part" "$out"
   local end="$EPOCHREALTIME"
   fzx::log debug "menu: $name listed in $(((${end/./} - ${start/./}) / 1000))ms"
+}
+
+# fzx::menu_scores: "target<TAB>score" from the stats file: each use weighs 0.5^(age/half-life), over the
+# last FZX_MENU_STATS_DAYS days. A use is a launch (`start`, keyed by its module) or a navigation
+# (`nav goto:<target>`, from the menu or a module's own drill-down). The menu's own launches do not count.
+fzx::menu_scores() {
+  fzx::require stats
+  [[ -s "${FZX_STATS_FILE:-}" ]] || return 0
+  local now
+  fzx::now_ms now
+  awk -F'\t' -v now="$now" -v half="${FZX_MENU_HALF_LIFE_DAYS:-7}" -v days="${FZX_MENU_STATS_DAYS:-90}" '
+    $6 == "start" { split($9, w, " "); key = w[1]; if (key == "menu" || key == "" || key == "-") next }
+    $6 == "nav" { if ($9 !~ /^goto:/) next; key = substr($9, 6) }
+    $6 != "start" && $6 != "nav" { next }
+    {
+      age = (now - $1) / 86400000
+      if (age < 0) age = 0
+      if (age > days) next
+      score[key] += exp(-age * log(2) / half)
+    }
+    END { for (k in score) printf "%s\t%.6f\n", k, score[k] }
+  ' "$FZX_STATS_FILE" 2> /dev/null
+}
+
+# fzx::_menu_arrange <groups|list>: fzx::_menu_collect's lines on stdin, the menu's lines out, each
+# "id<TAB>display<TAB>header": the header field (shown, not searched: --nth=1 over --with-nth=2,3) is
+# empty on entries. list keeps module order. groups puts the FZX_MENU_RECENT most used entries first under
+# a "recent" header, then the rest under a header per group (FZX_MENU_GROUPS order, then any other group
+# by name), each most used first and otherwise in module order. Headers have the id "@<group>".
+fzx::_menu_arrange() {
+  if [[ "$1" == list ]]; then
+    awk -F'\t' '{ printf "%s\t%s\t\n", $1, $2 }'
+    return 0
+  fi
+  local scores
+  scores="$(fzx::menu_scores)"
+  _FZX_MENU_SCORES="$scores" awk -F'\t' -v recent="${FZX_MENU_RECENT:-5}" -v order="${FZX_MENU_GROUPS[*]:-}" \
+    -v hc="${FZX_COLORS[menu_group]:-1;38;5;244}" '
+    BEGIN {
+      ns = split(ENVIRON["_FZX_MENU_SCORES"], sl, "\n")
+      for (i = 1; i <= ns; i++) { split(sl[i], kv, "\t"); if (kv[1] != "") score[kv[1]] = kv[2] + 0 }
+    }
+    { n++; id[n] = $1; disp[n] = $2; grp[n] = ($4 == "" ? "other" : $4); sc[n] = score[$3] + 0 }
+    # indices sorted by score, highest first; equal scores keep their order (insertion sort, stable)
+    function ranked(list, cnt,    i, j, t) {
+      for (i = 2; i <= cnt; i++) {
+        t = list[i]
+        for (j = i - 1; j >= 1 && sc[list[j]] < sc[t]; j--) list[j + 1] = list[j]
+        list[j + 1] = t
+      }
+    }
+    function header(name) { printf "@%s\t\t\033[%sm── %s\033[0m\n", name, hc, name }
+    END {
+      if (!n) exit
+      for (i = 1; i <= n; i++) all[i] = i
+      ranked(all, n)
+      shown = 0
+      for (i = 1; i <= n && shown < recent; i++) {
+        if (sc[all[i]] <= 0) break
+        if (!shown) header("recent")
+        printf "%s\t%s\t\n", id[all[i]], disp[all[i]]
+        taken[all[i]] = 1
+        shown++
+      }
+      ng = split(order, go, " ")
+      for (g = 1; g <= ng; g++) known[go[g]] = 1
+      # groups not in FZX_MENU_GROUPS follow by name
+      for (i = 1; i <= n; i++) if (!(grp[i] in known) && !(grp[i] in extra)) { extra[grp[i]] = 1; ne++; xs[ne] = grp[i] }
+      for (i = 2; i <= ne; i++) { t = xs[i]; for (j = i - 1; j >= 1 && xs[j] > t; j--) xs[j + 1] = xs[j]; xs[j + 1] = t }
+      for (i = 1; i <= ne; i++) go[ng + i] = xs[i]
+      ng += ne
+      for (g = 1; g <= ng; g++) {
+        cnt = 0
+        delete members
+        for (i = 1; i <= n; i++) if (!taken[i] && grp[i] == go[g]) members[++cnt] = i
+        if (!cnt) continue
+        ranked(members, cnt)
+        header(go[g])
+        for (i = 1; i <= cnt; i++) printf "%s\t%s\t\n", id[members[i]], disp[members[i]]
+      }
+    }
+  '
 }
 
 # compute stale summaries of applicable entries, all in parallel, each limited to FZX_SUMMARY_TIMEOUT

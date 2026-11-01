@@ -11,3 +11,6 @@ FZX_ICON=""
 # the icon's color in the menu
 FZX_COLORS[systemd_icon]="38;5;66"
 
+
+# the menu group this module is listed under (menu mode groups)
+FZX_MENU_GROUP=system

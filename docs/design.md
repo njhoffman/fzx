@@ -210,7 +210,8 @@ What a module ships with, beyond the scripts above:
 - **Menu**: `manifest.sh` with an entry per mode worth listing, `<module>::applicable` when the module
   needs a tool or a place (a git repository), and `<module>::summary` lines that stay within
   `FZX_SUMMARY_TIMEOUT` (and the manifest within `FZX_APPLICABLE_TIMEOUT`); slow counts belong in the
-  cache, not in the summary.
+  cache, not in the summary. `FZX_MENU_GROUP` in config.sh, one of the menu's `FZX_MENU_GROUPS`
+  (files, shell, development, system, terminal, other; test/menu.bats checks it).
 - **Tests**: `test/<module>.bats` through `setup_fzx`: the source per mode and toggle (with stubbed tools
   where the real ones are not on every machine), the preview, the actions, and the bindings under fzx.
 - **Docs**: a paragraph under Modules below, a CHANGELOG entry, and the module in TODO.md's status line.
@@ -394,7 +395,7 @@ resolved config: the callback loads the layers just before the first module func
 | `FZX_KEYS` | core: `reload_hard` ctrl-r, `reload_soft` alt-r, `mode_next` alt-0, `mode_prev` alt-9, `back` alt-left, `escape` esc, `popout` ctrl-^, `actions` ctrl-\\ | module navigation keys are `<module>.<name>` (`ps.children`, `files.into`), set in the module's `config.sh`; action keys are in the action rows of `components.tsv` |
 | `FZX_TOGGLE_DIGIT_KEYS` | `1` | toggles also flip with alt-1 .. alt-8 in table order; `0` turns it off |
 | `FZX_RESERVED_KEYS` | ctrl-f ctrl-b ctrl-u ctrl-w ctrl-g alt-g ctrl-p ctrl-n up down alt-b alt-f scroll-up scroll-down | keys modules may not bind (the user's scrolling and query editing); `fzx::bind` skips a module binding on one and logs a warning. fzx's own keys are not checked. Modules may still take keys the user binds elsewhere (ctrl-e edit replaces the user's `become(nvim)` with a per-module editor action) |
-| `FZX_COLORS` | `mode_active`, `mode_inactive`, `menu_target`, `menu_summary`, `dim`, `sorted` | SGR parameters for what fzx draws itself (`sorted`: added to the column a list is sorted by) |
+| `FZX_COLORS` | `mode_active`, `mode_inactive`, `menu_target`, `menu_summary`, `menu_group`, `dim`, `sorted` | SGR parameters for what fzx draws itself (`sorted`: added to the column a list is sorted by) |
 | `FZX_FZF_COLORS` | empty | passed as `--color` when set; empty keeps the user's fzf theme |
 | `FZX_NOTIFY_SECONDS` | `2` | how long an action's footer message stays (`FZX_COLORS[notify_ok\|notify_fail]`) |
 | `FZX_HISTORY` | `1` | per-module `--history=$XDG_STATE_HOME/fzx/history/<module>`; `0` leaves fzf's history alone |
@@ -475,7 +476,7 @@ given only a `--language` (zsh commands, man pages, logs) go to bat.
 | `tasks` | selected (this repository's tasks, read now, and the ones picked with ctrl-t), repos (every task of the projects chosen), all, projects (the repositories with tasks; enter or ctrl-t chooses); make targets (`##` docs), just recipes, package.json scripts (pnpm, yarn or bun by lockfile, else npm), Taskfile tasks (go-task; a `task` that is taskwarrior is left alone), cargo aliases, pdm/poe/hatch scripts; every repository scanned in parallel into `$FZX_CACHE_DIR/tasks/index`, served stale and scanned again in the background after `FZX_TASKS_TTL`; picks and projects in `$FZX_STATE_DIR/tasks` | | enter runs the task in its repository (then waits for a key), alt-enter with arguments, ctrl-t pick, ctrl-e the definition in $EDITOR, alt-s scan again, ctrl-y copy | `project:task` (projects: directories); a colored icon per runner (`FZX_COLORS[tasks_kind_<runner>]`) with Nerd Font icons |
 | `shell` | commands (the first of each name on PATH, then zsh's builtins and reserved words), aliases (regular, global, suffix), functions (completion functions with the completion toggle), params (the zsh dump's parameters, with the exported ones' values from the environment fzx started with, saved in the session; exported toggle: those only). Aliases, functions and parameters come from `modules/shell/dump.zsh`, written by shell/fzx.zsh at the first prompt and by its shell widget (alt-s) before it opens the module, used for `FZX_SHELL_DUMP_TTL`, else an interactive `zsh -ic`. Values of names matching `FZX_SHELL_SECRETS` are masked and never written to the dump; the reveal toggle shows exported ones. Preview: a command's locations, whatis and tldr (else man) page, a builtin's zshbuiltins entry, an alias's definition and what its first word is, a function's definition (else its file), a parameter's whole value | | ctrl-e a function's file at its definition or a command's script in $EDITOR, alt-n the tldr or man page in the pager, alt-y copy parameter values, ctrl-y copy names; alt-1..3 toggles completion, exported, reveal | names |
 | `todos` | here (this repository's TODO.md), all (every repository's); toggle done; sort urgency/file | `[--paste PANE] [QUERY...]` | ctrl-d done, ctrl-e edit at the line, ctrl-y copy titles, alt-y copy lines | `TODO.md:LINE ☐  (Pn) [category] Title` per item (with `--paste`, pasted into the pane) |
-| `menu` | | | enter opens the entry | entry id |
+| `menu` | groups (most used first, then by group), list (module order) | | enter opens the entry (on a group header: moves down) | entry id |
 | `actions` | | groups of `names args... --fzx--` (built by the actions key) | enter runs the action, then back | |
 
 `files` uses `FZX_PERSIST=cache:5m`; its base directory is resolved physically (`pwd -P`) because fd and rg
@@ -636,6 +637,17 @@ listing (a warning; each module's time is logged at the debug level). A check th
 (docker's daemon, gh's keyring token, git's work tree) is made once per module and kept in a variable
 for its other entries.
 
+**Order** follows the mode. `menu:list` keeps module order. `menu:groups` (the default) ranks entries by
+use from the stats file (`fzx::menu_scores`): every launch (`start`, keyed by its module; the menu's own
+are left out) and navigation (`nav goto:<target>`) adds `0.5^(age / FZX_MENU_HALF_LIFE_DAYS)` (7) to its
+target, over the last `FZX_MENU_STATS_DAYS` (90). The `FZX_MENU_RECENT` (5) highest come first under a
+"recent" header, then every other entry under its module's `FZX_MENU_GROUP` (no group: `other`), the
+groups in `FZX_MENU_GROUPS` order and any others by name, each most used first and otherwise in module
+order. A line is `id<TAB>display<TAB>header`, shown with `--with-nth=2,3` and searched with `--nth=1`,
+so a header (id `@<group>`, `FZX_COLORS[menu_group]`) shows but never matches a query: typing hides them.
+fzf has no unselectable rows, so the grouped menu starts on the second row (`result-final:pos(2)` unless
+a saved position or query is restored), enter on a header returns `down`, and its preview is empty.
+
 **Opening** an entry is `enter:transform:fzx _cb nav entry {1}`: the callback re-reads that module's
 manifest, then goes to the entry as a child of the menu (`nav goto`), so `alt-left` comes back to the
 menu. Entries with the same module and args share one child session, so `ps` and `ps:tree` reuse one
@@ -679,6 +691,7 @@ resolved paths). Default keys, bound in viins, vicmd and emacs unless `FZX_ZSH_N
 | alt-g | `fzx-git-widget` | insert git paths, a hash or a branch |
 | alt-p | `fzx-ps-widget` | insert pids |
 | alt-m | `fzx-menu-widget` | open the menu, insert what it returns |
+| (none) | `fzx-menu-popup-widget` | the same in a tmux or Zellij popup (`fzx --popup`; inline elsewhere): fzf's popup hands the selection back to the calling terminal |
 
 `g` and `gg` are functions, not widgets (they cd the shell they run in), over `fzx jump` (lib/jump.sh),
 which prints the directory; `FZX_ZSH_NO_JUMP=1` leaves them undefined:

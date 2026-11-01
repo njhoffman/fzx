@@ -33,3 +33,6 @@ FZX_FILES_IMAGE_FORMAT=symbols
 
 # the list needs about 50 columns and code about 80: the preview moves to the right from 130 columns
 FZX_PREVIEW_LAYOUTS=("0:down,40%,border-top" "130:right,55%")
+
+# the menu group this module is listed under (menu mode groups)
+FZX_MENU_GROUP=files

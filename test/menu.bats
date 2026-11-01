@@ -23,9 +23,9 @@ fixture_modules() {
   export FZX_MODULE_PATH="$BATS_TEST_DIRNAME/fixtures/modules"
 }
 
-# menu lines without colors, as "id|display"
+# menu entry lines without colors, as "id|display" (group headers and the empty header field left out)
 plain_lines() {
-  "$FZX" _cb source | sed 's/\x1b\[[0-9;]*m//g; s/\t/|/'
+  "$FZX" _cb source | sed 's/\x1b\[[0-9;]*m//g; /^@/d; s/\t[^\t]*$//; s/\t/|/'
 }
 
 # entry <id>: the plain line of one entry (real modules list alongside the fixtures, in name order)
@@ -125,6 +125,7 @@ zslow::applicable() { sleep 10; }
 EOF2
   export FZX_MODULE_PATH="$BATS_TEST_TMPDIR/mods:$FZX_MODULE_PATH" FZX_APPLICABLE_TIMEOUT=3
   menu_session
+  fzx::state_set mode list
   local start=$EPOCHSECONDS
   run plain_lines
   ((EPOCHSECONDS - start < 7))
@@ -300,7 +301,7 @@ EOF2
   [ "$(fzf_bind start)" = "start:reload:$FZX _cb load" ]
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " == *" start:+bg-transform:$FZX _cb transform refresh "* ]]
-  [[ " ${FZF_ARGS[*]} " == *" --border-label= menu:main "* ]]
+  [[ " ${FZF_ARGS[*]} " == *" --border-label= menu:groups "* ]]
 }
 
 @test "the menu run directly lists entries but cannot open them" {
@@ -312,4 +313,115 @@ EOF2
   [ "$status" -eq 1 ]
   run "$MENU_DIR/source.sh"
   [[ "$output" == *counter#0$'\t'* ]]
+}
+
+# stats row <age_days> <event> <detail>
+stat_row() {
+  local now
+  fzx::now_ms now
+  printf '%s\tr\ts\tm\t-\t%s\t0\t-\t%s\n' "$((now - $1 * 86400000))" "$2" "$3" >> "$FZX_STATS_FILE"
+}
+
+# collected entry lines: "<id>\t<display>\t<target>\t<group>"
+collected() {
+  local spec id target group
+  for spec in "$@"; do
+    IFS=: read -r id target group <<< "$spec"
+    printf '%s\tshow %s\t%s\t%s\n' "$id" "$id" "${target//+/:}" "$group"
+  done
+}
+
+@test "menu_scores: launches by module and navigations by target, decaying; the menu and old rows do not count" {
+  export FZX_STATS_FILE="$BATS_TEST_TMPDIR/stats.tsv" FZX_MENU_HALF_LIFE_DAYS=7 FZX_MENU_STATS_DAYS=30
+  stat_row 0 start "files /tmp/x"
+  stat_row 7 start "files"
+  stat_row 0 nav "goto:git:log"
+  stat_row 0 nav "back"
+  stat_row 0 start "menu"
+  stat_row 31 start "ps"
+  stat_row 0 source "miss"
+  run fzx::menu_scores
+  [ "$status" -eq 0 ]
+  [ "$(printf '%s\n' "${lines[@]}" | sort | tr '\t' ' ')" = "$(printf 'files 1.500000\ngit:log 1.000000')" ]
+  rm "$FZX_STATS_FILE"
+  run fzx::menu_scores
+  [ -z "$output" ]
+}
+
+@test "arrange list: module order, an empty header field" {
+  run fzx::_menu_arrange list < <(collected a#0:a:x b#0:b:y)
+  [ "$output" = "$(printf 'a#0\tshow a#0\t\nb#0\tshow b#0\t')" ]
+}
+
+@test "arrange groups: recent on top, then groups in FZX_MENU_GROUPS order, others by name, most used first" {
+  export FZX_STATS_FILE="$BATS_TEST_TMPDIR/stats.tsv"
+  FZX_MENU_GROUPS=(sys dev) FZX_MENU_RECENT=1
+  stat_row 0 start "c"
+  stat_row 0 start "c"
+  stat_row 0 nav "goto:b+m"
+  stat_row 0 nav "goto:a:m"
+  run fzx::_menu_arrange groups < <(collected a#0:a:dev a#1:a+m:dev b#0:b:zz b#1:b+n:aa c#0:c:dev d#0:d:sys)
+  [ "$status" -eq 0 ]
+  local ids
+  ids="$(printf '%s\n' "${lines[@]}" | cut -f1 | tr '\n' ' ')"
+  [ "$ids" = "@recent c#0 @sys d#0 @dev a#1 a#0 @aa b#1 @zz b#0 " ]
+  [[ "${lines[0]}" == $'@recent\t\t'*"── recent"* ]]
+  [[ "${lines[1]}" == $'c#0\tshow c#0\t' ]]
+}
+
+@test "arrange groups: no recent header without use; FZX_MENU_RECENT=0 shows none; no group means other" {
+  export FZX_STATS_FILE="$BATS_TEST_TMPDIR/stats.tsv"
+  FZX_MENU_GROUPS=(dev other)
+  run fzx::_menu_arrange groups < <(collected a#0:a:dev b#0:b:)
+  [ "$(printf '%s\n' "${lines[@]}" | cut -f1 | tr '\n' ' ')" = "@dev a#0 @other b#0 " ]
+  stat_row 0 start "a"
+  FZX_MENU_RECENT=0
+  run fzx::_menu_arrange groups < <(collected a#0:a:dev b#0:b:)
+  [ "$(printf '%s\n' "${lines[@]}" | cut -f1 | tr '\n' ' ')" = "@dev a#0 @other b#0 " ]
+}
+
+@test "headers are shown but never match a query" {
+  command -v fzf > /dev/null || skip "no fzf"
+  run fzf --filter=recent --delimiter=$'\t' --with-nth=2,3 --nth=1 < <(printf '@recent\t\t── recent\nr#0\trecent dirs\t\n')
+  [ "$output" = "$(printf 'r#0\trecent dirs\t')" ]
+}
+
+@test "a header: enter moves down, the preview is empty" {
+  menu_session
+  run "$FZX" _cb nav entry @recent
+  [ "$status" -eq 0 ]
+  [ "$output" = down ]
+  run "$FZX" _cb preview @recent
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "grouped, the cursor starts under the first header; not in list mode, nor over a saved place" {
+  stub_fzf
+  run "$FZX" --keep
+  [ "$(fzf_bind result-final)" = "result-final:pos(2)+unbind(result-final)" ]
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *" --with-nth=2,3 --nth=1 --tabstop=1 "* ]]
+  local sid
+  sid="$(< "$BATS_TEST_TMPDIR/fzf.session")"
+  printf '5' > "$FZX_SESSIONS_DIR/$sid/state/pos"
+  run "$FZX" --resume "$sid"
+  [ "$(fzf_binds result-final)" = "result-final:pos(5)+unbind(result-final)" ]
+  run "$FZX" -m menu:list
+  [ "$status" -eq 0 ]
+  [ "$(< "$BATS_TEST_TMPDIR/fzf.mode")" = list ]
+  run fzf_bind result-final
+  [ "$status" -eq 1 ]
+}
+
+@test "every module in the menu has a group from FZX_MENU_GROUPS" {
+  local name dir group
+  source "$MENU_DIR/config.sh"
+  while IFS=$'\t' read -r name dir; do
+    group="$(FZX_MENU_GROUP="" && source "$dir/config.sh" && printf '%s' "${FZX_MENU_GROUP:-}")"
+    [[ " ${FZX_MENU_GROUPS[*]} " == *" $group "* ]] || {
+      echo "$name: group '$group'"
+      return 1
+    }
+  done < <(FZX_MODULE_PATH="$FZX_REPO/modules" fzx::menu_modules)
 }

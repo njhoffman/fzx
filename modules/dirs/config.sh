@@ -19,3 +19,6 @@ declare -gA FZX_DIRS_BOOKMARKS=()
 # Unlimited, ~ can hold hundreds of thousands of directories and take most of a minute to walk.
 FZX_DIRS_ALL_DEPTH=6
 FZX_DIRS_ALL_EXCLUDES=(.git node_modules .cache .npm .cargo/registry .rustup go/pkg .local/share/Trash snap)
+
+# the menu group this module is listed under (menu mode groups)
+FZX_MENU_GROUP=files

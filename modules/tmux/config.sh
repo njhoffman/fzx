@@ -19,3 +19,6 @@ FZX_COLORS[tmux_changed]='1;38;5;159'
 FZX_COLORS[tmux_dim]='38;5;245'
 FZX_COLORS[tmux_title]='1;38;5;111'
 FZX_COLORS[tmux_flag]='38;5;176'
+
+# the menu group this module is listed under (menu mode groups)
+FZX_MENU_GROUP=terminal

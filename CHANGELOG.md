@@ -6,6 +6,17 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.45.0] - 2026-11-01
+
+### Added
+
+- The menu has two modes. `groups` (the default) lists the five most used entries first under "recent"
+  (from the usage stats, recent use weighing most), then the rest under group headers (files, shell,
+  development, system, terminal, other), most used first. `list` is the old flat list in module order:
+  `fzx -m menu:list`, or alt-0 / alt-9 in the menu. Headers vanish while typing a query; enter on one moves
+  down. Settings: `FZX_MENU_RECENT`, `FZX_MENU_GROUPS`, `FZX_MENU_HALF_LIFE_DAYS`, `FZX_MENU_STATS_DAYS`,
+  a module's `FZX_MENU_GROUP`, `FZX_COLORS[menu_group]`.
+
 ## [0.44.0] - 2026-11-01
 
 ### Added

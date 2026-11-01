@@ -11,3 +11,6 @@ FZX_ICON=""
 FZX_COLORS[ps_icon]="38;5;167"
 
 FZX_KEYS[ps.children]=ctrl-o # open the children of the process under the cursor
+
+# the menu group this module is listed under (menu mode groups)
+FZX_MENU_GROUP=system

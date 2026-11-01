@@ -21,3 +21,6 @@ FZX_YOUTUBE_PLAYER=(mpv)
 # directory, else ~/Music. Then its extra yt-dlp args
 FZX_YOUTUBE_AUDIO_DIR="${FZX_YOUTUBE_AUDIO_DIR:-}"
 FZX_YOUTUBE_MP3_ARGS=(--audio-quality 0 --embed-metadata)
+
+# the menu group this module is listed under (menu mode groups)
+FZX_MENU_GROUP=other

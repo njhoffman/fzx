@@ -37,3 +37,6 @@ FZX_COLORS[repos_todo]='38;5;117'
 
 # long rows (name, branch, state): the preview goes below until the terminal is wide
 FZX_PREVIEW_LAYOUTS=("0:down,50%,border-top" "160:right,45%")
+
+# the menu group this module is listed under (menu mode groups)
+FZX_MENU_GROUP=development

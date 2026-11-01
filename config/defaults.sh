@@ -101,6 +101,7 @@ declare -gA FZX_COLORS=(
   [pill_off_fg]=248
   [menu_target]="38;5;110"
   [menu_summary]="38;5;244"
+  [menu_group]="1;38;5;244"
   [dim]="38;5;244"
   # the shortcuts page (f1): keycaps, and the section titles for this screen, fzx, global and free keys
   [help_key]="1;38;5;255;48;5;236"

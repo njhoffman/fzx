@@ -4,3 +4,6 @@
 # shellcheck disable=SC2034  # read by lib/
 # prompt icon (Nerd Font); FZX_ICON="" keeps fzf's own prompt
 FZX_ICON=""
+
+# the menu group this module is listed under (menu mode groups)
+FZX_MENU_GROUP=shell

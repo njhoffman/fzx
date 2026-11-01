@@ -34,3 +34,6 @@ FZX_COLORS[shell_kind]='38;5;180'
 FZX_COLORS[shell_value]='38;5;250'
 FZX_COLORS[shell_export]='1;38;5;75'
 FZX_COLORS[shell_masked]='38;5;203'
+
+# the menu group this module is listed under (menu mode groups)
+FZX_MENU_GROUP=shell

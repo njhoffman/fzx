@@ -275,6 +275,11 @@ fzx::_nav_placement() {
 # go to the n-th entry of a module's manifest (what the menu opens)
 fzx::_nav_entry() {
   local id="${1:-}" module n dir
+  # a group header in the menu: move on to the entry under it
+  if [[ "$id" == @* ]]; then
+    printf 'down'
+    return 0
+  fi
   module="${id%%#*}"
   n="${id#*#}"
   if [[ "$id" != *#* || ! "$n" =~ ^[0-9]+$ ]] || ! dir="$(fzx::module_find "$module")"; then

@@ -39,3 +39,6 @@ FZX_TASKS_JOBS=8
 
 # built from the scan cache and the current repository on every open
 FZX_PERSIST=none
+
+# the menu group this module is listed under (menu mode groups)
+FZX_MENU_GROUP=development

@@ -64,3 +64,6 @@ FZX_PERSIST=session
 
 # a repository's README and a file's contents need room: the preview to the right from 140 columns
 FZX_PREVIEW_LAYOUTS=("0:down,55%,border-top" "140:right,55%")
+
+# the menu group this module is listed under (menu mode groups)
+FZX_MENU_GROUP=development

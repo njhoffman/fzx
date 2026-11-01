@@ -23,3 +23,6 @@ FZX_MAN_TLDR_PAGES="${FZX_MAN_TLDR_PAGES-}"
 
 FZX_COLORS[man_name]='1;38;5;117'
 FZX_COLORS[man_section]='38;5;244'
+
+# the menu group this module is listed under (menu mode groups)
+FZX_MENU_GROUP=shell

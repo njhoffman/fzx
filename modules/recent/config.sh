@@ -28,3 +28,6 @@ FZX_RECENT_ZLUA_LUA="${FZX_RECENT_ZLUA_LUA:-${ZLUA_LUAEXE:-lua}}"
 # the directories `fzx jump` (g, gg, alt-j) matches with: a directory mode of this module (zlua, dirs,
 # fasd-dirs, visited) or MODULE:MODE of another (dirs:bookmarks); "" takes zlua, else dirs, else fasd-dirs
 FZX_RECENT_DIRS_JUMP_MODE=""
+
+# the menu group this module is listed under (menu mode groups)
+FZX_MENU_GROUP=files

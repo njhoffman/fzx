@@ -30,3 +30,6 @@ FZX_LOGS_GLOBS=(
 
 # lines shown in the preview and before following
 FZX_LOGS_LINES=200
+
+# the menu group this module is listed under (menu mode groups)
+FZX_MENU_GROUP=system

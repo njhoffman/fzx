@@ -27,3 +27,6 @@ export FZX_GIT_DESTRUCTIVE="${FZX_GIT_DESTRUCTIVE:-0}"
 # git color settings applied to every git call here (`-c KEY=VALUE`), over the user's: git's defaults
 # draw tags, commit hashes and the decoration parentheses in yellow; cool colors instead
 FZX_GIT_COLOR_CONFIG=("color.decorate.tag=bold 117" "color.diff.commit=252")
+
+# the menu group this module is listed under (menu mode groups)
+FZX_MENU_GROUP=development

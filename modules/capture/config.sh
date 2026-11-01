@@ -27,3 +27,6 @@ FZX_COLORS[capture_offscreen]="38;5;244"
 
 # the context of a hit under the list; to the right on wide terminals
 FZX_PREVIEW_LAYOUTS=("0:down,40%,border-top" "150:right,50%")
+
+# the menu group this module is listed under (menu mode groups)
+FZX_MENU_GROUP=terminal

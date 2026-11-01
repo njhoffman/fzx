@@ -15,3 +15,6 @@ FZX_PERSIST=none
 
 # X11 color names (lines "R G B name")
 FZX_COLORS_RGB_TXT="${FZX_COLORS_RGB_TXT:-/usr/share/X11/rgb.txt}"
+
+# the menu group this module is listed under (menu mode groups)
+FZX_MENU_GROUP=terminal

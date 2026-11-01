@@ -8,6 +8,8 @@ fzx::require log session menu
 # menu::preview <module>#<n>
 menu::preview() {
   local id="${1:-}" module n dir file
+  # a group header: nothing to show
+  [[ "$id" == @* ]] && return 0
   module="${id%%#*}"
   n="${id#*#}"
   if [[ "$id" != *#* ]] || ! dir="$(fzx::module_find "$module")" || ! fzx::menu_entries "$module" "$dir" ||

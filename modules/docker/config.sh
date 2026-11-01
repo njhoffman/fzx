@@ -22,3 +22,6 @@ FZX_COLORS[docker_name]='1;38;5;111'
 FZX_COLORS[docker_running]='38;5;114'
 FZX_COLORS[docker_paused]='38;5;252'
 FZX_COLORS[docker_stopped]='38;5;203'
+
+# the menu group this module is listed under (menu mode groups)
+FZX_MENU_GROUP=system

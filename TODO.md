@@ -16,10 +16,6 @@ Reviewed: 2026-10-28
 
 ## 1. Next up
 
-- [ ] **Menu ordering by use** (p1) [feature]: the menu lists about 70 entries in module order. Sort by
-      `stats.tsv` (recent and frequent first), with a "recent" group on top, and consider group headers
-      (shell, system, development) for the rest.
-
 ## 2. Menu and presentation
 
 - [ ] **Mode icon in the prompt** (p3) [feature]: the prompt shows the module's `FZX_ICON` even in a mode with

@@ -23,3 +23,6 @@ FZX_COLORS[keys_map]='38;5;250'
 FZX_COLORS[keys_key]='1;38;5;255'
 FZX_COLORS[keys_widget]='38;5;117'
 FZX_COLORS[keys_user]='38;5;147'
+
+# the menu group this module is listed under (menu mode groups)
+FZX_MENU_GROUP=shell

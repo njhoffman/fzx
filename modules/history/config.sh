@@ -21,3 +21,6 @@ FZX_COLORS[history_failed]='38;5;203'
 
 # the command is the whole point: wide list, the run details below it
 FZX_PREVIEW_LAYOUTS=("0:down,40%,border-top")
+
+# the menu group this module is listed under (menu mode groups)
+FZX_MENU_GROUP=shell
