@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 # history source: zsh-histdb's commands, one row per command (its latest run), as
-# "history id<TAB>display". The id is the latest run's history.id; the command text is looked up by id
+# "history id<TAB>columns<TAB>command". The id is the latest run's history.id; the command text is looked up by id
 # (history::argv), since a command can span lines.
 # Mode from $FZX_MODE: session (FZX_HISTDB_SESSION, else this host's latest session), directory ($PWD and
-# below, logical and resolved), host (this machine), global (every host). Toggle failed: only commands whose
-# latest run failed. Sort recent (default) or frequent.
+# below, logical and resolved), host (this machine), global (every host; each row names its host).
+# Toggles: failed (only commands whose latest run failed), succeeded (only those whose latest run did not),
+# runs (one row per run instead of per command). Sort recent (default), frequent or frecent (runs weighted
+# by how recent they are; a run a day old counts half).
+# Rows: the age of the latest run, the run count, the failed icon, the latest run's duration, the host
+# (global), the command colored by its parts (a failed one in red).
+# host and global by recency are cached ($FZX_CACHE_DIR/history): each run reads only the runs added since,
+# and the rows are formatted afresh, so ages stay current.
 
 # history::sql <query>: read-only sqlite3 on the histdb file, fields split by \x1f
 history::sql() {
@@ -64,45 +70,189 @@ history::argv() {
   done
 }
 
-history::source() {
-  local where order having="" dim=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" red=$'\e['"${FZX_COLORS[history_failed]:-38;5;203}m" rst=$'\e[0m'
-  local failed
-  fzx::require icons
-  fzx::icon failed failed
-  [[ -r "$FZX_HISTDB_FILE" ]] || { printf 'history: no histdb database at %s\n' "$FZX_HISTDB_FILE" >&2; return 2; }
-  where="$(history::where "${FZX_MODE:-host}")" || { printf 'history: unknown mode: %s\n' "$FZX_MODE" >&2; return 2; }
-  [[ " ${FZX_TOGGLES:-} " == *" failed "* ]] && having="having last_status != 0"
-  case "${FZX_SORT:-recent}" in
-    frequent) order="runs desc, last_start desc" ;;
-    *) order="last_start desc" ;;
+# the raw row's columns: history id, command id, start, runs, exit status, duration, host, command (its
+# newlines and tabs flattened)
+HISTORY_RAW_COLS="ifnull(history.exit_status, 0), ifnull(history.duration, ''), ifnull(places.host, ''),
+  replace(replace(commands.argv, char(10), ' ↵ '), char(9), ' ')"
+
+# history::raw <where> <order: recent|frequent|frecent> [extra condition]: one raw row per command, its
+# latest run's columns (sqlite takes bare columns from the row holding max())
+history::raw() {
+  local order
+  case "$2" in
+    frequent) order="count(*) desc, max(history.start_time) desc" ;;
+    frecent) order="sum(1.0 / (1 + max($(date +%s) - history.start_time, 0) / 86400.0)) desc, max(history.start_time) desc" ;;
+    *) order="max(history.start_time) desc" ;;
   esac
-  # bare columns with max(): sqlite takes them from the row holding the maximum, the latest run
   history::sql "
-    select history.id, max(history.start_time) as last_start, count(*) as runs,
-      ifnull(history.exit_status, 0) as last_status,
-      case
-        when max(history.start_time) >= cast(strftime('%s', 'now', 'start of day') as integer) then strftime('%H:%M', max(history.start_time), 'unixepoch', 'localtime')
-        when max(history.start_time) >= cast(strftime('%s', 'now', 'start of year') as integer) then strftime('%m/%d', max(history.start_time), 'unixepoch', 'localtime')
-        -- this sqlite's strftime has no %y
-        else strftime('%m/%d/', max(history.start_time), 'unixepoch', 'localtime') ||
-          substr(strftime('%Y', max(history.start_time), 'unixepoch', 'localtime'), 3)
-      end,
-      replace(replace(commands.argv, char(10), ' ↵ '), char(9), ' ')
+    select history.id, history.command_id, max(history.start_time), count(*), $HISTORY_RAW_COLS
     from history
       join commands on commands.id = history.command_id
       join places on places.id = history.place_id
-    where $where
+    where $1 ${3:+and $3}
     group by history.command_id
-    $having
-    order by $order" |
-    awk -F'\x1f' -v dim="$dim" -v red="$red" -v rst="$rst" -v failed="$failed" -v sort="${FZX_SORT:-recent}" \
-      -v hl=$'\e['"${FZX_COLORS[sorted]:-4}m" '
-      # the failed icon (or as much blank) between the count and the command, so commands line up; the
-      # sorted column (the time, or the count) also in the sorted color
-      { mark = failed == "" ? "" : ($4 != 0 ? red failed rst " " : "  ")
-        n = $3 > 1 ? $3 "x" : ""
-        printf "%s\t%s%*s%s%s%s %*s%s%s%s  %s%s%s%s\n", $1, dim, 8 - length($5), "", (sort == "frequent" ? "" : hl), $5, rst dim,
-          5 - length(n), "", (sort == "frequent" && n != "" ? hl : ""), n, rst, mark, ($4 != 0 ? red : ""), $6, ($4 != 0 ? rst : "") }'
+    order by $order"
+}
+
+# history::raw_runs <where>: one raw row per run, newest first (the runs toggle)
+history::raw_runs() {
+  history::sql "
+    select history.id, history.command_id, history.start_time, '', $HISTORY_RAW_COLS
+    from history
+      join commands on commands.id = history.command_id
+      join places on places.id = history.place_id
+    where $1
+    order by history.start_time desc, history.id desc"
+}
+
+# history::cache_dir: where host and global keep their rows
+history::cache_dir() { printf '%s/history' "$FZX_CACHE_DIR"; }
+
+# history::cache_clear: drop the cached rows (after forgetting commands)
+history::cache_clear() { rm -f -- "$(history::cache_dir)"/*.rows "$(history::cache_dir)"/*.last 2> /dev/null || :; }
+
+# history::raw_cached <mode> <where>: history::raw by recency, from the cache plus the runs added since.
+# The commands run since (from the last cached run on: histdb fills a run's status and duration when it
+# ends) are queried afresh and lead; the cached rows of the rest follow in their order. A database whose
+# last run is older than the cache's (replaced, or rows removed) is read whole again.
+history::raw_cached() {
+  local mode="$1" where="$2" dir key rows last cached="" now_last tmp
+  dir="$(history::cache_dir)"
+  key="$mode"
+  [[ "$mode" == host ]] && key="host-$(history::host)"
+  key="${key//[^A-Za-z0-9._-]/_}"
+  rows="$dir/$key.rows" last="$dir/$key.last"
+  now_last="$(history::sql 'select ifnull(max(id), 0) from history')" || return
+  [[ -s "$rows" && -s "$last" ]] && read -r cached < "$last"
+  mkdir -p -- "$dir" || {
+    history::raw "$where" recent
+    return
+  }
+  tmp="$rows.$BASHPID"
+  # tee -p: the cache is written whole even when fzf stops reading (a quick pick)
+  local -a ps
+  if [[ "$cached" =~ ^[0-9]+$ ]] && ((cached <= now_last)); then
+    {
+      history::raw "$where" recent "history.command_id in (select history.command_id from history
+        join places on places.id = history.place_id where history.id >= $cached and $where)" |
+        tee -p -- "$tmp.new"
+      [[ "${PIPESTATUS[*]}" == "0 0" ]] || exit 1
+      awk -F'\x1f' 'FILENAME == ARGV[1] { seen[$2] = 1; next } !($2 in seen)' "$tmp.new" "$rows"
+    } | tee -p -- "$tmp"
+    ps=("${PIPESTATUS[@]}")
+    rm -f -- "$tmp.new"
+  else
+    history::raw "$where" recent | tee -p -- "$tmp"
+    ps=("${PIPESTATUS[@]}")
+  fi
+  if [[ "${ps[*]}" == "0 0" ]]; then
+    mv -f -- "$tmp" "$rows" && printf '%s\n' "$now_last" > "$last"
+    return 0
+  fi
+  rm -f -- "$tmp"
+  return 1
+}
+
+# history::format <mode>: raw rows -> "id<TAB>display" rows, filtered by the failed and succeeded toggles
+history::format() {
+  local failed hosts=""
+  fzx::require icons
+  fzx::icon failed failed
+  [[ "$1" == global ]] && hosts="$(history::sql 'select distinct host from places order by host' | tr '\n' ' ')"
+  # mawk formats about twice as fast; the rows only measure ASCII (ages, counts, hosts)
+  local awk=awk
+  command -v mawk > /dev/null && awk=mawk
+  # shellcheck disable=SC2016  # the program looks for "$" in commands
+  "$awk" -F'\x1f' -v now="$(date +%s)" -v sort="${FZX_SORT:-recent}" -v toggles=" ${FZX_TOGGLES:-} " \
+    -v failed="$failed" -v hosts="$hosts" -v me="$(history::host)" -v nocolor="${NO_COLOR+x}" \
+    -v dim="${FZX_COLORS[dim]:-38;5;244}" -v red="${FZX_COLORS[history_failed]:-38;5;203}" \
+    -v hl="${FZX_COLORS[sorted]:-4}" '
+    function esc(code) { return nocolor != "" ? "" : "\033[" code "m" }
+    function c(code, text) { return nocolor != "" || text == "" ? text : "\033[" code "m" text "\033[0m" }
+    # a span of seconds as 45s, 12m, 3h, 5d, 2w, 4mo or 3y
+    function span(s) {
+      return s < 60 ? int(s) "s" : s < 3600 ? int(s / 60) "m" : s < 86400 ? int(s / 3600) "h" : \
+        s < 1209600 ? int(s / 86400) "d" : s < 5184000 ? int(s / 604800) "w" : s < 31536000 ? int(s / 2592000) "mo" : int(s / 31536000) "y"
+    }
+    # the age in a color that fades with it
+    function agecolor(s) { return s < 3600 ? "38;5;255" : s < 86400 ? "38;5;252" : s < 604800 ? "38;5;248" : s < 2592000 ? "38;5;245" : "38;5;240" }
+    function durcolor(s) { return s > 300 ? red : s > 60 ? "38;5;221" : dim }
+    # the command colored by its parts: command words bold, options blue, quoted text green, variables
+    # cyan, operators yellow, the newline marks dim. Branches on the first character and uses prebuilt
+    # escapes: this runs on every word of every row.
+    function command(a,  n, w, i, out, word, first, q, ch, last, core, tail) {
+      n = split(a, w, " "); out = ""; first = 1; q = ""
+      for (i = 1; i <= n; i++) {
+        word = w[i]; ch = substr(word, 1, 1); last = substr(word, length(word))
+        if (q != "") {
+          core = word; if (last ~ /[;,)|&]/) sub(/[;,)|&]+$/, "", core)
+          if (substr(core, length(core)) == q) { q = ""; first = last == ";" }
+          word = QS word E
+        } else if (ch == "\047" || ch == "\"") {
+          core = word; if (last ~ /[;,)|&]/) sub(/[;,)|&]+$/, "", core)
+          if (length(core) == 1 || substr(core, length(core)) != ch) q = ch
+          word = QS word E; first = q == "" && last == ";"
+        } else if (word in ops) { word = OP word E; first = 1 }
+        else if (word in redir) word = OP word E
+        else if (word == "↵") { word = NL word E; first = 1 }
+        else {
+          tail = ""
+          if (last == ";" && length(word) > 1) { tail = OP ";" E; word = substr(word, 1, length(word) - 1) }
+          if (first) {
+            first = (word in prefix) || (index(word, "=") > 1 && word ~ /^[A-Za-z_][A-Za-z0-9_]*=/)
+            word = CW word E
+          } else if (ch == "-") word = OPT word E
+          else if (index(word, "$")) word = VAR word E
+          else word = ARG word E
+          if (tail != "") { word = word tail; first = 1 }
+        }
+        out = out (i > 1 ? " " : "") word
+      }
+      return out
+    }
+    BEGIN {
+      only_failed = index(toggles, " failed ") > 0; only_ok = index(toggles, " succeeded ") > 0
+      E = nocolor != "" ? "" : "\033[0m"
+      CW = esc("1;38;5;255"); OPT = esc("38;5;110"); QS = esc("38;5;150"); VAR = esc("38;5;116")
+      OP = esc("38;5;221"); ARG = esc("38;5;250"); NL = esc("38;5;240")
+      split("| || && ; |& &", t, " "); for (i in t) ops[t[i]] = 1
+      split("> >> < << >& &> 2> 2>> 1> 2>&1", t, " "); for (i in t) redir[t[i]] = 1
+      split("sudo env time nohup exec command builtin noglob nice xargs watch do then else elif while until if ! { (", t, " "); for (i in t) prefix[t[i]] = 1
+      split("110 151 180 216 146 174 109 186", pal, " ")
+      nh = split(hosts, hl_, " "); hw = 0
+      for (i = 1; i <= nh; i++) { hostc[hl_[i]] = hl_[i] == me ? dim : "38;5;" pal[(i - 1) % 8 + 1]; if (length(hl_[i]) > hw) hw = length(hl_[i]) }
+    }
+    {
+      st = $5 + 0
+      if (only_failed && st == 0) next
+      if (only_ok && st != 0) next
+      age = now - $3; if (age < 0) age = 0
+      a = span(age); n = $4 > 1 ? $4 "x" : ""
+      d = ($6 != "" && $6 >= 1) ? span($6) : ""
+      line = sprintf("%*s", 4 - length(a), "") (sort == "recent" ? c(agecolor(age) ";" hl, a) : c(agecolor(age), a))
+      line = line " " sprintf("%*s", 5 - length(n), "") (sort == "frequent" && n != "" ? c(dim ";" hl, n) : c(dim, n))
+      line = line " " (failed == "" ? "" : (st != 0 ? c(red, failed) " " : "  "))
+      line = line sprintf("%*s", 4 - length(d), "") c(durcolor($6 + 0), d) " "
+      if (hw) line = line c(($7 in hostc) ? hostc[$7] : dim, $7) sprintf("%*s", hw - length($7), "") " "
+      # the command in a field of its own: the only one searched (--nth)
+      printf "%s\t%s\t%s\n", $1, line, (st != 0 ? c(red, $8) : command($8))
+    }'
+}
+
+history::source() {
+  local where mode="${FZX_MODE:-global}" sort="${FZX_SORT:-recent}"
+  [[ -r "$FZX_HISTDB_FILE" ]] || { printf 'history: no histdb database at %s\n' "$FZX_HISTDB_FILE" >&2; return 2; }
+  where="$(history::where "$mode")" || { printf 'history: unknown mode: %s\n' "$mode" >&2; return 2; }
+  {
+    if [[ " ${FZX_TOGGLES:-} " == *" runs "* ]]; then
+      history::raw_runs "$where"
+    elif [[ "$sort" == recent && ("$mode" == host || "$mode" == global) ]]; then
+      history::raw_cached "$mode" "$where"
+    else
+      history::raw "$where" "$sort"
+    fi
+  } | history::format "$mode"
+  return "${PIPESTATUS[0]}"
 }
 
 [[ "${BASH_SOURCE[0]}" == "$0" ]] && {

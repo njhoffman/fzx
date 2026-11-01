@@ -20,6 +20,7 @@ typeset -gA FZX_ZSH_KEYS
 : ${FZX_ZSH_KEYS[menu]=$'\em'}  # open the menu, insert what it returns
 : ${FZX_ZSH_KEYS[menu-popup]=}  # the same in a tmux or Zellij popup (inline elsewhere); unbound by default
 : ${FZX_ZSH_KEYS[history]='^R'}  # histdb history: replace the line (alt-enter runs it)
+: ${FZX_ZSH_HISTORY_MODE:=global} # the history widget's first mode: global, host, directory or session
 : ${FZX_ZSH_KEYS[repos]=$'\er'} # cd into a git repository (repos module)
 : ${FZX_ZSH_KEYS[shell]=$'\es'} # insert a command, alias, function or parameter name (shell module)
 
@@ -92,19 +93,18 @@ fzx-menu-widget() { fzx-insert; }
 # fzf's --popup hands the selection back to the fzf in this terminal, so insert works as inline
 fzx-menu-popup-widget() { fzx-insert --popup; }
 
-# fzx-history-widget: the history module in the scope of the shell's history navigation
-# (SHELL_HISTORY_SCOPE: directory, session, else this host), seeded with what is typed. The chosen command
-# replaces the line; alt-enter (exit status 10) runs it. HISTDB_SESSION tells the session mode which
-# session this shell is.
+# fzx-history-widget: the history module in FZX_ZSH_HISTORY_MODE (global: every host, by default; alt-0
+# and alt-9 step through the others), seeded with what is typed. The chosen command replaces the line;
+# alt-enter (exit status 10) runs it. HISTDB_SESSION tells the session mode which session this shell is.
 fzx-history-widget() {
   emulate -L zsh
   setopt pipefail no_aliases
   local out mode rc query=()
   fzx-keys-refresh
   [[ -n "$LBUFFER" ]] && query=(-- "$LBUFFER")
-  case "${SHELL_HISTORY_SCOPE:-}" in
-    directory | session) mode="$SHELL_HISTORY_SCOPE" ;;
-    *) mode=host ;;
+  case "${FZX_ZSH_HISTORY_MODE:-global}" in
+    global | host | directory | session) mode="${FZX_ZSH_HISTORY_MODE:-global}" ;;
+    *) mode=global ;;
   esac
   out="$(FZX_HISTDB_SESSION="${HISTDB_SESSION:-}" command "${FZX_ZSH_BIN:-fzx}" -m "history:$mode" \
     "${query[@]}" < /dev/tty)"

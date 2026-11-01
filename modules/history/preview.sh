@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # history preview: the full command, its latest run (time, status, duration, directory, host, session),
-# how often it ran and failed, and the directories it ran in most
+# how often it ran and failed (the success rate) and its median duration, its recent runs, and the
+# directories it ran in most
 # shellcheck source=./source.sh
 source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
 # shellcheck source=../../lib/render.sh
@@ -52,7 +53,37 @@ history::preview() {
   printf '%s  %s   %ssession %s%s\n' "$l_host" "$host" "$D" "$session" "$R"
   printf '%s  %s' "$l_runs" "$runs"
   ((failed)) && printf '   %s%s failed%s' "$RED" "$failed" "$R"
+  ((runs > 1)) && printf '   %s%s%% ok%s' "$D" "$(((runs - failed) * 100 / runs))" "$R"
   printf '   %ssince %s%s\n' "$D" "$first" "$R"
+  local median
+  median="$(history::sql "
+    select duration from history where command_id = (select command_id from history where id = $id)
+      and duration is not null
+    order by duration limit 1 offset (select count(duration) / 2 from history
+      where command_id = (select command_id from history where id = $id))")"
+  if ((runs > 1)) && [[ -n "$median" ]]; then
+    local l_med
+    fzx::icon_label duration "median   " "$lb" l_med
+    printf '%s  %ss\n' "$l_med" "$median"
+  fi
+
+  # the latest runs: when, status, duration, host, directory
+  if ((runs > 1)); then
+    local l_recent
+    fzx::icon_label clock "recent runs" "$lb" l_recent
+    printf '\n%s\n' "$l_recent"
+    history::sql "
+      select strftime('%Y-%m-%d %H:%M', h.start_time, 'unixepoch', 'localtime'), ifnull(h.exit_status, ''),
+        ifnull(h.duration, ''), ifnull(places.host, ''), ifnull(places.dir, '')
+      from history h left join places on places.id = h.place_id
+      where h.command_id = (select command_id from history where id = $id)
+      order by h.start_time desc limit 8" |
+      awk -F'\x1f' -v home="$HOME" -v dim="$D" -v rst="$R" -v red="$RED" -v grn="$GRN" '
+        { d = $5; if (index(d, home) == 1) d = "~" substr(d, length(home) + 1)
+          st = $2 == "" ? "?" : $2
+          printf "  %s%s%s  %s%3s%s %6s  %s%s%s  %s\n", dim, $1, rst, (st == "0" ? grn : red), st, rst,
+            ($3 == "" ? "" : $3 "s"), dim, $4, rst, d }'
+  fi
 
   dirs="$(history::sql "
     select count(*), places.dir from history h join places on places.id = h.place_id

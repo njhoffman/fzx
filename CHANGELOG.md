@@ -6,6 +6,27 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.49.0] - 2026-11-01
+
+### Added
+
+- history: rows show how long ago the latest run was (fading with age), its duration (yellow over a minute,
+  red over five), the host in global mode (other hosts colored), and the command colored by its parts
+  (command words, options, quoted text, variables, operators). Only the command is searched.
+- history: the succeeded toggle (alt-s), the runs toggle (alt-a: every run, not one row per command) and
+  the frecent sort (runs weighted by how recent they are).
+- history: alt-c puts `cd DIR && COMMAND` on the command line, the directory it last ran in; ctrl-y copies.
+- history preview: the success rate, the median duration and the last 8 runs (when, status, duration, host,
+  directory).
+- history: host and global keep their rows in `$FZX_CACHE_DIR/history` and read only the runs added since,
+  so the list starts showing at once.
+- zsh: `FZX_ZSH_HISTORY_MODE` picks the history widget's first mode.
+
+### Changed
+
+- history: global (every host) is the default mode, of `fzx -m history` and of the zsh widget, which no
+  longer follows `SHELL_HISTORY_SCOPE`. The menu lists every host's history and this machine's.
+
 ## [0.48.0] - 2026-11-01
 
 ### Added

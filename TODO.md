@@ -30,6 +30,13 @@ Reviewed: 2026-10-28
 - [ ] **Preview layouts for the rest** (p2) [feature]: `FZX_PREVIEW_LAYOUTS` tuned to each module's content
       (design.md, "New-module checklist") for colors, dirs, docker, git, keybindings, logs, man, network, ps,
       recent, shell, systemd, tasks, tmux and youtube; check each live at 80, 120 and 200 columns.
+- [ ] **history: multi-line commands as multi-line rows** (p3) [feature]: draw a command that spans lines over
+      several rows (fzf --read0 with --highlight-line and a wrap sign, as fzf's own ctrl-r does) instead of
+      joining them with ↵ (1,696 such commands here). Needs --read0 support in lib/: the source contract,
+      caches, line counts and the `cut -f` users all assume one row per line.
+- [ ] **history: exit 130 counts as failed** (p3) [bug]: a TUI quit with ctrl-c or esc (fzf, fzx, less)
+      exits 130 and shows red with the failed icon (fzx here: 81 of 92 runs "failed"). Show interrupted
+      runs apart (dim, their own icon) and leave them out of the failed toggle and the success rate.
 - [ ] **logs and systemd test files** (p3) [test]: test/modules.bats covers them in part; give each its own
       file (sources per mode and toggle, previews, actions, bindings under fzx), as the checklist asks.
 - [ ] **Popup geometry per module** (p2) [feature]: popup size and position from the module's content and

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# history: zsh-histdb's commands, one row per command, newest first. `fzx -m history[:session|:directory|
-# :host|:global]`. Enter prints the command; alt-enter prints it and exits 10 (the zsh widget then runs it).
+# history: zsh-histdb's commands, one row per command, newest first. `fzx -m history[:global|:host|
+# :directory|:session]` (global, every host, by default). Enter prints the command; alt-enter prints it and exits 10 (the zsh widget then runs it).
 # The zsh widget (shell/fzx.zsh, ctrl-r) passes the shell's histdb session as FZX_HISTDB_SESSION.
 
 FZX_MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -12,8 +12,9 @@ source "$FZX_MODULE_DIR/source.sh"
 history::opts() {
   FZX_OPTS+=(
     --delimiter=$'\t'
-    --with-nth=2
-    --nth=2..
+    --with-nth=2..
+    --nth=2
+    --tabstop=1
     --scheme=history
     --preview "$(fzx::cb preview '{1}')"
     "--preview-window=down,40%,wrap,nohidden"

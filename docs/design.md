@@ -285,7 +285,7 @@ the query matches to that column. Sorted columns: ps (cpu, mem, age, pid), docke
 and images (created, size, name), tmux sessions, windows and panes (order, recent: an activity age column,
 name), systemd (name, state), recent (rank: the score, path), dirs bookmarks (name, path), logs files
 (recent, size, name), git branches (recent, name), github mine and starred (listed: mine's push age,
-stars, name), repos (recent, name) and history (recent, frequent). files (path, modification time) and
+stars, name), repos (recent, name) and history (recent: the age, frequent: the count). files (path, modification time) and
 todos (urgency) sort without a column to mark.
 
 ### Actions
@@ -469,7 +469,7 @@ given only a `--language` (zsh commands, man pages, logs) go to bat.
 | `tmux` | sessions, windows, panes; buffers; keys, commands, options, variables, styles, formats, status, hooks | `--pane %N`, `--table`, `--option-scope`, `--user-only`, `--builtin-only`, `--prefix`, `--options-file`, `--data-file` | alt-s switch/attach, ctrl-o capture (the capture module on that pane), ctrl-x kill (confirm), alt-n rename, alt-m move, alt-p paste a buffer; toggles: changed/free/empty/short; actions: link/swap/mark, next/prev session, theme, scratch, nvim | plain IDs/text; colored display and hidden metadata; see [tmux](tmux.md) |
 | `capture` | lines, urls, paths, words, hashes, ips out of a tmux pane: the screen first (newest first), then the scrollback nearest first, each row marked `vis`, `↑N` or `↓N`; toggle visible | `--pane %N` (the origin) | alt-. / alt-, the window's next/previous pane (header shows which), alt-p paste into the origin pane, ctrl-y copy | the values |
 | `colors` | 256 (xterm names), names (X11 rgb.txt in true color, nearest 256), fzx (`FZX_COLORS` of every layer, by module) | | alt-h copy hex, alt-s copy SGR parameters, alt-e copy escape sequences, ctrl-y copy | numbers, names or keys |
-| `history` | session, directory, host (default), global (zsh-histdb); toggle failed; sort recent/frequent | `[WORDS...]`: the starting query | alt-enter run (exit status 10), ctrl-x forget (confirm), alt-e failed only | the command (multi-line kept) |
+| `history` | global (default: every host, each row naming its host), host, directory, session (zsh-histdb); rows: age of the latest run, runs, failed icon, duration, host, the command colored by its parts (only the command is searched); toggles failed, succeeded, runs (every run); sort recent/frequent/frecent | `[WORDS...]`: the starting query | alt-enter run (exit status 10), alt-c `cd DIR && COMMAND` (the directory it last ran in), ctrl-y copy, ctrl-x forget (confirm), alt-e failed only, alt-s succeeded only, alt-a every run | the command (multi-line kept) |
 | `repos` | all, mine, changed, unsynced, todos; sort recent/name | | ctrl-o git module, alt-o files, ctrl-e edit, alt-w browse; actions: fetch, pull (`--ff-only`), rescan, links (every ghq repository linked into `FZX_REPOS_LINKS_DIR`) | the repository path |
 | `docker` | containers (running first), images, volumes, networks, compose; toggle running | | alt-s start/up, ctrl-x stop/down, alt-R restart, alt-x remove (confirm), alt-e exec a shell, ctrl-l follow logs, alt-i inspect; actions: kill, run (image), pull, prune | ids (volume and project names) |
 | `network` | ports (listening, by port or process), connections (by remote or process), interfaces, routes, wifi (nmcli; strongest first or by name), services (mDNS through avahi, cached `FZX_NETWORK_SERVICES_TTL`), files (hidden: lsof of a process); toggle root (ss and lsof through `sudo -n`) | files: `--pid PID` | ctrl-x SIGTERM to the port's process (confirm; sudo when not yours, `sudo fuser -k` without a visible process), ctrl-o the process's open files, alt-c connect (a saved connection, else nmcli asks for the password), alt-d disconnect (confirm), alt-s rescan wifi / browse services again, alt-o open web services, alt-u root, ctrl-y copy | addresses, interface names, SSIDs, file names |
@@ -519,9 +519,16 @@ per command: the id is the latest run's `history.id` (sqlite takes bare columns 
 `max()`), and insert/run look the text up by id, since commands span lines. Directory mode matches the
 logical `$PWD` (what histdb stores) and the resolved path, `LIKE` escaped with `!`. Session mode uses
 `FZX_HISTDB_SESSION`, which the zsh widget sets from the shell's `HISTDB_SESSION` (outside the widget: this
-host's latest session). The widget (ctrl-r, `FZX_ZSH_KEYS[history]`) starts in the mode of the shell's
-`SHELL_HISTORY_SCOPE`, replaces the line with the result and accepts it when fzx exits 10 (the run action).
-Delete removes every run and the command row, as histdb's `--forget` does. `FZX_PERSIST=none`.
+host's latest session). The widget (ctrl-r, `FZX_ZSH_KEYS[history]`) starts in `FZX_ZSH_HISTORY_MODE`
+(global by default; alt-0/alt-9 step through the modes), replaces the line with the result and accepts it
+when fzx exits 10 (the run action). Delete removes every run and the command row, as histdb's `--forget`
+does, and drops the cache. `FZX_PERSIST=none`: the module keeps its own cache instead. host and global by
+recency, the slow ones (105k commands, 340k runs: 0.55s in sqlite before the first row), keep their raw rows in
+`$FZX_CACHE_DIR/history/<mode>.rows` with the last run's id; a run queries only the commands run from that
+id on (histdb fills a run's status and duration when it ends, so the last cached one is read again), prints
+them first and then the cached rows of the other commands. A database whose last id is below the cache's is
+read whole. Rows are formatted on every run (ages stay current), through mawk when installed (about twice
+as fast as gawk); `tee -p` writes the cache whole when fzf stops reading early.
 `repos` lists `ghq list -p` plus repositories under `FZX_REPOS_ROOTS` (resolved, so `~/git` links into ghq
 collapse) and joins them with `$FZX_CACHE_DIR/repos/status` (`path, branch, changed, ahead, behind, last commit,
 open TODO items`). The list itself takes ~40ms; `git status` over 300 repositories takes ~15s even in

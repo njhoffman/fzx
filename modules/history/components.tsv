@@ -1,12 +1,16 @@
 # kind  name  key  description  flags
-mode    session    -  this shell session (histdb session from the zsh widget)  -
+mode    global     -  every host in the database (each row names its host)   default
+mode    host       -  run on this machine                                    -
 mode    directory  -  run in this directory or below                         -
-mode    host       -  run on this machine                                    default
-mode    global     -  every machine in the database                          -
-toggle  failed     alt-e  only commands whose last run failed                -
+mode    session    -  this shell session (histdb session from the zsh widget)  -
+toggle  failed     alt-e  only commands whose last run failed                 -
+toggle  succeeded  alt-s  only commands whose last run succeeded              -
+toggle  runs       alt-a  every run, not one row per command (newest first)   -
 sort    recent     -  most recently run first                                default
 sort    frequent   -  most often run first                                   -
-action  insert     -       put the command on the command line               default,print
+sort    frecent    -  often and lately: each run counts less as it ages      -
+action  insert     -          put the command on the command line               default,print
 action  run        alt-enter  run the command (the zsh widget accepts the line)  print
-action  copy       -       copy the commands                                 silent,notify
-action  delete     ctrl-x  forget every run of the selected commands         confirm,reload
+action  cd         alt-c      put "cd DIR && COMMAND" on the line: the directory it last ran in  print
+action  copy       ctrl-y     copy the commands                                 silent,notify
+action  delete     ctrl-x     forget every run of the selected commands         confirm,reload
