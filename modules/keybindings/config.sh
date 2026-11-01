@@ -24,5 +24,8 @@ FZX_COLORS[keys_key]='1;38;5;255'
 FZX_COLORS[keys_widget]='38;5;117'
 FZX_COLORS[keys_user]='38;5;147'
 
+# rows (key, widget, description) want about 70 columns, the preview less: right from 140
+FZX_PREVIEW_LAYOUTS=("0:down,40%,border-top" "140:right,45%")
+
 # the menu group this module is listed under (menu mode groups)
 FZX_MENU_GROUP=shell

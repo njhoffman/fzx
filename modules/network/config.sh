@@ -32,5 +32,8 @@ FZX_NETWORK_SERVICES_TTL="${FZX_NETWORK_SERVICES_TTL:-10m}"
 # how long one browse may take
 FZX_NETWORK_SERVICES_TIMEOUT="${FZX_NETWORK_SERVICES_TIMEOUT:-8}"
 
+# rows (protocol, addresses, process) are wide, the preview short: right from 160 columns
+FZX_PREVIEW_LAYOUTS=("0:down,45%,border-top" "160:right,45%")
+
 # the menu group this module is listed under (menu mode groups)
 FZX_MENU_GROUP=system

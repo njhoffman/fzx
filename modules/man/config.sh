@@ -24,5 +24,10 @@ FZX_MAN_TLDR_PAGES="${FZX_MAN_TLDR_PAGES-}"
 FZX_COLORS[man_name]='1;38;5;117'
 FZX_COLORS[man_section]='38;5;244'
 
+# a page renders at the preview's width and reads best near 80 columns: right from 160 (88 columns)
+FZX_PREVIEW_LAYOUTS=("0:down,50%,border-top" "160:right,55%")
+# wide content: a larger popup than the default
+FZX_POPUP_LAYOUTS=("0:center,100%" "140:center,95%,90%" "220:center,90%,85%")
+
 # the menu group this module is listed under (menu mode groups)
 FZX_MENU_GROUP=shell

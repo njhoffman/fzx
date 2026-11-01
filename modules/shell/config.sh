@@ -35,5 +35,8 @@ FZX_COLORS[shell_value]='38;5;250'
 FZX_COLORS[shell_export]='1;38;5;75'
 FZX_COLORS[shell_masked]='38;5;203'
 
+# names are short and tldr pages want about 70 columns: the preview moves right from 110
+FZX_PREVIEW_LAYOUTS=("0:down,50%,border-top" "110:right,60%")
+
 # the menu group this module is listed under (menu mode groups)
 FZX_MENU_GROUP=shell

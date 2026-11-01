@@ -6,6 +6,17 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.57.0] - 2026-11-01
+
+### Changed
+
+- Preview layouts for colors, dirs, docker, git, keybindings, logs, man, network, ps, recent, shell,
+  systemd, tasks, tmux and youtube, tuned to what each shows: long lines (logs, diffs, unit status, pane
+  captures) keep the preview below until the terminal is wide, short details (colors, tasks, keybindings)
+  move it to the right early, and logs keeps it below at every width. Checked at 80, 120 and 200 columns.
+- logs, git, docker, systemd, tmux and man open in larger popups than the default (95% by 90% from 140
+  columns, 90% by 85% from 220).
+
 ## [0.56.0] - 2026-11-01
 
 ### Added

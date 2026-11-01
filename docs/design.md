@@ -225,8 +225,12 @@ What a module ships with, beyond the scripts above:
 - **Preview**: `preview.sh` draws from the item's fields, colors through `FZX_COLORS` (no hard-coded
   escapes, nothing that reads as bright yellow), icons through `fzx::icon` / `fzx::icon_label`.
 - **Preview layouts**: `FZX_PREVIEW_LAYOUTS` in `config.sh`, tuned to the content: long lines (logs,
-  diffs, man pages) want the preview below on narrow terminals and wide on the right; short metadata
-  (processes, containers, units) fits a narrow right preview early.
+  diffs, man pages) want the preview below on narrow terminals and wide on the right; short details
+  (colors, tasks, keybindings) fit a right preview early, unless the rows themselves are what is read (ps
+  command lines keep the whole width until 220). Breakpoints compare with `$FZF_COLUMNS`, 4 less than the
+  terminal (fzx's border): a 120-column terminal is 116 to them, so an entry meant for it starts at 110 or
+  so. Content that reads wide (logs, diffs, pane captures) also gets a larger `FZX_POPUP_LAYOUTS`. Check
+  each live at 80, 120 and 200 columns.
 - **Icon and menu color**: `FZX_ICON` and `FZX_COLORS[<module>_icon]`; modes with an icon of their own in
   `FZX_ICON_MODES` and `FZX_COLORS[<module>_icon_<mode>]`.
 - **Menu**: `manifest.sh` with an entry per mode worth listing, `<module>::applicable` when the module

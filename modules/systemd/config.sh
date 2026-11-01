@@ -12,5 +12,10 @@ FZX_ICON=""
 FZX_COLORS[systemd_icon]="38;5;66"
 
 
+# unit rows and systemctl status lines are long: the preview stays below until 190 columns (a 200-column terminal)
+FZX_PREVIEW_LAYOUTS=("0:down,50%,border-top" "190:right,50%")
+# wide content: a larger popup than the default
+FZX_POPUP_LAYOUTS=("0:center,100%" "140:center,95%,90%" "220:center,90%,85%")
+
 # the menu group this module is listed under (menu mode groups)
 FZX_MENU_GROUP=system

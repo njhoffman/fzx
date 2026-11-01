@@ -29,5 +29,8 @@ FZX_RECENT_ZLUA_LUA="${FZX_RECENT_ZLUA_LUA:-${ZLUA_LUAEXE:-lua}}"
 # fasd-dirs, visited) or MODULE:MODE of another (dirs:bookmarks); "" takes zlua, else dirs, else fasd-dirs
 FZX_RECENT_DIRS_JUMP_MODE=""
 
+# as files: the list needs about 50 columns and code about 80, so the preview moves right from 130
+FZX_PREVIEW_LAYOUTS=("0:down,40%,border-top" "130:right,55%")
+
 # the menu group this module is listed under (menu mode groups)
 FZX_MENU_GROUP=files

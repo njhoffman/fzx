@@ -31,5 +31,10 @@ FZX_LOGS_GLOBS=(
 # lines shown in the preview and before following
 FZX_LOGS_LINES=200
 
+# log lines are long in the list and the preview alike: the preview stays below at every width
+FZX_PREVIEW_LAYOUTS=("0:down,60%,border-top")
+# wide content: a larger popup than the default
+FZX_POPUP_LAYOUTS=("0:center,100%" "140:center,95%,90%" "220:center,90%,85%")
+
 # the menu group this module is listed under (menu mode groups)
 FZX_MENU_GROUP=system

@@ -40,5 +40,8 @@ FZX_TASKS_JOBS=8
 # built from the scan cache and the current repository on every open
 FZX_PERSIST=none
 
+# rows (task and command) want about 70 columns, definitions are short: right from 140
+FZX_PREVIEW_LAYOUTS=("0:down,45%,border-top" "140:right,50%")
+
 # the menu group this module is listed under (menu mode groups)
 FZX_MENU_GROUP=development

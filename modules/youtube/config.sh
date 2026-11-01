@@ -22,5 +22,8 @@ FZX_YOUTUBE_PLAYER=(mpv)
 FZX_YOUTUBE_AUDIO_DIR="${FZX_YOUTUBE_AUDIO_DIR:-}"
 FZX_YOUTUBE_MP3_ARGS=(--audio-quality 0 --embed-metadata)
 
+# titles and channels make rows wide, the description wraps: right from 150 columns
+FZX_PREVIEW_LAYOUTS=("0:down,45%,border-top" "150:right,45%")
+
 # the menu group this module is listed under (menu mode groups)
 FZX_MENU_GROUP=other

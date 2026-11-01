@@ -28,5 +28,10 @@ export FZX_GIT_DESTRUCTIVE="${FZX_GIT_DESTRUCTIVE:-0}"
 # draw tags, commit hashes and the decoration parentheses in yellow; cool colors instead
 FZX_GIT_COLOR_CONFIG=("color.decorate.tag=bold 117" "color.diff.commit=252")
 
+# log rows and diffs both want about 90 columns: the preview moves right from 170
+FZX_PREVIEW_LAYOUTS=("0:down,55%,border-top" "170:right,55%")
+# wide content: a larger popup than the default
+FZX_POPUP_LAYOUTS=("0:center,100%" "140:center,95%,90%" "220:center,90%,85%")
+
 # the menu group this module is listed under (menu mode groups)
 FZX_MENU_GROUP=development

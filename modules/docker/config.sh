@@ -23,5 +23,10 @@ FZX_COLORS[docker_running]='38;5;114'
 FZX_COLORS[docker_paused]='38;5;252'
 FZX_COLORS[docker_stopped]='38;5;203'
 
+# rows (name, image, status, ports) and the logs in the preview are both long: below until 190 columns (a 200-column terminal)
+FZX_PREVIEW_LAYOUTS=("0:down,55%,border-top" "190:right,50%")
+# wide content: a larger popup than the default
+FZX_POPUP_LAYOUTS=("0:center,100%" "140:center,95%,90%" "220:center,90%,85%")
+
 # the menu group this module is listed under (menu mode groups)
 FZX_MENU_GROUP=system

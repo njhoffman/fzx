@@ -20,5 +20,10 @@ FZX_COLORS[tmux_dim]='38;5;245'
 FZX_COLORS[tmux_title]='1;38;5;111'
 FZX_COLORS[tmux_flag]='38;5;176'
 
+# a pane's capture is as wide as the pane: below until 160 columns, then a wide preview on the right
+FZX_PREVIEW_LAYOUTS=("0:down,55%,border-top" "160:right,60%")
+# wide content: a larger popup than the default
+FZX_POPUP_LAYOUTS=("0:center,100%" "140:center,95%,90%" "220:center,90%,85%")
+
 # the menu group this module is listed under (menu mode groups)
 FZX_MENU_GROUP=terminal
