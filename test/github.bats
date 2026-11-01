@@ -42,7 +42,26 @@ case "${args[0]} ${args[1]}" in
   "pr checkout" | "issue develop") echo "${args[*]} in $PWD" >> "$BATS_TEST_TMPDIR/item.calls" ;;
   "issue comment" | "pr comment" | "issue close" | "pr close" | "issue reopen" | "pr reopen")
     echo "${args[*]}" >> "$BATS_TEST_TMPDIR/item.calls" ;;
-  "repo view") [[ -n "${STUB_GH_HERE:-}" ]] && echo "here: 2 PRs, 5 issues" || exit 1 ;;
+  # the menu summary asks about the repository here; the hub names one
+  "repo view")
+    if [[ "${args[2]}" != -* ]]; then
+      [[ -n "${STUB_GH_FAIL:-}" ]] && { echo "HTTP 404: Not Found" >&2; exit 1; }
+      cat "$BATS_TEST_TMPDIR/repo.json"
+    else
+      [[ -n "${STUB_GH_HERE:-}" ]] && echo "here: 2 PRs, 5 issues" || exit 1
+    fi
+    ;;
+  "run list")
+    [[ -n "${STUB_GH_RUNS_FAIL:-}" ]] && { echo "HTTP 403: Forbidden" >&2; exit 1; }
+    cat "$BATS_TEST_TMPDIR/runs.json" ;;
+  "run view")
+    if [[ " ${args[*]} " == *" --json jobs "* ]]; then cat "$BATS_TEST_TMPDIR/jobs.json"
+    elif [[ " ${args[*]} " == *" --json status,conclusion "* ]]; then
+      # run 2 is still going, run 1 failed, the others succeeded
+      case "${args[2]}" in 2) echo "in_progress " ;; 1) echo "completed failure" ;; *) echo "completed success" ;; esac
+    else echo "log of ${args[*]:2}"; fi
+    ;;
+  "run rerun" | "run cancel" | "run watch") echo "${args[*]}" >> "$BATS_TEST_TMPDIR/run.calls" ;;
   "auth token") echo tok ;;
   "search repos" | "search code")
     printf '%s\n' "${args[@]}" > "$BATS_TEST_TMPDIR/gh.search"
@@ -172,6 +191,27 @@ JSON
 {"body":"","comments":[],"headRefName":"feat/x","baseRefName":"main","changedFiles":3,"additions":10,"deletions":2,
  "reviewDecision":"APPROVED","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","conclusion":"FAILURE","status":"COMPLETED"},
  {"__typename":"StatusContext","context":"lint","state":"PENDING"}]}
+JSON
+  # gh repo view O/R (the hub), gh run list, gh run view --json jobs
+  cat > "$BATS_TEST_TMPDIR/repo.json" << 'JSON'
+{"nameWithOwner":"o/r","description":"The r","url":"https://github.com/o/r","pushedAt":"2026-01-01T00:00:00Z",
+ "defaultBranchRef":{"name":"main"},"issues":{"totalCount":5},"pullRequests":{"totalCount":2},"isArchived":false}
+JSON
+  cat > "$BATS_TEST_TMPDIR/runs.json" << 'JSON'
+[{"databaseId":1,"number":30,"displayTitle":"Fix\tit","workflowName":"CI","headBranch":"main","event":"push","status":"completed",
+  "conclusion":"failure","createdAt":"2026-01-01T00:00:00Z","updatedAt":"2026-01-01T00:02:05Z","startedAt":"2026-01-01T00:00:00Z",
+  "url":"https://github.com/o/r/actions/runs/1","attempt":1},
+ {"databaseId":2,"number":31,"displayTitle":"Next","workflowName":"Release","headBranch":"v1","event":"workflow_dispatch",
+  "status":"in_progress","conclusion":"","createdAt":"2026-01-01T00:00:00Z","updatedAt":"2026-01-01T00:00:00Z",
+  "startedAt":"2026-01-01T00:00:00Z","url":"https://github.com/o/r/actions/runs/2","attempt":2},
+ {"databaseId":3,"number":29,"displayTitle":"Old","workflowName":"CI","headBranch":"main","event":"push","status":"completed",
+  "conclusion":"success","createdAt":"2026-01-01T00:00:00Z","updatedAt":"2026-01-01T00:00:09Z","startedAt":"2026-01-01T00:00:00Z",
+  "url":"https://github.com/o/r/actions/runs/3","attempt":1}]
+JSON
+  cat > "$BATS_TEST_TMPDIR/jobs.json" << 'JSON'
+{"jobs":[{"name":"build","status":"completed","conclusion":"failure","startedAt":"2026-01-01T00:00:00Z","completedAt":"2026-01-01T00:01:30Z",
+  "steps":[{"number":1,"name":"checkout","conclusion":"success"},{"number":2,"name":"test","conclusion":"failure"}]},
+ {"name":"lint","status":"completed","conclusion":"success","startedAt":"2026-01-01T00:00:00Z","completedAt":"2026-01-01T00:00:07Z","steps":[]}]}
 JSON
   cat > "$BATS_TEST_TMPDIR/tree.json" << 'JSON'
 {"sha":"t","truncated":false,"tree":[
@@ -363,8 +403,8 @@ searches() { grep -c '^search ' "$BATS_TEST_TMPDIR/gh.calls" 2> /dev/null || ech
   [ "$status" -eq 0 ]
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " == *" --disabled "* ]]
-  [[ "$(fzf_bind enter)" == "enter:transform:$FZX _cb transform enter -- {1} {2} {3}" ]]
-  [[ "$(fzf_bind ctrl-o)" == *"_cb transform into -- {1} {2} {3}" ]]
+  [[ "$(fzf_bind enter)" == "enter:transform:$FZX _cb transform enter -- {1} {2} {3} {4}" ]]
+  [[ "$(fzf_bind ctrl-o)" == *"_cb transform into -- {1} {2} {3} {4}" ]]
   [[ "$(fzf_bind alt-d)" == *"_cb action fetch -- {+1}"* ]]
   run "$FZX" -m github:tree --repo o/r
   read_fzf_args
@@ -775,4 +815,144 @@ clone_here() {
   src notifications "" > /dev/null
   run github::summary github:notifications
   [ "$output" = "6 unread" ]
+}
+
+@test "repo: the hub's rows, files, issues, prs and runs with their counts; the repository here; failures" {
+  run src repo "" --repo o/r
+  [ "$status" -eq 0 ]
+  [ "${#lines[@]}" -eq 4 ]
+  [ "${lines[0]}" = "https://github.com/o/r"$'\t'"hub"$'\t'"o/r"$'\t'"tree"$'\t'"-"$'\t'"files        main" ]
+  [ "${lines[1]}" = "https://github.com/o/r/issues"$'\t'"hub"$'\t'"o/r"$'\t'"issues"$'\t'"-"$'\t'"issues       5 open" ]
+  [ "${lines[2]}" = "https://github.com/o/r/pulls"$'\t'"hub"$'\t'"o/r"$'\t'"prs"$'\t'"-"$'\t'"pull requests 2 open" ]
+  [ "${lines[3]}" = "https://github.com/o/r/actions"$'\t'"hub"$'\t'"o/r"$'\t'"runs"$'\t'"-"$'\t'"workflow runs last: failure CI" ]
+  grep -qx 'repo view o/r --json nameWithOwner,description,url,pushedAt,defaultBranchRef,issues,pullRequests,isArchived' "$BATS_TEST_TMPDIR/gh.calls"
+  # cached for FZX_GITHUB_ISSUES_TTL
+  src repo "" --repo o/r > /dev/null
+  [ "$(grep -c '^repo view o/r' "$BATS_TEST_TMPDIR/gh.calls")" -eq 1 ]
+  [ "$(grep -c '^run list' "$BATS_TEST_TMPDIR/gh.calls")" -eq 1 ]
+  # without runs (none, or none readable): the row says none
+  echo '[]' > "$BATS_TEST_TMPDIR/runs.json"
+  run src repo "" --repo p/q
+  [[ "${lines[3]}" == *"workflow runs none" ]]
+  clone_here
+  run src repo ""
+  [[ "${lines[0]}" == "https://github.com/o/r"$'\t'* ]]
+  STUB_GH_FAIL=1 run src repo "" --repo x/z
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"error"*"cannot read x/z: HTTP 404: Not Found"* ]]
+  cd "$BATS_TEST_TMPDIR"
+  run src repo ""
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"repo needs --repo OWNER/REPO or a GitHub clone here"* ]]
+}
+
+@test "runs: the state, workflow, title, branch, event, age and duration of each; errors and none" {
+  run src runs "" --repo o/r
+  [ "$status" -eq 0 ]
+  [ "${#lines[@]}" -eq 3 ]
+  IFS=$'\t' read -r url kind repo file index display <<< "${lines[0]}"
+  [ "$url $kind $repo $index" = "https://github.com/o/r/actions/runs/1 run o/r 0" ]
+  [ "$file" = "$FZX_CACHE_DIR/github/issues/runs-o__r.json" ]
+  # the workflow column as wide as the widest name; tabs in titles become spaces
+  [[ "$display" == "F CI      Fix it main push "*" 2m5s" ]]
+  # running: the time since it started
+  [[ "${lines[1]}" == *$'\t'"R Release Next v1 workflow_dispatch "* ]]
+  [[ "${lines[2]}" == *$'\t'"S CI      Old main push "*" 9s" ]]
+  grep -q '^run list -R o/r -L 100 --json databaseId,' "$BATS_TEST_TMPDIR/gh.calls"
+  rm -rf "$FZX_CACHE_DIR/github/issues"
+  STUB_GH_RUNS_FAIL=1 run src runs "" --repo o/r
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"cannot list workflow runs: HTTP 403: Forbidden"* ]]
+  echo '[]' > "$BATS_TEST_TMPDIR/runs.json"
+  run src runs "" --repo o/r
+  [ "$output" = "-"$'\t'"error"$'\t'"-"$'\t'"-"$'\t'"-"$'\t'"  o/r has no workflow runs" ]
+}
+
+@test "preview: the hub's rows (README, the first issues and prs, the latest runs); a run and its jobs" {
+  src repo "" --repo o/r > /dev/null
+  run env FZX_PREVIEW_VIEWERS=markdown=cat "$GH_DIR/preview.sh" https://github.com/o/r hub o/r tree -
+  [ "${lines[0]}" = "o/r" ]
+  [ "${lines[1]}" = "The r" ]
+  [ "${lines[2]}" = "branch  main" ]
+  [[ "$output" == *"# The readme" ]]
+  run "$GH_DIR/preview.sh" https://github.com/o/r/issues hub o/r issues -
+  [ "${lines[0]}" = "2 open issues" ]
+  [[ "${lines[1]}" == "O #12   Crash on start"* ]]
+  run "$GH_DIR/preview.sh" https://github.com/o/r/pulls hub o/r prs -
+  [ "${lines[0]}" = "3 open pull requests" ]
+  run "$GH_DIR/preview.sh" https://github.com/o/r/actions hub o/r runs -
+  [ "${lines[0]}" = "latest workflow runs" ]
+  [[ "${lines[1]}" == "F CI      Fix it"* ]]
+  run "$GH_DIR/preview.sh" https://github.com/o/r/actions/runs/1 run o/r "$FZX_CACHE_DIR/github/issues/runs-o__r.json" 0
+  [ "${lines[0]}" = "CI #30  failure" ]
+  [ "${lines[1]}" = "Fix	it" ]
+  [[ "$output" == *$'jobs\n  failure  build  1m30s\n      failed step 2: test\n  success  lint  7s' ]]
+  run "$GH_DIR/preview.sh" https://github.com/o/r/actions/runs/2 run o/r "$FZX_CACHE_DIR/github/issues/runs-o__r.json" 1
+  [ "${lines[0]}" = "Release #31  in progress  attempt 2" ]
+  # jobs cached by the run's last update
+  [ "$(grep -c '^run view 1 -R o/r --json jobs' "$BATS_TEST_TMPDIR/gh.calls")" -eq 1 ]
+  run "$GH_DIR/preview.sh" https://github.com/o/r/actions/runs/1 run o/r "$FZX_CACHE_DIR/github/issues/runs-o__r.json" 0
+  [ "$(grep -c '^run view 1 -R o/r --json jobs' "$BATS_TEST_TMPDIR/gh.calls")" -eq 1 ]
+}
+
+@test "actions: a run's log (failed jobs only, a running one watched), rerun, cancel in runs; the lists dropped" {
+  source "$GH_DIR/actions.sh" || :
+  src runs "" --repo o/r > /dev/null
+  PAGER=cat run github::action log -- https://github.com/o/r/actions/runs/1
+  [ "$output" = "log of 1 -R o/r --log-failed" ]
+  PAGER=cat run github::action log -- https://github.com/o/r/actions/runs/3
+  [ "$output" = "log of 3 -R o/r --log" ]
+  github::action log -- https://github.com/o/r/actions/runs/2
+  [ "$(tail -1 "$BATS_TEST_TMPDIR/run.calls")" = "run watch 2 -R o/r" ]
+  github::action rerun -- https://github.com/o/r/actions/runs/1 https://github.com/o/r/actions/runs/3 https://github.com/o/r
+  [ "$(tail -2 "$BATS_TEST_TMPDIR/run.calls" | tr '\n' '|')" = "run rerun 1 -R o/r --failed|run rerun 3 -R o/r|" ]
+  [ ! -d "$FZX_CACHE_DIR/github/issues" ]
+  FZX_MODE=runs github::action close -- https://github.com/o/r/actions/runs/2
+  [ "$(tail -1 "$BATS_TEST_TMPDIR/run.calls")" = "run cancel 2 -R o/r" ]
+  # close elsewhere is the issues' and pull requests' (a run's URL skipped)
+  FZX_MODE=issues github::action close -- https://github.com/o/r/actions/runs/3
+  [ "$(grep -c 'run cancel' "$BATS_TEST_TMPDIR/run.calls")" -eq 1 ]
+}
+
+@test "under fzx: ctrl-o on a repository opens its hub; enter or ctrl-o on a hub row its list; runs accept" {
+  load_libs log session
+  fzx::session_create github "$GH_DIR"
+  child_of() {
+    local c="${1##*--resume }"
+    c="${c%% *}"
+    CHILD_ARGS=()
+    mapfile -d '' -t CHILD_ARGS < "$FZX_RUNTIME_DIR/sessions/$c/meta/args"
+    CHILD_MODE="${1##* -m :}"
+  }
+  run "$FZX" _cb transform into -- https://github.com/o/r repo o/r -
+  [[ "$output" == "become:"* ]]
+  child_of "$output"
+  [ "$CHILD_MODE ${CHILD_ARGS[*]}" = "repo --repo o/r" ]
+  fzx::state_set mode repo
+  # the hidden modes (files, runs) are screens of their own; issues and prs are two views of one session
+  local ids=()
+  for t in tree issues prs runs; do
+    run "$FZX" _cb transform enter -- https://github.com/o/r hub o/r "$t"
+    child_of "$output"
+    [ "$CHILD_MODE ${CHILD_ARGS[*]}" = "$t --repo o/r" ]
+    c="${output##*--resume }" c="${c%% *}"
+    ids+=("$c")
+  done
+  [ "${ids[1]}" = "${ids[2]}" ]
+  [ "$(printf '%s\n' "${ids[0]}" "${ids[1]}" "${ids[3]}" | sort -u | wc -l)" -eq 3 ]
+  run "$FZX" _cb transform into -- https://github.com/o/r/actions hub o/r runs
+  child_of "$output"
+  [ "$CHILD_MODE" = runs ]
+  fzx::state_set mode runs
+  run "$FZX" _cb transform enter -- https://github.com/o/r/actions/runs/1 run o/r "$FZX_CACHE_DIR/x"
+  [ "$output" = accept ]
+  stub_fzf
+  run "$FZX" -m github:repo --repo o/r
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *" --header=o/r: enter or ctrl-o opens the list "* ]]
+  run "$FZX" -m github:runs --repo o/r
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *" --header=workflow runs of o/r, latest first "* ]]
+  [[ "$(fzf_bind alt-l)" == *"_cb action log --repo o/r -- {+1}"* ]]
+  [[ "$(fzf_bind alt-R)" == *"_cb action rerun --repo o/r -- {+1}"* ]]
 }

@@ -11,6 +11,8 @@
 #   issue:   url    issue   owner/name  list file    index  display   (issues; issues.sh)
 #   pr:      url    pr      owner/name  list file    index  display   (prs)
 #   notification: url  notification  owner/name  list file  index  display  (notifications.sh)
+#   hub:     url    hub     owner/name  target       -      display   (repo: tree, issues, prs or runs; runs.sh)
+#   run:     url    run     owner/name  list file    index  display   (runs; runs.sh)
 #   recent:  query  search  mode        -            -      display   (enter searches it again)
 #   error:   text   error   -           -            -      display   (the search failed)
 # Searches are kept as gh's JSON in $FZX_CACHE_DIR/github/search/<mode> for FZX_GITHUB_CACHE_TTL, your
@@ -18,7 +20,7 @@
 # contents by their sha. Under fzx the query each mode's list shows is in state/github_query_<mode>.
 # Mode from $FZX_MODE: repos, code, mine (`--owner NAME`: that user's or organization's), starred, tree
 # (`--repo OWNER/REPO [--ref REF]`), issues and prs (`--repo OWNER/REPO`, else the repository here),
-# notifications. Toggles (every repository list): private, public, sources, forks; issues and prs: closed,
+# notifications, repo and runs (`--repo OWNER/REPO`, else the repository here). Toggles (every repository list): private, public, sources, forks; issues and prs: closed,
 # everywhere; notifications: read.
 
 GITHUB_REPO_FIELDS="fullName,url,description,language,stargazersCount,forksCount,openIssuesCount,watchersCount"
@@ -29,6 +31,8 @@ GITHUB_CODE_FIELDS="path,repository,sha,textMatches,url"
 source "$(dirname "${BASH_SOURCE[0]}")/issues.sh"
 # shellcheck source=./notifications.sh
 source "$(dirname "${BASH_SOURCE[0]}")/notifications.sh"
+# shellcheck source=./runs.sh
+source "$(dirname "${BASH_SOURCE[0]}")/runs.sh"
 
 # github::trim <text> <var>: without leading and trailing whitespace
 github::trim() {
@@ -429,6 +433,11 @@ github::source() {
       ;;
     notifications)
       github::notification_source
+      return
+      ;;
+    repo | runs)
+      github::args "$@" || return
+      if [[ "$mode" == repo ]]; then github::hub_source; else github::runs_source; fi
       return
       ;;
     mine | starred)

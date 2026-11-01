@@ -6,6 +6,28 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.51.0] - 2026-11-01
+
+### Added
+
+- github: a repository's hub (`github:repo --repo OWNER/REPO`, else the repository here), opened with ctrl-o
+  on any repository row: its files, open issues, open pull requests and workflow runs, with their counts and
+  the last run's state; enter or ctrl-o opens the row's list. The preview shows the README, the first issues
+  or pull requests, or the latest runs.
+- github: workflow runs (`github:runs`), latest first, with their state, workflow, branch, event, age and
+  duration; the preview lists the run's jobs and a failed job's failed steps. alt-l shows the log (only the
+  failed jobs' for a failed run; a running one is watched), alt-R reruns (a failed run's failed jobs), alt-x
+  cancels (asks first).
+
+### Changed
+
+- github: ctrl-o on a repository opens its hub instead of its files (the hub's first row).
+
+### Fixed
+
+- Navigating to a hidden mode (a drill-down such as github's files) with the same arguments as another
+  screen of that module opens a session of its own instead of reusing the other one, whose modes it lacks.
+
 ## [0.50.0] - 2026-11-01
 
 ### Added

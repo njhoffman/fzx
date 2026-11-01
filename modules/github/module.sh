@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # github: search GitHub's repositories and code, list your repositories and stars, browse a repository's
 # files; open, clone, fetch, star or edit them. `fzx -m github[:code] [--query Q]`, `fzx -m github:mine
-# [--owner NAME]`, `fzx -m github:starred`, `fzx -m github:tree --repo OWNER/REPO [--ref REF]` (ctrl-o on
-# a repository or a code hit). In repos and code, typing does not filter: enter runs the search (a new
+# [--owner NAME]`, `fzx -m github:starred`, `fzx -m github:repo --repo OWNER/REPO` (ctrl-o on a repository:
+# its files, issues, pull requests and workflow runs), `fzx -m github:runs --repo OWNER/REPO`, `fzx -m
+# github:tree --repo OWNER/REPO [--ref REF]` (ctrl-o on a code hit). In repos and code, typing does not filter: enter runs the search (a new
 # query) or prints the row's URL (the same query); an empty query lists the mode's recent searches;
 # ctrl-t filters the results with fzf instead.
 
@@ -35,6 +36,15 @@ github::opts() {
       FZX_OPTS+=("--header=$header" --scheme=path --tiebreak=index)
       ;;
     mine) FZX_OPTS+=("--header=${GITHUB_OWNER:-your} repositories, last pushed first") ;;
+    repo)
+      github::hub_header header
+      FZX_OPTS+=("--header=$header" --no-sort)
+      ;;
+    runs)
+      local repo=""
+      github::scope_repo repo 2> /dev/null || repo="no repository"
+      FZX_OPTS+=("--header=workflow runs of $repo, latest first")
+      ;;
     starred) FZX_OPTS+=("--header=your stars, last starred first") ;;
     notifications)
       local key=""
@@ -57,10 +67,10 @@ github::opts() {
       ;;
   esac
   if fzx::in_session; then
-    fzx::bind enter "transform:$(fzx::cb transform enter "$a" '{1}' '{2}' '{3}')" \
-      "search for the query, or print the row's URL"
-    fzx::bind "${FZX_KEYS[github.into]}" "transform:$(fzx::cb transform into "$a" '{1}' '{2}' '{3}')" \
-      "browse the repository's files"
+    fzx::bind enter "transform:$(fzx::cb transform enter "$a" '{1}' '{2}' '{3}' '{4}')" \
+      "search for the query, or print the row's URL; in a repository's hub, open the row's list"
+    fzx::bind "${FZX_KEYS[github.into]}" "transform:$(fzx::cb transform into "$a" '{1}' '{2}' '{3}' '{4}')" \
+      "a repository: its files, issues, pull requests and runs; a code hit: the files at its commit"
     fzx::bind "${FZX_KEYS[github.narrow]}" "transform:$(fzx::cb transform narrow "$a" '{1}' '{2}' '{3}')" \
       "code: search again in this repository only; repos, mine, starred: search this repository's code"
     fzx::bind "${FZX_KEYS[github.filter]}" "transform:$(fzx::cb transform filter "$a" '{1}' '{2}' '{3}')" \

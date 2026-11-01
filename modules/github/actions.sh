@@ -259,6 +259,51 @@ github::item_action() {
   github::_report "$rc"
 }
 
+# github::run <url> : GH_REPO and GH_RUN of a workflow run's URL
+github::run() {
+  [[ "$1" =~ ^https://github\.com/([A-Za-z0-9-]+/[A-Za-z0-9_.-]+)/actions/runs/([0-9]+)$ ]] || return 1
+  declare -g GH_REPO="${BASH_REMATCH[1]}" GH_RUN="${BASH_REMATCH[2]}"
+}
+
+# github::run_action <log|rerun|cancel> <url...>: workflow runs; other rows skipped. log takes the first:
+# the failed jobs' log when the run failed, every job's otherwise, and a run still going is watched instead;
+# rerun runs a failed run's failed jobs, any other run whole; cancel every one. The lists are dropped
+# afterwards
+github::run_action() {
+  local action="$1" u rc=0 info status conclusion
+  shift
+  for u in "$@"; do
+    github::run "$u" || continue
+    if [[ "$action" != cancel ]]; then
+      info="$(command gh run view "$GH_RUN" -R "$GH_REPO" --json status,conclusion --jq '"\(.status) \(.conclusion)"')" || { github::_report $?; return; }
+      read -r status conclusion <<< "$info"
+    fi
+    case "$action" in
+      log)
+        if [[ "$status" != completed ]]; then
+          command gh run watch "$GH_RUN" -R "$GH_REPO" || rc=$?
+          github::_report "$rc" && github::_pause
+          return "$rc"
+        fi
+        local flag=--log
+        [[ "$(github::run_state "$status" "$conclusion")" == failure ]] && flag=--log-failed
+        command gh run view "$GH_RUN" -R "$GH_REPO" "$flag" | ${PAGER:-less -R}
+        rc=${PIPESTATUS[0]}
+        github::_report "$rc"
+        return
+        ;;
+      rerun)
+        local failed=()
+        [[ "$(github::run_state "$status" "$conclusion")" == failure ]] && failed=(--failed)
+        command gh run rerun "$GH_RUN" -R "$GH_REPO" "${failed[@]}" || rc=$?
+        ;;
+      cancel) command gh run cancel "$GH_RUN" -R "$GH_REPO" || rc=$? ;;
+    esac
+  done
+  github::issues_drop
+  github::_report "$rc"
+}
+
 # github::action <browser|clone|fetch|edit|web|...> [module args...] -- <urls...>: rows without a URL (recent
 # searches, errors) are skipped
 github::action() {
@@ -289,7 +334,12 @@ github::action() {
   ((${#urls[@]})) || return 0
   case "$action" in
     browser) github::open "${urls[@]}" ;;
-    checkout | comment | close | reopen) github::item_action "$action" "${urls[@]}" ;;
+    close)
+      # runs: cancel them
+      if [[ "${FZX_MODE:-}" == runs ]]; then github::run_action cancel "${urls[@]}"; else github::item_action close "${urls[@]}"; fi
+      ;;
+    checkout | comment | reopen) github::item_action "$action" "${urls[@]}" ;;
+    log | rerun) github::run_action "$action" "${urls[@]}" ;;
     read)
       # the notifications about the selected pages, marked read
       local id ids=()
@@ -360,12 +410,12 @@ github::_arg() {
   fzx::action_arg "$@"
 }
 
-# github::transform <enter|into|narrow|filter> [module args...] -- <first field> <kind> <repo>
-#   enter:  searches when the query is new (or reruns the recent search the cursor is on, if nothing new
+# github::transform <enter|into|narrow|filter> [module args...] -- <first field> <kind> <repo> [field 4]
+#   enter:  in the hub (repo), opens the row's list as into does. Elsewhere it searches when the query is new (or reruns the recent search the cursor is on, if nothing new
 #           was typed; a cleared query lists the recent searches again), otherwise accepts the row (prints
 #           its URL). While filtering, and in mine, starred and tree, it accepts
-#   into:   ctrl-o. A repository or a code hit opens the repository's files (tree) as a child session; a
-#           code hit at the commit GitHub found it in
+#   into:   ctrl-o. A repository opens its hub (repo) as a child session, a hub row its list (tree, issues,
+#           prs or runs), a code hit the repository's files (tree) at the commit GitHub found it in
 #   narrow: alt-p. In code, the search again within the repository under the cursor (its repo: qualifier
 #           replacing any other); elsewhere, code mode searching that repository
 #   filter: ctrl-t. In repos and code, fzf filters the results instead of the query searching, and back
@@ -377,9 +427,12 @@ github::transform() {
   while (($#)) && [[ "$1" != -- ]]; do shift; done
   (($#)) && shift
   text="${1:-}" kind="${2:-}" repo="${3:-}"
+  local target="${4:-}"
   case "$name" in
     enter)
-      case "$kind" in search | error) ;; *) [[ "$mode" =~ ^(tree|mine|starred|issues|prs|notifications)$ ]] && { printf 'accept'; return 0; } ;; esac
+      # the hub opens the row's list
+      [[ "$kind" == hub ]] && { github::transform into -- "$text" "$kind" "$repo" "$target"; return; }
+      case "$kind" in search | error) ;; *) [[ "$mode" =~ ^(tree|mine|starred|issues|prs|notifications|runs)$ ]] && { printf 'accept'; return 0; } ;; esac
       github::trim "${FZF_QUERY:-}" query
       fzx::state_get "github_query_$mode" last || last=""
       fzx::state_get "github_filter_$mode" filter 2> /dev/null || filter=""
@@ -408,7 +461,13 @@ github::transform() {
     into)
       fzx::require nav
       case "$kind" in
-        repo) fzx::nav goto github:tree --repo "$repo" ;;
+        repo) fzx::nav goto github:repo --repo "$repo" ;;
+        hub)
+          case "$target" in
+            tree | issues | prs | runs) fzx::nav goto "github:$target" --repo "$repo" ;;
+            *) return 0 ;;
+          esac
+          ;;
         code)
           sha="${text#*/blob/}" sha="${sha%%/*}"
           fzx::nav goto github:tree --repo "$repo" --ref "$sha"

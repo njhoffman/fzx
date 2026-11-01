@@ -309,7 +309,13 @@ fzx::_nav_goto() {
     return 2
   fi
 
-  key="$(printf '%s\0' "$module" "$@" | md5sum)"
+  # a module's modes are views of one session (the menu's ps and ps:tree share it), but a hidden mode's
+  # session has that mode alone: it is a screen of its own (a repository's hub, files and runs, the same args)
+  local keyed="$module"
+  if [[ -n "$mode" ]] && (fzx::comp_load "$dir" "$module" && [[ " ${FZX_MODES_HIDDEN[*]} " == *" $mode "* ]]); then
+    keyed="$target"
+  fi
+  key="$(printf '%s\0' "$keyed" "$@" | md5sum)"
   key="${key%% *}"
   local index="$FZX_SESSION_DIR/children/$key"
   if fzx::_kv_get "$index" child && [[ -d "$FZX_SESSIONS_DIR/$child/meta" ]]; then

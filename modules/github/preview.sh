@@ -171,6 +171,83 @@ github::preview_notification() {
   return 0
 }
 
+# github::preview_hub <owner/name> <target>: files: the repository's description, branch and README; issues
+# and prs: the first open ones; runs: the latest runs (the lists the rows open, cached for them)
+github::preview_hub() {
+  local repo="$1" b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m' info file pushed readme
+  [[ -n "${NO_COLOR+x}" ]] && b="" d="" r=""
+  info="$FZX_CACHE_DIR/github/issues/repo-${repo/\//__}.json"
+  case "$2" in
+    tree)
+      [[ -f "$info" ]] || return 0
+      command jq -r --arg b "$b" --arg d "$d" --arg r "$r" '
+        "\($b)\(.nameWithOwner)\($r)\(if .isArchived then "  \($d)archived\($r)" else "" end)", (.description // ""), "",
+        "\($d)branch\($r)  \(.defaultBranchRef.name // "")", "\($d)pushed\($r)  \(.pushedAt[0:10])", "\($d)url   \($r)  \(.url)"' -- "$info"
+      pushed="$(command jq -r '.pushedAt // ""' -- "$info")"
+      readme="$FZX_CACHE_DIR/github/readme/${repo/\//__}@${pushed//[^0-9]/}"
+      if github::cached "$readme" github::api "repos/$repo/readme" > /dev/null 2>&1; then
+        printf '\n'
+        github::markdown "$readme"
+      else
+        printf '\n%sno README%s\n' "$d" "$r"
+      fi
+      ;;
+    issues | prs)
+      if ! FZX_TOGGLES="" github::issues "$2" "$repo" file; then
+        printf '%scannot list them: %s%s\n' "$d" "$GITHUB_ERROR" "$r"
+        return 0
+      fi
+      printf '%s%s open %s%s\n\n' "$b" "$(command jq length -- "$file")" "$([[ "$2" == prs ]] && echo "pull requests" || echo issues)" "$r"
+      github::issue_rows "$file" "$repo" | head -n "${FZF_PREVIEW_LINES:-30}" | cut -f6
+      ;;
+    runs)
+      if ! github::runs "$repo" file; then
+        printf '%scannot list them: %s%s\n' "$d" "$GITHUB_ERROR" "$r"
+        return 0
+      fi
+      printf '%slatest workflow runs%s\n\n' "$b" "$r"
+      github::run_rows "$file" "$repo" | head -n "${FZF_PREVIEW_LINES:-30}" | cut -f6
+      ;;
+  esac
+}
+
+# github::preview_run <list file> <index>: the run from the list, then its jobs (cached by the run's last
+# update) with the failed steps of failed jobs
+github::preview_run() {
+  local b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
+  local g=$'\e['"${FZX_COLORS[github_open]:-38;5;114}m" red=$'\e['"${FZX_COLORS[github_closed]:-38;5;203}m"
+  local y=$'\e['"${FZX_COLORS[github_running]:-38;5;180}m" id repo updated view
+  [[ -n "${NO_COLOR+x}" ]] && b="" d="" r="" g="" red="" y=""
+  IFS='|' read -r id repo updated < <(command jq -r --argjson i "$2" '.[$i] |
+    [.id, (.url | capture("github.com/(?<r>[^/]+/[^/]+)/").r), .updatedAt] | map(tostring) | join("|")' -- "$1")
+  [[ -n "$id" ]] || return 0
+  command jq -r --argjson i "$2" --arg b "$b" --arg d "$d" --arg r "$r" --arg g "$g" --arg red "$red" --arg y "$y" '.[$i] |
+    (if .status != "completed" then $y + (.status | gsub("_"; " "))
+     elif .conclusion == "success" then $g + "success"
+     elif (.conclusion | test("^(failure|timed_out|startup_failure|action_required)$")) then $red + (.conclusion | gsub("_"; " "))
+     else $d + .conclusion end) as $s |
+    "\($b)\(.workflow) #\(.number)\($r)  \($s)\($r)\(if .attempt > 1 then "  \($d)attempt \(.attempt)\($r)" else "" end)",
+    "\($b)\(.title)\($r)", "",
+    "\($d)branch \($r) \(.branch)", "\($d)event  \($r) \(.event)",
+    "\($d)started\($r) \((.startedAt // .createdAt)[0:16] | sub("T"; " "))", "\($d)url    \($r) \(.url)"' -- "$1"
+  view="$FZX_CACHE_DIR/github/view/run-${repo/\//__}-$id@${updated//[^0-9]/}.json"
+  if ! github::cached "$view" command gh run view "$id" -R "$repo" --json jobs > /dev/null 2>&1; then
+    printf '\n%scannot read the jobs%s\n' "$d" "$r"
+    return 0
+  fi
+  printf '\n%sjobs%s\n' "$d" "$r"
+  command jq -r --arg d "$d" --arg r "$r" --arg g "$g" --arg red "$red" --arg y "$y" '
+    def col: if . == "success" then $g elif (. // "" | test("^(failure|timed_out|startup_failure)$")) then $red
+      elif . == null or . == "" then $y else $d end;
+    def took: if (.startedAt // "") == "" or (.completedAt // "") == "" or (.completedAt | startswith("0001")) then ""
+      else ((.completedAt | fromdateiso8601) - (.startedAt | fromdateiso8601)) |
+        if . < 60 then "  \($d)\(.)s\($r)" else "  \($d)\(. / 60 | floor)m\(. % 60)s\($r)" end end;
+    .jobs[] | (.conclusion // "") as $c |
+    "  \($c | col)\(if $c == "" then (.status | gsub("_"; " ")) else $c end)\($r)  \(.name)\(took)",
+    (if ($c | test("^(failure|timed_out)$")) then
+      (.steps[]? | select(.conclusion == "failure") | "      \($red)failed\($r) step \(.number): \(.name)") else empty end)' -- "$view"
+}
+
 # github::debug: the f2 view's module section: every API rate limit (rate_limit itself is free)
 github::debug() {
   command gh api rate_limit --jq '.resources | to_entries[] |
@@ -189,6 +266,8 @@ github::preview() {
     tree) github::preview_tree "$1" "$3" "$5" ;;
     issue | pr) github::preview_issue "$4" "$5" ;;
     notification) github::preview_notification "$4" "$5" ;;
+    hub) github::preview_hub "$3" "$4" ;;
+    run) github::preview_run "$4" "$5" ;;
     search)
       printf '%senter%s searches %s again for %s%s%s\n' "$b" "$r" "$3" "$b" "$1" "$r"
       github::search_file "$3" "$1" file

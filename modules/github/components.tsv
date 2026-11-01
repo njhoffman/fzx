@@ -7,6 +7,8 @@ mode  code     -  search code (qualifiers: repo:o/r language:sh filename:x path:
 mode  mine     -  your repositories (--owner NAME: someone else's), last pushed first          restart
 mode  starred  -  the repositories you starred, last starred first                             restart
 mode  tree     -  the files of a repository (--repo OWNER/REPO [--ref REF])                     hidden
+mode  repo     -  a repository's files, issues, pull requests and workflow runs (--repo OWNER/REPO, else the one here)  hidden
+mode  runs     -  a repository's workflow runs, latest first (--repo OWNER/REPO, else the one here)  hidden
 mode  issues   -  issues of the repository here (--repo OWNER/REPO), else involving you       restart
 mode  prs      -  pull requests of the repository here (--repo OWNER/REPO), else involving you  restart
 mode  notifications  -  your notifications (unread; the latest 50)                             restart
@@ -32,6 +34,8 @@ action  web       alt-w   repos, code: open the search on github.com            
 action  copy      ctrl-y  copy the urls                                                          silent,builtin
 action  checkout  alt-k   issues, prs: check the pull request out (an issue: a branch for it) in the repository here or its ghq clone  foreground
 action  comment   alt-m   issues, prs: comment (in $EDITOR)                                      foreground,reload
-action  close     alt-x   issues, prs: close the selected ones                                    foreground,confirm,reload
+action  close     alt-x   issues, prs: close the selected ones; runs: cancel the selected runs    foreground,confirm,reload
 action  reopen    alt-X   issues, prs: reopen the selected ones                                   foreground,confirm,reload
+action  log       alt-l   runs: the run's log in $PAGER (failed jobs only when it failed; a running one: watch it)  foreground
+action  rerun     alt-R   runs: run the failed jobs again (a run that did not fail: every job)    foreground,reload
 action  read      alt-u   notifications: mark the selected ones read                              silent,reload
