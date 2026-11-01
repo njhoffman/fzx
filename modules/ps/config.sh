@@ -11,6 +11,7 @@ FZX_ICON=""
 FZX_COLORS[ps_icon]="38;5;167"
 
 FZX_KEYS[ps.children]=ctrl-o # open the children of the process under the cursor
+FZX_KEYS[ps.files]=alt-o     # the open files of the process under the cursor (the network module's files)
 
 # the menu group this module is listed under (menu mode groups)
 FZX_MENU_GROUP=system

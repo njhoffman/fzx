@@ -20,6 +20,8 @@ ps::opts() {
   if fzx::in_session; then
     fzx::bind "${FZX_KEYS[ps.children]}" "transform:$(fzx::cb nav goto ps --ppid '{1}')" \
       "open the children of the process under the cursor"
+    fzx::bind "${FZX_KEYS[ps.files]}" "transform:$(fzx::cb nav goto network:files --pid '{1}')" \
+      "the open files of the process under the cursor (lsof)"
   fi
 }
 

@@ -7,5 +7,9 @@ sort    cpu     -      user, all: busiest first                 default
 sort    mem     -      user, all: most memory first             -
 sort    age     -      user, all: newest first                  -
 sort    pid     -      user, all: by pid                        -
-action  term    ctrl-x  send SIGTERM to the selected processes   silent,reload
-action  kill    -       send SIGKILL to the selected processes   silent,reload,confirm
+action  term          ctrl-x  send SIGTERM to the selected processes (not yours: sudo -n)   notify,reload
+action  kill          -       send SIGKILL to the selected processes (not yours: sudo -n)   silent,reload,confirm
+action  sudo-term     -       send SIGTERM through sudo (asks for the password)              foreground,reload
+action  sudo-kill     -       send SIGKILL through sudo (asks for the password)              foreground,reload,confirm
+action  trace         alt-t   strace the process: every call (sudo; ctrl-c returns)          foreground
+action  trace-errors  alt-T   strace the process: failing calls only (sudo; ctrl-c returns)  foreground

@@ -58,7 +58,7 @@ section() {
   mkdir -p "$FZX_CONFIG_DIR/modules/ps"
   echo 'action  term  f5  =  =' > "$FZX_CONFIG_DIR/modules/ps/components.tsv"
   run "$FZX" -m ps
-  [[ "$(fzf_bind f5)" == "f5:execute-silent("* ]]
+  [[ "$(fzf_bind f5)" == "f5:transform($FZX _cb notify term "* ]]
   run fzf_bind f1
   [ "$status" -eq 1 ]
   local bind cmd
@@ -77,7 +77,7 @@ section() {
   run "$FZX" -m ps
   [ "$(fzf_bind alt-left)" = "alt-left:transform:$FZX _cb nav back" ]
   [ "$(fzf_bind ctrl-bspace)" = "ctrl-bspace:transform:$FZX _cb nav back" ]
-  [[ "$(fzf_bind f5)" == "f5:execute-silent("* ]]
+  [[ "$(fzf_bind f5)" == "f5:transform($FZX _cb notify term "* ]]
   run fzf_bind ctrl-f
   [ "$status" -eq 1 ]
   grep -q "key ctrl-f is reserved" "$LOG"
@@ -102,7 +102,7 @@ section() {
   mkdir -p "$FZX_CONFIG_DIR/modules/ps"
   echo 'action  term  ctrl-r  =  =' > "$FZX_CONFIG_DIR/modules/ps/components.tsv"
   run "$FZX" -m ps
-  grep -q "key ctrl-r is bound twice (reload: run the source again / action: send SIGTERM to the selected processes)" "$LOG"
+  grep -q "key ctrl-r is bound twice (reload: run the source again / action: send SIGTERM to the selected processes (not yours: sudo -n))" "$LOG"
 }
 
 @test "standalone modules have help too, without session-only keys" {

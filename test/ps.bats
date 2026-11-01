@@ -3,6 +3,8 @@
 
 load test_helper
 
+bats_require_minimum_version 1.5.0
+
 PS_DIR="$(readlink -f "$BATS_TEST_DIRNAME/../modules/ps")"
 
 setup() {
@@ -116,6 +118,65 @@ setup() {
   [ "$status" -eq 143 ]
 }
 
+# stub <name> <body>: an executable on PATH recording its args in $BATS_TEST_TMPDIR/calls
+stub() {
+  mkdir -p "$BATS_TEST_TMPDIR/bin"
+  printf '#!/usr/bin/env bash\nprintf "%%s\\n" "${0##*/} $*" >> "$BATS_TEST_TMPDIR/calls"\n%s\n' "$2" > "$BATS_TEST_TMPDIR/bin/$1"
+  chmod +x "$BATS_TEST_TMPDIR/bin/$1"
+  export PATH="$BATS_TEST_TMPDIR/bin:$PATH"
+}
+
+@test "actions: term on a process that is not yours goes through sudo -n; failing that, a message" {
+  [[ "$EUID" -ne 0 ]] || skip "root signals every process"
+  stub sudo 'exit 0'
+  run "$PS_DIR/actions.sh" term 1
+  [ "$status" -eq 0 ]
+  [ "$(cat "$BATS_TEST_TMPDIR/calls")" = "sudo -n kill -TERM -- 1" ]
+  stub sudo 'exit 1'
+  run --separate-stderr "$PS_DIR/actions.sh" term 1
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "ps: 1: not yours (sudo-term or sudo-kill ask for the password)" ]
+}
+
+@test "actions: a pid that has exited fails without sudo" {
+  stub sudo 'exit 0'
+  sleep 0 &
+  local pid=$!
+  wait "$pid"
+  run --separate-stderr "$PS_DIR/actions.sh" kill "$pid"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "ps: $pid: no such process" ]
+  [ ! -e "$BATS_TEST_TMPDIR/calls" ]
+}
+
+@test "actions: sudo-term and sudo-kill ask sudo" {
+  stub sudo 'exit 0'
+  run "$PS_DIR/actions.sh" sudo-term 1 2
+  [ "$status" -eq 0 ]
+  run "$PS_DIR/actions.sh" sudo-kill 1
+  [ "$(cat "$BATS_TEST_TMPDIR/calls")" = "$(printf '%s\n' 'sudo kill -TERM -- 1 2' 'sudo kill -KILL -- 1')" ]
+}
+
+@test "actions: trace follows the first pid with strace (failing calls only with trace-errors)" {
+  stub strace 'exit 0'
+  stub sudo '"$@"'
+  run "$PS_DIR/actions.sh" trace 1 2
+  [ "$status" -eq 0 ]
+  run "$PS_DIR/actions.sh" trace-errors 1
+  [ "$status" -eq 0 ]
+  # pid 1 is never yours: through sudo unless root
+  if [[ "$EUID" -ne 0 ]]; then
+    [ "$(cat "$BATS_TEST_TMPDIR/calls")" = "$(printf '%s\n' 'sudo strace -f -p 1' 'strace -f -p 1' 'sudo strace -f -Z -p 1' 'strace -f -Z -p 1')" ]
+  fi
+}
+
+@test "actions: trace without strace says so" {
+  mkdir -p "$BATS_TEST_TMPDIR/empty"
+  run --separate-stderr env PATH="$BATS_TEST_TMPDIR/empty" "$(command -v bash)" "$PS_DIR/actions.sh" trace "$$" < /dev/null
+  [ "$status" -eq 1 ]
+  [[ "$stderr" == "ps: strace is not installed"* ]]
+}
+
 @test "actions: rejects missing pids, bad pids and unknown actions" {
   run "$PS_DIR/actions.sh" term
   [ "$status" -eq 2 ]
@@ -161,8 +222,10 @@ setup() {
   run "$FZX" -m ps
   [ "$status" -eq 0 ]
   [ "$(fzf_flag --preview)" = "$FZX _cb preview {1}" ]
-  [[ "$(fzf_bind ctrl-x)" == "ctrl-x:execute-silent($FZX _cb action term {+1})+change-prompt("*")+reload($FZX _cb source)" ]]
+  [[ "$(fzf_bind ctrl-x)" == "ctrl-x:transform($FZX _cb notify term {+1})+change-prompt("*")+reload($FZX _cb source)" ]]
   [ "$(fzf_bind ctrl-o)" = "ctrl-o:transform:$FZX _cb nav goto ps --ppid {1}" ]
+  [ "$(fzf_bind alt-o)" = "alt-o:transform:$FZX _cb nav goto network:files --pid {1}" ]
+  [ "$(fzf_bind alt-t)" = "alt-t:execute($FZX _cb action trace {+1})" ]
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " != *" --no-sort "* ]]
 }

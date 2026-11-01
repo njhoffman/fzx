@@ -6,6 +6,21 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.47.0] - 2026-11-01
+
+### Added
+
+- ps: trace (alt-t, strace of every call) and trace-errors (alt-T, failing calls only) follow the process and
+  its threads until ctrl-c; through sudo unless ptrace allows tracing it directly.
+- ps: alt-o opens the process's open files (the network module's files mode).
+- ps: sudo-term and sudo-kill (from the actions menu) signal other users' processes, asking sudo for the
+  password.
+
+### Changed
+
+- ps: term and kill retry a process that is not yours through `sudo -n` (a cached sudo); when that fails
+  too, term says why in the footer.
+
 ## [0.46.0] - 2026-11-01
 
 ### Added

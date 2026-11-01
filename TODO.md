@@ -78,10 +78,6 @@ Reviewed: 2026-10-28
 
 ## 5. Module improvements
 
-- [ ] **ps: trace, open files, root processes** (p2) [feature]: from fzf.top.zsh/fztop: strace/ltrace actions
-      (errors only, all calls; foreground, ctrl-c returns), the process's open files (lsof -p; or ctrl-o into
-      the network module once it exists), and term/kill through sudo for other users' processes (systemd's
-      sudo pattern). Refs: widgets/system/fzf.top.zsh, fzf.lsof.zsh, fzf-rsc/modules/system/fztop.
 - [ ] **files: search and replace from grep mode** (p3) [feature]: preview and apply a replacement over the
       matches (fzfmenu files/sad).
 - [ ] **files: multiline grep** (p3) [feature]: a toggle in `files:grep` for multiline matching

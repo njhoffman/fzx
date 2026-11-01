@@ -456,7 +456,7 @@ given only a `--language` (zsh commands, man pages, logs) go to bat.
 
 | Module | Modes | Args | Keys | Enter prints |
 |---|---|---|---|---|
-| `ps` | user, all, tree | `--ppid PID` | ctrl-x SIGTERM, kill (SIGKILL, confirm; menu only), ctrl-o children | pids |
+| `ps` | user, all, tree | `--ppid PID` | ctrl-x SIGTERM, kill (SIGKILL, confirm; menu only), both through `sudo -n` for a process that is not yours (else the footer says so); sudo-term, sudo-kill (menu only: sudo asks for the password); alt-t strace (every call), alt-T strace -Z (failing calls only), both following threads, through sudo unless ptrace allows it (root, or yours with ptrace_scope 0), ctrl-c returns; ctrl-o children, alt-o open files (network:files) | pids |
 | `files` | files, dirs, grep (as you type); toggles hidden (on), ignored, follow; sort path/recent | `[DIR]` | ctrl-e edit, ctrl-o into directory, alt-up parent, ctrl-t grep/filter, alt-h/alt-i/alt-l toggles | absolute paths (`path:line` in grep) |
 | `keybindings` | zsh (every keymap; zle descriptions from zshzle(1), user widgets from the comment above their function), tmux (the tmux module's keys), fzf (yours, then fzf's defaults) | | ctrl-y copy | bindkey / bind-key lines, fzf keys |
 | `logs` | files (newest first), units, docker | | alt-F follow (ctrl-c returns) | path, unit or container id |
