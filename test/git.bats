@@ -501,7 +501,7 @@ subjects() { git log --format=%s "$@" | tr '\n' ' '; }
   [[ "$output" == *"action: apply the stash"* && "$output" != *cherry-pick* ]]
   FZX_MODE=status run "$FZX" keys "${args[@]}"
   # bound but idle here: neither listed nor offered as free
-  [[ "$output" != *alt-k* ]]
+  [[ ! " $output " =~ [[:space:]]alt-k[[:space:]] ]]
   [[ "$output" != *"apply the stash"* && "$output" == *"copy the selection"* ]]
 }
 

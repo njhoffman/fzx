@@ -62,7 +62,12 @@ fzx::key_name() {
     page-up) _k=pgup ;;
     page-down) _k=pgdn ;;
     delete) _k=del ;;
-    alt-bspace) _k=alt-bs ;;
+    backspace) _k=bspace ;;
+    alt-bspace | alt-backspace) _k=alt-bs ;;
+    ctrl-bs | ctrl-backspace) _k=ctrl-bspace ;;
+    ctrl-alt-bs | ctrl-alt-backspace) _k=ctrl-alt-bspace ;;
+    ctrl-_) _k=ctrl-/ ;;
+    ctrl-6) _k=ctrl-^ ;;
   esac
   printf -v "$2" '%s' "$_k"
 }
@@ -345,23 +350,33 @@ fzx::keys_page() {
     fi
   done < <(printf '%s\n' "${!all[@]}" | LC_ALL=C sort)
 
-  # ctrl-h/i/m/[ are bspace/tab/enter/esc to the terminal, so they are not offered
-  local group keys c
+  # ctrl-h/i/m/[ are bspace/tab/enter/esc to the terminal (ctrl-alt-h/i/m likewise alt-bs/tab/enter), so
+  # they are not offered; alt- with punctuation is a set easy to type (alt-[ starts the terminal's escapes)
+  local group keys c head room navkeys=(up down left right home end page-up page-down delete)
   _keys_title help_free free "not bound by fzx, your options or fzf"
-  for group in ctrl alt alt-shift fn; do
+  for group in ctrl ctrl-alt alt alt-shift nav fn; do
     case "$group" in
-      ctrl) keys=(ctrl-{a..z}) ;;
-      alt) keys=(alt-{a..z} alt-{0..9}) ;;
+      ctrl) keys=(ctrl-{a..z} ctrl-space "ctrl-\\" 'ctrl-]' 'ctrl-^' ctrl-/) ;;
+      ctrl-alt) keys=(ctrl-alt-{a..z}) ;;
+      alt) keys=(alt-{a..z} alt-{0..9} alt-- alt-_ alt-= alt-. 'alt-,' alt-/ 'alt-;' "alt-'" 'alt-]') ;;
       alt-shift) keys=(alt-{A..Z}) ;;
+      nav) keys=("${navkeys[@]/#/ctrl-}" "${navkeys[@]/#/alt-}" "${navkeys[@]/#/shift-}") ;;
       fn) keys=(f{1..12}) ;;
     esac
-    line=""
+    # wrapped by characters (fold counts bytes: glyph labels wrapped early), continuations under the first
+    line="" head="$(fzx::pad "$group" 10)" room=$((width > 30 ? width - 14 : 16))
     for c in "${keys[@]}"; do
-      [[ "$c" == ctrl-[him] || -n "${all[$c]:-}" ]] && continue
+      [[ "$c" == ctrl-[him] || "$c" == ctrl-alt-[him] ]] && continue
+      fzx::key_name "$c" name
+      [[ -n "${all[$name]:-}" ]] && continue
       fzx::key_label "$c" label
+      if [[ -n "$line" ]] && ((${#line} + 1 + ${#label} > room)); then
+        printf '  %s%s%s %s\n' "$b" "$head" "$r" "$line"
+        head="          " line=""
+      fi
       line+="${line:+ }$label"
     done
-    printf '  %s%-10s%s %s\n' "$b" "$group" "$r" "$(printf '%s' "${line:-none}" | fold -s -w "$((width > 30 ? width - 14 : 16))" | sed '2,$s/^/             /')"
+    printf '  %s%s%s %s\n' "$b" "$head" "$r" "${line:-none}"
   done
   printf '\n  %sany cursor movement returns to the normal preview%s\n' "$d" "$r"
 }
@@ -381,8 +396,8 @@ fzx::_keys_grid() {
   # "prefix|group|group...": the keys fzf takes with that modifier (checked against fzf 0.74)
   for row in \
     "|$(printf 'f%s ' {1..12})|$nav pgup pgdn|tab enter space bspace delete esc insert" \
-    "ctrl-|$letters|$nav|space bspace delete" \
-    "alt-|$lower|$(printf '%s ' {0..9})|$nav|enter space bspace delete" \
+    "ctrl-|$letters|$nav|space bspace delete \\ ] ^ /" \
+    "alt-|$lower|$(printf '%s ' {0..9})|$nav|enter space bspace delete|- _ = . , / ; ' ]" \
     "alt-shift-|$upper|$nav|delete" \
     "shift-|$nav|tab delete" \
     "ctrl-alt-|$lower|$nav|bspace delete" \

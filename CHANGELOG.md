@@ -6,6 +6,17 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.38.2] - 2026-10-31
+
+### Fixed
+
+- The free keys on the f1 page include every key fzf can bind: ctrl-space, ctrl-\, ctrl-], ctrl-^,
+  ctrl-/, ctrl-alt-a..z, alt- with punctuation (- _ = . , / ; ' ]) and ctrl/alt/shift with the
+  navigation keys (arrows, home, end, page-up, page-down, delete). The grid shows the punctuation keys too.
+- A key bound under one of fzf's synonyms (ctrl-_, ctrl-6, ctrl-backspace, alt-backspace) counts as taken
+  under its other name.
+- Free key rows in the glyph style wrap at the preview's width instead of early.
+
 ## [0.38.1] - 2026-10-28
 
 ### Fixed

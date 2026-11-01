@@ -94,7 +94,7 @@ section() {
   run "$FZX" -m ps
   run help_text
   run section free
-  [[ "$output" == *alt-p* && "$output" != *alt-q* ]]
+  [[ " $output " =~ [[:space:]]alt-p[[:space:]] && ! " $output " =~ [[:space:]]alt-q[[:space:]] ]]
 }
 
 @test "binding one key twice logs a warning" {
@@ -156,6 +156,37 @@ section() {
   local free
   free="$(printf '%s\n' "$output" | grep '^  ctrl  ')"
   [[ " $free " != *" ctrl-t "* && " $free " != *" ctrl-x "* && " $free " != *" ctrl-h "* && " $free " == *" ctrl-v "* ]]
+}
+
+@test "free keys: ctrl punctuation, ctrl-alt, alt punctuation and modified navigation; synonyms count as taken" {
+  FZF_DEFAULT_OPTS_FILE= FZF_DEFAULT_OPTS= COLUMNS=400 run "$FZX" keys ctrl-_ ctrl-6 ctrl-alt-x alt-. ctrl-page-up
+  output="$(printf '%s' "$output" | sed 's/\x1b\[[0-9;]*m//g')"
+  run section free
+  local row
+  row="$(printf '%s\n' "$output" | grep '^  ctrl  ')"
+  [[ " $row " == *" ctrl-space "* && " $row " == *' ctrl-\ '* && " $row " == *" ctrl-] "* ]]
+  # bound as ctrl-_ and ctrl-6: their synonyms ctrl-/ and ctrl-^ are taken
+  [[ " $row " != *" ctrl-/ "* && " $row " != *" ctrl-^ "* ]]
+  row="$(printf '%s\n' "$output" | grep '^  ctrl-alt  ')"
+  [[ " $row " == *" ctrl-alt-a "* && " $row " != *" ctrl-alt-x "* && " $row " != *" ctrl-alt-h "* ]]
+  row="$(printf '%s\n' "$output" | grep '^  alt  ')"
+  [[ " $row " == *" alt-- "* && " $row " == *" alt-, "* && " $row " != *" alt-. "* && " $row " != *" alt-[ "* ]]
+  # alt-/ is fzf's toggle-wrap-word
+  [[ " $row " != *" alt-/ "* ]]
+  row="$(printf '%s\n' "$output" | grep '^  nav  ')"
+  [[ " $row " == *" ctrl-page-down "* && " $row " == *" shift-delete "* && " $row " != *" ctrl-page-up "* ]]
+  # fzf has no shift-f1..f12
+  [[ "$output" != *shift-f1* ]]
+}
+
+@test "free keys: rows wrap by characters, not bytes" {
+  FZF_DEFAULT_OPTS_FILE= FZF_DEFAULT_OPTS= COLUMNS=60 run "$FZX" keys s:glyph
+  output="$(printf '%s' "$output" | sed 's/\x1b\[[0-9;]*m//g')"
+  run section free
+  local l longest=0
+  while IFS= read -r l; do ((${#l} > longest)) && longest=${#l}; done <<< "$output"
+  # 60 columns less the 14 of the label: a byte count would have stopped at about a third of that
+  ((longest <= 60 && longest > 50))
 }
 
 @test "fzx keys: synonyms fold into one name; continuation lines and double quotes parse" {
