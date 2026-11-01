@@ -14,16 +14,16 @@ conf() { printf '%s\n' "$@" > "$FZX_CONFIG_DIR/config.sh"; }
 line_for() {
   load_libs log config opts components
   fzx::config_load
-  FZX_HEADER_STYLE="$1"
+  FZX_COMPONENT_STYLE="$1"
   # the pill shapes are what these tests check, not the toggle markers
-  FZX_ICONS=none
+  FZX_ICONS="${ICONS:-none}"
   FZX_COMP=($'toggle\tk\t-\t-\t-')
   FZX_MODES=(a b) FZX_MODE=b FZX_TOGGLES=k FZX_SORT=""
   fzx::component_line LINE
 }
 
-@test "bubble: rounded pills, on/off backgrounds from FZX_COLORS" {
-  line_for bubble
+@test "round: rounded pills, on/off backgrounds from FZX_COLORS" {
+  line_for round
   [[ "$LINE" == *$'\e[48;5;237;38;5;248ma\e[0m'* ]]
   [[ "$LINE" == *$'\e[48;5;39;38;5;16mb\e[0m'* ]]
   [[ "$LINE" == *$'\e[48;5;39;38;5;16mk\e[0m'* ]]
@@ -35,10 +35,45 @@ line_for() {
   [[ "$LINE" == *$'\e[0m\e[38;5;39m\e[0m' ]]
 }
 
+@test "bubble and FZX_HEADER_STYLE, the older names, still work" {
+  line_for bubble
+  [[ "$LINE" == *$'\e[48;5;39;38;5;16mk\e[0m'* ]]
+  load_libs log config opts components
+  FZX_COMPONENT_STYLE="" FZX_HEADER_STYLE=triangle
+  fzx::component_style s
+  [ "$s" = triangle ]
+  FZX_COMPONENT_STYLE=minimal
+  fzx::component_style s
+  [ "$s" = minimal ]
+}
+
+@test "minimal: toggles without markers; icon: switch markers, or dots; the sort keeps its icon in both" {
+  local on off sort
+  ICONS=nerd line_for minimal
+  load_libs icons
+  FZX_ICONS=nerd
+  fzx::icon toggle_on on
+  fzx::icon toggle_off off
+  fzx::icon sort sort
+  [[ "$LINE" != *"$on"* && "$LINE" == *$'m'"k"$'\e[0m'* ]]
+  FZX_COMP=($'toggle\tk\t-\t-\t-' $'toggle\tj\t-\t-\t-') FZX_SORT=name
+  fzx::component_line LINE
+  [[ "$LINE" == *"$sort name"* ]]
+  FZX_COMPONENT_STYLE=icon
+  fzx::component_line LINE
+  [[ "$LINE" == *"$on k"* && "$LINE" == *"$off j"* && "$LINE" == *"$sort name"* ]]
+  FZX_TOGGLE_ICONS=dot
+  fzx::component_line LINE
+  [[ "$LINE" == *"● k"* && "$LINE" == *"○ j"* ]]
+  FZX_ICONS=none
+  fzx::component_line LINE
+  [[ "$LINE" != *"●"* && "$LINE" == *"↓ name"* ]]
+}
+
 @test "none: no line at all, the mode keys still work" {
   line_for none
   [ -z "$LINE" ]
-  conf 'FZX_HEADER_STYLE=none'
+  conf 'FZX_COMPONENT_STYLE=none'
   run "$FZX" -m counter
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " != *" --footer="* ]]

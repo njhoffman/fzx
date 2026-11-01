@@ -94,7 +94,7 @@ declare -gA FZX_COLORS=(
   [sort]="38;5;45"
   # added to the column a list is sorted by (ps, docker, tmux, ...), on top of the column's own color
   [sorted]="4"
-  # bubble and triangle header styles: 256-color numbers for the background and text of on/off items
+  # round and triangle component styles: 256-color numbers for the background and text of on/off items
   [pill_on]=39
   [pill_on_fg]=16
   [pill_off]=237
@@ -129,9 +129,13 @@ FZX_PROMPT_LOADING="{icon}  "
 # "all"; focus and change start a process per keystroke or cursor move, so tracing is off by default
 FZX_TRACE="${FZX_TRACE:-}"
 
-# how the component line (modes, toggles, sort) is drawn: minimal (colored text), bubble (rounded pills),
-# triangle (powerline arrows), none (no line; keys keep working). bubble and triangle need a Nerd Font.
-FZX_HEADER_STYLE=minimal
+# how the component line (modes, toggles, sort) is drawn: minimal (colored text; a toggle's state is its
+# color), icon (colored text, toggles with an on/off marker), round (rounded pills), triangle (powerline
+# arrows), none (no line; keys keep working). round and triangle need a Nerd Font; the sort keeps its icon
+# in every style. Empty: FZX_HEADER_STYLE (its older name, where bubble was round), else minimal
+FZX_COMPONENT_STYLE=""
+# the icon style's toggle markers: switch (the icon set's on/off switch) or dot (● / ○)
+FZX_TOGGLE_ICONS=switch
 # where it goes: footer, or header (merged with a header the module sets itself)
 FZX_HEADER_POSITION=footer
 

@@ -58,10 +58,6 @@ Reviewed: 2026-10-28
       icons) away from bright yellow and yellow-green, toward shades of white, aqua and turquoise. Where a
       background is highlighted (current line, selected mode/toggle), keep it subtle: a dark tint, not a
       bright fill. Goes with the theme selector.
-- [ ] **Toggle and mode styles** (p2) [feature]: a setting for how the footer draws toggles and modes:
-      `minimal` (no icon, the new default), `icon`, `round` (powerline rounded caps around each item) or
-      `triangle` (powerline triangle caps). Sort keeps its icons whatever the style. Toggles' on/off icon
-      configurable too (the switch glyph, or an empty/filled dot).
 ## 3. Keys and help
 
 - [ ] **Keys from i3, tmux and autokey** (p2) [feature]: scan ~/.config/i3/config, tmux's root table (-n binds;

@@ -91,8 +91,9 @@ navigation would have to relaunch through the owner.
 The header line is rendered from the table: modes (one active), toggles (each on or off), the sort key,
 and key hints. Settings:
 
-- `FZX_HEADER_STYLE`: `bubble` (rounded powerline caps), `triangle` (powerline arrows), `minimal` (plain
-  text), `none` (no line; keys and behaviour unchanged).
+- `FZX_COMPONENT_STYLE` (formerly `FZX_HEADER_STYLE`): `minimal` (plain text), `icon` (plain text, toggles
+  with an on/off marker, `FZX_TOGGLE_ICONS=switch|dot`), `round` (rounded powerline caps; formerly
+  `bubble`), `triangle` (powerline arrows), `none` (no line; keys and behaviour unchanged).
 - `FZX_COLORS[component_active]`, `[component_inactive]`, per kind if wanted
   (`[toggle_on]`, `[mode_active]`, ...), overridable per module.
 - `FZX_HEADER_POSITION`: `header` | `footer` (modes are in the footer today).

@@ -6,6 +6,24 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.42.0] - 2026-11-01
+
+### Added
+
+- `FZX_COMPONENT_STYLE=icon`: the component line with on/off markers on the toggles; `FZX_TOGGLE_ICONS`
+  picks them, `switch` (the icon set's) or `dot` (● / ○).
+
+### Changed
+
+- The component line's style setting is `FZX_COMPONENT_STYLE` now, and `bubble` is called `round`; the old
+  `FZX_HEADER_STYLE` and `bubble` still work.
+- `minimal`, the default, draws toggles without markers (their color shows the state), and so do `round`
+  and `triangle`; the sort keeps its icon in every style.
+
+### Fixed
+
+- With `FZX_ICONS=none` the sort read `↓name`; it has its space now.
+
 ## [0.41.0] - 2026-11-01
 
 ### Added

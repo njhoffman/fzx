@@ -235,12 +235,15 @@ setup() {
   local line
   fzx::component_line line
   local on=$'\e[38;5;45;1m' off=$'\e[38;5;240m' r=$'\e[0m' ton=$'\e[38;5;49m' srt=$'\e[38;5;45m'
-  # unicode icons: toggles marked on/off, the sort with its arrow
+  # minimal: the toggles' state is their color, the sort keeps its arrow
   FZX_ICONS=unicode fzx::component_line line
+  [ "$line" = "${off}one${r}  ${on}two${r}${off}  |  ${r}${off}a${r}  ${ton}b${r}${off}  |  ${r}${srt}↓ mem${r}" ]
+  # icon style, unicode icons: toggles marked on/off
+  FZX_COMPONENT_STYLE=icon FZX_ICONS=unicode fzx::component_line line
   [ "$line" = "${off}one${r}  ${on}two${r}${off}  |  ${r}${off}○ a${r}  ${ton}● b${r}${off}  |  ${r}${srt}↓ mem${r}" ]
   # no icons: the names alone, the sort keeps its arrow
-  FZX_ICONS=none fzx::component_line line
-  [ "$line" = "${off}one${r}  ${on}two${r}${off}  |  ${r}${off}a${r}  ${ton}b${r}${off}  |  ${r}${srt}"$'\u2193'"mem${r}" ]
+  FZX_COMPONENT_STYLE=icon FZX_ICONS=none fzx::component_line line
+  [ "$line" = "${off}one${r}  ${on}two${r}${off}  |  ${r}${off}a${r}  ${ton}b${r}${off}  |  ${r}${srt}↓ mem${r}" ]
   FZX_MODES=(main) FZX_COMP=() FZX_SORT=""
   fzx::component_line line
   [ -z "$line" ]

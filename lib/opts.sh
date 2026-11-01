@@ -90,17 +90,32 @@ fzx::_layout_binds() {
   )
 }
 
+# fzx::component_style <var>: FZX_COMPONENT_STYLE, else the older FZX_HEADER_STYLE, else minimal; bubble
+# is round's older name
+fzx::component_style() {
+  local _s="${FZX_COMPONENT_STYLE:-${FZX_HEADER_STYLE:-minimal}}"
+  [[ "$_s" == bubble ]] && _s=round
+  printf -v "$1" '%s' "$_s"
+}
+
 # fzx::component_line <var>: modes (when there is more than one), toggles and the sort key as one line in
-# FZX_HEADER_STYLE, active ones highlighted; empty when the module has none of them or the style is none
+# the component style, active ones highlighted; empty when the module has none of them or the style is none
 # (locals _-prefixed: they would shadow the caller's variable)
 fzx::component_line() {
-  local _items=() _m _k _n _line="" _style="${FZX_HEADER_STYLE:-minimal}" _on _off _sort
+  local _items=() _m _k _n _line="" _style _on="" _off="" _sort
+  fzx::component_style _style
   [[ "$_style" == none ]] && { printf -v "$1" '%s' ""; return; }
-  # toggles carry an on/off marker and the sort its icon (lib/icons.sh); FZX_ICONS=none: names only, ↓
+  # the sort always carries its icon (lib/icons.sh; FZX_ICONS=none: ↓); toggles an on/off marker only in
+  # the icon style, FZX_TOGGLE_ICONS picks it: switch (the icon set's) or dot
   fzx::require icons
-  fzx::icon toggle_on _on
-  fzx::icon toggle_off _off
   fzx::icon sort _sort
+  if [[ "$_style" == icon && "${FZX_ICONS:-nerd}" != none ]]; then
+    if [[ "${FZX_TOGGLE_ICONS:-switch}" == dot ]]; then _on="●" _off="○"
+    else
+      fzx::icon toggle_on _on
+      fzx::icon toggle_off _off
+    fi
+  fi
   # items as "group<TAB>state<TAB>kind<TAB>text"; state is on or off
   if ((${#FZX_MODES[@]} > 1)); then
     for _m in "${FZX_MODES[@]}"; do
@@ -110,10 +125,10 @@ fzx::component_line() {
   while IFS=$'\t' read -r _k _n _ _ _; do
     if fzx::comp_on "$_n"; then _items+=($'2\ton\ttoggle\t'"${_on:+$_on }$_n"); else _items+=($'2\toff\ttoggle\t'"${_off:+$_off }$_n"); fi
   done < <(fzx::comp_rows toggle)
-  [[ -n "${FZX_SORT:-}" ]] && _items+=($'3\ton\tsort\t'"${_sort:-↓}${_sort:+ }$FZX_SORT")
+  [[ -n "${FZX_SORT:-}" ]] && _items+=($'3\ton\tsort\t'"${_sort:-↓} $FZX_SORT")
   ((${#_items[@]})) || { printf -v "$1" '%s' ""; return; }
   case "$_style" in
-    bubble | triangle) fzx::_component_pills _line "$_style" "${_items[@]}" ;;
+    round | triangle) fzx::_component_pills _line "$_style" "${_items[@]}" ;;
     *) fzx::_component_minimal _line "${_items[@]}" ;;
   esac
   printf -v "$1" '%s' "$_line"
@@ -142,7 +157,7 @@ fzx::_component_minimal() {
   printf -v "$_var" '%s' "$_out"
 }
 
-# bubble: each item a rounded pill; triangle: one powerline, an arrow between items. Colors from
+# round: each item a rounded pill; triangle: one powerline, an arrow between items. Colors from
 # FZX_COLORS[pill_on|pill_off] (background) and [pill_on_fg|pill_off_fg] (text), 256-color numbers.
 fzx::_component_pills() {
   local _var="$1" _style="$2" _out="" _prev="" _it _g _s _k _t _bg _fg _pbg="" _r=$'\e[0m'
@@ -151,7 +166,7 @@ fzx::_component_pills() {
   for _it in "$@"; do
     IFS=$'\t' read -r _g _s _k _t <<< "$_it"
     _bg="${FZX_COLORS[pill_$_s]}" _fg="${FZX_COLORS[pill_${_s}_fg]}"
-    if [[ "$_style" == bubble ]]; then
+    if [[ "$_style" == round ]]; then
       if [[ -z "$_prev" ]]; then :; elif [[ "$_g" != "$_prev" ]]; then _out+="   "; else _out+=" "; fi
       _out+=$'\e[38;5;'"${_bg}m$_left"$'\e[48;5;'"$_bg;38;5;${_fg}m$_t$_r"$'\e[38;5;'"${_bg}m$_right$_r"
     else

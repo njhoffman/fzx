@@ -295,10 +295,12 @@ arguments; enter runs `FZX_SESSION=<parent> fzx _cb action NAME ARGS` in the for
 `state/fresh`, so its next load runs the source instead of serving the cache; `nav restart` uses the same
 flag.
 
-`FZX_HEADER_STYLE` draws that line: `minimal` (colored text, the default), `bubble` (a rounded pill per
-item), `triangle` (one powerline with arrows), `none` (no line; every key still works). Pills use
-`FZX_COLORS[pill_on|pill_off]` (background) and `[pill_on_fg|pill_off_fg]` (text) as 256-color numbers;
-bubble and triangle need a Nerd Font. `FZX_HEADER_POSITION=footer` (default) or `header`: in the header
+`FZX_COMPONENT_STYLE` draws that line: `minimal` (colored text, the default; a toggle's state is its
+color), `icon` (colored text, toggles with an on/off marker: `FZX_TOGGLE_ICONS=switch` or `dot`), `round` (a
+rounded pill per item), `triangle` (one powerline with arrows), `none` (no line; every key still works). The
+sort keeps its icon in every style. `FZX_HEADER_STYLE` (with `bubble` for `round`) is the older name, read
+when `FZX_COMPONENT_STYLE` is empty. Pills use `FZX_COLORS[pill_on|pill_off]` (background) and
+`[pill_on_fg|pill_off_fg]` (text) as 256-color numbers; round and triangle need a Nerd Font. `FZX_HEADER_POSITION=footer` (default) or `header`: in the header
 the line sits above the module's own `--header` (kept in `meta/header`), and in-place refreshes rebuild
 both with `transform-header(fzx _cb header)`, since a module header can hold text that cannot be quoted
 into `change-header(...)`. Standalone runs show the line too.
