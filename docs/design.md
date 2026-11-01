@@ -232,7 +232,8 @@ mode    tree  -    process tree (input order: sorting off)  restart
 ```
 
 Columns split on tabs or runs of 2+ spaces; `key`/`flags` may be `-`. An executable table is run and its
-output read (dirs lists only the modes whose tool is installed). `~/.config/fzx/modules/<m>/components.tsv`
+output read (dirs lists only the modes whose tool is installed, files the trash action only with a trash
+tool). `~/.config/fzx/modules/<m>/components.tsv`
 replaces rows by kind+name (`=` keeps a field, the flag `off` removes the row, new names are added). The
 resolved table is stored in `meta/components`, so callbacks read it without config. Without mode rows a
 module has the single mode `main`; the row flagged `default` (else the first) starts; a mode row with a key
@@ -457,7 +458,7 @@ given only a `--language` (zsh commands, man pages, logs) go to bat.
 | Module | Modes | Args | Keys | Enter prints |
 |---|---|---|---|---|
 | `ps` | user, all, tree | `--ppid PID` | ctrl-x SIGTERM, kill (SIGKILL, confirm; menu only), both through `sudo -n` for a process that is not yours (else the footer says so); sudo-term, sudo-kill (menu only: sudo asks for the password); alt-t strace (every call), alt-T strace -Z (failing calls only), both following threads, through sudo unless ptrace allows it (root, or yours with ptrace_scope 0), ctrl-c returns; ctrl-o children, alt-o open files (network:files) | pids |
-| `files` | files, dirs, grep (as you type); toggles hidden (on), ignored, follow; sort path/recent | `[DIR]` | ctrl-e edit, ctrl-o into directory, alt-up parent, ctrl-t grep/filter, alt-h/alt-i/alt-l toggles | absolute paths (`path:line` in grep) |
+| `files` | files, dirs, grep (as you type); toggles hidden (on), ignored, follow; sort path/recent | `[DIR]` | ctrl-e edit, alt-x trash (confirm; trash-put, else gio trash; offered when either is installed; grep: the files of the selected matches), ctrl-o into directory, alt-up parent, ctrl-t grep/filter, alt-h/alt-i/alt-l toggles | absolute paths (`path:line` in grep) |
 | `keybindings` | zsh (every keymap; zle descriptions from zshzle(1), user widgets from the comment above their function), tmux (the tmux module's keys), fzf (yours, then fzf's defaults) | | ctrl-y copy | bindkey / bind-key lines, fzf keys |
 | `logs` | files (newest first), units, docker | | alt-F follow (ctrl-c returns) | path, unit or container id |
 | `man` | commands (`FZX_MAN_SECTIONS`, 1 and 8), all, tldr (descriptions from tealdeer's pages); cached a day | | enter opens in the pager, alt-n nvim (`:Man`, a tldr page's markdown), ctrl-y copy | (enter opens) |

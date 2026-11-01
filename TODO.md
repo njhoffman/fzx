@@ -99,8 +99,6 @@ Reviewed: 2026-10-28
 - [ ] **youtube follow-ups** (p3) [feature]: thumbnails in the preview; after a result is chosen, list its
       formats (`yt-dlp <url> --list-formats`) to pick the download from. The mp3 action
       (`yt-dlp -x --audio-format mp3`) already covers the audio case.
-- [ ] **files: trash action** (p2) [feature]: a trash action for files and dirs (gio trash, trash-put
-      when installed), with the confirm prompt the delete-like actions use.
 - [ ] **github: octo.nvim styling** (p3) [feature]: borrow from pwntester/octo.nvim's look: more icons
       (state, review, draft, merged), labels drawn as colored chips, nicer issue/PR rows and previews.
 - [ ] **top in ps** (p3) [feature]: a refreshing mode of `ps` (`every(N):reload`) rather than a module.

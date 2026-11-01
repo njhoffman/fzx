@@ -6,6 +6,13 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.48.0] - 2026-11-01
+
+### Added
+
+- files: a trash action (alt-x, confirmed) for files and directories, through trash-put or else gio trash;
+  in grep mode it trashes the files of the selected matches. Offered only when one of the two is installed.
+
 ## [0.47.0] - 2026-11-01
 
 ### Added

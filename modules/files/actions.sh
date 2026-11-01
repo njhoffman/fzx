@@ -4,11 +4,44 @@
 # shellcheck source=./source.sh
 source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
 
-# files::action edit <path...> | (grep mode) edit <path> <line>: open in $EDITOR (foreground)
+# files::trash <path...>: into the trash through trash-put, else gio trash; each path once (grep mode passes
+# one per match). / and $HOME are refused.
+files::trash() {
+  local p tool
+  local -a paths=()
+  local -A seen=()
+  if command -v trash-put > /dev/null; then
+    tool=trash-put
+  elif command -v gio > /dev/null; then
+    tool=gio
+  else
+    printf 'files: trash: neither trash-put nor gio is installed\n' >&2
+    return 1
+  fi
+  for p in "$@"; do
+    [[ -n "$p" && -z "${seen[$p]:-}" ]] || continue
+    seen[$p]=1
+    if [[ "$p" == / || "${p%/}" == "${HOME%/}" ]]; then
+      printf 'files: trash: refusing %s\n' "$p" >&2
+      return 2
+    fi
+    paths+=("$p")
+  done
+  ((${#paths[@]})) || return 0
+  if [[ "$tool" == trash-put ]]; then
+    command trash-put -- "${paths[@]}"
+  else
+    command gio trash -- "${paths[@]}"
+  fi
+}
+
+# files::action edit <path...> | (grep mode) edit <path> <line>: open in $EDITOR (foreground);
+# files::action trash <path...>: files::trash
 files::action() {
   local action="${1:-}"
   shift
   case "$action:${FZX_MODE:-files}" in
+    trash:*) files::trash "$@" ;;
     edit:grep) "${EDITOR:-vi}" "+${2:-1}" -- "$1" ;;
     edit:*)
       (($#)) || return 0

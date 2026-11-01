@@ -1,4 +1,7 @@
-# files components: kind  name  key  description  flags (see lib/components.sh)
+#!/usr/bin/env bash
+# files components, computed: the trash action only when trash-put or gio is installed (see lib/components.sh
+# for the table format)
+cat << 'ROWS'
 mode  files  -  files under the directory         default
 mode  dirs   -  directories under the directory   -
 mode  grep   -  search file contents as you type  restart,nopersist
@@ -8,3 +11,8 @@ toggle  follow   alt-l  follow symbolic links into directories             -
 sort  path    -  by path                                     default
 sort  recent  -  newest first (modification time)            -
 action  edit  ctrl-e  open in $EDITOR (grep: at the matching line)  foreground
+ROWS
+if command -v trash-put > /dev/null || command -v gio > /dev/null; then
+  printf 'action\ttrash\talt-x\tmove the selected files or directories to the trash (grep: the files of the matches)\tconfirm,reload\n'
+fi
+exit 0

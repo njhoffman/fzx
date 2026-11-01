@@ -4,6 +4,8 @@
 
 load test_helper
 
+bats_require_minimum_version 1.5.0
+
 FILES="$(readlink -f "$BATS_TEST_DIRNAME/../modules/files")"
 
 setup() {
@@ -146,4 +148,60 @@ rel() { (FZX_MODE="$1" "$FILES/source.sh" "$B") | cut -f1 | sed "s:^$B/::"; }
   fzx::state_set mode files
   run "$FZX" _cb transform filter
   [ -z "$output" ]
+}
+
+# trash_stub <name> <body>: a trash tool on a PATH of its own (with bash and the tools the scripts use),
+# recording its args in $BATS_TEST_TMPDIR/calls
+trash_path() {
+  local d="$BATS_TEST_TMPDIR/tbin" t
+  mkdir -p "$d"
+  for t in bash dirname readlink cat; do ln -sf "$(command -v "$t")" "$d/$t"; done
+  printf '%s' "$d"
+}
+trash_stub() {
+  local d
+  d="$(trash_path)"
+  printf '#!%s\nprintf "%%s\\n" "${0##*/} $*" >> "%s/calls"\n' "$(command -v bash)" "$BATS_TEST_TMPDIR" > "$d/$1"
+  chmod +x "$d/$1"
+}
+
+@test "trash: trash-put first, else gio trash; each path once; / and ~ refused" {
+  trash_stub trash-put
+  trash_stub gio
+  local p
+  p="$(trash_path)"
+  run env PATH="$p" "$FILES/actions.sh" trash "$B/top" "$B/a" "$B/top"
+  [ "$status" -eq 0 ]
+  rm "$p/trash-put"
+  FZX_MODE=grep run env PATH="$p" "$FILES/actions.sh" trash "$B/top"
+  [ "$status" -eq 0 ]
+  [ "$(cat "$BATS_TEST_TMPDIR/calls")" = "$(printf '%s\n' "trash-put -- $B/top $B/a" "gio trash -- $B/top")" ]
+  run --separate-stderr env PATH="$p" "$FILES/actions.sh" trash "$B/top" "$HOME/"
+  [ "$status" -eq 2 ]
+  [ "$stderr" = "files: trash: refusing $HOME/" ]
+  run env PATH="$p" "$FILES/actions.sh" trash /
+  [ "$status" -eq 2 ]
+  [ "$(wc -l < "$BATS_TEST_TMPDIR/calls")" -eq 2 ]
+  rm "$p/gio"
+  run --separate-stderr env PATH="$p" "$FILES/actions.sh" trash "$B/top"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "files: trash: neither trash-put nor gio is installed" ]
+}
+
+@test "trash: offered only with trash-put or gio; alt-x confirms, then reloads; grep passes every match's file" {
+  local p
+  p="$(trash_path)"
+  run env PATH="$p" "$FILES/components.tsv"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *trash* && "$output" == *"action  edit"* ]]
+  trash_stub gio
+  run env PATH="$p" "$FILES/components.tsv"
+  [[ "${lines[-1]}" == $'action\ttrash\talt-x\t'*$'\tconfirm,reload' ]]
+  command -v trash-put > /dev/null || command -v gio > /dev/null || skip "no trash tool installed"
+  stub_fzf
+  run "$FZX" -m files "$B"
+  [[ "$(fzf_bind alt-x)" == "alt-x:execute($FZX _cb action trash {+1})+change-prompt("*")+reload($FZX _cb source)" ]]
+  command -v rg > /dev/null || skip "rg not installed"
+  run "$FZX" -m files:grep "$B"
+  [[ "$(fzf_bind alt-x)" == "alt-x:execute($FZX _cb action trash {+1})+"* ]]
 }
