@@ -21,6 +21,10 @@ declare -gA FZX_KEYS=(
   [actions]="ctrl-\\"
 )
 
+# toggles also flip with alt-1 .. alt-8, numbered by their order in components.tsv (alt-9 and alt-0 switch
+# modes); a number another component or FZX_KEYS entry has is skipped. 0 turns this off
+FZX_TOGGLE_DIGIT_KEYS=1
+
 # how keys are shown in the help page, its grid and the menu preview: full (fzf's names: ctrl-x, alt-left),
 # short (^X, M-left) or glyph (⌃X, ⌥←; needs a font with the symbols). Binds and FZX_KEYS keep fzf's names.
 FZX_KEY_STYLE=full

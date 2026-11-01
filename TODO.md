@@ -74,8 +74,6 @@ Reviewed: 2026-10-28
 - [ ] **All keys list** (p3) [feature]: a mode of the keybindings module listing fzf's `--keys` names (every
       key fzf knows), marking the bound ones with their action.
 
-- [ ] **Toggles on alt-1, alt-2, ...** (p2) [feature]: bind each toggle to alt-N by its order in
-      components.tsv, on top of its own key. alt-9 and alt-0 are mode_prev/mode_next, so at most eight.
 - [ ] **ctrl-_ for the next sort** (p3) [feature]: bind it with f12 (`FZX_KEYS[sort_next]="f12,ctrl-/"`; fzf
       calls it ctrl-/, terminals send ctrl-_ for both).
 - [ ] **alt-^ flips popup and inline** (p3) [feature]: a second placement key that switches only between the

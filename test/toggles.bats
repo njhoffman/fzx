@@ -90,6 +90,40 @@ kept() {
   [[ " ${FZF_ARGS[*]} " == *" --footer="*hidden*big*slow*size* ]]
 }
 
+@test "digit keys: alt-N by table order, one binding when it is the toggle's own key, skipped when taken" {
+  cat > "$FZX_CONFIG_DIR/modules/counter/components.tsv" << 'EOF2'
+toggle  a  -      first          -
+toggle  b  alt-2  second         -
+toggle  c  -      third          -
+toggle  d  alt-3  fourth (alt-3)  -
+EOF2
+  run "$FZX" -m counter
+  [ "$(fzf_bind alt-1)" = "alt-1:transform:$FZX _cb toggle a" ]
+  [ "$(fzf_bind alt-2)" = "alt-2:transform:$FZX _cb toggle b" ]
+  # alt-3 is d's own key, so c gets none and alt-4 (d's number) still goes to d
+  [ "$(fzf_bind alt-3)" = "alt-3:transform:$FZX _cb toggle d" ]
+  [ "$(fzf_bind alt-4)" = "alt-4:transform:$FZX _cb toggle d" ]
+  read_fzf_args
+  local n=0 a
+  for a in "${FZF_ARGS[@]}"; do [[ "$a" == alt-2:* ]] && n=$((n + 1)); done
+  [ "$n" -eq 1 ]
+}
+
+@test "digit keys: past eight none, an FZX_KEYS key wins, FZX_TOGGLE_DIGIT_KEYS=0 turns them off" {
+  local i
+  for i in 1 2 3 4 5 6 7 8 9; do echo "toggle  t$i  -  toggle $i  -"; done > "$FZX_CONFIG_DIR/modules/counter/components.tsv"
+  echo 'FZX_KEYS[reload_soft]=alt-5' > "$FZX_CONFIG_DIR/config.sh"
+  run "$FZX" -m counter
+  [ "$(fzf_bind alt-8)" = "alt-8:transform:$FZX _cb toggle t8" ]
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " != *" alt-5:transform:$FZX _cb toggle"* ]]
+  [[ "$(fzf_bind alt-9)" != *"toggle t9"* ]]
+  echo 'FZX_TOGGLE_DIGIT_KEYS=0' > "$FZX_CONFIG_DIR/config.sh"
+  run "$FZX" -m counter
+  run fzf_bind alt-1
+  [ "$status" -eq 1 ]
+}
+
 @test "one sort key or none: no f11/f12" {
   echo 'toggle  t  -  a toggle  -' > "$FZX_CONFIG_DIR/modules/counter/components.tsv"
   run "$FZX" -m counter

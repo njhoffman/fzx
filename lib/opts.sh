@@ -234,6 +234,22 @@ fzx::_help_bind() {
   FZX_OPTS+=(--bind "${FZX_KEYS[help]}:transform:$keys")
 }
 
+# fzx::_taken_keys <var>: " key key ... " of every component row's keys and every FZX_KEYS value
+fzx::_taken_keys() {
+  local _row _k _n _key _rest _keys=() _all=" " _x
+  for _row in "${FZX_COMP[@]}"; do
+    IFS=$'\t' read -r _k _n _key _rest <<< "$_row"
+    [[ -n "$_key" && "$_key" != - ]] || continue
+    fzx::split_keys "$_key" _keys
+    for _x in "${_keys[@]}"; do _all+="$_x "; done
+  done
+  for _key in "${FZX_KEYS[@]}"; do
+    fzx::split_keys "$_key" _keys
+    for _x in "${_keys[@]}"; do _all+="$_x "; done
+  done
+  printf -v "$1" '%s' "$_all"
+}
+
 # fzx::opts_build <module>; expects config loaded, module.sh sourced, FZX_MODES and FZX_MODE set
 fzx::opts_build() {
   local module="$1" label query pos
@@ -276,9 +292,21 @@ fzx::opts_build() {
       done < <(fzx::comp_rows mode)
     fi
     # toggles with a key flip in place; sort keys cycle (and a sort row with a key selects it)
+    local _taken _i=0 _digit
+    fzx::_taken_keys _taken
     while IFS=$'\t' read -r _k _n _key _desc _flags; do
-      [[ -n "$_key" && "$_key" != - ]] || continue
-      _FZX_BIND_SCOPE="$module" fzx::bind "$_key" "transform:$(fzx::cb toggle "$_n")" "toggle: ${_desc:-$_n}"
+      _i=$((_i + 1))
+      # alt-1 .. alt-8 by table order too (alt-9 and alt-0 switch modes), unless another row or an fzx
+      # key has it; a toggle whose own key is its number is bound once
+      _digit=""
+      if [[ "${FZX_TOGGLE_DIGIT_KEYS:-1}" == 1 ]] && ((_i <= 8)); then
+        _digit="alt-$_i"
+        [[ "$_taken" == *" $_digit "* ]] && _digit=""
+      fi
+      [[ -n "$_key" && "$_key" != - ]] &&
+        _FZX_BIND_SCOPE="$module" fzx::bind "$_key" "transform:$(fzx::cb toggle "$_n")" "toggle: ${_desc:-$_n}"
+      [[ -n "$_digit" ]] &&
+        _FZX_BIND_SCOPE="$module" fzx::bind "$_digit" "transform:$(fzx::cb toggle "$_n")" "toggle: ${_desc:-$_n}"
     done < <(fzx::comp_rows toggle)
     if (($(fzx::comp_rows sort | wc -l) > 1)); then
       fzx::bind "${FZX_KEYS[sort_next]}" "transform:$(fzx::cb sort next)" "next sort order"

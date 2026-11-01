@@ -234,7 +234,8 @@ later to win. Only an order that is the content itself (ps's tree) turns sorting
 `toggle` rows are independent switches (flag `on` = on at start), `sort` rows the sort orders (flag
 `default`, else the first). They reach every module script as `FZX_TOGGLES` (the names that are on,
 space-separated) and `FZX_SORT`, exactly like `FZX_MODE`, and live in `state/toggles` / `state/sort`;
-standalone runs take them from the environment. A toggle row's key flips it; f11/f12 (`FZX_KEYS[sort_prev]`,
+standalone runs take them from the environment. A toggle row's key flips it, and so does alt-1 .. alt-8 by
+the toggle's place in the table (`FZX_TOGGLE_DIGIT_KEYS`; a number another row or `FZX_KEYS` has is skipped); f11/f12 (`FZX_KEYS[sort_prev]`,
 `[sort_next]`) cycle the sort when there are two or more, and a sort row's key selects it. Changes reload
 in place (`transform(fzx _cb toggle NAME)`, `fzx _cb sort next|prev|NAME`); a row flagged `restart` restarts
 fzf instead. The cache key is the view, not just the mode: `<mode>[+<toggles on>][@<sort>]`
@@ -362,6 +363,7 @@ resolved config: the callback loads the layers just before the first module func
 |---|---|---|
 | `FZX_FZF_OPTS` | `--ansi --with-shell='bash -c'` | base fzf options for every module |
 | `FZX_KEYS` | core: `reload_hard` ctrl-r, `reload_soft` alt-r, `mode_next` alt-0, `mode_prev` alt-9, `back` alt-left, `escape` esc, `popout` ctrl-^, `actions` ctrl-\\ | module navigation keys are `<module>.<name>` (`ps.children`, `files.into`), set in the module's `config.sh`; action keys are in the action rows of `components.tsv` |
+| `FZX_TOGGLE_DIGIT_KEYS` | `1` | toggles also flip with alt-1 .. alt-8 in table order; `0` turns it off |
 | `FZX_RESERVED_KEYS` | ctrl-f ctrl-b ctrl-u ctrl-w ctrl-g alt-g ctrl-p ctrl-n up down alt-b alt-f scroll-up scroll-down | keys modules may not bind (the user's scrolling and query editing); `fzx::bind` skips a module binding on one and logs a warning. fzx's own keys are not checked. Modules may still take keys the user binds elsewhere (ctrl-e edit replaces the user's `become(nvim)` with a per-module editor action) |
 | `FZX_COLORS` | `mode_active`, `mode_inactive`, `menu_target`, `menu_summary`, `dim`, `sorted` | SGR parameters for what fzx draws itself (`sorted`: added to the column a list is sorted by) |
 | `FZX_FZF_COLORS` | empty | passed as `--color` when set; empty keeps the user's fzf theme |

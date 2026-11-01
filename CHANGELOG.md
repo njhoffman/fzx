@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.41.0] - 2026-11-01
+
+### Added
+
+- Toggles flip with alt-1 .. alt-8 as well, numbered by their order in `components.tsv` (alt-9 and alt-0 stay
+  the mode keys). A number that another component row or an `FZX_KEYS` entry already has is skipped;
+  `FZX_TOGGLE_DIGIT_KEYS=0` turns the numbers off.
+
 ## [0.40.0] - 2026-10-31
 
 ### Added
