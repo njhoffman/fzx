@@ -26,17 +26,44 @@ fzx::cb() {
 }
 
 # fzx::prompt <loaded|loading> <var>: FZX_PROMPT / FZX_PROMPT_LOADING with the icon colored for that
-# state; empty when the prompt is blank (fzf's own prompt is kept and no prompt actions are bound)
+# state; empty when the prompt is blank (fzf's own prompt is kept and no prompt actions are bound). The
+# icon is the current mode's (FZX_ICON_MODES[$FZX_MODE]) when it has one, else FZX_ICON; a blank FZX_ICON
+# keeps the prompt without one, mode icons included.
 fzx::prompt() {
-  local _t _c _icon=""
+  local _t _c _icon="" _glyph="${FZX_ICON:-}"
   if [[ "$1" == loading ]]; then _t="${FZX_PROMPT_LOADING:-$FZX_PROMPT}" _c="${FZX_COLORS[prompt_loading]:-}"
   else _t="${FZX_PROMPT:-}" _c="${FZX_COLORS[prompt_loaded]:-}"; fi
-  [[ -n "${FZX_ICON:-}" ]] && _icon=$'\e['"${_c}m$FZX_ICON"$'\e[0m'
+  fzx::_has_mode_icons && [[ -n "$_glyph" && -n "${FZX_MODE:-}" ]] && _glyph="${FZX_ICON_MODES[$FZX_MODE]:-$_glyph}"
+  [[ -n "$_glyph" ]] && _icon=$'\e['"${_c}m$_glyph"$'\e[0m'
   _t="${_t//\{icon\}/$_icon}"
   # ")" would end change-prompt(...) early
   _t="${_t//)/}"
   [[ "$_t" =~ [^[:space:]] ]] || _t=""
   printf -v "$2" '%s' "$_t"
+}
+
+# fzx::_has_mode_icons: the module gives some of its modes an icon of their own (FZX_ICON_MODES)
+fzx::_has_mode_icons() {
+  [[ "$(declare -p FZX_ICON_MODES 2> /dev/null)" == "declare -A"* ]] && ((${#FZX_ICON_MODES[@]}))
+}
+
+# fzx::_prompt_binds <loaded prompt>: what load switches the prompt to. With mode icons and a session, the
+# loaded prompt of every mode goes into meta/prompt.<mode> and load asks `fzx _cb prompt` for the current
+# one (an in-place mode switch cannot change a load bind); otherwise a fixed change-prompt.
+fzx::_prompt_binds() {
+  local _m _p _mode="${FZX_MODE:-}"
+  [[ -n "$1" ]] || return 0
+  if fzx::in_session && fzx::_has_mode_icons && ((${#FZX_MODES[@]} > 1)); then
+    for _m in "${FZX_MODES[@]}"; do
+      FZX_MODE="$_m"
+      fzx::prompt loaded _p
+      fzx::meta_set "prompt.$_m" "$_p"
+    done
+    FZX_MODE="$_mode"
+    FZX_OPTS+=(--bind "load:transform-prompt:$(fzx::cb prompt)")
+  else
+    FZX_OPTS+=(--bind "load:change-prompt($1)")
+  fi
 }
 
 # fzx::action_arg <action> <text> [var]: action(text) with a delimiter pair fzf accepts that the text does
@@ -281,7 +308,7 @@ fzx::opts_build() {
   fzx::prompt loading loading
   # start in the loading form; load (every reload, not just the first) switches to the loaded one
   [[ -n "$loading" ]] && FZX_OPTS+=("--prompt=$loading")
-  [[ -n "$prompt" ]] && FZX_OPTS+=(--bind "load:change-prompt($prompt)")
+  fzx::_prompt_binds "$prompt"
   FZX_OPTS+=(--bind "start:reload:$(fzx::cb load)")
   fzx::reload_action "$(fzx::cb source)" act
   fzx::bind "${FZX_KEYS[reload_hard]}" "$act" "reload: run the source again"

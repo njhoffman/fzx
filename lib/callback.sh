@@ -2,7 +2,7 @@
 # callback: handlers behind `fzx _cb <verb>`, invoked by fzf binds. Keep the load path minimal:
 # preview runs on every focus change, so it loads only log and session.
 
-# fzx::callback <load|source|preview|action|transform|mode|nav|layout> [args...]
+# fzx::callback <load|source|preview|action|transform|mode|nav|layout|prompt> [args...]
 # transform <name> [args]: <module>::transform from actions.sh, which prints fzf actions
 # Handlers describe their stats row in _FZX_STAT=(event count detail [mode]); preview never does.
 fzx::callback() {
@@ -57,6 +57,7 @@ fzx::callback() {
       fzx::_cb_actions fzx::nav "$@"
       ;;
     trace) fzx::_cb_trace "$@" ;;
+    prompt) fzx::_cb_prompt ;;
     layout)
       fzx::require layout
       fzx::_cb_actions fzx::layout "$@"
@@ -75,7 +76,7 @@ fzx::callback() {
 
   fzx::now_ms end
   local level=info
-  [[ "$verb" == preview || "$verb" == trace ]] && level=debug
+  [[ "$verb" == preview || "$verb" == trace || "$verb" == prompt ]] && level=debug
   ((rc == 0)) || level=error
   fzx::log "$level" "cb $verb${*:+ $*} rc=$rc $((end - start))ms"
   if ((${#_FZX_STAT[@]})); then
@@ -90,6 +91,16 @@ fzx::callback() {
     fzx::stat "${_FZX_STAT[0]}" "$((end - start))" "${_FZX_STAT[1]}" "${_FZX_STAT[2]}"
   fi
   return "$rc"
+}
+
+# fzx::_cb_prompt: the loaded prompt of the current mode (fzx::_prompt_binds wrote one per mode), for
+# load's transform-prompt; reads two files, no config
+fzx::_cb_prompt() {
+  local mode="" prompt=""
+  fzx::session_modes
+  fzx::session_mode mode
+  fzx::meta_get "prompt.$mode" prompt || return 0
+  printf '%s' "$prompt"
 }
 
 # fzx::_cb_actions <handler> [args...]: run a handler whose stdout is fzf actions, logging what it

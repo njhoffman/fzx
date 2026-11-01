@@ -47,6 +47,38 @@ R=$'\e[0m'
   [ "$status" -eq 1 ]
 }
 
+@test "mode icons: the prompt follows the mode, through load's transform-prompt" {
+  conf 'FZX_ICON=X' 'declare -gA FZX_ICON_MODES' 'FZX_ICON_MODES[two]=T'
+  "$FZX" --keep -m counter
+  local dir sid
+  dir="$(session_dirs)"
+  sid="$(basename "$dir")"
+  [ "$(fzf_bind load)" = "load:transform-prompt:$FZX _cb prompt" ]
+  [ "$(< "$dir/meta/prompt.one")" = "${H}X$R  " ]
+  [ "$(< "$dir/meta/prompt.two")" = "${H}T$R  " ]
+  FZX_SESSION="$sid" run "$FZX" _cb prompt
+  [ "$output" = "${H}X$R  " ]
+  # an in-place switch to two: its reload starts in two's loading form, load then gives two's prompt
+  FZX_SESSION="$sid" run "$FZX" _cb mode next
+  [[ "$output" == *"change-prompt(${L}T$R  )+reload("* ]]
+  FZX_SESSION="$sid" run "$FZX" _cb prompt
+  [ "$output" = "${H}T$R  " ]
+  # a launch in two starts with its icon
+  "$FZX" -m counter:two
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *" --prompt=${L}T$R  "* ]]
+}
+
+@test "mode icons: none, or a blank FZX_ICON, keep the fixed change-prompt (or none)" {
+  conf 'FZX_ICON=X'
+  "$FZX" -m counter
+  [ "$(fzf_bind load)" = "load:change-prompt(${H}X$R  )" ]
+  conf 'FZX_ICON=' 'FZX_PROMPT="  "' 'declare -gA FZX_ICON_MODES' 'FZX_ICON_MODES[two]=T'
+  "$FZX" -m counter:two
+  run fzf_bind load
+  [ "$status" -eq 1 ]
+}
+
 @test "a prompt without an icon works too" {
   conf 'FZX_PROMPT="count> "'
   run "$FZX" -m counter

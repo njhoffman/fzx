@@ -6,6 +6,13 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.58.0] - 2026-11-01
+
+### Changed
+
+- The prompt shows the current mode's icon (`FZX_ICON_MODES`, for example files:grep and glyphs:emoji)
+  instead of the module's, and follows in-place mode switches (alt-0 / alt-9).
+
 ## [0.57.0] - 2026-11-01
 
 ### Changed

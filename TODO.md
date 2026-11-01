@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.57.0): the six steps of `docs/design.md` are done. Modules: actions, audio, capture, colors, dirs,
+Status (0.58.0): the six steps of `docs/design.md` are done. Modules: actions, audio, capture, colors, dirs,
 docker, files, git, github, glyphs, history, keybindings, logs, man, menu, network, ps, recent, repos, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
@@ -18,10 +18,6 @@ Reviewed: 2026-10-28
 
 ## 2. Menu and presentation
 
-- [ ] **Mode icon in the prompt** (p3) [feature]: the prompt shows the module's `FZX_ICON` even in a mode with
-      its own menu icon (`FZX_ICON_MODES`, files:grep). The `load:change-prompt(...)` bind is fixed when fzf
-      starts, so an in-place mode switch needs the load bind to follow the mode (a `transform-prompt`
-      callback on load, or the mode switch rebinding it).
 - [ ] **Theme selector** (p2) [feature]: building on `colors:fzx`, a screen listing every color setting
       (fzf's `--color` keys and fzx's `FZX_COLORS`) with their current values; pick one, change it
       interactively, and see it in a live sample fzf launched with the new colors; save to the user config.
