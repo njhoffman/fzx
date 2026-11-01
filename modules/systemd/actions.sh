@@ -12,7 +12,20 @@ systemd::_run() {
   fi
 }
 
-# systemd::action <start|stop|restart|enable|disable|journal|edit> <manager:unit...>
+# systemd::_journal_unit <manager> <unit> <var>: the unit whose journal to follow: what a timer or socket
+# activates (Triggers), else the unit itself
+systemd::_journal_unit() {
+  local _t=""
+  if [[ "$2" == *.timer || "$2" == *.socket ]]; then
+    _t="$(SYSTEMD_COLORS=0 command systemctl "--$1" show -p Triggers --value -- "$2" 2> /dev/null)"
+    _t="${_t%% *}"
+  fi
+  printf -v "$3" '%s' "${_t:-$2}"
+}
+
+# systemd::action <start|stop|restart|reload|enable|disable|daemon-reload|journal|edit> <manager:unit...>
+# reload is reload-or-restart (a unit without ExecReload restarts); daemon-reload runs once per manager of
+# the selection.
 systemd::action() {
   local action="${1:-}" id rc=0
   shift
@@ -27,16 +40,27 @@ systemd::action() {
     }
   done
   case "$action" in
-    start | stop | restart | enable | disable)
+    start | stop | restart | reload | enable | disable)
+      [[ "$action" == reload ]] && action=reload-or-restart
       for id in "$@"; do
         systemd::_run "${id%%:*}" systemctl "--${id%%:*}" "$action" -- "${id#*:}" || rc=$?
+      done
+      return "$rc"
+      ;;
+    daemon-reload)
+      local manager
+      for manager in system user; do
+        [[ " $* " == *" $manager:"* ]] || continue
+        systemd::_run "$manager" systemctl "--$manager" daemon-reload || rc=$?
       done
       return "$rc"
       ;;
     journal)
       trap : INT
       id="$1"
-      SYSTEMD_COLORS=1 command journalctl "--${id%%:*}" -u "${id#*:}" -n 100 -f
+      local unit
+      systemd::_journal_unit "${id%%:*}" "${id#*:}" unit
+      SYSTEMD_COLORS=1 command journalctl "--${id%%:*}" -u "$unit" -n 100 -f
       return 0
       ;;
     edit)

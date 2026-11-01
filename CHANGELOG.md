@@ -6,6 +6,21 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.46.0] - 2026-11-01
+
+### Added
+
+- systemd: timers and sockets modes, both managers in one list: a timer's next and last run and the unit it
+  activates, a socket's addresses. The journal action on a timer or socket follows the unit it activates.
+- systemd: a reload action (alt-L, reload-or-restart) and daemon-reload (from the actions menu, once per
+  manager of the selection).
+- systemd: the files toggle (alt-u) lists static, masked, generated and alias unit files as well.
+
+### Fixed
+
+- systemd lists unit files that are not loaded (disabled, or enabled but never started), so they can be
+  started and enabled from fzx; they sort last by state. Template units are left out.
+
 ## [0.45.1] - 2026-11-01
 
 ### Added

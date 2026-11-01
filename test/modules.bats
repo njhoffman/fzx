@@ -192,6 +192,13 @@ stub_systemctl() {
   stub_cmd systemctl 'case "$*" in
     *--user*list-units*failed*) ;;
     *--user*list-units*) printf "u1.service loaded active running One\nu2.service loaded inactive dead Two\nghost.service not-found inactive dead ghost\n" ;;
+    *--user*list-unit-files*) printf "u1.service enabled enabled\nu3.service disabled enabled\nu4.service static -\nt@.service disabled enabled\nu5.service masked enabled\n" ;;
+    *list-unit-files*) ;;
+    *--user*list-timers*) printf "[{\"next\":%s000000,\"left\":1,\"last\":%s000000,\"passed\":1,\"unit\":\"tick.timer\",\"activates\":\"tick.service\"},{\"next\":null,\"left\":null,\"last\":null,\"passed\":null,\"unit\":\"idle.timer\",\"activates\":\"idle.service\"}]\n" "$(($(date +%s) + 5400))" "$(($(date +%s) - 300))" ;;
+    *list-timers*) printf "[{\"next\":%s000000,\"left\":1,\"last\":null,\"passed\":null,\"unit\":\"apt.timer\",\"activates\":\"apt.service\"}]\n" "$(($(date +%s) + 90000))" ;;
+    *--user*list-sockets*) printf "[{\"listen\":\"/run/a\",\"unit\":\"a.socket\",\"activates\":\"a.service\"},{\"listen\":\"/run/a2\",\"unit\":\"a.socket\",\"activates\":\"a.service\"},{\"listen\":\"/run/b\",\"unit\":\"b.socket\",\"activates\":null}]\n" ;;
+    *list-sockets*) printf "[]\n" ;;
+    *show*Triggers*tick.timer) echo tick.service ;;
     *list-units*failed*) printf "s1.service loaded failed failed Broken thing\n" ;;
     *list-units*) printf "s1.service loaded failed failed Broken thing\ns2.service loaded active exited Done\n" ;;
     *) echo "systemctl $*" ;;
@@ -201,10 +208,69 @@ stub_systemctl() {
 @test "systemd: user and system modes; not-found units are dropped" {
   stub_systemctl
   run "$MODS/systemd/source.sh"
-  [ "$(printf '%s\n' "${lines[@]}" | cut -f1 | tr '\n' ' ')" = "user:u1.service user:u2.service " ]
+  [ "$(printf '%s\n' "${lines[@]}" | cut -f1 | tr '\n' ' ')" = "user:u1.service user:u2.service user:u3.service " ]
   FZX_MODE=system run "$MODS/systemd/source.sh"
   [ "$(printf '%s\n' "${lines[@]}" | cut -f1 | tr '\n' ' ')" = "system:s1.service system:s2.service " ]
   [[ "$(printf '%s' "${lines[0]}" | plain)" == *"s1.service"*"failed"*"Broken thing"* ]]
+}
+
+@test "systemd: unit files that are not loaded: enabled and disabled ones, the rest with the files toggle" {
+  stub_systemctl
+  run "$MODS/systemd/source.sh"
+  [ "$status" -eq 0 ]
+  [[ "$(printf '%s\n' "${lines[2]}" | plain)" == *"u3.service"*"disabled"*"not loaded"* ]]
+  [[ "$output" != *u4.service* && "$output" != *u5.service* && "$output" != *t@.service* ]]
+  FZX_TOGGLES=files run "$MODS/systemd/source.sh"
+  [ "$(printf '%s\n' "${lines[@]}" | cut -f1 | tr '\n' ' ')" = "user:u1.service user:u2.service user:u3.service user:u4.service user:u5.service " ]
+  # by state the files that are not loaded come after inactive units
+  stub_cmd systemctl 'case "$*" in *list-unit-files*) echo "a.service disabled enabled" ;; *) echo "b.service loaded inactive dead B" ;; esac'
+  run "$MODS/systemd/source.sh"
+  [ "$(printf '%s\n' "${lines[@]}" | cut -f1 | tr '\n' ' ')" = "user:a.service user:b.service " ]
+  FZX_SORT=state run "$MODS/systemd/source.sh"
+  [ "$(printf '%s\n' "${lines[@]}" | cut -f1 | tr '\n' ' ')" = "user:b.service user:a.service " ]
+}
+
+@test "systemd: timers of both managers with next and last run; by state the next run first" {
+  stub_systemctl
+  FZX_MODE=timers run --separate-stderr "$MODS/systemd/source.sh"
+  [ "$status" -eq 0 ]
+  [ "$(printf '%s\n' "${lines[@]}" | cut -f1 | tr '\n' ' ')" = "system:apt.timer user:idle.timer user:tick.timer " ]
+  local tick
+  tick="$(printf '%s\n' "${lines[2]}" | plain)"
+  [[ "$tick" == *"user"*"tick.timer"*"in 1h"*"5m ago"*"tick.service"* ]]
+  [[ "$(printf '%s\n' "${lines[1]}" | plain)" == *"idle.timer"*" - "*"never"* ]]
+  [[ "$(printf '%s\n' "${lines[0]}" | plain)" == *"system"*"apt.timer"*"in 1d"* ]]
+  FZX_MODE=timers FZX_SORT=state run "$MODS/systemd/source.sh"
+  [ "$(printf '%s\n' "${lines[@]}" | cut -f1 | tr '\n' ' ')" = "user:tick.timer system:apt.timer user:idle.timer " ]
+}
+
+@test "systemd: sockets list each socket once, its addresses joined" {
+  stub_systemctl
+  FZX_MODE=sockets run "$MODS/systemd/source.sh"
+  [ "$status" -eq 0 ]
+  [ "$(printf '%s\n' "${lines[@]}" | cut -f1 | tr '\n' ' ')" = "user:a.socket user:b.socket " ]
+  [[ "$(printf '%s\n' "${lines[0]}" | plain)" == *"a.socket"*"/run/a, /run/a2"*"a.service"* ]]
+}
+
+@test "systemd: reload is reload-or-restart; daemon-reload once per manager; a timer's journal is its service's" {
+  stub_systemctl
+  stub_cmd sudo '"$@"'
+  stub_cmd journalctl ':'
+  run "$MODS/systemd/actions.sh" reload user:u1.service
+  [ "$status" -eq 0 ]
+  run "$MODS/systemd/actions.sh" daemon-reload user:u1.service user:u2.service system:s1.service
+  [ "$status" -eq 0 ]
+  run "$MODS/systemd/actions.sh" journal user:tick.timer
+  [ "$status" -eq 0 ]
+  run "$MODS/systemd/actions.sh" journal user:u1.service
+  run grep -v '^.*/sudo ' "$BATS_TEST_TMPDIR/calls"
+  run cut -d' ' -f2- <<< "$output"
+  [ "${lines[0]}" = "--user reload-or-restart -- u1.service" ]
+  [ "${lines[1]}" = "--system daemon-reload" ]
+  [ "${lines[2]}" = "--user daemon-reload" ]
+  [ "${lines[3]}" = "--user show -p Triggers --value -- tick.timer" ]
+  [ "${lines[4]}" = "--user -u tick.service -n 100 -f" ]
+  [ "${lines[5]}" = "--user -u u1.service -n 100 -f" ]
 }
 
 @test "systemd: failed mode collects failed units of both managers" {
@@ -241,7 +307,7 @@ stub_systemctl() {
   [[ "$(fzf_bind alt-R)" == "alt-R:execute($FZX _cb action restart {+1})+change-prompt("*")+reload($FZX _cb source)" ]]
   [ "$(fzf_bind ctrl-l)" = "ctrl-l:execute($FZX _cb action journal {+1})" ]
   read_fzf_args
-  [[ " ${FZF_ARGS[*]} " == *" --header=alt-s start  ctrl-x stop  alt-R restart  alt-e enable  alt-d disable  ctrl-l journal  ctrl-e edit "* ]]
+  [[ " ${FZF_ARGS[*]} " == *" --header=alt-s start  ctrl-x stop  alt-R restart  alt-L reload  alt-e enable  alt-d disable  ctrl-l journal  ctrl-e edit "* ]]
 }
 
 # ---- manifests

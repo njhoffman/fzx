@@ -82,9 +82,6 @@ Reviewed: 2026-10-28
       (errors only, all calls; foreground, ctrl-c returns), the process's open files (lsof -p; or ctrl-o into
       the network module once it exists), and term/kill through sudo for other users' processes (systemd's
       sudo pattern). Refs: widgets/system/fzf.top.zsh, fzf.lsof.zsh, fzf-rsc/modules/system/fztop.
-- [ ] **systemd: unit kinds and states** (p2) [feature]: inactive/disabled/static units (list-unit-files) as a
-      toggle, timers (next/last run) and sockets as modes, a reload action, sort by state or name. Refs:
-      widgets/system/fzf.systemd.zsh (toggles system/user/inactive), fzf-rsc/modules/system/fzsystemd (sysz).
 - [ ] **files: search and replace from grep mode** (p3) [feature]: preview and apply a replacement over the
       matches (fzfmenu files/sad).
 - [ ] **files: multiline grep** (p3) [feature]: a toggle in `files:grep` for multiline matching
@@ -177,7 +174,7 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [ ] **fonts** (p3) [module]: fc-list families with a sample preview. Has: fc-list.
 - [ ] **displays** (p3) [module]: xrandr outputs and modes. Has: xrandr.
 - [ ] **bluetooth** (p3) [module]: devices (connect, disconnect, pair). Has: bluetoothctl.
-- [ ] **cron** (p3) [module]: crontab entries and systemd timers with next run (or a timers mode of systemd).
+- [ ] **cron** (p3) [module]: crontab entries with their next run (systemd timers: the systemd module's timers mode).
       Has: crontab, systemctl.
 - [ ] **firewall** (p3) [module]: ufw rules. Has: ufw (needs sudo).
 - [ ] **ssh** (p3) [module]: hosts from ~/.ssh/config and known_hosts, connect or scp. Refs: vendors/widgets/
@@ -196,10 +193,6 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 
 ## 7. Known issues
 
-- [ ] **systemd lists loaded units only** (p2) [bug]: the source runs `list-units --all`, so a unit that is
-      installed but not loaded (disabled, never started: 23 user units here) is missing and cannot be
-      started or enabled from fzx. Merge `list-unit-files` (state from the file: disabled, static, masked).
-      Found by test/live.bats.
 - [ ] **Zellij popups untested** (p3) [test]: popups are only checked on tmux; zellij is not installed here.
 - [ ] **Undocumented fzf behaviour we depend on** (p3) [test]: `become()` inside a `--popup` runs in the original
       terminal, so every launch re-requests the popup (`fzx::_placement`). Observed on fzf 0.74 (devel);

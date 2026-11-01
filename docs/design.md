@@ -461,7 +461,7 @@ given only a `--language` (zsh commands, man pages, logs) go to bat.
 | `keybindings` | zsh (every keymap; zle descriptions from zshzle(1), user widgets from the comment above their function), tmux (the tmux module's keys), fzf (yours, then fzf's defaults) | | ctrl-y copy | bindkey / bind-key lines, fzf keys |
 | `logs` | files (newest first), units, docker | | alt-F follow (ctrl-c returns) | path, unit or container id |
 | `man` | commands (`FZX_MAN_SECTIONS`, 1 and 8), all, tldr (descriptions from tealdeer's pages); cached a day | | enter opens in the pager, alt-n nvim (`:Man`, a tldr page's markdown), ctrl-y copy | (enter opens) |
-| `systemd` | user, system, failed | | alt-s start, ctrl-x stop, alt-R restart, alt-e enable, alt-d disable, ctrl-l journal, ctrl-e edit | unit names |
+| `systemd` | user, system (loaded units and the enabled and disabled unit files not loaded; toggle files: static, masked, generated and alias ones too; templates left out), failed, timers (next and last run), sockets (addresses); sort name/state | | alt-s start, ctrl-x stop, alt-R restart, alt-L reload (reload-or-restart), alt-e enable, alt-d disable, ctrl-l journal (a timer's or socket's: the unit it activates), ctrl-e edit, alt-u files toggle; actions: daemon-reload | unit names |
 | `git` | status, log, branches, tags, stash, reflog, worktrees (switch in place); commit (hidden: a commit's files) | `[--all] [--rev REV] [DIR]` | verbs shared across modes (f1 shows the current mode's meaning): alt-s stage, alt-u unstage, alt-p add -p, ctrl-e edit, alt-c switch / check out detached / restore files as of a commit, alt-k cherry-pick / stash apply, alt-R revert, alt-B new branch there, alt-z stash files / pop, alt-i ignore, alt-m commit, alt-M amend (refused once pushed unless `FZX_GIT_DESTRUCTIVE=1`), alt-F fetch, ctrl-y copy; with `FZX_GIT_DESTRUCTIVE=1` only, each confirmed: alt-x drop (discard changes / delete untracked, local branches, stashes), alt-U fixup, alt-Q squash, alt-W reword, alt-E rebase -i; ctrl-o: branch or tag to its log, commit/reflog/stash entry to its files, worktree to its status; alt-v diff/blame preview; diffs through delta when installed | paths, hashes, ref names, tag names, stash names, work tree paths |
 | `dirs` | all (fd over ~, the default), bookmarks (`FZX_DIRS_BOOKMARKS`, when configured) | `[WORDS...]`: the fzf query (all) or a bookmark filter, where a single match is printed without the picker | ctrl-o browse in files | the directory |
 | `recent` | files: nvim (telescope-frecency's `file_frecency.sqlite3`, scored by its count and recency weights), fasd; directories: zlua (z.lua, `FZX_RECENT_ZLUA`), dirs (zoxide), fasd-dirs, visited (fasd by last visit); whichever are installed | `[WORDS...]`: files, each in order in the path, ignoring case; directories, the tracker's keywords; with words a single match is printed (`--select-1 --exit-0`) | ctrl-e edit, ctrl-x forget (fasd, zoxide, z.lua), ctrl-o browse in files | paths |
@@ -545,7 +545,10 @@ todo-status does. `--paste PANE` hands the paste to the tmux server 0.3s after f
 in tmux 3.9 a popup is a pane of its own, and the target's shell or /todo-pop's hook may not be ready yet.
 /todo-pop, the `todo.pop` alias and tmux Alt-i open `fzx -m todos`, with todo-fzf kept as the fallback.
 `systemd` runs actions on system units through sudo when not root, bound with `execute` so sudo can
-prompt; list parsing forces `SYSTEMD_COLORS=0` because users commonly export it.
+prompt; list parsing forces `SYSTEMD_COLORS=0` because users commonly export it. `list-units` only knows
+loaded units, so the user and system lists merge `list-unit-files`: a unit file that is not loaded gets a
+dim row with its file state (and no description, which only a loaded unit has). Timers and sockets come
+from `list-timers`/`list-sockets -o json` (flat objects, read with awk), both managers in one list.
 
 ## Debugging
 

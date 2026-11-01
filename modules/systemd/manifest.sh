@@ -5,6 +5,8 @@ systemd::manifest() {
   fzx::entry systemd "User services"
   fzx::entry systemd:system "System services"
   fzx::entry systemd:failed "Failed services (user and system)"
+  fzx::entry systemd:timers "Timers (user and system)"
+  fzx::entry systemd:sockets "Sockets (user and system)"
 }
 
 # only on systemd hosts; the failed entry only when something has failed
@@ -18,7 +20,21 @@ systemd::applicable() {
 systemd::summary() {
   local manager=user n f
   [[ "$1" == systemd:system ]] && manager=system
-  [[ "$1" == systemd:failed ]] && return 0 # the entry only shows when something failed
+  case "$1" in
+    systemd:failed) return 0 ;; # the entry only shows when something failed
+    systemd:timers)
+      n="$(SYSTEMD_COLORS=0 systemctl --system list-timers --no-legend --plain --no-pager | wc -l)"
+      f="$(SYSTEMD_COLORS=0 systemctl --user list-timers --no-legend --plain --no-pager | wc -l)"
+      printf '%s system, %s user\n' "${n// /}" "${f// /}"
+      return 0
+      ;;
+    systemd:sockets)
+      n="$(SYSTEMD_COLORS=0 systemctl --system list-sockets --no-legend --plain --no-pager | wc -l)"
+      f="$(SYSTEMD_COLORS=0 systemctl --user list-sockets --no-legend --plain --no-pager | wc -l)"
+      printf '%s system, %s user\n' "${n// /}" "${f// /}"
+      return 0
+      ;;
+  esac
   n="$(SYSTEMD_COLORS=0 systemctl "--$manager" list-units --type=service --state=running --no-legend --plain --no-pager | wc -l)"
   f="$(SYSTEMD_COLORS=0 systemctl "--$manager" list-units --type=service --state=failed --no-legend --plain --no-pager | wc -l)"
   printf '%s running, %s failed\n' "${n// /}" "${f// /}"

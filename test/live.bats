@@ -133,11 +133,12 @@ live_unit() {
 ssrc() { FZX_MODE="$1" "$SYSTEMD/source.sh" | plain; }
 sact() { "$SYSTEMD/actions.sh" "$@"; }
 
-# a unit that is installed but not loaded is not listed (list-units only; TODO.md "systemd lists loaded
-# units only"), so this one is started before it is looked for
-@test "systemd user unit: start, listed running, restart, stop, enable, disable" {
+@test "systemd user unit: listed before it is loaded, start, listed running, restart, stop, enable, disable" {
   live_unit
   local id="user:$LIVE.service"
+  run ssrc user
+  [ "$status" -eq 0 ]
+  [[ "$(grep -F "$id"$'\t'"$LIVE.service" <<< "$output")" == *disabled* ]]
   run sact start "$id"
   [ "$status" -eq 0 ]
   [ "$(systemctl --user is-active "$LIVE.service")" = active ]
