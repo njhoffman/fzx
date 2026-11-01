@@ -6,6 +6,13 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.44.0] - 2026-11-01
+
+### Added
+
+- zsh: `fzx-menu-popup-widget` opens the menu in a tmux or Zellij popup (inline elsewhere) and inserts what it
+  returns, like the menu widget. Unbound by default; bind it with `FZX_ZSH_KEYS[menu-popup]`.
+
 ## [0.43.1] - 2026-11-01
 
 ### Added

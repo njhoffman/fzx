@@ -18,6 +18,7 @@ typeset -gA FZX_ZSH_KEYS
 : ${FZX_ZSH_KEYS[git]=$'\eg'}   # insert paths, a hash or a branch from the git module
 : ${FZX_ZSH_KEYS[ps]=$'\ep'}    # insert pids
 : ${FZX_ZSH_KEYS[menu]=$'\em'}  # open the menu, insert what it returns
+: ${FZX_ZSH_KEYS[menu-popup]=}  # the same in a tmux or Zellij popup (inline elsewhere); unbound by default
 : ${FZX_ZSH_KEYS[history]='^R'}  # histdb history: replace the line (alt-enter runs it)
 : ${FZX_ZSH_KEYS[repos]=$'\er'} # cd into a git repository (repos module)
 : ${FZX_ZSH_KEYS[shell]=$'\es'} # insert a command, alias, function or parameter name (shell module)
@@ -88,6 +89,8 @@ fzx-files-widget() { fzx-insert -m files; }
 fzx-git-widget() { fzx-insert -m git; }
 fzx-ps-widget() { fzx-insert -m ps; }
 fzx-menu-widget() { fzx-insert; }
+# fzf's --popup hands the selection back to the fzf in this terminal, so insert works as inline
+fzx-menu-popup-widget() { fzx-insert --popup; }
 
 # fzx-history-widget: the history module in the scope of the shell's history navigation
 # (SHELL_HISTORY_SCOPE: directory, session, else this host), seeded with what is typed. The chosen command
@@ -244,12 +247,12 @@ fi
 
 () {
   local name
-  for name in files dirs jump git ps menu history repos shell; do
+  for name in files dirs jump git ps menu menu-popup history repos shell; do
     zle -N "fzx-$name-widget"
   done
   [[ "${FZX_ZSH_NO_BIND:-0}" == 1 ]] && return
   local map
-  for name in files dirs jump git ps menu history repos shell; do
+  for name in files dirs jump git ps menu menu-popup history repos shell; do
     [[ -n "${FZX_ZSH_KEYS[$name]}" ]] || continue
     for map in emacs viins vicmd; do
       bindkey -M "$map" "${FZX_ZSH_KEYS[$name]}" "fzx-$name-widget"

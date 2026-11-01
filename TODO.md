@@ -16,13 +16,6 @@ Reviewed: 2026-10-28
 
 ## 1. Next up
 
-- [ ] **Widget keys that fit** (p1) [chore]: the alt-f/d/j/g/p/m defaults took over the user's alt-f
-      (edit-command-line), alt-d (_close-shell) and alt-g (Telescope projects) in ~/.shell/zsh/keymaps.zsh, so
-      the postloader sets FZX_ZSH_NO_BIND=1 (widgets defined, unbound): the widgets go unused. Pick free keys
-      (`fzx -m keybindings` shows the zsh side, `fzx keys` fzf's) and set FZX_ZSH_KEYS, or bind by hand.
-      Wanted: ctrl-space opens fzx (the menu), ctrl-g opens it in a tmux popup. Check both against
-      ~/.shell/zsh/keymaps.zsh first (ctrl-space is often autosuggest-accept or set-mark; ctrl-g is send-break).
-      0.37.0 adds fzx-shell-widget (default alt-s, free in viins and vicmd; emacs's spell-word otherwise).
 - [ ] **Menu ordering by use** (p1) [feature]: the menu lists about 70 entries in module order. Sort by
       `stats.tsv` (recent and frequent first), with a "recent" group on top, and consider group headers
       (shell, system, development) for the rest.
@@ -208,7 +201,8 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 ## 7. Known issues
 
 - [ ] **Untested against the real thing** (p2) [test]: docker (stubbed only), systemd start/stop/enable (stubbed
-      systemctl and sudo), Zellij popups (tmux only).
+      systemctl and sudo).
+- [ ] **Zellij popups untested** (p3) [test]: popups are only checked on tmux; zellij is not installed here.
 - [ ] **Undocumented fzf behaviour we depend on** (p3) [test]: `become()` inside a `--popup` runs in the original
       terminal, so every launch re-requests the popup (`fzx::_placement`). Observed on fzf 0.74 (devel);
       re-check on every fzf upgrade with the popup test in design.md's popout notes.

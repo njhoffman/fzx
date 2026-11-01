@@ -56,7 +56,18 @@ zsh_run() {
   [ "${lines[2]}" = '"^[d" fzx-dirs-widget' ]
   run zsh -f -i -c "FZX_ZSH_NO_BIND=1 source '$ZSH_INT'; bindkey -M viins '^[f'; zle -l | grep -c '^fzx-'" 2> /dev/null
   [[ "${lines[0]}" != *fzx-files-widget* ]]
-  [ "${lines[1]}" = 9 ]
+  [ "${lines[1]}" = 10 ]
+}
+
+@test "menu-popup: unbound by default, bound when given a key; runs fzx --popup" {
+  run zsh_run 'bindkey -M viins "^G"; zle -l | grep -c "^fzx-menu-popup-widget"'
+  [[ "${lines[0]}" != *fzx-menu-popup-widget* ]]
+  [ "${lines[1]}" = 1 ]
+  run zsh -f -i -c "typeset -A FZX_ZSH_KEYS; FZX_ZSH_KEYS[menu-popup]='^G'; source '$ZSH_INT'; for m in viins vicmd emacs; do bindkey -M \$m '^G'; done" 2> /dev/null
+  [ "${lines[0]}" = '"^G" fzx-menu-popup-widget' ]
+  [ "${lines[2]}" = '"^G" fzx-menu-popup-widget' ]
+  run zsh_run 'fzx-insert() { print -r -- "args: $*"; }; fzx-menu-popup-widget'
+  [ "$output" = "args: --popup" ]
 }
 
 @test "fzf with no options at a terminal opens the files module; anything else is the real fzf" {
