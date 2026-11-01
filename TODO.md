@@ -30,10 +30,6 @@ Reviewed: 2026-10-28
 - [ ] **Preview layouts for the rest** (p2) [feature]: `FZX_PREVIEW_LAYOUTS` tuned to each module's content
       (design.md, "New-module checklist") for colors, dirs, docker, git, keybindings, logs, man, network, ps,
       recent, shell, systemd, tasks, tmux and youtube; check each live at 80, 120 and 200 columns.
-- [ ] **history: multi-line commands as multi-line rows** (p3) [feature]: draw a command that spans lines over
-      several rows (fzf --read0 with --highlight-line and a wrap sign, as fzf's own ctrl-r does) instead of
-      joining them with ↵ (1,696 such commands here). Needs --read0 support in lib/: the source contract,
-      caches, line counts and the `cut -f` users all assume one row per line.
 - [ ] **Popup geometry per module** (p2) [feature]: popup size and position from the module's content and
       purpose, measured against the whole tmux window (`#{window_width}`/`#{window_height}`), not the
       calling pane, since the popup covers split panes. Per-module settings like the preview layouts.

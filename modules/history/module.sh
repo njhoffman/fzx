@@ -19,6 +19,9 @@ history::opts() {
     --preview "$(fzx::cb preview '{1}')"
     "--preview-window=down,40%,wrap,nohidden"
   )
+  # a command over several lines is an item over several lines (lib: --read0, items counted by NUL)
+  # shellcheck disable=SC2034  # read by lib/opts.sh
+  [[ "${FZX_HISTORY_MULTILINE:-1}" == 1 ]] && FZX_READ0=1
   # module args are the starting query (the zsh widget passes what is typed on the command line)
   ((${#FZX_ARGS[@]})) && FZX_OPTS+=("--query=${FZX_ARGS[*]}")
   return 0

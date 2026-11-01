@@ -156,10 +156,21 @@ fzx::_cb_load() {
   fzx::_cb_source miss
 }
 
-# line count of a file for stats; skipped (and not forked) when stats are off
+# fzx::_cb_count: count the items on stdin: lines, or NULs for a module with FZX_READ0 (meta/read0)
+fzx::_cb_count() {
+  local _r=0
+  fzx::meta_get read0 _r 2> /dev/null || _r=0
+  if [[ "$_r" == 1 ]]; then
+    tr -cd '\0' | wc -c
+  else
+    wc -l
+  fi
+}
+
+# item count of a file for stats; skipped (and not forked) when stats are off
 fzx::_cb_lines() {
   local n=-
-  [[ "${FZX_STATS:-1}" == 1 ]] && n="$(wc -l < "$1")" && n="${n// /}"
+  [[ "${FZX_STATS:-1}" == 1 ]] && n="$(fzx::_cb_count < "$1")" && n="${n// /}"
   printf '%s' "$n"
 }
 
@@ -202,7 +213,7 @@ fzx::_cb_source() {
   if [[ "$persist" == none ]]; then
     # output streams straight to fzf (fd 3); tee hands a copy to wc for the stats row's line count
     local count="$FZX_SESSION_DIR/count.$BASHPID"
-    { "$FZX_MODULE::source" "${FZX_ARGS[@]}" 2>> "$FZX_LOG_FILE" | tee /dev/fd/3 | wc -l > "$count"; } 3>&1
+    { "$FZX_MODULE::source" "${FZX_ARGS[@]}" 2>> "$FZX_LOG_FILE" | tee /dev/fd/3 | fzx::_cb_count > "$count"; } 3>&1
     rc="${PIPESTATUS[0]}"
     lines=-
     [[ -s "$count" ]] && read -r lines < "$count"
@@ -224,7 +235,7 @@ fzx::_cb_source() {
     return "$rc"
   fi
   mv -f -- "$tmp" "$data"
-  lines="$(wc -l < "$data")"
+  lines="$(fzx::_cb_count < "$data")"
   fzx::log info "source: mode=$FZX_MODE ${lines// /} lines"
   _FZX_STAT=(source "${lines// /}" "$why")
 

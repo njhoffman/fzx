@@ -72,9 +72,9 @@ history::argv() {
 }
 
 # the raw row's columns: history id, command id, start, runs, exit status, duration, host, command (its
-# newlines and tabs flattened)
+# newlines as \x1e, which history::format draws as lines or as ↵; tabs as spaces)
 HISTORY_RAW_COLS="ifnull(history.exit_status, 0), ifnull(history.duration, ''), ifnull(places.host, ''),
-  replace(replace(commands.argv, char(10), ' ↵ '), char(9), ' ')"
+  replace(replace(commands.argv, char(10), char(30)), char(9), ' ')"
 
 # history::raw <where> <order: recent|frequent|frecent> [extra condition]: one raw row per command, its
 # latest run's columns (sqlite takes bare columns from the row holding max())
@@ -121,7 +121,10 @@ history::raw_cached() {
   dir="$(history::cache_dir)"
   key="$mode"
   [[ "$mode" == host ]] && key="host-$(history::host)"
+  # v2: the newline marker; v1 rows held " ↵ ", and are removed rather than read
   key="${key//[^A-Za-z0-9._-]/_}"
+  rm -f -- "$dir/$key.rows" "$dir/$key.last" 2> /dev/null || :
+  key+=.v2
   rows="$dir/$key.rows" last="$dir/$key.last"
   now_last="$(history::sql 'select ifnull(max(id), 0) from history')" || return
   [[ -s "$rows" && -s "$last" ]] && read -r cached < "$last"
@@ -176,7 +179,8 @@ history::format() {
   # shellcheck disable=SC2016  # the program looks for "$" in commands
   "$awk" -F'\x1f' -v now="$(date +%s)" -v sort="${FZX_SORT:-recent}" -v toggles=" ${FZX_TOGGLES:-} " \
     -v failed="$failed" -v interrupted="$interrupted" -v intr="$(history::interrupted_sql)" \
-    -v ic="${FZX_COLORS[history_interrupted]:-38;5;179}" -v hosts="$hosts" -v me="$(history::host)" -v nocolor="${NO_COLOR+x}" \
+    -v ic="${FZX_COLORS[history_interrupted]:-38;5;179}" -v hosts="$hosts" \
+    -v ml="${FZX_HISTORY_MULTILINE:-1}" -v maxl="${FZX_HISTORY_MAX_LINES:-4}" -v me="$(history::host)" -v nocolor="${NO_COLOR+x}" \
     -v dim="${FZX_COLORS[dim]:-38;5;244}" -v red="${FZX_COLORS[history_failed]:-38;5;203}" \
     -v hl="${FZX_COLORS[sorted]:-4}" '
     function esc(code) { return nocolor != "" ? "" : "\033[" code "m" }
@@ -234,6 +238,9 @@ history::format() {
       split("110 151 180 216 146 174 109 186", pal, " ")
       nh = split(hosts, hl_, " "); hw = 0
       for (i = 1; i <= nh; i++) { hostc[hl_[i]] = hl_[i] == me ? dim : "38;5;" pal[(i - 1) % 8 + 1]; if (length(hl_[i]) > hw) hw = length(hl_[i]) }
+      # the columns before the command, and the tab (--tabstop=1): continuation lines start under it
+      pad = sprintf("%*s", 4 + 1 + 5 + 1 + (failed == "" ? 0 : 2) + 4 + 1 + (hw ? hw + 1 : 0) + 1, "")
+      if (maxl < 1) maxl = 1
     }
     {
       st = $5 + 0
@@ -249,8 +256,18 @@ history::format() {
       line = line " " (failed == "" ? "" : (bad ? c(red, failed) " " : cut ? c(ic, interrupted) " " : "  "))
       line = line sprintf("%*s", 4 - length(d), "") c(durcolor($6 + 0), d) " "
       if (hw) line = line c(($7 in hostc) ? hostc[$7] : dim, $7) sprintf("%*s", hw - length($7), "") " "
-      # the command in a field of its own: the only one searched (--nth)
-      printf "%s\t%s\t%s\n", $1, line, (bad ? c(red, $8) : command($8))
+      # the command in a field of its own: the only one searched (--nth); a command over several lines
+      # is an item over several lines (NUL-terminated, --read0), the lines under the first, up to maxl
+      # of them; with multi-line off they are joined by ↵
+      if (!ml) {
+        cmd = $8; gsub(/\036/, " ↵ ", cmd)
+        printf "%s\t%s\t%s\n", $1, line, (bad ? c(red, cmd) : command(cmd))
+        next
+      }
+      nl = split($8, cl, "\036"); out = ""
+      for (i = 1; i <= nl && i <= maxl; i++) out = out (i > 1 ? "\n" pad : "") (bad ? c(red, cl[i]) : command(cl[i]))
+      if (nl > maxl) out = out "\n" pad c(dim, "… +" (nl - maxl) " lines")
+      printf "%s\t%s\t%s%c", $1, line, out, 0
     }'
 }
 

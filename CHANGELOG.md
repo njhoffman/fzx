@@ -6,6 +6,20 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.50.0] - 2026-11-01
+
+### Added
+
+- history: a command over several lines is drawn over several lines, under the command column, instead of
+  joined by ↵: up to `FZX_HISTORY_MAX_LINES` (4) of them, then "… +N lines" (the preview has all of it).
+  `FZX_HISTORY_MULTILINE=0` joins them again.
+- `FZX_READ0=1` for modules whose items are NUL-terminated and may span lines: fzf reads them with
+  `--read0 --highlight-line` and the callbacks count items by NUL.
+
+### Changed
+
+- history's cache moves to `$FZX_CACHE_DIR/history/*.v2.rows`; the old files are removed on the first run.
+
 ## [0.49.2] - 2026-11-01
 
 ### Fixed

@@ -8,7 +8,8 @@ HIST="$(readlink -f "$BATS_TEST_DIRNAME/../modules/history")"
 setup() {
   command -v sqlite3 > /dev/null || skip "sqlite3 not installed"
   setup_fzx
-  export FZX_HISTDB_FILE="$BATS_TEST_TMPDIR/hist.db" HOST=here
+  # one line per row unless a test says otherwise (multi-line rows have their own test)
+  export FZX_HISTDB_FILE="$BATS_TEST_TMPDIR/hist.db" HOST=here FZX_HISTORY_MULTILINE=0
   W="$BATS_TEST_TMPDIR/work"
   mkdir -p "$W/a_b/sub" "$W/aXb"
   ln -s "$W/a_b" "$BATS_TEST_TMPDIR/link"
@@ -130,8 +131,8 @@ src() { FZX_MODE="$1" "$HIST/source.sh" | plain; }
 @test "host and global are cached: the runs added since lead, a command run again moves up, delete drops the cache" {
   run src global
   [ "${#lines[@]}" -eq 5 ]
-  [ -s "$FZX_CACHE_DIR/history/global.rows" ]
-  [ "$(cat "$FZX_CACHE_DIR/history/global.last")" = 6 ]
+  [ -s "$FZX_CACHE_DIR/history/global.v2.rows" ]
+  [ "$(cat "$FZX_CACHE_DIR/history/global.v2.last")" = 6 ]
   # nothing ran since: the same rows
   run src global
   [ "${#lines[@]}" -eq 5 ]
@@ -141,7 +142,7 @@ src() { FZX_MODE="$1" "$HIST/source.sh" | plain; }
   [ "${#lines[@]}" -eq 5 ]
   [[ "${lines[0]}" == 7$'\t'*' 2x '*$'\tls -la' ]]
   [ "$(grep -c 'ls -la' <<< "$output")" -eq 1 ]
-  [ "$(cat "$FZX_CACHE_DIR/history/global.last")" = 7 ]
+  [ "$(cat "$FZX_CACHE_DIR/history/global.v2.last")" = 7 ]
   # what the cache holds is what a fresh read gives
   # (ids and commands: the ages move on)
   local cached
@@ -150,19 +151,28 @@ src() { FZX_MODE="$1" "$HIST/source.sh" | plain; }
   run src global
   [ "$(cut -f1,3 <<< "$output")" = "$cached" ]
   # a database with fewer runs than the cache knows (replaced) is read whole
-  printf '99\n' > "$FZX_CACHE_DIR/history/global.last"
+  printf '99\n' > "$FZX_CACHE_DIR/history/global.v2.last"
   run src global
   [ "$(cut -f1,3 <<< "$output")" = "$cached" ]
   # deleting forgets the cached rows too
   "$HIST/actions.sh" delete 7
-  [ ! -e "$FZX_CACHE_DIR/history/global.rows" ]
+  [ ! -e "$FZX_CACHE_DIR/history/global.v2.rows" ]
   run src global
   [[ "$output" != *'ls -la'* ]]
 }
 
+@test "the old (v1) cache files are removed, not read" {
+  mkdir -p "$FZX_CACHE_DIR/history"
+  printf 'junk\n' > "$FZX_CACHE_DIR/history/global.rows"
+  printf '1\n' > "$FZX_CACHE_DIR/history/global.last"
+  run src global
+  [ "${#lines[@]}" -eq 5 ]
+  [ ! -e "$FZX_CACHE_DIR/history/global.rows" ] && [ ! -e "$FZX_CACHE_DIR/history/global.last" ]
+}
+
 @test "a cache written while fzf stops reading is complete" {
   FZX_MODE=global "$HIST/source.sh" | head -1 > /dev/null
-  [ "$(wc -l < "$FZX_CACHE_DIR/history/global.rows")" -eq 5 ]
+  [ "$(wc -l < "$FZX_CACHE_DIR/history/global.v2.rows")" -eq 5 ]
 }
 
 @test "preview: the command, the latest run, its success rate, median, recent runs and where it ran" {
@@ -218,6 +228,7 @@ src() { FZX_MODE="$1" "$HIST/source.sh" | plain; }
   [[ " ${FZF_ARGS[*]} " == *" --query=git st "* && " ${FZF_ARGS[*]} " == *" --scheme=history "* ]]
   # only the command is searched
   [[ " ${FZF_ARGS[*]} " == *" --with-nth=2.. --nth=2 --tabstop=1 "* ]]
+  [[ " ${FZF_ARGS[*]} " != *" --read0 "* ]]
   [[ "$(fzf_bind alt-enter)" == *'_cb action run'* ]]
   [[ "$(fzf_bind alt-c)" == "alt-c:become($FZX _cb action cd {+1})" ]]
   [[ "$(fzf_bind ctrl-y)" == *'_cb notify copy'* ]]
@@ -275,4 +286,50 @@ ZSH
   run bash -c "'$HIST/preview.sh' 10 | sed 's/\x1b\[[0-9;]*m//g'"
   [[ "$output" == *'status     130 interrupted'* ]]
   [[ "$output" == *'runs       4   1 failed   2 interrupted   50% ok'* ]]
+}
+
+@test "multi-line: a command over several lines is one NUL-terminated item, its lines under the command column" {
+  sqlite3 "$FZX_HISTDB_FILE" "insert into commands (argv) values ('l1
+l2
+l3
+l4
+l5
+l6');
+    insert into history (session, command_id, place_id, exit_status, start_time, duration) values (2, 6, 1, 0, $(date +%s), 0)"
+  FZX_HISTORY_MULTILINE=1 FZX_MODE=host "$HIST/source.sh" > "$BATS_TEST_TMPDIR/out"
+  [ "$(tr -cd '\0' < "$BATS_TEST_TMPDIR/out" | wc -c)" -eq 5 ]
+  local items=()
+  mapfile -d '' items < "$BATS_TEST_TMPDIR/out"
+  local first plain_first pad
+  first="$(plain <<< "${items[0]}")"
+  # four lines, then the rest counted; each continuation line padded to the command column
+  [ "$(wc -l <<< "$first")" -eq 5 ]
+  plain_first="$(head -1 <<< "$first")"
+  pad="${plain_first#*$'\t'}"
+  pad="${pad%%$'\t'*}"
+  [[ "$plain_first" == 7$'\t'*$'\tl1' ]]
+  [ "$(sed -n 2p <<< "$first")" = "$(printf '%*s' $((${#pad} + 1)) '')l2" ]
+  [ "$(sed -n 5p <<< "$first")" = "$(printf '%*s' $((${#pad} + 1)) '')… +2 lines" ]
+  # the two-line echo: both lines
+  [[ "$(plain <<< "${items[3]}")" == *$'\techo one\n'*'echo two' ]]
+  FZX_HISTORY_MULTILINE=1 FZX_HISTORY_MAX_LINES=6 FZX_MODE=host "$HIST/source.sh" | head -c 2000 | tr '\0' '\n' > "$BATS_TEST_TMPDIR/out6"
+  grep -q 'l6' "$BATS_TEST_TMPDIR/out6"
+  ! grep -q 'more\|+0 lines' "$BATS_TEST_TMPDIR/out6"
+}
+
+@test "multi-line: fzf reads NUL-terminated items, and the callbacks count them by NUL" {
+  stub_fzf
+  FZX_HISTORY_MULTILINE=1 run "$FZX" -m history
+  [ "$status" -eq 0 ]
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *" --read0 --highlight-line "* ]]
+  FZX_HISTORY_MULTILINE=0 run "$FZX" -m history
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " != *" --read0 "* ]]
+  load_libs log session callback
+  fzx::session_create history "$HIST"
+  fzx::meta_set read0 1
+  [ "$(printf 'a\nb\0c\0' | fzx::_cb_count | tr -d ' ')" = 2 ]
+  fzx::meta_set read0 0
+  [ "$(printf 'a\nb\0c\0' | fzx::_cb_count | tr -d ' ')" = 1 ]
 }

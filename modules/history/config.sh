@@ -13,6 +13,11 @@ FZX_COLORS[history_icon]="38;5;151"
 # zsh-histdb's database
 FZX_HISTDB_FILE="${FZX_HISTDB_FILE:-${HISTDB_FILE:-$HOME/.histdb/zsh-history.db}}"
 
+# a command over several lines as an item over several lines (1), or joined by ↵ on one (0); at most
+# FZX_HISTORY_MAX_LINES of its lines, then "… +N lines" (the preview always has all of it)
+FZX_HISTORY_MULTILINE="${FZX_HISTORY_MULTILINE:-1}"
+FZX_HISTORY_MAX_LINES="${FZX_HISTORY_MAX_LINES:-4}"
+
 # the history changes with every command: always read it fresh
 FZX_PERSIST=none
 

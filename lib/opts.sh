@@ -350,6 +350,10 @@ fzx::opts_build() {
     "$module::opts" || return 1
     _FZX_BIND_SCOPE=fzx
   fi
+  # FZX_READ0=1 (a module's opts hook may set it): items end with NUL and may span lines; the callbacks
+  # count them by NUL (meta/read0)
+  [[ "${FZX_READ0:-0}" == 1 ]] && FZX_OPTS+=(--read0 --highlight-line)
+  fzx::in_session && fzx::meta_set read0 "${FZX_READ0:-0}"
   fzx::require actions
   fzx::actions_bind "$module"
   fzx::_component_place
