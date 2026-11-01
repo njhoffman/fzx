@@ -254,3 +254,25 @@ ZSH
   STUB_RC=10 run script -qec "zsh -f -i '$BATS_TEST_TMPDIR/widget.zsh'" /dev/null
   [[ "$output" == *'zle accept-line'* ]]
 }
+
+@test "interrupted runs (130, 141) are neither failed nor red; FZX_HISTORY_INTERRUPTED sets the codes" {
+  sqlite3 "$FZX_HISTDB_FILE" "insert into commands (argv) values ('fzf'), ('yes | head');
+    insert into history (session, command_id, place_id, exit_status, start_time, duration) values
+      (2, 6, 1, 0, $(($(date +%s) - 9)), 1), (2, 6, 1, 130, $(($(date +%s) - 8)), 2),
+      (2, 6, 1, 1, $(($(date +%s) - 7)), 2), (2, 6, 1, 130, $(($(date +%s) - 6)), 2),
+      (2, 7, 1, 141, $(($(date +%s) - 5)), 0)"
+  run bash -c "FZX_MODE=host FZX_ICONS=unicode '$HIST/source.sh'"
+  [[ "${lines[0]}" == 11$'\t'*$'\e[38;5;179m⊘\e[0m '*$'\t\e[1;38;5;255myes\e[0m '* ]]
+  [[ "${lines[1]}" == 10$'\t'*'4x'*$'⊘'*$'\t\e[1;38;5;255mfzf\e[0m' ]]
+  FZX_TOGGLES=failed run src host
+  [ "${#lines[@]}" -eq 1 ] && [[ "${lines[0]}" == *$'\tfalse' ]]
+  FZX_TOGGLES=succeeded run src host
+  [[ "$output" == *$'\tfzf'* && "$output" == *$'\tyes | head'* ]]
+  # with no codes, 130 is a failure like any other
+  FZX_HISTORY_INTERRUPTED='' FZX_TOGGLES=failed run src host
+  [ "${#lines[@]}" -eq 3 ]
+  # the preview: the status named, the interrupted runs counted apart and left out of the success rate
+  run bash -c "'$HIST/preview.sh' 10 | sed 's/\x1b\[[0-9;]*m//g'"
+  [[ "$output" == *'status     130 interrupted'* ]]
+  [[ "$output" == *'runs       4   1 failed   2 interrupted   50% ok'* ]]
+}

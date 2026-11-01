@@ -18,6 +18,13 @@ FZX_PERSIST=none
 
 # commands whose latest run failed
 FZX_COLORS[history_failed]='38;5;203'
+# and those that were interrupted rather than failed
+FZX_COLORS[history_interrupted]='38;5;179'
+
+# exit statuses that mean the run was interrupted, not that it failed: 130 is ctrl-c (and esc in fzf), 141 a
+# closed pipe (cmd | head). Interrupted runs are not red, the failed toggle leaves them out, the succeeded
+# toggle keeps them, and the preview's success rate does not count them.
+FZX_HISTORY_INTERRUPTED="${FZX_HISTORY_INTERRUPTED-130 141}"
 
 # the command is the whole point: wide list, the run details below it
 FZX_PREVIEW_LAYOUTS=("0:down,40%,border-top")

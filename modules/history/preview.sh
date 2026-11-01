@@ -9,29 +9,38 @@ source "$(dirname "${BASH_SOURCE[0]}")/../../lib/render.sh"
 
 # history::preview <history id>
 history::preview() {
-  local id="${1:-}" argv row when status secs dir host session runs failed first dirs
+  local id="${1:-}" argv row when status secs dir host session runs failed cut first dirs intr
   local D=$'\e[2m' R=$'\e[0m' RED=$'\e[31m' WHT=$'\e[38;5;255m' MAG=$'\e[35m' GRN=$'\e[32m'
+  local YEL=$'\e['"${FZX_COLORS[history_interrupted]:-38;5;179}m"
   [[ "$id" =~ ^[0-9]+$ ]] || return 0
+  intr="$(history::interrupted_sql)"
   argv="$(history::argv "$id" | tr -d '\0')"
   row="$(history::sql "
     select strftime('%Y-%m-%d %H:%M', h.start_time, 'unixepoch', 'localtime'), ifnull(h.exit_status, 'none'),
       ifnull(h.duration, ''), ifnull(places.dir, ''), ifnull(places.host, ''), h.session,
       (select count(*) from history where command_id = h.command_id),
-      (select count(*) from history where command_id = h.command_id and exit_status != 0),
+      (select count(*) from history where command_id = h.command_id and exit_status != 0
+        and exit_status not in ($intr)),
+      (select count(*) from history where command_id = h.command_id and exit_status in ($intr)),
       (select strftime('%Y-%m-%d', min(start_time), 'unixepoch', 'localtime') from history where command_id = h.command_id)
     from history h left join places on places.id = h.place_id where h.id = $id")"
-  IFS=$'\x1f' read -r when status secs dir host session runs failed first <<< "$row"
+  IFS=$'\x1f' read -r when status secs dir host session runs failed cut first <<< "$row"
 
   printf '%s\n' "$argv" | FZF_PREVIEW_COLUMNS="${FZF_PREVIEW_COLUMNS:-80}" fzx::render_text --language zsh --style plain --wrap
   printf '%s%s%s\n' "$D" "$(printf '%*s' "${FZF_PREVIEW_COLUMNS:-60}" '' | tr ' ' '-')" "$R"
 
   local status_icon=failed
   case "$status" in 0) status_icon=ok ;; none) status_icon=state ;; esac
-  case "$status" in
-    0) status="${GRN}0${R}" ;;
-    none) status="${MAG}unknown${R}" ;;
-    *) status="${RED}${status}${R}" ;;
-  esac
+  if [[ ",$intr," == *",$status,"* ]]; then
+    status_icon=interrupted
+    status="${YEL}${status} interrupted${R}"
+  else
+    case "$status" in
+      0) status="${GRN}0${R}" ;;
+      none) status="${MAG}unknown${R}" ;;
+      *) status="${RED}${status}${R}" ;;
+    esac
+  fi
   if [[ -z "$secs" ]]; then secs="${MAG}unknown${R}"
   elif ((secs > 300)); then secs="${RED}${secs}s${R}"
   elif ((secs > 60)); then secs="${WHT}${secs}s${R}"
@@ -53,7 +62,9 @@ history::preview() {
   printf '%s  %s   %ssession %s%s\n' "$l_host" "$host" "$D" "$session" "$R"
   printf '%s  %s' "$l_runs" "$runs"
   ((failed)) && printf '   %s%s failed%s' "$RED" "$failed" "$R"
-  ((runs > 1)) && printf '   %s%s%% ok%s' "$D" "$(((runs - failed) * 100 / runs))" "$R"
+  ((cut)) && printf '   %s%s interrupted%s' "$YEL" "$cut" "$R"
+  # the success rate leaves the interrupted runs out
+  ((runs > 1 && runs > cut)) && printf '   %s%s%% ok%s' "$D" "$(((runs - cut - failed) * 100 / (runs - cut)))" "$R"
   printf '   %ssince %s%s\n' "$D" "$first" "$R"
   local median
   median="$(history::sql "
@@ -78,10 +89,11 @@ history::preview() {
       from history h left join places on places.id = h.place_id
       where h.command_id = (select command_id from history where id = $id)
       order by h.start_time desc limit 8" |
-      awk -F'\x1f' -v home="$HOME" -v dim="$D" -v rst="$R" -v red="$RED" -v grn="$GRN" '
+      awk -F'\x1f' -v home="$HOME" -v dim="$D" -v rst="$R" -v red="$RED" -v grn="$GRN" -v yel="$YEL" -v intr="$intr" '
+        BEGIN { n = split(intr, t, ","); for (i = 1; i <= n; i++) cut[t[i]] = 1 }
         { d = $5; if (index(d, home) == 1) d = "~" substr(d, length(home) + 1)
           st = $2 == "" ? "?" : $2
-          printf "  %s%s%s  %s%3s%s %6s  %s%s%s  %s\n", dim, $1, rst, (st == "0" ? grn : red), st, rst,
+          printf "  %s%s%s  %s%3s%s %6s  %s%s%s  %s\n", dim, $1, rst, (st == "0" ? grn : (st in cut) ? yel : red), st, rst,
             ($3 == "" ? "" : $3 "s"), dim, $4, rst, d }'
   fi
 

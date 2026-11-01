@@ -4,7 +4,8 @@
 # (history::argv), since a command can span lines.
 # Mode from $FZX_MODE: session (FZX_HISTDB_SESSION, else this host's latest session), directory ($PWD and
 # below, logical and resolved), host (this machine), global (every host; each row names its host).
-# Toggles: failed (only commands whose latest run failed), succeeded (only those whose latest run did not),
+# Toggles: failed (only commands whose latest run failed), succeeded (only those whose latest run did not;
+# a run that exits with one of FZX_HISTORY_INTERRUPTED, 130 and 141, was interrupted: it is neither),
 # runs (one row per run instead of per command). Sort recent (default), frequent or frecent (runs weighted
 # by how recent they are; a run a day old counts half).
 # Rows: the age of the latest run, the run count, the failed icon, the latest run's duration, the host
@@ -153,18 +154,29 @@ history::raw_cached() {
   return 1
 }
 
+# history::interrupted_sql: FZX_HISTORY_INTERRUPTED as an SQL list ("130,141"; "-1" for none)
+history::interrupted_sql() {
+  local c out=""
+  for c in ${FZX_HISTORY_INTERRUPTED-130 141}; do
+    [[ "$c" =~ ^[0-9]+$ ]] && out+="${out:+,}$c"
+  done
+  printf '%s' "${out:--1}"
+}
+
 # history::format <mode>: raw rows -> "id<TAB>display" rows, filtered by the failed and succeeded toggles
 history::format() {
-  local failed hosts=""
+  local failed interrupted hosts=""
   fzx::require icons
   fzx::icon failed failed
+  fzx::icon interrupted interrupted
   [[ "$1" == global ]] && hosts="$(history::sql 'select distinct host from places order by host' | tr '\n' ' ')"
   # mawk formats about twice as fast; the rows only measure ASCII (ages, counts, hosts)
   local awk=awk
   command -v mawk > /dev/null && awk=mawk
   # shellcheck disable=SC2016  # the program looks for "$" in commands
   "$awk" -F'\x1f' -v now="$(date +%s)" -v sort="${FZX_SORT:-recent}" -v toggles=" ${FZX_TOGGLES:-} " \
-    -v failed="$failed" -v hosts="$hosts" -v me="$(history::host)" -v nocolor="${NO_COLOR+x}" \
+    -v failed="$failed" -v interrupted="$interrupted" -v intr="$(history::interrupted_sql)" \
+    -v ic="${FZX_COLORS[history_interrupted]:-38;5;179}" -v hosts="$hosts" -v me="$(history::host)" -v nocolor="${NO_COLOR+x}" \
     -v dim="${FZX_COLORS[dim]:-38;5;244}" -v red="${FZX_COLORS[history_failed]:-38;5;203}" \
     -v hl="${FZX_COLORS[sorted]:-4}" '
     function esc(code) { return nocolor != "" ? "" : "\033[" code "m" }
@@ -218,24 +230,27 @@ history::format() {
       split("| || && ; |& &", t, " "); for (i in t) ops[t[i]] = 1
       split("> >> < << >& &> 2> 2>> 1> 2>&1", t, " "); for (i in t) redir[t[i]] = 1
       split("sudo env time nohup exec command builtin noglob nice xargs watch do then else elif while until if ! { (", t, " "); for (i in t) prefix[t[i]] = 1
+      split(intr, t, ","); for (i in t) stopped[t[i]] = 1
       split("110 151 180 216 146 174 109 186", pal, " ")
       nh = split(hosts, hl_, " "); hw = 0
       for (i = 1; i <= nh; i++) { hostc[hl_[i]] = hl_[i] == me ? dim : "38;5;" pal[(i - 1) % 8 + 1]; if (length(hl_[i]) > hw) hw = length(hl_[i]) }
     }
     {
       st = $5 + 0
-      if (only_failed && st == 0) next
-      if (only_ok && st != 0) next
+      # bad: the run failed; cut: it was interrupted (neither red nor failed)
+      cut = st != 0 && (st "") in stopped; bad = st != 0 && !cut
+      if (only_failed && !bad) next
+      if (only_ok && bad) next
       age = now - $3; if (age < 0) age = 0
       a = span(age); n = $4 > 1 ? $4 "x" : ""
       d = ($6 != "" && $6 >= 1) ? span($6) : ""
       line = sprintf("%*s", 4 - length(a), "") (sort == "recent" ? c(agecolor(age) ";" hl, a) : c(agecolor(age), a))
       line = line " " sprintf("%*s", 5 - length(n), "") (sort == "frequent" && n != "" ? c(dim ";" hl, n) : c(dim, n))
-      line = line " " (failed == "" ? "" : (st != 0 ? c(red, failed) " " : "  "))
+      line = line " " (failed == "" ? "" : (bad ? c(red, failed) " " : cut ? c(ic, interrupted) " " : "  "))
       line = line sprintf("%*s", 4 - length(d), "") c(durcolor($6 + 0), d) " "
       if (hw) line = line c(($7 in hostc) ? hostc[$7] : dim, $7) sprintf("%*s", hw - length($7), "") " "
       # the command in a field of its own: the only one searched (--nth)
-      printf "%s\t%s\t%s\n", $1, line, (st != 0 ? c(red, $8) : command($8))
+      printf "%s\t%s\t%s\n", $1, line, (bad ? c(red, $8) : command($8))
     }'
 }
 

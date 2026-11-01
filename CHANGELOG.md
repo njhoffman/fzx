@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.49.2] - 2026-11-01
+
+### Fixed
+
+- history: a run that exited 130 (ctrl-c, or esc in fzf and fzx) or 141 (a closed pipe) is interrupted, not
+  failed: it gets an icon of its own instead of red, the failed toggle leaves it out, and the preview counts
+  it apart and leaves it out of the success rate. `FZX_HISTORY_INTERRUPTED` sets the codes.
+
 ## [0.49.1] - 2026-11-01
 
 ### Changed
