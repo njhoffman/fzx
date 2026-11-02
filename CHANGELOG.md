@@ -6,6 +6,24 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.60.0] - 2026-11-02
+
+### Added
+
+- tasks: `--paste PANE` makes enter paste the task's command line into a tmux pane without submitting it
+  (`cd DIR && CMD` for another repository's task; several tasks joined with `&&`), and alt-x runs it in
+  place. The tmux config binds alt-t to the tasks module in a popup with it.
+- tasks: the preview highlights the definition in its file's language (package.json as JSON, Makefile,
+  Taskfile YAML, cargo and pyproject TOML; just recipes as bash) and the command line as bash.
+- The actions menu (ctrl-\) is drawn in color: an icon for how each action runs (in the terminal, in the
+  background, in fzf's place, asking first) with a reload mark, names in bold and fzx's own built-ins
+  dimmer, keys as keycaps, ⏎ on the default action; the preview colors the key, the flags and the
+  arguments. Colors in `FZX_COLORS[actions_*]`, icons in lib/icons.sh (`action_*`).
+
+### Changed
+
+- A module whose opts hook binds enter itself keeps it: its default action no longer takes enter over.
+
 ## [0.59.0] - 2026-11-02
 
 ### Added

@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.58.0): the six steps of `docs/design.md` are done. Modules: actions, audio, capture, colors, dirs,
+Status (0.60.0): the six steps of `docs/design.md` are done. Modules: actions, audio, capture, colors, dirs,
 docker, files, git, github, glyphs, history, keybindings, logs, man, menu, network, ps, recent, repos, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
@@ -176,6 +176,13 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       markdown and every filetype `nvcat-dispatch` claims (any *.conf, systemd units, ...); files over
       FZX_PREVIEW_NVCAT_MAX_LINES already go to bat. Cache its output under $FZX_CACHE_DIR keyed by path,
       mtime and width (lib/render.sh, fzx::_render_nvcat), or keep one Neovim running.
+- [ ] **Actions menu marks run as default under `tasks --paste`** (p3) [bug]: with `--paste` enter pastes
+      (the module binds it, lib/actions.sh skips the default's enter), but the actions menu still draws ⏎ on
+      `run` since it reads the flags from `meta/components`. Record the override in the session (a meta key)
+      and drop the mark (modules/actions/source.sh).
+- [ ] **tasks: multi-line just docs show their last line** (p3) [bug]: `just --dump` keeps only the comment
+      line right above a recipe, so a two-line comment shows its tail (`lint`: "idioms trip most checks)").
+      Read the comment block from the justfile instead (modules/tasks/source.sh, tasks::scan).
 - [ ] **No README** (p3) [docs]: the repo has CLAUDE.md, PLAN.md and docs/, but nothing a new reader lands on:
       what fzx is, install (`just install`, sourcing shell/fzx.zsh), the module list, where docs live.
 - [ ] **PLAN.md is the original brief** (p3) [docs]: the 106-line prompt that started the project, now covered by

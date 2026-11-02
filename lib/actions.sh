@@ -9,7 +9,8 @@
 #   reload      reload the list afterwards (the source runs again)
 #   restart     restart the interface afterwards with fresh data (header and options are rebuilt)
 #   confirm     ask on the terminal first (so it runs in the foreground)
-#   default     bound to enter as well; without one, enter prints the selection
+#   default     bound to enter as well (unless the module's opts hook binds enter itself); without one,
+#               enter prints the selection
 #   builtin     one of fzx's own (lib/builtin.sh, config/components.tsv), not the module's actions.sh
 #   notify      silent, and under fzx a message in the footer says it ran (or why it failed); the copy
 #               and copy-line built-ins always notify
@@ -103,6 +104,15 @@ fzx::_action_bind_string() {
   printf -v "$3" '%s' "$_act"
 }
 
+# fzx::_module_bound <module> <key>: the module's opts hook bound the key (FZX_HELP)
+fzx::_module_bound() {
+  local _e
+  for _e in "${FZX_HELP[@]}"; do
+    [[ "$_e" == "$1"$'\t'"$2"$'\t'* ]] && return 0
+  done
+  return 1
+}
+
 # fzx::actions_bind <module>: bind the action rows (their keys, enter for the default one) and, under fzx,
 # the actions menu key; expects the module's opts hook to have run (arguments, preview)
 fzx::actions_bind() {
@@ -120,7 +130,8 @@ fzx::actions_bind() {
     fzx::_action_bind_string "$_n" "$_flags" act
     [[ -n "$_key" && "$_key" != - ]] &&
       _FZX_BIND_SCOPE="$module" fzx::bind "$_key" "$act" "action: ${_desc:-$_n}"
-    [[ ",$_flags," == *,default,* ]] &&
+    # a module whose opts hook bound enter itself keeps it (tasks --paste)
+    [[ ",$_flags," == *,default,* ]] && ! fzx::_module_bound "$module" enter &&
       _FZX_BIND_SCOPE="$module" fzx::bind enter "$act" "default action: ${_desc:-$_n}"
     # group the actions by their arguments for the menu, in table order
     fzx::action_args "$_n" "$_flags" args

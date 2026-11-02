@@ -62,6 +62,11 @@ declare -gA FZX_ICONS_NERD=(
   [discussion]="" # github: a discussion
   [commit]="" # github: a commit
   [checks]="" # github: checks (a check suite)
+  [action_run]="" # actions menu: runs in the terminal
+  [action_silent]="" # actions menu: runs in the background
+  [action_become]="" # actions menu: replaces fzf (prints a value)
+  [action_confirm]="" # actions menu: asks first
+  [action_reload]="" # actions menu: reloads the list afterwards
 )
 
 declare -gA FZX_ICONS_UNICODE=(
@@ -122,6 +127,11 @@ declare -gA FZX_ICONS_UNICODE=(
   [discussion]="❝"
   [commit]="•"
   [checks]="☑"
+  [action_run]="▶"
+  [action_silent]="↯"
+  [action_become]="⇥"
+  [action_confirm]="?"
+  [action_reload]="↻"
 )
 
 # fzx::icon <name> [var]: the icon, empty for an unknown name or FZX_ICONS=none; into var when given

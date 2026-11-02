@@ -207,8 +207,35 @@ menu_open() {
   names="$(printf '%s\n' "$output" | cut -f1 | tr '\n' ' ')"
   [ "$names" = "mark edit pick open copy-line " ]
   [[ "${lines[0]}" == *"alt-m"*"mark the items"* ]]
-  FZX_SESSION="$CHILD" run "$FZX" _cb preview edit
-  [[ "$output" == *"flags  foreground,restart"* && "$output" == *$'runs on:\n  a\n  b'* ]]
+  NO_COLOR=1 FZX_SESSION="$CHILD" run "$FZX" _cb preview edit
+  [[ "$output" == *"flags foreground restart"* && "$output" == *$'runs on:\n  a\n  b'* ]]
+}
+
+@test "actions menu: rows show how each runs, the key as a keycap and the default mark; columns line up" {
+  menu_open
+  NO_COLOR=1 FZX_ICONS=unicode FZX_SESSION="$CHILD" run "$FZX" _cb source
+  [ "$status" -eq 0 ]
+  # silent+reload, foreground+restart, print, become+default (no key), a built-in (no key)
+  [ "${lines[0]}" = $'mark\t↯↻ mark          alt-m    mark the items' ]
+  [ "${lines[1]}" = $'edit\t▶↻ edit          alt-e    edit the items' ]
+  [ "${lines[2]}" = $'pick\t⇥  pick          alt-p    print a value' ]
+  [ "${lines[3]}" = $'open\t⇥  open                 ⏎ open the item' ]
+  [ "${lines[4]}" = $'copy-line\t↯  copy-line              copy the whole lines' ]
+  # no icons: the name starts the row
+  NO_COLOR=1 FZX_ICONS=none FZX_SESSION="$CHILD" run "$FZX" _cb source
+  [ "${lines[0]}" = $'mark\tmark          alt-m    mark the items' ]
+}
+
+@test "actions menu: colors from FZX_COLORS[actions_*]; built-ins dimmer; NO_COLOR draws none" {
+  menu_open
+  FZX_SESSION="$CHILD" run "$FZX" _cb source
+  [[ "${lines[0]}" == *$'\e[1;38;5;255mmark '* && "${lines[0]}" == *$'\e[38;5;180;48;5;236m alt-m \e[0m'* ]]
+  [[ "${lines[4]}" == *$'\e[38;5;248mcopy-line '* ]]
+  [[ "${lines[3]}" == *$'\e[38;5;114m⏎\e[0m'* ]]
+  NO_COLOR=1 FZX_SESSION="$CHILD" run "$FZX" _cb source
+  [[ "$output" != *$'\e['* ]]
+  NO_COLOR=1 FZX_SESSION="$CHILD" run "$FZX" _cb preview pick
+  [[ "$output" != *$'\e['* && "$output" == *"flags print"* && "$output" == *"key    alt-p"* ]]
 }
 
 @test "actions menu: mode-scoped descriptions show the parent's mode's part; idle actions are left out" {

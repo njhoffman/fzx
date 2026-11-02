@@ -178,6 +178,74 @@ act() { FZX_MODE="$1" "$TASKS/actions.sh" "${@:2}"; }
   [[ "${lines[1]}" == "make  build  compile everything" ]]
 }
 
+@test "preview: the definition in its file's language, the command line as bash" {
+  printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$*" >> "%s/bat.calls"\ncat\n' "$BATS_TEST_TMPDIR" > "$STUBS/bat"
+  chmod +x "$STUBS/bat"
+  FZX_MODE=all "$TASKS/preview.sh" "$A|make|build" > /dev/null
+  FZX_MODE=all "$TASKS/preview.sh" "$A|npm|build" > /dev/null
+  FZX_MODE=all "$TASKS/preview.sh" "$B|poe|check" > /dev/null
+  run grep -o -- '--language=[A-Za-z]*' "$BATS_TEST_TMPDIR/bat.calls"
+  [ "${lines[*]}" = "--language=bash --language=Makefile --language=bash --language=json --language=bash --language=toml" ]
+  load_libs log
+  # its last line (the run-directly guard) fails when sourced
+  source "$TASKS/preview.sh" || :
+  local l
+  for kind in just task cargo pdm hatch nope; do tasks::language "$kind" l; printf '%s=%s ' "$kind" "$l"; done > "$BATS_TEST_TMPDIR/langs"
+  [ "$(< "$BATS_TEST_TMPDIR/langs")" = "just=bash task=yaml cargo=toml pdm=toml hatch=toml nope= " ]
+}
+
+@test "paste: the command line for this directory, another repository, several tasks; ~ for HOME" {
+  load_libs log
+  source "$TASKS/actions.sh"
+  local out
+  cd "$A"
+  tasks::paste_line out "$A|make|build"
+  [ "$out" = "make build" ]
+  tasks::paste_line out "$B|poe|check"
+  [ "$out" = "cd $B && poe check" ]
+  tasks::paste_line out "$A|make|test" "$B|cargo|xt"
+  [ "$out" = "make test && (cd $B && cargo xt)" ]
+  HOME="$ROOT" tasks::paste_line out "$B|poe|check"
+  [ "$out" = "cd ~/github.com/me/beta && poe check" ]
+  mkdir -p "$ROOT/my dir"
+  tasks::paste_line out "$ROOT/my dir|make|x"
+  [ "$out" = "cd $ROOT/my\\ dir && make x" ]
+}
+
+@test "paste: into the pane through a tmux buffer; projects paste a cd; a bad pane fails" {
+  printf '#!/usr/bin/env bash\n{ printf "%%s|" "$@"; echo; if [[ "$1" == load-buffer ]]; then command cat; echo; fi; } >> "%s/tmux.calls"\n' \
+    "$BATS_TEST_TMPDIR" > "$STUBS/tmux"
+  chmod +x "$STUBS/tmux"
+  cd "$A"
+  act all paste %7 "$A|npm|dev"
+  [ "$(cat "$BATS_TEST_TMPDIR/tmux.calls")" = "load-buffer|-b|fzx-tasks|-|
+pnpm run dev
+run-shell|-b|-d|0.3|tmux paste-buffer -p -d -b fzx-tasks -t %7|" ]
+  rm "$BATS_TEST_TMPDIR/tmux.calls"
+  act projects paste %7 "$B"
+  [ "$(sed -n 2p "$BATS_TEST_TMPDIR/tmux.calls")" = "cd $B" ]
+  rm "$BATS_TEST_TMPDIR/tmux.calls"
+  # the - row of an empty list pastes nothing
+  act all paste %7 -
+  [ ! -e "$BATS_TEST_TMPDIR/tmux.calls" ]
+  run act all paste nope "$A|npm|dev"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"needs a tmux pane id"* ]]
+}
+
+@test "under fzx with --paste: enter pastes into the pane, alt-x runs here; without it enter runs" {
+  stub_fzf
+  cd "$A"
+  run "$FZX" -m tasks -- --paste %3
+  [[ "$(fzf_bind enter)" == "enter:become:$FZX _cb action paste %3 {+1}" ]]
+  [[ "$(fzf_bind alt-x)" == *"_cb action run {+1}"* ]]
+  [ "$(grep -c -- '--bind=enter:\|^enter:' <<< "$(fzf_bind enter)")" -eq 1 ]
+  run "$FZX" -m tasks
+  [[ "$(fzf_bind enter)" == *"_cb action run {+1}"* ]]
+  run fzf_bind alt-x
+  [ "$status" -eq 1 ]
+}
+
 @test "under fzx: enter runs, ctrl-t picks, alt-enter asks for arguments; menu summary" {
   stub_fzf
   cd "$A"

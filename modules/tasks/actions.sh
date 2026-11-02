@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # tasks actions: run a task in its repository (with arguments asked first), pick tasks into the selected
-# mode, choose projects, open a definition in the editor, scan again.
+# mode, choose projects, open a definition in the editor, scan again, paste the command line into a tmux
+# pane (--paste).
 
 # shellcheck source=./source.sh
 declare -F tasks::scan > /dev/null || source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
@@ -82,6 +83,31 @@ tasks::_run() {
   return "$rc"
 }
 
+# tasks::paste_line <var> <id...>: the command line that runs the tasks from the current directory:
+# "CMD" for a task of this directory, "cd DIR && CMD" for another's; several are parenthesized and joined
+# with && (a cd stays inside its parentheses). DIR is quoted, with a leading ~ for $HOME.
+tasks::paste_line() {
+  local _var="$1" _id _dir _kind _name _cmd _d _here _one _line="" _n=$(($# - 1))
+  shift
+  _here="$(pwd -P)"
+  for _id in "$@"; do
+    IFS='|' read -r _dir _kind _name <<< "$_id"
+    tasks::command "$_dir" "$_kind" "$_name" _cmd
+    [[ -n "$_cmd" ]] || continue
+    if [[ "$_dir" == "$_here" ]]; then
+      _one="$_cmd"
+    else
+      # a literal ~: the line is pasted for the shell to expand
+      # shellcheck disable=SC2088
+      if [[ "$_dir" == "$HOME"/* ]]; then printf -v _d '~/%q' "${_dir#"$HOME"/}"; else printf -v _d '%q' "$_dir"; fi
+      _one="cd $_d && $_cmd"
+      ((_n > 1)) && _one="($_one)"
+    fi
+    _line+="${_line:+ && }$_one"
+  done
+  printf -v "$_var" '%s' "$_line"
+}
+
 # tasks::action <action> <id...>
 tasks::action() {
   local action="${1:-}" mode="${FZX_MODE:-selected}" state id dir kind name args file line
@@ -92,6 +118,24 @@ tasks::action() {
     return 0
   fi
   [[ "$mode" == projects && ("$action" == run || "$action" == pick) ]] && action=choose
+  # paste <pane> <id...>: the command line into a tmux pane (--paste), bracketed: nothing is submitted.
+  # Projects: a cd into the repositories. The tmux server pastes 0.3s later, once the popup has closed.
+  if [[ "$action" == paste ]]; then
+    local pane="${1:-}" text=""
+    shift
+    [[ "$pane" =~ ^%[0-9]+$ ]] || { printf 'tasks: --paste needs a tmux pane id (%%N): %s\n' "$pane" >&2; return 2; }
+    for id in "$@"; do [[ "$id" == - ]] && return 0; done
+    (($#)) || return 0
+    if [[ "$mode" == projects ]]; then
+      if [[ "$1" == "$HOME"/* ]]; then printf -v text 'cd ~/%q' "${1#"$HOME"/}"; else printf -v text 'cd %q' "$1"; fi
+    else
+      tasks::paste_line text "$@"
+    fi
+    [[ -n "$text" ]] || return 0
+    printf '%s' "$text" | tmux load-buffer -b fzx-tasks - &&
+      tmux run-shell -b -d 0.3 "tmux paste-buffer -p -d -b fzx-tasks -t $pane"
+    return
+  fi
   for id in "$@"; do [[ "$id" == - ]] && return 0; done
   case "$action" in
     run) tasks::_run "${1:-}" ;;
