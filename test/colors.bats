@@ -17,7 +17,7 @@ setup() {
   export WAYLAND_DISPLAY=test PATH="$BATS_TEST_TMPDIR/bin:$PATH"
 }
 
-src() { FZX_MODE="$1" "$COLORS/source.sh" | sed 's/\x1b\[[0-9;]*m//g'; }
+src() { FZX_MODE="$1" "$COLORS/source.sh" | sed 's/\x1b\[[0-9;:]*m//g'; }
 
 @test "256: every color with its xterm name, hex and SGR in hidden fields" {
   run src 256

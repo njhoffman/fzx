@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # todos preview: todo-fzf's card. The section, the item's state, priority, category and due date, its title
 # and file:line, then its details (the text after the title, continuation lines joined into paragraphs) as
-# markdown (lib/render.sh: FZX_PREVIEW_VIEWERS, nvcat, glow, bat, plain).
+# markdown (lib/render.sh: FZX_PREVIEW_VIEWERS, nvcat, bat, plain).
 # shellcheck source=./source.sh
 source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
 # shellcheck source=../../lib/render.sh

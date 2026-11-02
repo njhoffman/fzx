@@ -35,7 +35,7 @@ fixture_dump() {
 }
 
 src() { FZX_MODE="$1" "$KB/source.sh"; }
-prev() { "$KB/preview.sh" "$@" | sed 's/\x1b\[[0-9;]*m//g'; }
+prev() { "$KB/preview.sh" "$@" | sed 's/\x1b\[[0-9;:]*m//g'; }
 plain() { printf '%s\n' "${lines[@]}" | cut -f2 | sed 's/  */ /g'; }
 
 @test "dump.zsh: every keymap but .safe and main, user widgets with their file; the file version" {

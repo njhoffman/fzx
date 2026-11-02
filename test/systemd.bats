@@ -19,7 +19,7 @@ stub_cmd() {
   export PATH="$BATS_TEST_TMPDIR/bin:$PATH"
 }
 
-plain() { sed 's/\x1b\[[0-9;]*m//g'; }
+plain() { sed 's/\x1b\[[0-9;:]*m//g'; }
 
 # summary <module> <target>: the module's summary, its config and manifest loaded as the menu does
 summary() {

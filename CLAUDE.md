@@ -25,6 +25,8 @@ changing lib/ or adding a module; a new module follows its "New-module checklist
 - Bind strings are built with `fzx::cb <verb>`; logic lives behind `fzx _cb`, never inline in binds.
 - Key bindings use `fzx::bind <key> <action> <description>` so they appear in the f1 help.
 - `fzx _cb preview` runs on every focus change: keep its load path minimal (core, log, session, config).
+- Previews draw no underlines (they pull the eye; the sorted column's dim dashed one is the exception in
+  lists) unless the underline is the content, as in the colors module's attribute samples.
 - Functions returning through a variable name prefix their locals with `_`.
 - Tests are isolated through `setup_fzx` (runtime, state, config and cache dirs under `$BATS_TEST_TMPDIR`).
 - Verify UI changes live in a detached tmux server (`tmux -L <name>`); drive popups through the session's

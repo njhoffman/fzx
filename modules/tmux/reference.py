@@ -43,7 +43,7 @@ def paint(value, role):
     code = os.environ.get("FZX_TMUX_COLOR_" + role.upper(), PALETTE[role])
     return (
         f"\033[{code}m{clean(value)}{RESET}"
-        if re.fullmatch(r"[0-9;]+", code)
+        if re.fullmatch(r"[0-9;:]+", code)
         else clean(value)
     )
 
@@ -762,7 +762,7 @@ def stream(args):
             first, _, rest = display.partition("  ")
             rest, _, age = rest.rpartition("  ")
             sorted_code = os.environ.get("FZX_TMUX_COLOR_SORTED", "4")
-            mark = f"\033[{sorted_code}m" if re.fullmatch(r"[0-9;]+", sorted_code) else ""
+            mark = f"\033[{sorted_code}m" if re.fullmatch(r"[0-9;:]+", sorted_code) else ""
             first = (mark if args.sorted == "name" else "") + paint(first, "name")
             age = (mark if args.sorted == "recent" else "") + paint(age, "dim")
             decorated = first + "  " + paint(rest, "dim") + "  " + age

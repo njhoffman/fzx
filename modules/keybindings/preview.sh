@@ -24,7 +24,7 @@ keybindings::preview_zsh() {
   rows="$(keybindings::zsh_rows <<< "$dump")"
   printf '\n%sbound to%s\n' "$B" "$R"
   # the keymap and key columns of the display
-  awk -F'\t' -v w="$widget" '$3 == w { d = $2; gsub(/\033\[[0-9;]*m/, "", d); print "  " substr(d, 1, 27) }' <<< "$rows"
+  awk -F'\t' -v w="$widget" '$3 == w { d = $2; gsub(/\033\[[0-9;:]*m/, "", d); print "  " substr(d, 1, 27) }' <<< "$rows"
   if [[ -n "$raw" ]]; then
     printf '\n%sthe same key in each keymap%s\n' "$B" "$R"
     awk -F'\t' -v k="$raw" '{ s = $1; sub(/^bindkey -M [^ ]+ /, "", s) } index(s, k " ") == 1 { print "  " $2 }' <<< "$rows"

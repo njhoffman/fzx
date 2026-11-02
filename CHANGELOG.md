@@ -6,6 +6,26 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.59.0] - 2026-11-02
+
+### Added
+
+- ctrl-_ (what ctrl-shift-_ and ctrl-/ send) also selects the next sort, next to f12; it takes ctrl-/ from
+  fzf's toggle-wrap-word.
+- The sorted column's look is configurable: `FZX_SORTED_STYLE` takes decorations (bold, dim, italic,
+  underline, blink, reverse, overline, underdouble, undercurl, underdotted, underdashed) and
+  `FZX_SORTED_UNDERLINE_COLOR` the underline's color (#rrggbb or 0-255). Setting `FZX_COLORS[sorted]`
+  directly still wins.
+
+### Changed
+
+- The sorted column is drawn with a dim gray (#6e6e6e) dashed underline instead of a plain underline.
+- Markdown previews no longer use glow: the user's viewer, else nvcat, else bat.
+
+### Fixed
+
+- tmux lists and the keybindings preview strip SGR sequences with colons (`4:5`) too.
+
 ## [0.58.0] - 2026-11-01
 
 ### Changed

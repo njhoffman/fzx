@@ -34,7 +34,7 @@ teardown() {
 src() {
   FZX_MODE="$1" "$TMUX_MOD/source.sh" "${@:2}" > "$BATS_TEST_TMPDIR/src.out"
   local rc=$?
-  sed 's/\x1b\[[0-9;]*m//g' "$BATS_TEST_TMPDIR/src.out"
+  sed 's/\x1b\[[0-9;:]*m//g' "$BATS_TEST_TMPDIR/src.out"
   return "$rc"
 }
 act() { FZX_MODE="$1" "$TMUX_MOD/actions.sh" "${@:2}"; }
@@ -59,9 +59,9 @@ act() { FZX_MODE="$1" "$TMUX_MOD/actions.sh" "${@:2}"; }
   tmux rename-session -t '$0' zeta
   FZX_SORT=name run src sessions
   [[ "${lines[0]}" == *$'\tsecond '* && "${lines[1]}" == *$'\tzeta '* ]]
-  grep -q $'\e\[4m\e\[[0-9;]*msecond' "$BATS_TEST_TMPDIR/src.out"
+  grep -q $'\e\[4m\e\[[0-9;:]*msecond' "$BATS_TEST_TMPDIR/src.out"
   FZX_SORT=recent run src windows
-  grep -q $'\e\[4m\e\[[0-9;]*m[0-9]*[smhd]\e' "$BATS_TEST_TMPDIR/src.out"
+  grep -q $'\e\[4m\e\[[0-9;:]*m[0-9]*[smhd]\e' "$BATS_TEST_TMPDIR/src.out"
 }
 
 @test "tmux: reference modes read installed commands, bindings, options and variables" {

@@ -42,7 +42,7 @@ STUB
 }
 
 conf() { mkdir -p "$FZX_CONFIG_DIR/modules/repos"; printf '%s\n' "$@" > "$FZX_CONFIG_DIR/modules/repos/config.sh"; }
-plain() { sed 's/\x1b\[[0-9;]*m//g'; }
+plain() { sed 's/\x1b\[[0-9;:]*m//g'; }
 src() { FZX_MODE="${1:-all}" "$REPOS/source.sh" | plain; }
 # run a repos::function with config loaded
 repos_fn() {
@@ -133,7 +133,7 @@ repos_fn() {
   [ "$status" -eq 0 ]
   [[ "$output" == *fetched* ]]
   # alpha's row by name: its last commit can share a second with gamma's, so the order can vary
-  run bash -c "FZX_MODE=all '$REPOS/source.sh' | grep 'me/alpha' | sed 's/\x1b\[[0-9;]*m//g'"
+  run bash -c "FZX_MODE=all '$REPOS/source.sh' | grep 'me/alpha' | sed 's/\x1b\[[0-9;:]*m//g'"
   [[ "$output" == *'↑ 1 ↓ 2'* ]]
   run "$REPOS/actions.sh" fetch "$BATS_TEST_TMPDIR"
   [ "$status" -eq 2 ]
@@ -147,7 +147,7 @@ repos_fn() {
 }
 
 @test "preview: path, status, commits and the open TODO items by priority" {
-  run bash -c "'$REPOS/preview.sh' '$A' | sed 's/\x1b\[[0-9;]*m//g'"
+  run bash -c "'$REPOS/preview.sh' '$A' | sed 's/\x1b\[[0-9;:]*m//g'"
   [ "$status" -eq 0 ]
   [[ "$output" == *'## main...origin/main [ahead 1]'* && "$output" == *'second'* ]]
   [[ "$output" == *'TODO (2 open)'*'P1 One'*'P3 Two'* ]]

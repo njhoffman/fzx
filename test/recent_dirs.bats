@@ -37,7 +37,7 @@ STUB
 src() { FZX_MODE="$1" "$RECENT/source.sh" "${@:2}"; }
 
 @test "dirs: zoxide's order and rounded scores; missing directories dropped" {
-  run bash -c "FZX_MODE=dirs '$RECENT/source.sh' | sed 's/\x1b\[[0-9;]*m//g'"
+  run bash -c "FZX_MODE=dirs '$RECENT/source.sh' | sed 's/\x1b\[[0-9;:]*m//g'"
   [ "${#lines[@]}" -eq 2 ]
   [[ "${lines[0]}" == "$T/alpha"$'\t'"    120  "*"/alpha" ]]
   [[ "${lines[1]}" == "$T/beta/deep"$'\t'"     40  "*"beta/deep" ]]
@@ -83,7 +83,7 @@ src() { FZX_MODE="$1" "$RECENT/source.sh" "${@:2}"; }
 
 @test "preview: git branch for work trees, then the path header and the listing" {
   git -C "$T/alpha" init -q -b trunk 2> /dev/null
-  run bash -c "'$RECENT/preview.sh' '$T/alpha' 2> /dev/null | sed 's/\x1b\[[0-9;]*m//g'"
+  run bash -c "'$RECENT/preview.sh' '$T/alpha' 2> /dev/null | sed 's/\x1b\[[0-9;:]*m//g'"
   [ "${lines[0]}" = "git trunk  0 changes" ]
   [[ "${lines[1]}" == *"/alpha  "*"entr"* ]]
   run "$RECENT/preview.sh" "$T/nope"
@@ -91,7 +91,7 @@ src() { FZX_MODE="$1" "$RECENT/source.sh" "${@:2}"; }
 }
 
 @test "menu: the trackers are recent's entries, not dirs'" {
-  run bash -c "'$BATS_TEST_DIRNAME/../modules/menu/source.sh' 2> /dev/null | cut -f2 | sed 's/\x1b\[[0-9;]*m//g'"
+  run bash -c "'$BATS_TEST_DIRNAME/../modules/menu/source.sh' 2> /dev/null | cut -f2 | sed 's/\x1b\[[0-9;:]*m//g'"
   [[ "$output" == *"recent:dirs "*"Frecent directories (zoxide)"* && "$output" == *"recent:visited "* ]]
   [[ "$output" != *"dirs:recent"* ]]
 }

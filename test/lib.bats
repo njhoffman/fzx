@@ -153,6 +153,37 @@ setup() {
   [ "${FZX_KEYS[reload_soft]}" = alt-r ]
 }
 
+@test "config_load: the sorted column's decorations and underline color become FZX_COLORS[sorted]" {
+  unset FZX_SORTED_STYLE FZX_SORTED_UNDERLINE_COLOR
+  fzx::config_load
+  [ "${FZX_COLORS[sorted]}" = "4:5;58;2;110;110;110" ]
+  mkdir -p "$FZX_CONFIG_DIR"
+  echo 'FZX_SORTED_STYLE="bold dim italic underline blink reverse overline"; FZX_SORTED_UNDERLINE_COLOR=245' > "$FZX_CONFIG_DIR/config.sh"
+  fzx::config_load
+  [ "${FZX_COLORS[sorted]}" = "1;2;3;4;5;7;53;58;5;245" ]
+  echo 'FZX_SORTED_STYLE="underdouble undercurl underdotted"; FZX_SORTED_UNDERLINE_COLOR=""' > "$FZX_CONFIG_DIR/config.sh"
+  fzx::config_load
+  [ "${FZX_COLORS[sorted]}" = "4:2;4:3;4:4" ]
+  # an underline color without an underline is left out
+  echo 'FZX_SORTED_STYLE=bold' > "$FZX_CONFIG_DIR/config.sh"
+  fzx::config_load
+  [ "${FZX_COLORS[sorted]}" = 1 ]
+  # nothing to add: 24, which is still a valid parameter after a ";"
+  echo 'FZX_SORTED_STYLE=""' > "$FZX_CONFIG_DIR/config.sh"
+  fzx::config_load
+  [ "${FZX_COLORS[sorted]}" = 24 ]
+  # unknown names and colors are skipped with a warning
+  echo 'FZX_SORTED_STYLE="sparkle underline"; FZX_SORTED_UNDERLINE_COLOR=gray' > "$FZX_CONFIG_DIR/config.sh"
+  fzx::config_load
+  [ "${FZX_COLORS[sorted]}" = 4 ]
+  grep -q 'unknown decoration sparkle' "$LOG"
+  grep -q 'FZX_SORTED_UNDERLINE_COLOR: not #rrggbb or 0-255: gray' "$LOG"
+  # FZX_COLORS[sorted] set by a layer wins
+  echo 'FZX_COLORS[sorted]="1;4"' > "$FZX_CONFIG_DIR/config.sh"
+  fzx::config_load
+  [ "${FZX_COLORS[sorted]}" = "1;4" ]
+}
+
 @test "cb: routes through fzx _cb under a session" {
   run fzx::cb preview {1}
   [ "$output" = "$FZX_BIN _cb preview {1}" ]

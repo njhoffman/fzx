@@ -38,7 +38,7 @@ src() {
   local rc
   FZX_MODE="$1" "$GIT_DIR_MOD/source.sh" "${@:2}" > "$BATS_TEST_TMPDIR/src.out"
   rc=$?
-  sed 's/\x1b\[[0-9;]*m//g' "$BATS_TEST_TMPDIR/src.out"
+  sed 's/\x1b\[[0-9;:]*m//g' "$BATS_TEST_TMPDIR/src.out"
   return "$rc"
 }
 
@@ -120,9 +120,9 @@ src() {
 }
 
 # preview output without colors (diff colors split "+" from the line text)
-prev() { FZX_MODE="$1" "$GIT_DIR_MOD/preview.sh" -- "$2" | sed 's/\x1b\[[0-9;]*m//g'; }
+prev() { FZX_MODE="$1" "$GIT_DIR_MOD/preview.sh" -- "$2" | sed 's/\x1b\[[0-9;:]*m//g'; }
 # prev_rev <mode> <rev> <id> [extra]
-prev_rev() { FZX_MODE="$1" "$GIT_DIR_MOD/preview.sh" --rev "$2" -- "${@:3}" | sed 's/\x1b\[[0-9;]*m//g'; }
+prev_rev() { FZX_MODE="$1" "$GIT_DIR_MOD/preview.sh" --rev "$2" -- "${@:3}" | sed 's/\x1b\[[0-9;:]*m//g'; }
 
 @test "preview: diff for tracked files, contents for untracked, commits, branches, stashes" {
   run prev status "$REAL/a.txt"
@@ -354,7 +354,7 @@ prev_rev() { FZX_MODE="$1" "$GIT_DIR_MOD/preview.sh" --rev "$2" -- "${@:3}" | se
   run "$FZX" _cb transform view
   [ "$output" = "change-preview-label( blame )+refresh-preview" ]
   [ "$(cat "$FZX_SESSION_DIR/state/git_view")" = blame ]
-  run bash -c "'$FZX' _cb preview -- '$REAL/a.txt' | sed 's/\x1b\[[0-9;]*m//g'"
+  run bash -c "'$FZX' _cb preview -- '$REAL/a.txt' | sed 's/\x1b\[[0-9;:]*m//g'"
   [[ "$output" == *"1) one"* ]]
   run "$FZX" _cb transform view
   [ "$output" = "change-preview-label( diff )+refresh-preview" ]

@@ -35,7 +35,7 @@ teardown() {
   return 0
 }
 
-plain() { sed 's/\x1b\[[0-9;]*m//g'; }
+plain() { sed 's/\x1b\[[0-9;:]*m//g'; }
 
 # a local image with sleep, or skip
 live_image() {

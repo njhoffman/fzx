@@ -25,7 +25,7 @@ stub_cmd() {
   export PATH="$BATS_TEST_TMPDIR/bin:$PATH"
 }
 
-plain() { sed 's/\x1b\[[0-9;]*m//g'; }
+plain() { sed 's/\x1b\[[0-9;:]*m//g'; }
 
 need() { command -v "$1" > /dev/null || skip "$1 not installed"; }
 

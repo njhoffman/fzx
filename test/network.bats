@@ -84,7 +84,7 @@ stub() {
   chmod +x "$STUBS/$1"
 }
 
-plain() { sed 's/\x1b\[[0-9;]*m//g'; }
+plain() { sed 's/\x1b\[[0-9;:]*m//g'; }
 src() { FZX_MODE="$1" "$NET/source.sh" "${@:2}" | plain; }
 act() { FZX_MODE="$1" "$NET/actions.sh" "${@:2}"; }
 

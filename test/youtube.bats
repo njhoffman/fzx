@@ -33,7 +33,7 @@ src() {
   local rc
   FZF_QUERY="$1" "$YT_DIR/source.sh" > "$BATS_TEST_TMPDIR/src.out"
   rc=$?
-  sed 's/\x1b\[[0-9;]*m//g' "$BATS_TEST_TMPDIR/src.out"
+  sed 's/\x1b\[[0-9;:]*m//g' "$BATS_TEST_TMPDIR/src.out"
   return "$rc"
 }
 

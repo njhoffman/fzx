@@ -18,7 +18,7 @@ bookmarks() {
 
 @test "bookmarks come from config by name, ~ expanded, missing ones dropped; words filter them" {
   bookmarks
-  FZX_MODE=bookmarks run bash -c "'$DIRS/source.sh' | sed 's/\x1b\[[0-9;]*m//g'"
+  FZX_MODE=bookmarks run bash -c "'$DIRS/source.sh' | sed 's/\x1b\[[0-9;:]*m//g'"
   [ "${#lines[@]}" -eq 2 ]
   [[ "${lines[0]}" == "$T/alpha"$'\t'*"a  "*"alpha" ]]
   [[ "${lines[1]}" == "$T/beta"$'\t'*"b  "* ]]
@@ -58,7 +58,7 @@ bookmarks() {
 
 @test "preview: the recent module's (git line, path header, listing); ctrl-o opens the files module" {
   git -C "$T/alpha" init -q -b trunk 2> /dev/null
-  run bash -c "'$DIRS/preview.sh' '$T/alpha' 2> /dev/null | sed 's/\x1b\[[0-9;]*m//g'"
+  run bash -c "'$DIRS/preview.sh' '$T/alpha' 2> /dev/null | sed 's/\x1b\[[0-9;:]*m//g'"
   [ "${lines[0]}" = "git trunk  0 changes" ]
   stub_fzf
   run "$FZX" -m dirs

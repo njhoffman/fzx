@@ -22,6 +22,42 @@ fzx::config_load() {
     FZX_CONFIG_LOADED+=("$layer")
     fzx::log debug "config loaded $layer"
   done
+  fzx::_sorted_sgr
+}
+
+# fzx::_sorted_sgr: FZX_COLORS[sorted] from FZX_SORTED_STYLE and FZX_SORTED_UNDERLINE_COLOR, unless a layer
+# set it. Sources splice it after other parameters ("38;5;45;" hl), so nothing to add is 24 (underline
+# off) rather than empty, which would read as a reset.
+fzx::_sorted_sgr() {
+  [[ -n "${FZX_COLORS[sorted]:-}" ]] && return 0
+  local _d _sgr=() _ul="" _c="${FZX_SORTED_UNDERLINE_COLOR:-}"
+  for _d in ${FZX_SORTED_STYLE-underdashed}; do
+    case "$_d" in
+      bold) _sgr+=(1) ;;
+      dim) _sgr+=(2) ;;
+      italic) _sgr+=(3) ;;
+      underline) _sgr+=(4) _ul=1 ;;
+      blink) _sgr+=(5) ;;
+      reverse) _sgr+=(7) ;;
+      overline) _sgr+=(53) ;;
+      underdouble) _sgr+=(4:2) _ul=1 ;;
+      undercurl) _sgr+=(4:3) _ul=1 ;;
+      underdotted) _sgr+=(4:4) _ul=1 ;;
+      underdashed) _sgr+=(4:5) _ul=1 ;;
+      *) fzx::log warn "FZX_SORTED_STYLE: unknown decoration $_d (skipped)" ;;
+    esac
+  done
+  if [[ -n "$_ul" && -n "$_c" ]]; then
+    if [[ "$_c" =~ ^#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$ ]]; then
+      _sgr+=("58;2;$((16#${BASH_REMATCH[1]}));$((16#${BASH_REMATCH[2]}));$((16#${BASH_REMATCH[3]}))")
+    elif [[ "$_c" =~ ^[0-9]+$ ]] && ((_c < 256)); then
+      _sgr+=("58;5;$_c")
+    else
+      fzx::log warn "FZX_SORTED_UNDERLINE_COLOR: not #rrggbb or 0-255: $_c (ignored)"
+    fi
+  fi
+  local IFS=';'
+  FZX_COLORS[sorted]="${_sgr[*]:-24}"
 }
 
 # fzx::config_show [module]: the resolved configuration, for `fzx config`

@@ -34,7 +34,7 @@ insert into history (session, command_id, place_id, exit_status, start_time, dur
 SQL
 }
 
-plain() { sed 's/\x1b\[[0-9;]*m//g'; }
+plain() { sed 's/\x1b\[[0-9;:]*m//g'; }
 src() { FZX_MODE="$1" "$HIST/source.sh" | plain; }
 
 @test "host: one row per command, the latest run's id, newest first, run counts" {
@@ -176,7 +176,7 @@ src() { FZX_MODE="$1" "$HIST/source.sh" | plain; }
 }
 
 @test "preview: the command, the latest run, its success rate, median, recent runs and where it ran" {
-  run bash -c "'$HIST/preview.sh' 2 | sed 's/\x1b\[[0-9;]*m//g'"
+  run bash -c "'$HIST/preview.sh' 2 | sed 's/\x1b\[[0-9;:]*m//g'"
   [ "$status" -eq 0 ]
   [[ "$output" == *'make test'* ]]
   [[ "$output" == *'status     0'* && "$output" == *'duration   400s'* ]]
@@ -187,7 +187,7 @@ src() { FZX_MODE="$1" "$HIST/source.sh" | plain; }
   [[ "$output" =~ [0-9:]+\ +0\ +400s\ +here\ +$W/a_b/sub ]]
   [[ "$output" =~ [0-9:]+\ +0\ +4s\ +here\ +$W/a_b$'\n' ]]
   [[ "$output" == *'directories'*"$W/a_b"* ]]
-  run bash -c "'$HIST/preview.sh' 4 | sed 's/\x1b\[[0-9;]*m//g'"
+  run bash -c "'$HIST/preview.sh' 4 | sed 's/\x1b\[[0-9;:]*m//g'"
   [[ "$output" == *'status     1'* && "$output" == *'1 failed'* ]]
 }
 
@@ -283,7 +283,7 @@ ZSH
   FZX_HISTORY_INTERRUPTED='' FZX_TOGGLES=failed run src host
   [ "${#lines[@]}" -eq 3 ]
   # the preview: the status named, the interrupted runs counted apart and left out of the success rate
-  run bash -c "'$HIST/preview.sh' 10 | sed 's/\x1b\[[0-9;]*m//g'"
+  run bash -c "'$HIST/preview.sh' 10 | sed 's/\x1b\[[0-9;:]*m//g'"
   [[ "$output" == *'status     130 interrupted'* ]]
   [[ "$output" == *'runs       4   1 failed   2 interrupted   50% ok'* ]]
 }

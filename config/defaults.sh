@@ -5,13 +5,14 @@
 
 # shellcheck disable=SC2034  # every setting here is read by lib/ or the modules
 
-# keys handled by fzx itself in every module
+# keys handled by fzx itself in every module; a comma list binds several keys to one action ("f12,ctrl-_")
 declare -gA FZX_KEYS=(
   [reload_hard]=ctrl-r
   [reload_soft]=alt-r
   [mode_next]=alt-0
   [mode_prev]=alt-9
-  [sort_next]=f12
+  # ctrl-_ is what ctrl-shift-_ (and ctrl-/) send; it takes ctrl-/ from fzf's toggle-wrap-word
+  [sort_next]="f12,ctrl-_"
   [sort_prev]=f11
   [back]=alt-left
   [escape]=esc
@@ -98,8 +99,6 @@ declare -gA FZX_COLORS=(
   [toggle_on]="38;5;49"
   [toggle_off]="38;5;240"
   [sort]="38;5;45"
-  # added to the column a list is sorted by (ps, docker, tmux, ...), on top of the column's own color
-  [sorted]="4"
   # round and triangle component styles: 256-color numbers for the background and text of on/off items
   [pill_on]=24
   [pill_on_fg]=195
@@ -124,6 +123,16 @@ declare -gA FZX_COLORS=(
   # the icons before preview labels (lib/icons.sh)
   [preview_icon]="38;5;110"
 )
+
+# how the column a list is sorted by (ps, docker, tmux, ...) is drawn on top of its own color: decorations,
+# space-separated, from
+#   bold dim italic underline blink reverse overline underdouble undercurl underdotted underdashed
+# The last four need a terminal that has underline styles (kitty, WezTerm, foot, ...; tmux passes them on),
+# others show a plain underline; fzf drops overline. "" adds nothing. Setting FZX_COLORS[sorted] (raw SGR
+# parameters) instead overrides both settings.
+FZX_SORTED_STYLE="${FZX_SORTED_STYLE-underdashed}"
+# the color of its underline: #rrggbb, a 256-color number, or "" for the text's own color
+FZX_SORTED_UNDERLINE_COLOR="${FZX_SORTED_UNDERLINE_COLOR-#6e6e6e}"
 
 # the prompt: {icon} is FZX_ICON (set per module in its config.sh) in FZX_COLORS[prompt_loaded], or in
 # [prompt_loading] while the list loads. A prompt that is empty or blank leaves fzf's own prompt alone,

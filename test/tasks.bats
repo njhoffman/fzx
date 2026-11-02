@@ -56,7 +56,7 @@ EOF
   printf '[alias]\nxt = "test --workspace"\n' > "$B/.cargo/config.toml"
 }
 
-plain() { sed 's/\x1b\[[0-9;]*m//g'; }
+plain() { sed 's/\x1b\[[0-9;:]*m//g'; }
 src() { FZX_MODE="$1" "$TASKS/source.sh" | plain; }
 act() { FZX_MODE="$1" "$TASKS/actions.sh" "${@:2}"; }
 

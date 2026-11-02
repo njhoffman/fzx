@@ -169,7 +169,7 @@ USLT=XXX=eng=[Intro]
 second=line of lyrics
 EOF"
   stub mediainfo 'echo "00:04:08  320 kb/s  44.1 kHz  2 ch"'
-  run bash -c "PATH='$STUBS'; source '$FZX_REPO/lib/preview.sh'; fzx::preview '$D/s.mp3' | sed 's/\x1b\[[0-9;]*m//g'"
+  run bash -c "PATH='$STUBS'; source '$FZX_REPO/lib/preview.sh'; fzx::preview '$D/s.mp3' | sed 's/\x1b\[[0-9;:]*m//g'"
   [ "${lines[0]}" = "00:04:08  320 kb/s  44.1 kHz  2 ch" ]
   [[ "${lines[1]}" =~ ^Title\ +The\ Title$ ]]
   [[ "${lines[2]}" =~ ^Artist\ +The\ Artist$ ]]
@@ -187,7 +187,7 @@ EOF"
   printf 'x' > "$D/s.mp3"
   stub mid3v2 'echo "No IDv2 tag found"'
   stub mediainfo 'printf "General\nFormat                                   : MPEG Audio\nDuration : 4 min\n"'
-  run bash -c "PATH='$STUBS'; source '$FZX_REPO/lib/preview.sh'; fzx::preview '$D/s.mp3' | sed 's/\x1b\[[0-9;]*m//g'"
+  run bash -c "PATH='$STUBS'; source '$FZX_REPO/lib/preview.sh'; fzx::preview '$D/s.mp3' | sed 's/\x1b\[[0-9;:]*m//g'"
   [ "${lines[0]}" = General ]
   [[ "${lines[1]}" =~ ^Format\ {20}MPEG\ Audio$ ]]
   [[ "${lines[2]}" =~ ^Duration\ {18}4\ min$ ]]
@@ -204,7 +204,7 @@ EOF"
   printf 'x' > "$D/p.png"
   stub magick 'echo "PNG 4x4"'
   stub chafa
-  run env FZX_PREVIEW_IMAGE_FORMAT=sixels PATH="$STUBS" bash -c "source '$FZX_REPO/lib/preview.sh'; fzx::preview '$D/p.png' | sed 's/\x1b\[[0-9;]*m//g'"
+  run env FZX_PREVIEW_IMAGE_FORMAT=sixels PATH="$STUBS" bash -c "source '$FZX_REPO/lib/preview.sh'; fzx::preview '$D/p.png' | sed 's/\x1b\[[0-9;:]*m//g'"
   [ "${lines[0]}" = "PNG 4x4" ]
   [ "${lines[1]}" = "chafa --format=sixels --size=80x19 --animate=off -- $D/p.png" ]
 }
@@ -215,7 +215,7 @@ EOF"
   stub magick 'echo "PNG 4x4"'
   run pv "$D/i.svg"
   [[ "$output" == *"<svg/>"* ]]
-  run bash -c "PATH='$STUBS'; source '$FZX_REPO/lib/preview.sh'; fzx::preview '$D/p.png' | sed 's/\x1b\[[0-9;]*m//g'"
+  run bash -c "PATH='$STUBS'; source '$FZX_REPO/lib/preview.sh'; fzx::preview '$D/p.png' | sed 's/\x1b\[[0-9;:]*m//g'"
   [ "$output" = "PNG 4x4" ]
 }
 
@@ -260,7 +260,7 @@ EOF"
 @test "sqlite: tables and schema, read-only" {
   printf 'SQLite format 3\0' > "$D/s.sqlite"
   stub sqlite3 'case "$*" in *.tables) echo "t1  t2" ;; *.schema) echo "CREATE TABLE t1(a);" ;; esac; [[ "$*" == *-readonly* ]]'
-  run bash -c "PATH='$STUBS'; source '$FZX_REPO/lib/preview.sh'; fzx::preview '$D/s.sqlite' | sed 's/\x1b\[[0-9;]*m//g'"
+  run bash -c "PATH='$STUBS'; source '$FZX_REPO/lib/preview.sh'; fzx::preview '$D/s.sqlite' | sed 's/\x1b\[[0-9;:]*m//g'"
   [ "${lines[0]}" = tables ]
   [ "${lines[1]}" = "t1  t2" ]
   [ "${lines[2]}" = "CREATE TABLE t1(a);" ]
@@ -285,10 +285,10 @@ EOF"
   stub file 'case "$*" in *--mime*) echo "application/octet-stream; charset=binary" ;; *) echo data ;; esac'
   stub hexyl
   stub xxd
-  run bash -c "PATH='$STUBS'; source '$FZX_REPO/lib/preview.sh'; fzx::preview '$D/blob' | sed 's/\x1b\[[0-9;]*m//g'"
+  run bash -c "PATH='$STUBS'; source '$FZX_REPO/lib/preview.sh'; fzx::preview '$D/blob' | sed 's/\x1b\[[0-9;:]*m//g'"
   [ "${lines[0]}" = data ]
   [ "${lines[1]}" = "hexyl -n 512 -- $D/blob" ]
-  run bash -c "FZF_PREVIEW_COLUMNS=40 PATH='$STUBS'; source '$FZX_REPO/lib/preview.sh'; fzx::preview '$D/blob' | sed 's/\x1b\[[0-9;]*m//g'"
+  run bash -c "FZF_PREVIEW_COLUMNS=40 PATH='$STUBS'; source '$FZX_REPO/lib/preview.sh'; fzx::preview '$D/blob' | sed 's/\x1b\[[0-9;:]*m//g'"
   [ "${lines[1]}" = "xxd -l 512 -c 8 -- $D/blob" ]
 }
 
@@ -304,7 +304,7 @@ EOF"
 
 @test "empty and missing files" {
   : > "$D/empty"
-  run bash -c "PATH='$STUBS'; source '$FZX_REPO/lib/preview.sh'; fzx::preview '$D/empty' | sed 's/\x1b\[[0-9;]*m//g'"
+  run bash -c "PATH='$STUBS'; source '$FZX_REPO/lib/preview.sh'; fzx::preview '$D/empty' | sed 's/\x1b\[[0-9;:]*m//g'"
   [ "$output" = "empty file" ]
   run pv "$D/nope"
   [ "$status" -eq 1 ]
@@ -342,7 +342,7 @@ EOF"
 @test "debug: a first line with detector, type, renderer and time; the exit code is kept" {
   printf '{}' > "$D/j.json"
   stub jq 'echo "{}"'
-  FZX_PREVIEW_DEBUG=1 run bash -c "PATH='$STUBS'; source '$FZX_REPO/lib/preview.sh'; fzx::preview '$D/j.json' | sed 's/\x1b\[[0-9;]*m//g'"
+  FZX_PREVIEW_DEBUG=1 run bash -c "PATH='$STUBS'; source '$FZX_REPO/lib/preview.sh'; fzx::preview '$D/j.json' | sed 's/\x1b\[[0-9;:]*m//g'"
   [[ "${lines[0]}" =~ ^ext:json\ -\>\ jq\ \([0-9]+ms\)$ ]]
   [ "${lines[1]}" = "{}" ]
   [ "${#lines[@]}" -eq 2 ]
@@ -395,15 +395,15 @@ render() {
   [[ "$output" == bat* ]]
 }
 
-@test "render markdown: viewer, nvcat, glow, then bat; stdin spooled and removed; no stdin for the tools" {
+@test "render markdown: viewer, nvcat, then bat (never glow); stdin spooled and removed; no stdin for the tools" {
   ln -sf "$(command -v mktemp)" "$STUBS/mktemp"
   ln -sf "$(command -v rm)" "$STUBS/rm"
   export TMPDIR="$BATS_TEST_TMPDIR/tmp"
   mkdir -p "$TMPDIR"
   stub bat
-  stub glow 'IFS= read -r x && echo "stdin: $x"; printf "glow %s\n" "$*"'
+  stub nvcat 'IFS= read -r x && echo "stdin: $x"; printf "nvcat %s\n" "$*"'
   run render fzx::render_markdown --width 50 <<< '# t'
-  [[ "$output" =~ ^glow\ -s\ dark\ -w\ 50\ --\ .*/render\.[A-Za-z0-9]+\.md$ ]]
+  [[ "$output" =~ ^nvcat\ --columns\ 50\ .*--filetype\ markdown\ --\ .*/render\.[A-Za-z0-9]+\.md$ ]]
   [ -z "$(ls -A "$TMPDIR")" ]
   stub nvcat
   printf '# t\n' > "$D/r.md"
@@ -414,8 +414,9 @@ render() {
   # NO_COLOR: no renderer that draws in colors
   NO_COLOR=1 run render fzx::render_markdown -- "$D/r.md"
   [[ "$output" == "bat --color=never --paging=never --style=plain --language=markdown --terminal-width=80 --wrap=auto -- $D/r.md" ]]
+  # nvcat failing: bat, even with glow installed
   stub nvcat 'exit 1'
-  rm "$STUBS/glow"
+  stub glow
   run render fzx::render_markdown -- "$D/r.md"
   [[ "$output" == "bat --color=always --paging=never --style=plain --language=markdown "* ]]
 }
@@ -441,9 +442,8 @@ render() {
   stub nvcat 'exit 1'
   run pv "$D/kitty.conf"
   [[ "$output" == bat* ]]
-  # longer than the cap: bat, without asking nvcat-dispatch; markdown skips glow too
+  # longer than the cap: bat, without asking nvcat-dispatch
   stub nvcat
-  stub glow
   seq 301 > "$D/kitty.conf"
   run pv "$D/kitty.conf"
   [[ "$output" == bat* ]]

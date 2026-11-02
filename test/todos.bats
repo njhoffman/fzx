@@ -41,7 +41,7 @@ EOF
   export PATH="$BATS_TEST_TMPDIR/bin:$PATH"
 }
 
-plain() { sed 's/\x1b\[[0-9;]*m//g'; }
+plain() { sed 's/\x1b\[[0-9;:]*m//g'; }
 # the printable line (field 3) of each row
 lines_of() { (cd "$1" && FZX_MODE="${2:-here}" "$TODOS/source.sh") | cut -f3; }
 
@@ -80,7 +80,7 @@ lines_of() { (cd "$1" && FZX_MODE="${2:-here}" "$TODOS/source.sh") | cut -f3; }
 @test "preview: the card with the item's details" {
   local id
   id="$(cd "$P" && FZX_MODE=here "$TODOS/source.sh" | sed -n 2p | cut -f1)"
-  run bash -c "'$TODOS/preview.sh' \"\$1\" | sed 's/\x1b\[[0-9;]*m//g'" _ "$id"
+  run bash -c "'$TODOS/preview.sh' \"\$1\" | sed 's/\x1b\[[0-9;:]*m//g'" _ "$id"
   [ "$status" -eq 0 ]
   [[ "$output" == *'Roadmap: what comes next'* && "$output" == *'● P1 high   bug'* ]]
   [[ "$output" == *'Urgent bug'*'TODO.md:8'* && "$output" == *'it breaks when run twice'* ]]

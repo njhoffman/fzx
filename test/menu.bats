@@ -25,7 +25,7 @@ fixture_modules() {
 
 # menu entry lines without colors, as "id|display" (group headers and the empty header field left out)
 plain_lines() {
-  "$FZX" _cb source | sed 's/\x1b\[[0-9;]*m//g; /^@/d; s/\t[^\t]*$//; s/\t/|/'
+  "$FZX" _cb source | sed 's/\x1b\[[0-9;:]*m//g; /^@/d; s/\t[^\t]*$//; s/\t/|/'
 }
 
 # entry <id>: the plain line of one entry (real modules list alongside the fixtures, in name order)
@@ -277,7 +277,7 @@ EOF2
   menu_session
   "$FZX" _cb transform refresh > /dev/null
   run "$FZX" _cb preview counter#1
-  output="$(printf '%s\n' "$output" | sed 's/\x1b\[[0-9;]*m//g')"
+  output="$(printf '%s\n' "$output" | sed 's/\x1b\[[0-9;:]*m//g')"
   mapfile -t lines <<< "$output"
   [[ "${lines[0]}" == *"counter:two" ]]
   [ "${lines[1]}" = "Counter in mode two" ]

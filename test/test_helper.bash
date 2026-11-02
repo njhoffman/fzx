@@ -15,13 +15,16 @@ setup_fzx() {
   export FZX_LOG_LEVEL=debug
   # prettypath may or may not be installed; test/pretty.bats turns it on with a stub
   export FZX_PRETTY=0
+  # the sorted column as a plain underline (\e[4m), which the module tests match; test/lib.bats covers the
+  # decorations
+  export FZX_SORTED_STYLE=underline FZX_SORTED_UNDERLINE_COLOR=""
   export COUNTER_FILE="$BATS_TEST_TMPDIR/counter"
   LOG="$FZX_STATE_DIR/fzx.log"
   # renderers that start Neovim or draw by the user's own config (lib/render.sh) fail, so previews go to
   # bat or cat whatever is installed; a test's own stubs, put on PATH later, come first
   local t
   mkdir -p "$BATS_TEST_TMPDIR/norender"
-  for t in nvcat nvcat-dispatch glow; do
+  for t in nvcat nvcat-dispatch; do
     printf '#!/bin/sh\nexit 1\n' > "$BATS_TEST_TMPDIR/norender/$t"
     chmod +x "$BATS_TEST_TMPDIR/norender/$t"
   done

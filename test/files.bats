@@ -82,11 +82,11 @@ rel() { (FZX_MODE="$1" "$FILES/source.sh" "$B") | cut -f1 | sed "s:^$B/::"; }
 }
 
 @test "preview: a header with the path under ~ and the size, a directory's entry count, a link's target" {
-  run bash -c "HOME='$BATS_TEST_TMPDIR' '$FILES/preview.sh' '$B/top' 2> /dev/null | sed 's/\x1b\[[0-9;]*m//g'"
+  run bash -c "HOME='$BATS_TEST_TMPDIR' '$FILES/preview.sh' '$B/top' 2> /dev/null | sed 's/\x1b\[[0-9;:]*m//g'"
   [ "${lines[0]}" = '~/.base/top  11B' ]
-  run bash -c "HOME='$BATS_TEST_TMPDIR' '$FILES/preview.sh' '$B/a' 2> /dev/null | sed 's/\x1b\[[0-9;]*m//g' | head -1"
+  run bash -c "HOME='$BATS_TEST_TMPDIR' '$FILES/preview.sh' '$B/a' 2> /dev/null | sed 's/\x1b\[[0-9;:]*m//g' | head -1"
   [ "$output" = '~/.base/a  1 entry' ]
-  run bash -c "HOME='$BATS_TEST_TMPDIR' '$FILES/preview.sh' '$B/linkfile' 2> /dev/null | sed 's/\x1b\[[0-9;]*m//g' | head -1"
+  run bash -c "HOME='$BATS_TEST_TMPDIR' '$FILES/preview.sh' '$B/linkfile' 2> /dev/null | sed 's/\x1b\[[0-9;:]*m//g' | head -1"
   [ "$output" = "~/.base/linkfile  11B  -> $B/top" ]
 }
 

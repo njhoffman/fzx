@@ -14,7 +14,7 @@ help_text() {
   bind="$(fzf_bind f1)"
   cmd="$(bash -c "${bind#f1:transform:}")"
   cmd="${cmd#show-preview+preview:}"
-  bash -c "$cmd" | sed 's/\x1b\[[0-9;]*m//g'
+  bash -c "$cmd" | sed 's/\x1b\[[0-9;:]*m//g'
 }
 
 # one section of the page ("▌ NAME  subtitle" up to the next title), from $output
@@ -160,7 +160,7 @@ section() {
 
 @test "free keys: ctrl punctuation, ctrl-alt, alt punctuation and modified navigation; synonyms count as taken" {
   FZF_DEFAULT_OPTS_FILE= FZF_DEFAULT_OPTS= COLUMNS=400 run "$FZX" keys ctrl-_ ctrl-6 ctrl-alt-x alt-. ctrl-page-up
-  output="$(printf '%s' "$output" | sed 's/\x1b\[[0-9;]*m//g')"
+  output="$(printf '%s' "$output" | sed 's/\x1b\[[0-9;:]*m//g')"
   run section free
   local row
   row="$(printf '%s\n' "$output" | grep '^  ctrl  ')"
@@ -181,7 +181,7 @@ section() {
 
 @test "free keys: rows wrap by characters, not bytes" {
   FZF_DEFAULT_OPTS_FILE= FZF_DEFAULT_OPTS= COLUMNS=60 run "$FZX" keys s:glyph
-  output="$(printf '%s' "$output" | sed 's/\x1b\[[0-9;]*m//g')"
+  output="$(printf '%s' "$output" | sed 's/\x1b\[[0-9;:]*m//g')"
   run section free
   local l longest=0
   while IFS= read -r l; do ((${#l} > longest)) && longest=${#l}; done <<< "$output"
@@ -192,7 +192,7 @@ section() {
 @test "fzx keys: synonyms fold into one name; continuation lines and double quotes parse" {
   printf '%s\n' "--bind 'return:accept' \\" "  --bind \"bs:kill-line\"" > "$BATS_TEST_TMPDIR/fzfrc"
   FZF_DEFAULT_OPTS_FILE="$BATS_TEST_TMPDIR/fzfrc" FZF_DEFAULT_OPTS= run "$FZX" keys shift-tab
-  output="$(printf '%s' "$output" | sed 's/\x1b\[[0-9;]*m//g')"
+  output="$(printf '%s' "$output" | sed 's/\x1b\[[0-9;:]*m//g')"
   [[ "$output" =~ enter\ +yours\ +accept ]]
   [[ "$output" =~ bspace\ +yours\ +kill-line ]]
   run section fzx
@@ -208,7 +208,7 @@ section() {
   [[ "$output" == "show-preview+preview:$FZX keys s:full m:ps "* && "$output" != *l:grid* ]]
   FZF_ACTION=show-preview run bash -c "${bind#f1:transform:}"
   [[ "$output" == "ignore+preview:$FZX keys s:full m:ps "*" l:grid " ]]
-  run bash -c "${output#ignore+preview:} | sed 's/\x1b\[[0-9;]*m//g'"
+  run bash -c "${output#ignore+preview:} | sed 's/\x1b\[[0-9;:]*m//g'"
   [[ "$output" == *"▌ keys  by modifier"* && "$output" != *"▌ free"* ]]
   [[ "$output" =~ ctrl-\ +a\ b\ c\ d\ e\ f\ g\ j ]]
   [[ "$output" =~ alt-shift-\ +A\ B ]]
@@ -238,7 +238,7 @@ section() {
   fzx::key_label alt-bs l glyph && [ "$l" = "⌥⌫" ]
   fzx::key_label f5 l glyph && [ "$l" = "F5" ]
   fzx::key_label alt-left l full && [ "$l" = "alt-left" ]
-  run bash -c "'$FZX' keys s:glyph m:ps k:\$'ps\tctrl-x\tterm' c:\$'action\tterm\tctrl-x,f5\tkill' | sed 's/\x1b\[[0-9;]*m//g'"
+  run bash -c "'$FZX' keys s:glyph m:ps k:\$'ps\tctrl-x\tterm' c:\$'action\tterm\tctrl-x,f5\tkill' | sed 's/\x1b\[[0-9;:]*m//g'"
   [[ "$output" == *"term [⌃X,F5]"* ]]
   [[ "$output" =~ ⌃X\ +term ]]
   [[ "$(printf '%s\n' "$output" | sed -n '/^▌ free/,$p')" =~ ⌃[A-Z] ]]

@@ -33,7 +33,7 @@ STUB
   export PATH="$BATS_TEST_TMPDIR/bin:$PATH"
 }
 
-plain() { sed 's/\x1b\[[0-9;]*m//g'; }
+plain() { sed 's/\x1b\[[0-9;:]*m//g'; }
 src() { FZX_MODE="$1" "$DOCKER/source.sh" | plain; }
 act() { FZX_MODE="$1" "$DOCKER/actions.sh" "${@:2}"; }
 
@@ -106,7 +106,7 @@ case "\$1" in
   logs) printf 'line one of %s\nline two of %s\n' "\${@: -1}" "\${@: -1}" ;;
 esac
 STUB
-  run bash -c "FZX_MODE=containers '$DOCKER/actions.sh' logs c1 c2 | sed 's/\x1b\[[0-9;]*m//g' | sort"
+  run bash -c "FZX_MODE=containers '$DOCKER/actions.sh' logs c1 c2 | sed 's/\x1b\[[0-9;:]*m//g' | sort"
   [ "$status" -eq 0 ]
   [[ "$output" == *'[name-c1] line one of c1'* && "$output" == *'[name-c2] line two of c2'* ]]
 }

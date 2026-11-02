@@ -124,7 +124,7 @@ STUB
   local zint
   zint="$(readlink -f "$BATS_TEST_DIRNAME/../shell/fzx.zsh")"
   run script -qec "zsh -f -i -c \"FZX_ZSH_BIN='$FZX'; source '$zint'; cd '$T'; g proj; pwd; g proj; pwd; cd /; gg; pwd\"" /dev/null
-  output="$(printf '%s' "$output" | tr -d '\r' | sed 's/\x1b\[[0-9;]*m//g')"
+  output="$(printf '%s' "$output" | tr -d '\r' | sed 's/\x1b\[[0-9;:]*m//g')"
   [[ "$output" == *"$T/one/proj"$'\n'*"$T/two/proj"* ]]
   # gg with no words: "proj" again, several matches, the stub fzf picks nothing -> stays in /
   [[ "$output" == *$'\n/' || "$output" == *$'\n'"/"$'\n'* ]]

@@ -80,10 +80,11 @@ kept() {
   [ "$(< "$DIR/state/sort")" = name ]
 }
 
-@test "keys: toggle rows with a key, f11/f12 for sort, a sort row's own key" {
+@test "keys: toggle rows with a key, f11/f12 (and ctrl-_) for sort, a sort row's own key" {
   run "$FZX" -m counter
   [ "$(fzf_bind alt-h)" = "alt-h:transform:$FZX _cb toggle hidden" ]
   [ "$(fzf_bind f12)" = "f12:transform:$FZX _cb sort next" ]
+  [ "$(fzf_bind ctrl-_)" = "ctrl-_:transform:$FZX _cb sort next" ]
   [ "$(fzf_bind f11)" = "f11:transform:$FZX _cb sort prev" ]
   [ "$(fzf_bind f5)" = "f5:transform:$FZX _cb sort size" ]
   read_fzf_args

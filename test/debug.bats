@@ -111,7 +111,7 @@ listening() {
   echo "my query" > "$FZX_RUNTIME_DIR/sessions/$sid/state/query"
   FZX_SESSION="$sid" FZF_QUERY=abc FZF_POS=2 FZF_PREVIEW_COLUMNS=120 run "$FZX" _cb debug $'id\tshown'
   [ "$status" -eq 0 ]
-  output="$(printf '%s' "$output" | sed 's/\x1b\[[0-9;]*m//g')"
+  output="$(printf '%s' "$output" | sed 's/\x1b\[[0-9;:]*m//g')"
   [[ "$output" == "session $sid"* ]]
   [[ "$output" == *"  path                   counter:two"* ]]
   [[ "$output" == *"  args                   --x"* ]]

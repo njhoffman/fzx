@@ -229,7 +229,7 @@ src() {
   local rc
   FZX_MODE="$1" FZF_QUERY="$2" "$GH_DIR/source.sh" "${@:3}" > "$BATS_TEST_TMPDIR/src.out"
   rc=$?
-  sed 's/\x1b\[[0-9;]*m//g' "$BATS_TEST_TMPDIR/src.out"
+  sed 's/\x1b\[[0-9;:]*m//g' "$BATS_TEST_TMPDIR/src.out"
   return "$rc"
 }
 
@@ -322,11 +322,11 @@ searches() { grep -c '^search ' "$BATS_TEST_TMPDIR/gh.calls" 2> /dev/null || ech
   src code x > /dev/null
   local file
   file="$(cut -f4 "$BATS_TEST_TMPDIR/src.out" | head -1)"
-  run --separate-stderr bash -c '"$0" "$@" | sed "s/\x1b\[[0-9;]*m//g"' "$GH_DIR/preview.sh" "https://github.com/o/r/blob/$SHA/lib/opts.sh" code o/r "$file" 0
+  run --separate-stderr bash -c '"$0" "$@" | sed "s/\x1b\[[0-9;:]*m//g"' "$GH_DIR/preview.sh" "https://github.com/o/r/blob/$SHA/lib/opts.sh" code o/r "$file" 0
   [ "${lines[0]}" = "o/r  lib/opts.sh" ]
   [[ "$output" == *"# fzx::bind adds a key"$'\n'"fzx::bind() {"* ]]
   [[ "$output" == *"blob aaaa"* ]]
-  run bash -c '"$0" "$@" | sed "s/\x1b\[[0-9;]*m//g"' "$GH_DIR/preview.sh" "https://github.com/o/r/blob/$SHA/lib/a.sh" blob o/r b2:20 lib/a.sh
+  run bash -c '"$0" "$@" | sed "s/\x1b\[[0-9;:]*m//g"' "$GH_DIR/preview.sh" "https://github.com/o/r/blob/$SHA/lib/a.sh" blob o/r b2:20 lib/a.sh
   [[ "$output" == *"blob b2"* ]]
   run "$GH_DIR/preview.sh" "https://github.com/o/r/blob/$SHA/lib/sub/b.sh" blob o/r b3:5000000 lib/sub/b.sh
   [[ "$output" == *"5000000 bytes, not previewed"* ]]
@@ -562,10 +562,10 @@ searches() { grep -c '^search ' "$BATS_TEST_TMPDIR/gh.calls" 2> /dev/null || ech
 @test "f2: the module's debug section lists every rate limit; modules without one get none" {
   load_libs log session
   fzx::session_create github "$GH_DIR"
-  run bash -c '"$0" _cb debug | sed "s/\x1b\[[0-9;]*m//g"' "$FZX"
+  run bash -c '"$0" _cb debug | sed "s/\x1b\[[0-9;:]*m//g"' "$FZX"
   [[ "$output" == *"github (github::debug)"$'\n'"  searches left: 29/30"* ]]
   fzx::session_create ps "$FZX_REPO/modules/ps"
-  run bash -c '"$0" _cb debug | sed "s/\x1b\[[0-9;]*m//g"' "$FZX"
+  run bash -c '"$0" _cb debug | sed "s/\x1b\[[0-9;:]*m//g"' "$FZX"
   [[ "$output" == *"state/"* && "$output" != *"::debug)"* ]]
   ! grep -q "not defined" "$LOG"
 }

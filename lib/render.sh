@@ -130,7 +130,7 @@ fzx::_render_nvcat() {
   command nvcat --columns "$1" --all --cat --fallback none --filetype "$2" -- "$3" 2> /dev/null < /dev/null
 }
 
-# markdown: the user's viewer, else nvcat, else glow, else bat as markdown in plain style, else cat; under
+# markdown: the user's viewer, else nvcat, else bat as markdown in plain style, else cat; under
 # NO_COLOR, or over FZX_PREVIEW_NVCAT_MAX_LINES lines, straight to bat (or cat)
 fzx::render_markdown() {
   local width="${FZF_PREVIEW_COLUMNS:-80}" file="-" tmp="" viewer rc=1
@@ -156,10 +156,6 @@ fzx::render_markdown() {
       fzx::_preview_user "$viewer" "$file" && rc=0
     elif [[ -n "$draw" ]] && command -v nvcat > /dev/null &&
       _FZX_PV_RENDERER=nvcat && fzx::_render_nvcat "$width" markdown "$file"; then
-      rc=0
-    # stdin from /dev/null: glow reads a stdin that is no terminal even when given a file
-    elif [[ -n "$draw" ]] && command -v glow > /dev/null &&
-      _FZX_PV_RENDERER=glow && command glow -s dark -w "$width" -- "$file" 2> /dev/null < /dev/null; then
       rc=0
     else
       FZF_PREVIEW_COLUMNS="$width" fzx::render_text --language markdown --style "${FZX_PREVIEW_BAT_STYLE:-plain}" --wrap "$file" && rc=0

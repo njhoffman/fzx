@@ -61,7 +61,7 @@ tmux::reference_nvim() {
     *) printf 'tmux: nvim opens the reference lists (keys, commands, options, ...), not %s\n' "$mode" >&2; return 2 ;;
   esac
   file="$(mktemp "${TMPDIR:-/tmp}/fzx-tmux-$mode.XXXXXX")" || return
-  tmux::reference list "$mode" | cut -f2 | sed $'s/\e\\[[0-9;]*m//g' > "$file"
+  tmux::reference list "$mode" | cut -f2 | sed $'s/\e\\[[0-9;:]*m//g' > "$file"
   "${FZX_TMUX_NVIM:-nvim}" -c 'setlocal buftype=nofile filetype=tmux' -- "$file"
   rm -f -- "$file"
 }

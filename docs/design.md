@@ -289,7 +289,7 @@ later to win. Only an order that is the content itself (ps's tree) turns sorting
 space-separated) and `FZX_SORT`, exactly like `FZX_MODE`, and live in `state/toggles` / `state/sort`;
 standalone runs take them from the environment. A toggle row's key flips it, and so does alt-1 .. alt-8 by
 the toggle's place in the table (`FZX_TOGGLE_DIGIT_KEYS`; a number another row or `FZX_KEYS` has is skipped); f11/f12 (`FZX_KEYS[sort_prev]`,
-`[sort_next]`) cycle the sort when there are two or more, and a sort row's key selects it. Changes reload
+`[sort_next]`, which also has ctrl-_) cycle the sort when there are two or more, and a sort row's key selects it. Changes reload
 in place (`transform(fzx _cb toggle NAME)`, `fzx _cb sort next|prev|NAME`); a row flagged `restart` restarts
 fzf instead. The cache key is the view, not just the mode: `<mode>[+<toggles on>][@<sort>]`
 (`data/all+kernel@mem`), so each combination is cached once. The footer shows modes, toggles and the sort
@@ -303,9 +303,11 @@ first, among the rows the mode has. A scoped description must name modes that ex
 modes the table lacks applies everywhere, so computed tables print such rows only with their mode (dirs'
 bookmarks).
 
-Sources draw the column a list is sorted by in `FZX_COLORS[sorted]` (default `4`, underline) on top of
-the column's own color, in the text and not its padding, header included where there is one. It is done
-in the source and not with fzf's `change-nth` and `--color nth`, because `change-nth` also narrows what
+Sources draw the column a list is sorted by in `FZX_COLORS[sorted]` on top of the column's own color.
+`fzx::config_load` derives it from `FZX_SORTED_STYLE` (decoration names, default `underdashed`) and
+`FZX_SORTED_UNDERLINE_COLOR` (default `#6e6e6e`) unless a layer sets it; it may hold colons (`4:5`), so
+anything stripping SGR must allow `[0-9;:]`. It is drawn in the text and not its padding, header included
+where there is one. It is done in the source and not with fzf's `change-nth` and `--color nth`, because `change-nth` also narrows what
 the query matches to that column. Sorted columns: ps (cpu, mem, age, pid), docker containers (state, name)
 and images (created, size, name), tmux sessions, windows and panes (order, recent: an activity age column,
 name), systemd (name, state), recent (rank: the score, path), dirs bookmarks (name, path), logs files
@@ -463,7 +465,7 @@ ITEM may be a grep hit, `path:line[:col:text]`: the shortest prefix that exists,
 path. Detection takes the extension first and runs `file --mime` only for names it does not know (about
 20ms); a `.db` must start with SQLite's magic. Each type has a chain, the first tool installed and
 succeeding wins: text and code bat (cat), or nvcat for the files `nvcat-dispatch --print` claims (config
-formats bat has no syntax for; not for a grep hit's line, which bat highlights); markdown nvcat (glow, bat); mp3 mid3v2's tags named and ordered,
+formats bat has no syntax for; not for a grep hit's line, which bat highlights); markdown nvcat (bat); mp3 mid3v2's tags named and ordered,
 under mediainfo's stream line (mediainfo, ffprobe); audio and video mediainfo (ffprobe); images a size line
 and chafa (an svg's source); pdf pdftotext's first three pages; archives bsdtar (7z, unzip; dpkg-deb for
 .deb); compressed files their decompressed first megabyte, highlighted for the inner name; json jq up to

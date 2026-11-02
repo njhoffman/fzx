@@ -277,7 +277,7 @@ stub() {
   # the command: tree branch dim, directory dim, name bold white, options blue
   [[ "${lines[2]}" == *$'\e[38;5;244m/usr/bin/\e[0m\e[1;38;5;255mvim\e[0m \e[38;5;110m--clean'* ]]
   local plain
-  plain="$(sed 's/\x1b\[[0-9;]*m//g' <<< "${lines[2]}")"
+  plain="$(sed 's/\x1b\[[0-9;:]*m//g' <<< "${lines[2]}")"
   [[ "$plain" =~ ^202\ +101\ me\ +75\.5\ 12\.0\ +3\.0G\ +02:00\ R\ +pts/1\ +\ \\_\ /usr/bin/vim\ --clean\ notes\.md$ ]]
   # kernel threads (parent 2) only with the toggle; then cyan
   run env -u NO_COLOR bash -c "source '$PS_DIR/source.sh'; USER=me ps::color 1 <<< \"\$1\" | tail -1" _ "$table"
