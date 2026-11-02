@@ -6,6 +6,13 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.60.1] - 2026-11-02
+
+### Changed
+
+- Actions menu: the reload mark sits a space after the run icon (Nerd Font glyphs drew over each other) in
+  a dimmer teal, and the preview lists each flag on its own line with what it means.
+
 ## [0.60.0] - 2026-11-02
 
 ### Added

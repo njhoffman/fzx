@@ -62,7 +62,8 @@ actions::how() {
 }
 
 # actions::how_icon <flags> <var>: the colored icon of how the action runs, then the reload mark or a
-# space (two cells, or none with FZX_ICONS=none)
+# blank, a space apart (Nerd Font glyphs draw wider than their cell), then a space; none with
+# FZX_ICONS=none
 actions::how_icon() {
   local _how _g _r _out="" _f=",$1,"
   fzx::require icons
@@ -73,9 +74,9 @@ actions::how_icon() {
   if [[ "$_f" == *,reload,* || "$_f" == *,restart,* ]]; then
     fzx::icon action_reload _r
     actions::sgr actions_reload "" "$_r" _r
-    _out+="$_r"
+    _out+=" $_r"
   else
-    _out+=" "
+    _out+="  "
   fi
   printf -v "$2" '%s ' "$_out"
 }

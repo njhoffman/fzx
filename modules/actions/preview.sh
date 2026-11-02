@@ -4,9 +4,28 @@
 # shellcheck source=./source.sh
 source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
 
+# actions::flag_meaning <flag> <var>: what the flag does (lib/actions.sh lists them)
+actions::flag_meaning() {
+  local _m
+  case "$1" in
+    foreground) _m="gets the terminal (editors, sudo, followers)" ;;
+    silent) _m="runs in the background; the screen does not change" ;;
+    notify) _m="runs in the background; the footer says it ran, or why it failed" ;;
+    become) _m="replaces fzf; its output is fzx's result" ;;
+    print) _m="replaces fzf and prints a value" ;;
+    reload) _m="the list reloads afterwards" ;;
+    restart) _m="the screen restarts with fresh data afterwards" ;;
+    confirm) _m="asks on the terminal first" ;;
+    default) _m="bound to enter as well" ;;
+    builtin) _m="one of fzx's own, not the module's" ;;
+    *) _m="" ;;
+  esac
+  printf -v "$2" '%s' "$_m"
+}
+
 # actions::preview <name>
 actions::preview() {
-  local row k n key desc flags how a f icon label out cap tags="" sep=""
+  local row k n key desc flags how a f icon label out cap mean
   actions::row "${1:-}" row || return
   IFS=$'\t' read -r k n key desc flags <<< "$row"
   fzx::session_args
@@ -21,7 +40,9 @@ actions::preview() {
     actions::sgr actions_key '38;5;180;48;5;236' " $key " cap
   fi
   printf '%s %s\n' "$label" "$cap"
-  # each flag in the color of what it does
+  # each flag on its own line in the color of what it does, with what it means
+  actions::sgr actions_label '38;5;244' 'flags' label
+  if [[ -z "$flags" || "$flags" == - ]]; then printf '%s none\n' "$label"; else printf '%s\n' "$label"; fi
   for f in ${flags//,/ }; do
     [[ "$f" == - ]] && continue
     case "$f" in
@@ -33,11 +54,13 @@ actions::preview() {
       builtin) how=actions_builtin ;;
       *) how=actions_run ;;
     esac
-    actions::sgr "$how" '' "$f" out
-    tags+="$sep$out" sep=" "
+    printf -v out '%-10s' "$f"
+    actions::sgr "$how" '' "$out" out
+    actions::flag_meaning "$f" mean
+    actions::sgr dim '38;5;244' "$mean" mean
+    printf '  %s  %s\n' "$out" "$mean"
   done
-  actions::sgr actions_label '38;5;244' 'flags' label
-  printf '%s %s\n\n' "$label" "${tags:-none}"
+  printf '\n'
   actions::sgr actions_label '38;5;244' 'runs on:' label
   printf '%s\n' "$label"
   for a in "${ACTIONS_ARGV[@]}"; do
