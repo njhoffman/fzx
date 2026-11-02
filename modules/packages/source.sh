@@ -7,6 +7,7 @@
 # rebuilt when /var/lib/apt/lists (and for upgradable /var/lib/dpkg/status) changes; rows are formatted on
 # every run, so the installed marks stay current.
 # $FZX_TOGGLES: manual (apt: no dependencies), runtimes (flatpak). $FZX_SORT: name (default) or size (apt).
+# snap-available, flatpak-available and search are in remote.sh.
 
 declare -gA FZX_COLORS
 
@@ -79,8 +80,8 @@ packages::_sorted() {
   fi
 }
 
-# packages::_cached <name> <stamp> <fn>: fn's output, kept in $FZX_CACHE_DIR/packages/<name> while the stamp
-# holds; a failing fn leaves the cache alone
+# packages::_cached <name> <stamp> <cmd...>: the command's output, kept in $FZX_CACHE_DIR/packages/<name>
+# while the stamp holds; a failing command leaves the cache alone
 packages::_cached() {
   local file="$FZX_CACHE_DIR/packages/$1" stamp="$2" tmp rc
   if [[ -f "$file" && -f "$file.stamp" && "$(< "$file.stamp")" == "$stamp" ]]; then
@@ -89,7 +90,7 @@ packages::_cached() {
   fi
   mkdir -p -- "${file%/*}"
   tmp="$(mktemp "$file.XXXXXX")"
-  "$3" > "$tmp"
+  "${@:3}" > "$tmp"
   rc=$?
   if ((rc)); then
     rm -f -- "$tmp"
@@ -278,16 +279,24 @@ packages::source() {
       printf 'packages: apt is not installed\n' >&2
       return 1
     } ;;
-    snap | flatpak | pipx | cargo | pnpm | gem) packages::has "$mode" || {
-      printf 'packages: %s is not installed\n' "$mode" >&2
+    snap | flatpak | pipx | cargo | pnpm | gem | snap-available | flatpak-available) packages::has "${mode%-available}" || {
+      printf 'packages: %s is not installed\n' "${mode%-available}" >&2
       return 1
     } ;;
+    search) ;;
     *)
       printf 'packages: unknown mode: %s\n' "$mode" >&2
       return 2
       ;;
   esac
-  "packages::$mode"
+  case "$mode" in
+    snap-available) packages::snap_available ;;
+    flatpak-available) packages::flatpak_available ;;
+    *) "packages::$mode" ;;
+  esac
 }
+
+# shellcheck source=./remote.sh
+source "$(dirname "${BASH_SOURCE[0]}")/remote.sh"
 
 [[ "${BASH_SOURCE[0]}" == "$0" ]] && packages::source "$@"

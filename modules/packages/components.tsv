@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # packages components, computed: a mode per package manager on PATH (see lib/components.sh for the table
-# format). apt's available and upgradable lists are cached (source.sh); the others read installed packages.
+# format). apt's available and upgradable lists are cached (source.sh); snap-available, flatpak-available
+# and search are in remote.sh.
 dir="$(dirname "$(readlink -f "$0")")"
 # shellcheck source=../../lib/core.sh
 source "${FZX_ROOT:-$dir/../..}/lib/core.sh"
@@ -10,34 +11,62 @@ source "$dir/source.sh"
 row() { printf '%s\t%s\t%s\t%s\t%s\n' "$@"; }
 
 apt=0 default=default
-packages::has apt && apt=1
-if ((apt)); then
+modes=()
+if packages::has apt; then
+  apt=1
   row mode apt - 'apt: installed packages (dependencies dim)' default
   row mode available - 'apt: every package the archives offer (installed ones marked)' -
   row mode upgradable - 'apt: installed packages with a newer version' -
+  modes=(apt available upgradable)
   default=-
 fi
-for m in snap flatpak pipx cargo pnpm gem; do
-  packages::has "$m" || continue
+for m in snap snap-available flatpak flatpak-available pipx cargo pnpm gem; do
   case "$m" in
-    snap) row mode snap - 'snaps' "$default" ;;
-    flatpak) row mode flatpak - 'flatpak applications (runtimes with the runtimes toggle)' "$default" ;;
-    pipx) row mode pipx - 'pipx applications' "$default" ;;
-    cargo) row mode cargo - 'cargo install crates, with their source' "$default" ;;
-    pnpm) row mode pnpm - 'pnpm global packages' "$default" ;;
-    gem) row mode gem - 'gems you installed (user and system; the ones apt owns left out)' "$default" ;;
-  esac
-  default=-
+    snap) packages::has snap && row mode snap - 'snaps' "$default" ;;
+    snap-available)
+      packages::has snap && [[ -r "$(packages::snap_names)" ]] &&
+        row mode snap-available - 'every snap in the store, by name (details fetched for the preview)' - ;;
+    flatpak) packages::has flatpak && row mode flatpak - 'flatpak applications (runtimes with the runtimes toggle)' "$default" ;;
+    flatpak-available)
+      packages::has flatpak && [[ -n "$(packages::flatpak_remotes)" ]] &&
+        row mode flatpak-available - "the remotes' applications (their appstream data)" - ;;
+    pipx) packages::has pipx && row mode pipx - 'pipx applications' "$default" ;;
+    cargo) packages::has cargo && row mode cargo - 'cargo install crates, with their source' "$default" ;;
+    pnpm) packages::has pnpm && row mode pnpm - 'pnpm global packages' "$default" ;;
+    gem) packages::has gem && row mode gem - 'gems you installed (user and system; the ones apt owns left out)' "$default" ;;
+  esac || continue
+  modes+=("$m")
+  [[ "$m" == *-available ]] || default=-
 done
+registries="$(packages::search_registries)"
+[[ -n "$registries" ]] &&
+  row mode search - 'search crates.io, npm and rubygems.org as you type (and PyPI by exact name)' 'restart,nopersist'
 
 ((apt)) && row toggle manual alt-m 'apt: only packages installed by hand, not as dependencies' -
 packages::has flatpak && row toggle runtimes - 'flatpak: runtimes and extensions too' -
+while IFS=$'\t' read -r toggle _; do
+  case "$toggle" in
+    crates) row toggle crates - 'search: crates.io (cargo)' on ;;
+    npm) row toggle npm - 'search: the npm registry (pnpm)' on ;;
+    rubygems) row toggle rubygems - 'search: rubygems.org' on ;;
+    pypi) row toggle pypi - 'search: PyPI, the query as an exact name (pipx)' on ;;
+  esac
+done <<< "$registries"
 
-row sort name - 'by name' default
+# by name everywhere but search, whose order is the registries' relevance
+if ((${#modes[@]})); then
+  scope="${modes[*]}"
+  row sort name - "${scope// /, }: by name" default
+fi
 ((apt)) && row sort size - 'apt: largest installed size first' -
 
-((apt)) && row action install alt-i 'available: install' 'foreground,reload'
+install=""
+((apt)) && install="available, "
+[[ " ${modes[*]} " == *" snap-available "* ]] && install+="snap-available, "
+[[ " ${modes[*]} " == *" flatpak-available "* ]] && install+="flatpak-available, "
+[[ -n "$registries" ]] && install+="search, "
+[[ -n "$install" ]] && row action install alt-i "${install%, }: install" 'foreground,reload'
 row action upgrade alt-u 'upgrade to the latest version (sudo for apt, snap and system gems)' 'foreground,reload'
-row action remove alt-x 'remove (sudo for apt, snap and system gems)' 'confirm,reload'
-((apt)) && row action purge - 'apt, available, upgradable: remove with the configuration files' 'confirm,reload'
+row action remove alt-x 'remove, asking first (apt asks itself; sudo for apt, snap and system gems)' 'foreground,reload'
+((apt)) && row action purge - 'apt, available, upgradable: remove with the configuration files (apt asks)' 'foreground,reload'
 exit 0

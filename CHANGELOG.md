@@ -6,6 +6,21 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.62.0] - 2026-11-02
+
+### Added
+
+- packages: snap-available and flatpak-available list the snap store's names and the flatpak remotes'
+  applications to install from; a search mode asks crates.io, npm and rubygems.org as you type (and PyPI
+  for an exact name), with a toggle per registry. Packages that are not installed are previewed from the
+  network, cached a day each. Install handles snaps that need --classic and installs flatpaks from their
+  remote.
+
+### Changed
+
+- packages: remove asks first itself for every manager but apt, which lists what else it would remove and
+  asks on its own (no more double prompt); purge leaves the asking to apt.
+
 ## [0.61.0] - 2026-11-02
 
 ### Added

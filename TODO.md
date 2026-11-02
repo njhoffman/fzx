@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.61.0): the six steps of `docs/design.md` are done. Modules: actions, audio, capture, colors, dirs,
+Status (0.62.0): the six steps of `docs/design.md` are done. Modules: actions, audio, capture, colors, dirs,
 docker, files, git, github, glyphs, history, keybindings, logs, man, menu, network, packages, ps, recent, repos, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
@@ -108,9 +108,6 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [x] **shell** (p2) [module]: modes for executables on PATH, aliases and shell functions (man/tldr or
       definition preview, the man module's renderer), and environment variables and parameters with values.
       Done in 0.37.0 (modules/shell).
-- [ ] **packages: search the other managers** (p3) [feature]: install from snap, flatpak, cargo, pnpm
-      and gem needs their network search (`snap find`, `flatpak search`, `cargo search`, `pnpm search`,
-      `gem search -r`): query-driven modes (`change:reload`, debounced) with stubs per manager in the tests.
 - [ ] **repl** (p2) [module]: live jq/awk/sed/grep/sh filter over a file with the result in the preview
       (`change:reload`). Refs: ref/mods/repl.sh + repl-data, development/fzr-*, fzf/_scratch/repl.*.
       Has: jq, awk, sed. Missing: yq (fzr-yq mode).

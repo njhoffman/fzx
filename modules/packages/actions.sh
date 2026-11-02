@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # packages actions, bound with execute (in the foreground) so sudo, apt's own prompt and polkit can ask.
 # The selection is grouped by manager (and installation), one command per group, so several apt packages
-# install in one apt run. apt and snap run through sudo; flatpak's system installation asks through
+# install in one apt run. install takes rows of the catalogs and the search: snaps get --classic when the
+# store says they need it, flatpaks come from the row's remote, gems go to your user gem home. apt and snap run through sudo; flatpak's system installation asks through
 # polkit itself; gems through sudo when their gem home is not writable. A failure waits for a key, since
 # execute would wipe the output at once.
 
@@ -20,6 +21,22 @@ packages::_report() {
   printf '\n\e[31mfailed (exit %s)\e[0m, press a key ' "$rc"
   IFS= read -rsn1 2> /dev/null < /dev/tty || :
   return "$rc"
+}
+
+# packages::_confirm <what> <names...>: ask y/N on the terminal (stdin when it is a pipe or a file); apt's
+# remove and purge skip this, apt asks itself and lists what else goes with them
+packages::_confirm() {
+  local what="$1" ans="" fd
+  shift
+  printf '\n\e[1m%s\e[0m %s\n[y/N] ' "$what" "$*"
+  if [[ -p /dev/stdin || -f /dev/stdin ]]; then
+    IFS= read -rsn1 ans || :
+  elif { exec {fd}< /dev/tty; } 2> /dev/null; then
+    IFS= read -rsn1 -u "$fd" ans || :
+    exec {fd}<&-
+  fi
+  printf '\n'
+  [[ "$ans" == [yY] ]]
 }
 
 # packages::_gem_dir <scope> <name>: the gem home of that scope holding the gem
@@ -64,18 +81,51 @@ packages::cargo_install_args() {
 packages::_group() {
   local action="$1" manager="$2" scope="$3" name rc=0
   shift 3
+  if [[ "$action" == remove && "$manager" != apt ]]; then
+    local label="$manager"
+    [[ "$scope" == - ]] || label+=" $scope"
+    packages::_confirm "remove ($label):" "$@" || return 0
+  fi
   case "$manager:$action" in
     apt:install) packages::_root apt install "$@" ;;
     apt:upgrade) packages::_root apt install --only-upgrade "$@" ;;
     apt:remove) packages::_root apt remove "$@" ;;
     apt:purge) packages::_root apt purge "$@" ;;
+    snap:install)
+      # classic snaps refuse to install without --classic: the store's details say which (cached)
+      for name in "$@"; do
+        if packages::remote_info snap "$name" 2> /dev/null | grep -qx $'confinement\tclassic'; then
+          printf '%s uses classic confinement (full access to the system): installing with --classic\n' "$name"
+          packages::_root snap install --classic "$name" || rc=$?
+        else
+          packages::_root snap install "$name" || rc=$?
+        fi
+      done
+      return "$rc"
+      ;;
     snap:upgrade) packages::_root snap refresh "$@" ;;
     snap:remove) packages::_root snap remove "$@" ;;
-    flatpak:upgrade) command flatpak update "--$scope" "$@" ;;
-    flatpak:remove) command flatpak uninstall "--$scope" "$@" ;;
-    pipx:upgrade | pipx:remove)
+    flatpak:install)
+      # catalog rows carry their remote (APP@REMOTE); flatpak install takes one remote per run
       for name in "$@"; do
-        command pipx "$([[ "$action" == upgrade ]] && echo upgrade || echo uninstall)" "$name" || rc=$?
+        [[ "$name" == *@* ]] || {
+          printf 'flatpak: %s: no remote to install it from\n' "$name" >&2
+          rc=2
+          continue
+        }
+        command flatpak install "--$scope" "${name##*@}" "${name%@*}" || rc=$?
+      done
+      return "$rc"
+      ;;
+    flatpak:upgrade) command flatpak update "--$scope" "${@%@*}" ;;
+    flatpak:remove) command flatpak uninstall "--$scope" "${@%@*}" ;;
+    pipx:install | pipx:upgrade | pipx:remove)
+      for name in "$@"; do
+        case "$action" in
+          install) command pipx install "$name" ;;
+          upgrade) command pipx upgrade "$name" ;;
+          remove) command pipx uninstall "$name" ;;
+        esac || rc=$?
       done
       return "$rc"
       ;;
@@ -92,9 +142,18 @@ packages::_group() {
       done
       return "$rc"
       ;;
+    cargo:install) command cargo install "$@" ;;
     cargo:remove) command cargo uninstall "$@" ;;
+    pnpm:install) command pnpm add -g "$@" ;;
     pnpm:upgrade) command pnpm update -g --latest "$@" ;;
     pnpm:remove) command pnpm remove -g "$@" ;;
+    gem:install)
+      if [[ "$scope" == user ]]; then
+        command gem install --user-install "$@"
+      else
+        packages::_root gem install "$@"
+      fi
+      ;;
     gem:upgrade | gem:remove)
       local dir
       local -a run=()

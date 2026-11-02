@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # packages: installed packages of apt, snap, flatpak, pipx, cargo, pnpm and gem, and apt's available and
-# upgradable ones. `fzx -m packages[:available|:upgradable|:snap|:flatpak|:pipx|:cargo|:pnpm|:gem]`.
+# upgradable ones, the snap and flatpak catalogs, and a search of crates.io, npm, rubygems.org and PyPI.
+# `fzx -m packages[:MODE]`: apt, available, upgradable, snap, snap-available, flatpak, flatpak-available,
+# pipx, cargo, pnpm, gem, search.
 # Enter prints package names.
 
 FZX_MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -25,6 +27,11 @@ packages::opts() {
   while IFS=$'\t' read -r _k name key _ _; do
     [[ "$key" == - ]] || hints+="${hints:+  }$key $name"
   done < <(fzx::comp_rows action)
+  if [[ "${FZX_MODE:-}" == search ]]; then
+    # the registries answer the query: fzf does not filter, it reloads (debounced) as you type
+    FZX_OPTS+=(--disabled --bind "change:reload:sleep 0.3; $(fzx::cb source)")
+    hints="type to search; $hints"
+  fi
   FZX_OPTS+=("--header=$hints")
 }
 

@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # packages preview by the row's id (see source.sh): apt's installed and candidate versions, the package's
-# fields and description, and the commands an installed one provides; snap info; flatpak info; a pipx
-# venv's metadata and its package's summary; a crate's source, binaries and features (its description
-# from cargo's registry sources when they are still there); a pnpm package's package.json; a gem's
-# specification. Nothing here goes to the network: the preview runs on every focus change.
+# fields and description, and the commands an installed one provides; snap info; flatpak info (an
+# application not installed: its appstream entry); a pipx venv's metadata and its package's summary; a
+# crate's source, binaries and features (its description from cargo's registry sources when they are still
+# there); a pnpm package's package.json; a gem's specification. A snap, crate, npm package, gem or PyPI
+# package that is not installed is described from the network, once a day per package (remote.sh).
 
 [[ -n "${_FZX_CORE_LOADED:-}" ]] || source "${FZX_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}/lib/core.sh"
 # shellcheck source=./source.sh
@@ -119,6 +120,57 @@ packages::_apt() {
   return 0
 }
 
+# packages::_remote <manager> <name>: details of a package that is not installed, from the network
+# (cached; remote.sh)
+packages::_remote() {
+  local info
+  if info="$(packages::remote_info "$1" "$2")"; then
+    packages::render_info <<< "$info"
+  else
+    packages::_title "$2"
+    printf 'no details from %s (offline, or no such package)\n' "$1"
+  fi
+  return 0
+}
+
+# packages::_snap <name>: an installed snap's snap info as it is now; another one's, cached
+packages::_snap() {
+  if command snap list -- "$1" > /dev/null 2>&1; then
+    command snap info --color=never --unicode=never -- "$1" 2>&1 | packages::_keys
+  else
+    packages::_remote snap "$1"
+  fi
+}
+
+# packages::_flatpak <installation> <app[@remote]>: flatpak info when installed; else the application's
+# entry in the remote's appstream data (the flatpak-available cache)
+packages::_flatpak() {
+  local inst="$1" app="${2%@*}" remote="" line
+  [[ "$2" == *@* ]] && remote="${2##*@}"
+  if command flatpak info "--$inst" -- "$app" > /dev/null 2>&1 || [[ -z "$remote" ]]; then
+    command flatpak info "--$inst" -- "$app" 2>&1 | packages::_keys
+    return 0
+  fi
+  line="$(awk -F '\t' -v a="$app" '$1 == a { print; exit }' "$FZX_CACHE_DIR/packages/flatpak-$inst-$remote" 2> /dev/null)"
+  [[ -n "$line" ]] || {
+    printf 'flatpak: %s: not in the %s catalog\n' "$app" "$remote"
+    return 0
+  }
+  local name ver summary developer license homepage desc
+  # tab is IFS whitespace, so empty fields would collapse: split on \x1e instead
+  IFS=$'\x1e' read -r _ name ver summary _ _ developer license homepage desc <<< "${line//$'\t'/$'\x1e'}"
+  packages::_title "${name:-$app}" "$ver"
+  packages::_kv installed "not installed"
+  packages::_kv id "$app"
+  packages::_kv remote "$remote ($inst)"
+  packages::_kv developer "$developer"
+  packages::_kv license "$license"
+  packages::_kv homepage "$homepage"
+  [[ -n "$summary" ]] && printf '\n\e[1m%s\e[0m\n' "$summary"
+  [[ -n "$desc" ]] && printf '%s\n' "${desc//$'\x1f'/$'\n\n'}" | fold -s -w "${FZF_PREVIEW_COLUMNS:-80}"
+  return 0
+}
+
 # packages::_pipx <name>: the venv's metadata (version, apps, python, injected packages) and its package's
 # summary and links from the installed METADATA
 packages::_pipx() {
@@ -127,7 +179,7 @@ packages::_pipx() {
   venv="$home/venvs/$name"
   meta="$venv/pipx_metadata.json"
   [[ -f "$meta" ]] || {
-    printf 'no pipx venv: %s\n' "$venv"
+    packages::_remote pipx "$name"
     return 0
   }
   packages::_title "$name" "$(command jq -r '.main_package.package_version // ""' "$meta")"
@@ -151,7 +203,11 @@ packages::_pipx() {
 # are still there, its description and links
 packages::_cargo() {
   local name="$1" ver src bins toml
-  IFS=$'\t' read -r _ ver src bins < <(packages::cargo_installs | awk -F '\t' -v n="$name" '$1 == n')
+  IFS=$'\t' read -r _ ver src bins < <(packages::cargo_installs 2> /dev/null | awk -F '\t' -v n="$name" '$1 == n')
+  [[ -n "$ver" ]] || {
+    packages::_remote cargo "$name"
+    return 0
+  }
   packages::_title "$name" "$ver"
   packages::_kv source "$src"
   packages::_kv binaries "$bins"
@@ -163,7 +219,13 @@ packages::_cargo() {
     [[ -f "$toml" ]] || continue
     printf '\n'
     awk '/^\[/ { pkg = ($0 == "[package]"); next }
-      pkg && /^(description|homepage|repository|license) *= *"/ { k = $1; v = $0; sub(/^[^"]*"/, "", v); sub(/" *$/, "", v); print k "\t" v }' "$toml" |
+      multi { if ((i = index($0, "\"\"\"")) > 0) { v = v " " substr($0, 1, i - 1); multi = 0; gsub(/  +/, " ", v); sub(/^ /, "", v); sub(/ +$/, "", v); print k "\t" v } else v = v " " $0; next }
+      pkg && /^(description|homepage|repository|license) *= *"/ {
+        k = $1; v = $0; sub(/^[^"]*"/, "", v)
+        # a """multi-line""" string runs to its closing quotes
+        if (substr(v, 1, 2) == "\"\"") { v = substr(v, 3); if ((i = index(v, "\"\"\"")) > 0) v = substr(v, 1, i - 1); else { multi = 1; next } }
+        sub(/" *$/, "", v); print k "\t" v
+      }' "$toml" |
       packages::_kvs
     break
   done
@@ -174,8 +236,8 @@ packages::_cargo() {
 packages::_pnpm() {
   local name="$1" dir
   dir="$(command pnpm ls -g --depth=0 --json 2> /dev/null | command jq -r --arg n "$name" '.[] | .dependencies // {} | .[$n].path // empty' | head -1)"
-  [[ -f "$dir/package.json" ]] || {
-    printf 'pnpm: %s: no package.json\n' "$name"
+  [[ -n "$dir" && -f "$dir/package.json" ]] || {
+    packages::_remote pnpm "$name"
     return 0
   }
   packages::_title "$name" "$(command jq -r '.version // ""' "$dir/package.json")"
@@ -200,7 +262,7 @@ packages::_gem() {
     done
   done < <(packages::gem_dirs)
   ((${#specs[@]})) || {
-    printf 'gem: %s: no specification\n' "$name"
+    packages::_remote gem "$name"
     return 0
   }
   local versions="" base
@@ -231,8 +293,8 @@ packages::preview() {
   }
   case "$manager" in
     apt) packages::_apt "$rest" ;;
-    snap) command snap info --color=never --unicode=never -- "$rest" 2>&1 | packages::_keys ;;
-    flatpak) command flatpak info "--${rest%%:*}" -- "${rest#*:}" 2>&1 | packages::_keys ;;
+    snap) packages::_snap "$rest" ;;
+    flatpak) packages::_flatpak "${rest%%:*}" "${rest#*:}" ;;
     pipx) packages::_pipx "$rest" ;;
     cargo) packages::_cargo "$rest" ;;
     pnpm) packages::_pnpm "$rest" ;;

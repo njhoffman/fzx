@@ -13,6 +13,8 @@ setup() {
   export FZX_PACKAGES_APT_LISTS="$BATS_TEST_TMPDIR/lists" FZX_PACKAGES_DPKG_STATUS="$BATS_TEST_TMPDIR/status"
   export FZX_PACKAGES_EXTENDED_STATES="$BATS_TEST_TMPDIR/extended_states"
   export PIPX_HOME="$BATS_TEST_TMPDIR/pipx" CARGO_HOME="$BATS_TEST_TMPDIR/cargo"
+  export FZX_PACKAGES_SNAP_NAMES="$BATS_TEST_TMPDIR/snap-names" FZX_PACKAGES_FLATPAK_SYSTEM="$BATS_TEST_TMPDIR/flatpak-system"
+  export FZX_PACKAGES_FLATPAK_USER="$BATS_TEST_TMPDIR/flatpak-user"
   mkdir -p "$FZX_PACKAGES_APT_LISTS"
   : > "$FZX_PACKAGES_DPKG_STATUS"
 }
@@ -77,6 +79,14 @@ stub_apt() {
   mkdir -p "$CARGO_HOME" && echo '{"installs":{}}' > "$CARGO_HOME/.crates2.json"
   run "$MODS/packages/components.tsv"
   [[ "$output" == *$'mode\tcargo'* ]]
+  # cargo can search crates.io: the search mode, its toggle, and install there; the name sort leaves it out
+  [[ "$output" == *$'mode\tsearch\t-\t'*$'\trestart,nopersist'* && "$output" == *$'toggle\tcrates\t-\tsearch: crates.io (cargo)\ton'* ]]
+  [[ "$output" == *$'action\tinstall\talt-i\tavailable, search: install'* ]]
+  [[ "$output" == *$'sort\tname\t-\tapt, available, upgradable, snap, cargo, gem: by name'* ]]
+  # the catalogs when there is something to list
+  echo yq > "$FZX_PACKAGES_SNAP_NAMES"
+  run "$MODS/packages/components.tsv"
+  [[ "$output" == *$'mode\tsnap-available'* && "$output" == *"available, snap-available, search: install"* ]]
 }
 
 @test "packages: apt lists installed packages: dependencies dim, held ones marked, removed ones left out" {
@@ -245,11 +255,11 @@ EOF
 
   mkdir -p "$CARGO_HOME/registry/src/index-1/ripgrep-14.1.0"
   echo '{"installs":{"ripgrep 14.1.0 (registry+https://x)":{"bins":["rg"],"features":["pcre2"],"profile":"release"}}}' > "$CARGO_HOME/.crates2.json"
-  printf '[package]\nname = "ripgrep"\ndescription = "fast grep"\n[dependencies]\ndescription = "no"\n' > "$CARGO_HOME/registry/src/index-1/ripgrep-14.1.0/Cargo.toml"
+  printf '[package]\nname = "ripgrep"\ndescription = """\nfast\ngrep\n"""\nlicense = "MIT"\n[dependencies]\ndescription = "no"\n' > "$CARGO_HOME/registry/src/index-1/ripgrep-14.1.0/Cargo.toml"
   run "$MODS/packages/preview.sh" cargo:ripgrep
   local out
   out="$(printf '%s\n' "$output" | plain)"
-  [[ "$out" == "ripgrep  14.1.0"*"binaries     rg"*"features     pcre2"*"description  fast grep" ]]
+  [[ "$out" == "ripgrep  14.1.0"*"binaries     rg"*"features     pcre2"*"description  fast grep"$'\n'"license      MIT" ]]
 
   mkdir -p "$BATS_TEST_TMPDIR/nm/typescript"
   echo '{"version":"5.4.0","description":"TS","bin":{"tsc":"x","tsserver":"y"}}' > "$BATS_TEST_TMPDIR/nm/typescript/package.json"
@@ -274,8 +284,8 @@ EOF
   [ "$status" -eq 0 ]
   run "$MODS/packages/actions.sh" upgrade apt:zsh snap:yq flatpak:system:org.a.App flatpak:user:org.b.App apt:fish pnpm:typescript
   [ "$status" -eq 0 ]
-  run "$MODS/packages/actions.sh" remove snap:yq flatpak:user:org.b.App
-  run "$MODS/packages/actions.sh" purge apt:zsh
+  run "$MODS/packages/actions.sh" remove snap:yq flatpak:user:org.b.App <<< yy
+  run "$MODS/packages/actions.sh" purge apt:zsh < /dev/null
   run cat "$BATS_TEST_TMPDIR/calls"
   [ "${lines[0]}" = "sudo apt install fish zsh" ]
   [ "${lines[1]}" = "apt install fish zsh" ]
@@ -287,6 +297,21 @@ EOF
   [ "${lines[9]}" = "sudo snap remove yq" ]
   [ "${lines[11]}" = "flatpak uninstall --user org.b.App" ]
   [ "${lines[12]}" = "sudo apt purge zsh" ]
+}
+
+@test "packages: remove asks first, except apt's (apt asks itself); no keeps the packages" {
+  stub_cmd sudo '"$@"'
+  stub_cmd apt :
+  stub_cmd pipx :
+  stub_cmd cargo :
+  run "$MODS/packages/actions.sh" remove pipx:black cargo:rg <<< ny
+  [ "$status" -eq 0 ]
+  [[ "$(printf "%s\n" "$output" | plain)" == *"remove (pipx): black"*"[y/N]"*"remove (cargo): rg"* ]]
+  run "$MODS/packages/actions.sh" remove apt:zsh < /dev/null
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"[y/N]"* ]]
+  run grep -v '^sudo ' "$BATS_TEST_TMPDIR/calls"
+  [ "$output" = $'cargo uninstall rg\napt remove zsh' ]
 }
 
 @test "packages: cargo reinstalls from where a crate came from; gems through sudo only when their home is not writable" {
@@ -313,7 +338,7 @@ EOF
   : > "$s/specifications/rake-12.0.gemspec"
   chmod a-w "$s"
   run bash -c 'FZX_PACKAGES_GEM_DIRS=("user:$1" "system:$2"); source "$3"; packages::action upgrade gem:user:rake gem:system:rake; packages::action remove gem:user:rake' \
-    _ "$u" "$s" "$MODS/packages/actions.sh"
+    _ "$u" "$s" "$MODS/packages/actions.sh" <<< y
   chmod u+w "$s"
   [ "$status" -eq 0 ]
   run cat "$BATS_TEST_TMPDIR/calls"
@@ -363,4 +388,211 @@ EOF
   [ -z "$(packages::summary packages:available)" ]
   FZX_MODE=available "$MODS/packages/source.sh" > /dev/null
   [ "$(packages::summary packages:available)" = "3 packages" ]
+}
+
+# stub_flatpak: a system remote "hub" with appstream data for two applications, one of them installed
+stub_flatpak() {
+  stub_cmd flatpak 'case "$1" in
+    --default-arch) echo x86_64 ;;
+    remotes) printf "hub\tsystem\nempty\tsystem\n" ;;
+    list) printf "org.a.App\tsystem\n" ;;
+    info) [[ "$*" == *org.a.App* ]] && echo "ID: org.a.App" || exit 1 ;;
+  esac'
+  local d="$FZX_PACKAGES_FLATPAK_SYSTEM/appstream/hub/x86_64/active"
+  mkdir -p "$d"
+  cat > "$d/appstream.xml" << 'XML'
+<components>
+  <component type="desktop-application">
+    <id>org.a.App</id>
+    <name>A App</name>
+    <name xml:lang="de">Eine App</name>
+    <summary>Does a</summary>
+    <bundle type="flatpak" runtime="r">app/org.a.App/x86_64/stable</bundle>
+    <releases><release version="1.2" timestamp="1"/></releases>
+  </component><component type="desktop-application">
+    <id>org.b.Bee</id>
+    <name>Bee &amp; Co</name>
+    <summary>Buzzes</summary>
+    <developer_name>Hive</developer_name>
+    <project_license>MIT</project_license>
+    <url type="homepage">https://bee</url>
+    <description xml:lang="de"><p>Summt</p></description>
+    <description>
+      <p>Bee buzzes.</p>
+      <ul><li>One</li><li>Two</li></ul>
+    </description>
+    <bundle type="flatpak">app/org.b.Bee/x86_64/stable</bundle>
+  </component><component type="runtime">
+    <id>org.r.Runtime</id>
+    <bundle type="flatpak">runtime/org.r.Runtime/x86_64/1</bundle>
+  </component>
+</components>
+XML
+}
+
+@test "packages: snap-available lists snapd's names, installed ones marked" {
+  printf 'yq\nzz\naa\n' > "$FZX_PACKAGES_SNAP_NAMES"
+  stub_cmd snap 'printf "Name  Version\nyq  4\n"'
+  FZX_MODE=snap-available run "$MODS/packages/source.sh"
+  [ "$status" -eq 0 ]
+  [ "$(ids)" = "snap:yq snap:zz snap:aa " ]
+  [[ "$(printf '%s\n' "${lines[0]}" | plain)" == "snap:yq"*"● yq"* && "$(printf '%s\n' "${lines[1]}" | plain)" == *"○ zz"* ]]
+  rm "$FZX_PACKAGES_SNAP_NAMES"
+  FZX_MODE=snap-available run --separate-stderr "$MODS/packages/source.sh"
+  [ "$status" -eq 1 ]
+}
+
+@test "packages: flatpak-available reads the remotes' appstream applications, cached by the checkout" {
+  stub_flatpak
+  FZX_MODE=flatpak-available run "$MODS/packages/source.sh"
+  [ "$status" -eq 0 ]
+  [ "$(ids)" = "flatpak:system:org.a.App@hub flatpak:system:org.b.Bee@hub " ]
+  [[ "$(printf '%s\n' "${lines[0]}" | plain)" == *"● A App"*"1.2"*"hub"*"Does a"* ]]
+  [[ "$(printf '%s\n' "${lines[1]}" | plain)" == *"○ Bee & Co"*"Buzzes"* ]]
+  # the cache holds the details the preview shows
+  [ "$(cut -f7-10 "$FZX_CACHE_DIR/packages/flatpak-system-hub" | sed -n 2p)" = $'Hive\tMIT\thttps://bee\tBee buzzes.\x1f• One\x1f• Two' ]
+  # a new checkout (the active link moves) rebuilds it
+  printf 'stale\tStale\t\t\thub\tsystem\n' > "$FZX_CACHE_DIR/packages/flatpak-system-hub"
+  FZX_MODE=flatpak-available run "$MODS/packages/source.sh"
+  [ "$(ids)" = "flatpak:system:stale@hub " ]
+  local base="$FZX_PACKAGES_FLATPAK_SYSTEM/appstream/hub/x86_64"
+  mv "$base/active" "$base/abc123"
+  ln -s abc123 "$base/active"
+  FZX_MODE=flatpak-available run "$MODS/packages/source.sh"
+  [ "$(ids)" = "flatpak:system:org.a.App@hub flatpak:system:org.b.Bee@hub " ]
+}
+
+@test "packages: a flatpak not installed is previewed from its appstream entry; an installed one by flatpak info" {
+  stub_flatpak
+  FZX_MODE=flatpak-available "$MODS/packages/source.sh" > /dev/null
+  run "$MODS/packages/preview.sh" flatpak:system:org.b.Bee@hub
+  local out
+  out="$(printf '%s\n' "$output" | plain)"
+  [[ "$out" == "Bee & Co"*"installed    not installed"*"remote       hub (system)"*"developer    Hive"*"license      MIT"* ]]
+  [[ "$out" == *"Buzzes"$'\n'"Bee buzzes."$'\n\n'"• One"$'\n\n'"• Two" ]]
+  run "$MODS/packages/preview.sh" flatpak:system:org.a.App@hub
+  [ "$(printf '%s\n' "$output" | plain)" = "ID: org.a.App" ]
+}
+
+# stub_registries: cargo, pnpm and curl (rubygems.org, PyPI) answering a search for "fmt"
+stub_registries() {
+  stub_cmd cargo 'case "$1" in
+    search) printf "fmtlib = \"1.0.0\"    # formats things\nfmt2 = \"0.2.0\"\n... and 40 crates more (use --limit N to see more)\n" ;;
+    info) printf "fmtlib #fmt\nformats things\nwell\nversion: 1.0.0\nlicense: MIT\nfeatures:\n  default\n" ;;
+  esac'
+  stub_cmd pnpm 'case "$1" in
+    search) echo "[{\"name\":\"fmt-js\",\"version\":\"2.0.0\",\"description\":\"js\\tformat\"}]" ;;
+    ls) echo "[{\"dependencies\":{\"fmt-js\":{\"version\":\"2.0.0\"}}}]" ;;
+    view) echo "{\"name\":\"fmt-js\",\"version\":\"2.0.0\",\"license\":\"MIT\",\"description\":\"js format\"}" ;;
+  esac'
+  stub_cmd gem :
+  stub_cmd pipx :
+  stub_cmd curl 'url="${@: -1}"; case "$url" in
+    *rubygems.org/api/v1/search.json?query=fmt) echo "[{\"name\":\"fmt-rb\",\"version\":\"3.0\",\"info\":\"ruby\\nformat\"}]" ;;
+    *rubygems.org/api/v1/gems/fmt-rb.json) echo "{\"name\":\"fmt-rb\",\"version\":\"3.0\",\"info\":\"ruby format\",\"licenses\":[\"MIT\"]}" ;;
+    *pypi.org/pypi/fmt/json) echo "{\"info\":{\"name\":\"fmt\",\"version\":\"0.9\",\"summary\":\"py format\",\"requires_python\":\">=3.9\"}}" ;;
+    *) exit 22 ;;
+  esac'
+}
+
+@test "packages: search asks each registry whose toggle is on, in registry order; installed ones marked" {
+  stub_registries
+  FZX_MODE=search FZF_QUERY='  fmt ' run --separate-stderr "$MODS/packages/source.sh"
+  [ "$status" -eq 0 ]
+  [ "$(ids)" = "cargo:fmtlib cargo:fmt2 pnpm:fmt-js gem:user:fmt-rb pipx:fmt " ]
+  [[ "$(printf '%s\n' "${lines[0]}" | plain)" == *"○ fmtlib"*"1.0.0"*"cargo"*"formats things"* ]]
+  [[ "$(printf '%s\n' "${lines[2]}" | plain)" == *"● fmt-js"*"pnpm"*"js format"* ]]
+  [[ "$(printf '%s\n' "${lines[3]}" | plain)" == *"fmt-rb"*"3.0"*"gem"*"ruby format"* ]]
+  grep -q 'search --color never --limit 20 -- fmt' "$BATS_TEST_TMPDIR/calls"
+  # PyPI's answer is kept for the preview
+  [ "$(head -1 "$FZX_CACHE_DIR/packages/info/pipx/fmt")" = $'fmt\t0.9' ]
+  FZX_MODE=search FZF_QUERY=fmt FZX_TOGGLES="npm pypi" run "$MODS/packages/source.sh"
+  [ "$(ids)" = "pnpm:fmt-js pipx:fmt " ]
+  # nothing to search for, and a query that is no package name skips PyPI
+  FZX_MODE=search FZF_QUERY='  ' run "$MODS/packages/source.sh"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  FZX_MODE=search FZF_QUERY='fmt tool' FZX_TOGGLES=pypi run "$MODS/packages/source.sh"
+  [ -z "$output" ]
+}
+
+@test "packages: a registry that fails is logged and left out" {
+  stub_registries
+  stub_cmd curl 'exit 28'
+  FZX_MODE=search FZF_QUERY=fmt FZX_TOGGLES="crates rubygems" run --separate-stderr "$MODS/packages/source.sh"
+  [ "$status" -eq 0 ]
+  [ "$(ids)" = "cargo:fmtlib cargo:fmt2 " ]
+  [[ "$stderr" == *"packages: rubygems search failed"* ]]
+}
+
+@test "packages: packages that are not installed are previewed from the network, once a day each" {
+  stub_registries
+  run "$MODS/packages/preview.sh" cargo:fmtlib
+  local out
+  out="$(printf '%s\n' "$output" | plain)"
+  [[ "$out" == "fmtlib  1.0.0"*"license      MIT"*$'\n\n'"formats things"$'\n'"well" ]]
+  [[ "$out" != *default* ]]
+  run "$MODS/packages/preview.sh" gem:user:fmt-rb
+  [[ "$(printf '%s\n' "$output" | plain)" == "fmt-rb  3.0"*"licenses     MIT"*"ruby format" ]]
+  run "$MODS/packages/preview.sh" pipx:fmt
+  [[ "$(printf '%s\n' "$output" | plain)" == "fmt  0.9"*"python       >=3.9"*"py format" ]]
+  # the second look comes from the cache; an expired entry is fetched again
+  run "$MODS/packages/preview.sh" cargo:fmtlib
+  [ "$(grep -c '^cargo info' "$BATS_TEST_TMPDIR/calls")" -eq 1 ]
+  FZX_PACKAGES_INFO_TTL=0 run "$MODS/packages/preview.sh" cargo:fmtlib
+  [ "$(grep -c '^cargo info' "$BATS_TEST_TMPDIR/calls")" -eq 2 ]
+  # offline: said so, and nothing cached
+  run "$MODS/packages/preview.sh" gem:user:nope
+  [[ "$(printf '%s\n' "$output" | plain)" == *"no details from gem (offline, or no such package)"* ]]
+  [ ! -e "$FZX_CACHE_DIR/packages/info/gem/nope" ]
+}
+
+@test "packages: a snap not installed is previewed from the store, its classic confinement noted" {
+  stub_cmd snap 'case "$1" in
+    list) exit 1 ;;
+    info) printf "name:      yazi\nsummary:   files\npublisher: Ika\ndescription: |\n  A file manager.\n  Fast.\nchannels:\n  latest/stable:    26.1 2026-09-01 (1) 5MB classic\n  latest/edge:      27 2026-10-01 (2) 5MB classic\n" ;;
+  esac'
+  run "$MODS/packages/preview.sh" snap:yazi
+  [[ "$(printf '%s\n' "$output" | plain)" == "yazi  26.1"*"summary      files"*"publisher    Ika"*"confinement  classic"*$'\n\n'"A file manager."$'\n'"Fast." ]]
+}
+
+@test "packages: install from the catalogs and the search, with each manager's own command" {
+  [[ "$EUID" -ne 0 ]] || skip "root needs no sudo"
+  stub_cmd sudo '"$@"'
+  stub_cmd snap 'case "$1" in info) [[ "$*" == *yazi* ]] && printf "name: yazi\nchannels:\n  latest/stable: 1 2026-01-01 (1) 1MB classic\n" || printf "name: yq\nchannels:\n  latest/stable: 4 2026-01-01 (1) 1MB -\n" ;; esac'
+  stub_cmd flatpak :
+  stub_cmd cargo :
+  stub_cmd pnpm :
+  stub_cmd gem :
+  stub_cmd pipx :
+  run "$MODS/packages/actions.sh" install snap:yq snap:yazi flatpak:system:org.b.Bee@hub flatpak:user:org.c.Cee@other \
+    cargo:fmtlib pnpm:fmt-js gem:user:fmt-rb pipx:fmt
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"yazi uses classic confinement"* ]]
+  run grep -v -e '^snap info' -e '^sudo ' "$BATS_TEST_TMPDIR/calls"
+  [ "${lines[0]}" = "snap install yq" ]
+  [ "${lines[1]}" = "snap install --classic yazi" ]
+  [ "${lines[2]}" = "flatpak install --system hub org.b.Bee" ]
+  [ "${lines[3]}" = "flatpak install --user other org.c.Cee" ]
+  [ "${lines[4]}" = "cargo install fmtlib" ]
+  [ "${lines[5]}" = "pnpm add -g fmt-js" ]
+  [ "${lines[6]}" = "gem install --user-install fmt-rb" ]
+  [ "${lines[7]}" = "pipx install fmt" ]
+  # catalog ids carry the remote; upgrade and remove drop it
+  : > "$BATS_TEST_TMPDIR/calls"
+  run "$MODS/packages/actions.sh" upgrade flatpak:system:org.b.Bee@hub
+  [ "$(cat "$BATS_TEST_TMPDIR/calls")" = "flatpak update --system org.b.Bee" ]
+  run "$MODS/packages/actions.sh" install flatpak:system:org.b.Bee < /dev/null
+  [ "$status" -eq 2 ]
+}
+
+@test "packages: the search mode does not filter, it reloads on every query change" {
+  stub_registries
+  stub_fzf
+  run "$FZX" -m packages:search
+  [ "$status" -eq 0 ]
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *" --disabled "* ]]
+  [[ " ${FZF_ARGS[*]} " == *" change:reload:sleep 0.3; $FZX _cb source "* ]]
+  [[ " ${FZF_ARGS[*]} " == *" --header=type to search; "* ]]
 }
