@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.61.0] - 2026-11-02
+
+### Added
+
+- packages module: installed packages of apt, snap, flatpak, pipx, cargo, pnpm and gem (a mode for each
+  manager on PATH), apt's available and upgradable packages (cached until apt's lists change), with
+  install, upgrade, remove and purge (sudo where the manager needs it) and previews read locally.
+
 ## [0.60.1] - 2026-11-02
 
 ### Changed

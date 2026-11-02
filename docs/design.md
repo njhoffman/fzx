@@ -494,6 +494,7 @@ given only a `--language` (zsh commands, man pages, logs) go to bat.
 | `keybindings` | zsh (every keymap; zle descriptions from zshzle(1), user widgets from the comment above their function), tmux (the tmux module's keys), fzf (yours, then fzf's defaults) | | ctrl-y copy | bindkey / bind-key lines, fzf keys |
 | `logs` | files (newest first), units, docker | | alt-F follow (ctrl-c returns) | path, unit or container id |
 | `man` | commands (`FZX_MAN_SECTIONS`, 1 and 8), all, tldr (descriptions from tealdeer's pages); cached a day | | enter opens in the pager, alt-n nvim (`:Man`, a tldr page's markdown), ctrl-y copy | (enter opens) |
+| `packages` | apt (installed; dependencies dim, held ones marked; toggle manual: the ones installed by hand), available (every package the archives offer, installed ones marked), upgradable (installed -> candidate), snap, flatpak (applications; toggle runtimes), pipx, cargo (with the source each crate came from), pnpm (global), gem (user and system gem homes; apt's gems left out); a mode per manager on PATH; sort name, size (apt). Preview: an apt package's fields, description and the commands it provides, snap info, flatpak info, a pipx venv's metadata, a crate's install record (its description from the registry sources when still unpacked), a pnpm package.json, a gemspec; none of it from the network | | alt-i install (available), alt-u upgrade, alt-x remove (confirm); actions: purge (apt, confirm); apt and snap through sudo, flatpak's system installation through polkit, gems through sudo when their home is not writable | package names |
 | `systemd` | user, system (loaded units and the enabled and disabled unit files not loaded; toggle files: static, masked, generated and alias ones too; templates left out), failed, timers (next and last run), sockets (addresses); sort name/state | | alt-s start, ctrl-x stop, alt-R restart, alt-L reload (reload-or-restart), alt-e enable, alt-d disable, ctrl-l journal (a timer's or socket's: the unit it activates), ctrl-e edit, alt-u files toggle; actions: daemon-reload | unit names |
 | `git` | status, log, branches, tags, stash, reflog, worktrees (switch in place); commit (hidden: a commit's files) | `[--all] [--rev REV] [DIR]` | verbs shared across modes (f1 shows the current mode's meaning): alt-s stage, alt-u unstage, alt-p add -p, ctrl-e edit, alt-c switch / check out detached / restore files as of a commit, alt-k cherry-pick / stash apply, alt-R revert, alt-B new branch there, alt-z stash files / pop, alt-i ignore, alt-m commit, alt-M amend (refused once pushed unless `FZX_GIT_DESTRUCTIVE=1`), alt-F fetch, ctrl-y copy; with `FZX_GIT_DESTRUCTIVE=1` only, each confirmed: alt-x drop (discard changes / delete untracked, local branches, stashes), alt-U fixup, alt-Q squash, alt-W reword, alt-E rebase -i; ctrl-o: branch or tag to its log, commit/reflog/stash entry to its files, worktree to its status; alt-v diff/blame preview; diffs through delta when installed | paths, hashes, ref names, tag names, stash names, work tree paths |
 | `dirs` | all (fd over ~, the default), bookmarks (`FZX_DIRS_BOOKMARKS`, when configured) | `[WORDS...]`: the fzf query (all) or a bookmark filter, where a single match is printed without the picker | ctrl-o browse in files | the directory |
@@ -586,6 +587,18 @@ current directory up to the repository's top, or the current directory only outs
 todo-status does. `--paste PANE` hands the paste to the tmux server 0.3s after fzf exits (`run-shell -b -d`):
 in tmux 3.9 a popup is a pane of its own, and the target's shell or /todo-pop's hook may not be ready yet.
 /todo-pop, the `todo.pop` alias and tmux Alt-i open `fzx -m todos`, with todo-fzf kept as the fallback.
+`packages` reads apt without apt-cache, which takes over a second per call on a full archive: installed
+packages from `dpkg-query`, manual ones from `/var/lib/apt/extended_states`, a preview of one that is not
+installed from the lists' Packages files (the highest version for this architecture, the long description
+from Translation-en). Only the available (`apt-cache search`) and upgradable (`apt list --upgradable`)
+lists come from apt, ~2s each, kept raw in `$FZX_CACHE_DIR/packages` and rebuilt when `/var/lib/apt/lists`
+(and for upgradable `/var/lib/dpkg/status`) changes; rows are formatted on every load so the installed
+marks stay current, in the C locale (half the time on 75k packages). Row ids name the manager
+(`apt:NAME`, `flatpak:system:APP`, `gem:user:NAME`), so preview and actions dispatch on the id, and actions
+group the selection into one command per manager. cargo upgrades reinstall from the crate's recorded
+source (git repository with its branch, tag or rev; path). Searching snap, flatpak, cargo, pnpm or gem for
+packages to install needs the network and is not done yet (TODO.md). System pip is left out: PEP 668 makes
+it apt's.
 `systemd` runs actions on system units through sudo when not root, bound with `execute` so sudo can
 prompt; list parsing forces `SYSTEMD_COLORS=0` because users commonly export it. `list-units` only knows
 loaded units, so the user and system lists merge `list-unit-files`: a unit file that is not loaded gets a

@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# packages components, computed: a mode per package manager on PATH (see lib/components.sh for the table
+# format). apt's available and upgradable lists are cached (source.sh); the others read installed packages.
+dir="$(dirname "$(readlink -f "$0")")"
+# shellcheck source=../../lib/core.sh
+source "${FZX_ROOT:-$dir/../..}/lib/core.sh"
+# shellcheck source=./source.sh
+source "$dir/source.sh"
+
+row() { printf '%s\t%s\t%s\t%s\t%s\n' "$@"; }
+
+apt=0 default=default
+packages::has apt && apt=1
+if ((apt)); then
+  row mode apt - 'apt: installed packages (dependencies dim)' default
+  row mode available - 'apt: every package the archives offer (installed ones marked)' -
+  row mode upgradable - 'apt: installed packages with a newer version' -
+  default=-
+fi
+for m in snap flatpak pipx cargo pnpm gem; do
+  packages::has "$m" || continue
+  case "$m" in
+    snap) row mode snap - 'snaps' "$default" ;;
+    flatpak) row mode flatpak - 'flatpak applications (runtimes with the runtimes toggle)' "$default" ;;
+    pipx) row mode pipx - 'pipx applications' "$default" ;;
+    cargo) row mode cargo - 'cargo install crates, with their source' "$default" ;;
+    pnpm) row mode pnpm - 'pnpm global packages' "$default" ;;
+    gem) row mode gem - 'gems you installed (user and system; the ones apt owns left out)' "$default" ;;
+  esac
+  default=-
+done
+
+((apt)) && row toggle manual alt-m 'apt: only packages installed by hand, not as dependencies' -
+packages::has flatpak && row toggle runtimes - 'flatpak: runtimes and extensions too' -
+
+row sort name - 'by name' default
+((apt)) && row sort size - 'apt: largest installed size first' -
+
+((apt)) && row action install alt-i 'available: install' 'foreground,reload'
+row action upgrade alt-u 'upgrade to the latest version (sudo for apt, snap and system gems)' 'foreground,reload'
+row action remove alt-x 'remove (sudo for apt, snap and system gems)' 'confirm,reload'
+((apt)) && row action purge - 'apt, available, upgradable: remove with the configuration files' 'confirm,reload'
+exit 0
