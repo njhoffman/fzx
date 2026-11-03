@@ -20,6 +20,23 @@ fzx::clip() {
   fi
 }
 
+# fzx::open_url <url...>: each in the default browser (xdg-open, else macOS open); false if one failed
+fzx::open_url() {
+  local opener u rc=0
+  if command -v xdg-open > /dev/null; then
+    opener=xdg-open
+  elif command -v open > /dev/null; then
+    opener=open
+  else
+    printf 'fzx: no URL opener found (xdg-open or open)\n' >&2
+    return 1
+  fi
+  for u in "$@"; do
+    command "$opener" "$u" > /dev/null 2>&1 || rc=$?
+  done
+  return "$rc"
+}
+
 # fzx::confirm <what> [args...]: ask on the terminal; true on y
 fzx::confirm() {
   local what="$1" ans=""

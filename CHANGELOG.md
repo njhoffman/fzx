@@ -6,6 +6,10 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- capture: alt-o in urls mode opens the selected URLs in the browser.
+
 ## [0.63.0] - 2026-11-02
 
 ### Added

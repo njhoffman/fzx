@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# capture actions: paste values into the origin pane; the transforms that move to another pane of the
+# capture actions: paste values into the origin pane, open URLs; the transforms that move to another pane of the
 # window and redraw the header
 # shellcheck source=./source.sh
 source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
@@ -58,16 +58,31 @@ capture::transform() {
   esac
 }
 
-# capture::action paste [args...] -- <values...>: the values, one per line, into the origin pane as a
-# bracketed paste through a private buffer (nothing typed as keys, no Enter)
+# capture::action <paste|open> [args...] -- <values...>
+#   paste: the values, one per line, into the origin pane as a bracketed paste through a private buffer
+#          (nothing typed as keys, no Enter)
+#   open:  urls mode: each URL in the browser
 capture::action() {
-  local action="${1:-}" args=() buffer rc
+  local action="${1:-}" args=()
   shift
-  [[ "$action" == paste ]] || { printf 'capture: unknown action: %s\n' "$action" >&2; return 2; }
+  case "$action" in paste | open) ;; *) printf 'capture: unknown action: %s\n' "$action" >&2; return 2 ;; esac
   while (($#)) && [[ "$1" != -- ]]; do args+=("$1"); shift; done
   shift
   (($#)) || return 0
   capture::args "${args[@]}" || return
+  case "$action" in
+    paste) capture::paste "$@" ;;
+    open)
+      [[ "${FZX_MODE:-lines}" == urls ]] || { printf 'capture: open applies to urls\n' >&2; return 2; }
+      fzx::require builtin
+      fzx::open_url "$@"
+      ;;
+  esac
+}
+
+# capture::paste <values...>: into CAPTURE_ORIGIN (see capture::action)
+capture::paste() {
+  local buffer rc
   buffer="fzx-capture-$BASHPID"
   # one value per line, no newline after the last
   (

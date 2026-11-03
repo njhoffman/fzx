@@ -36,9 +36,8 @@ youtube::action() {
       "${FZX_YOUTUBE_PLAYER[@]:-mpv}" --no-video -- "${urls[@]}"
       ;;
     browser)
-      for u in "${urls[@]}"; do
-        if command -v xdg-open > /dev/null; then xdg-open "$u"; else open "$u"; fi > /dev/null 2>&1
-      done
+      fzx::require builtin
+      fzx::open_url "${urls[@]}"
       ;;
     mp3)
       if ! command -v ffmpeg > /dev/null; then

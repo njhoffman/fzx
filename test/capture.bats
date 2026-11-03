@@ -139,6 +139,17 @@ src() { FZX_MODE="$1" "$CAP/source.sh" "${@:2}"; }
   [ -z "$(tmux list-buffers -F '#{buffer_name}' | grep fzx-capture)" ]
 }
 
+@test "open: urls mode hands each URL to xdg-open; other modes refuse" {
+  printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$@" >> "$BATS_TEST_TMPDIR/open.calls"\n' > "$BATS_TEST_TMPDIR/bin/xdg-open"
+  chmod +x "$BATS_TEST_TMPDIR/bin/xdg-open"
+  FZX_MODE=urls run "$CAP/actions.sh" open --pane "$PANE" -- 'https://a.test/x?q=1&b=2' 'file:///tmp/y'
+  [ "$status" -eq 0 ]
+  [ "$(cat "$BATS_TEST_TMPDIR/open.calls")" = $'https://a.test/x?q=1&b=2\nfile:///tmp/y' ]
+  FZX_MODE=paths run "$CAP/actions.sh" open --pane "$PANE" -- /tmp/z
+  [ "$status" -eq 2 ] && [[ "$output" == *'open applies to urls'* ]]
+  [ "$(wc -l < "$BATS_TEST_TMPDIR/open.calls")" -eq 2 ]
+}
+
 @test "preview: where the value is and the lines around it, the hit's line marked" {
   fill "for i in \$(seq 1 30); do echo row-\$i; done"
   local y
@@ -157,6 +168,7 @@ src() { FZX_MODE="$1" "$CAP/source.sh" "${@:2}"; }
   [[ " ${FZF_ARGS[*]} " == *" --header=pane 1/1  $PANE  bash  "*"10 on screen "* ]]
   [[ "$(fzf_bind alt-.)" == *'_cb transform pane next --pane '* ]]
   [[ "$(fzf_bind alt-p)" == *'_cb action paste --pane '* ]]
+  [[ "$(fzf_bind alt-o)" == *'_cb action open --pane '* ]]
   [[ "$(fzf_bind ctrl-y)" == *'builtin copy {+1}'* || "$(fzf_bind ctrl-y)" == *'copy'*'{+1}'* ]]
   run "$FZX" -m tmux:urls
   [ "$status" -ne 0 ] || [[ "$(cat "$BATS_TEST_TMPDIR/fzf.mode" 2> /dev/null)" != urls ]]

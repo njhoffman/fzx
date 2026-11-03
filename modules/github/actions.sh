@@ -193,10 +193,8 @@ github::local() {
 
 # github::open <url...>: in the browser
 github::open() {
-  local u
-  for u in "$@"; do
-    if command -v xdg-open > /dev/null; then xdg-open "$u"; else open "$u"; fi > /dev/null 2>&1
-  done
+  fzx::require builtin
+  fzx::open_url "$@"
 }
 
 # github::item <url>: GH_REPO, GH_ITEM (issue or pr) and GH_NUMBER of an issue or pull request URL

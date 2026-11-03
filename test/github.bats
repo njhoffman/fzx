@@ -355,6 +355,7 @@ searches() { grep -c '^search ' "$BATS_TEST_TMPDIR/gh.calls" 2> /dev/null || ech
 }
 
 @test "actions: rows without a URL are skipped; the browser opens urls; web opens the search" {
+  load_libs log
   source "$GH_DIR/actions.sh" || :
   github::action browser --repo o/r -- recentquery https://github.com/o/r
   [ "$(cat "$BATS_TEST_TMPDIR/open.calls")" = https://github.com/o/r ]
@@ -504,6 +505,7 @@ searches() { grep -c '^search ' "$BATS_TEST_TMPDIR/gh.calls" 2> /dev/null || ech
 }
 
 @test "actions: star, unstar in starred (the stars list fetched again), fork, settings" {
+  load_libs log
   source "$GH_DIR/actions.sh" || :
   src starred "" > /dev/null
   FZX_MODE=repos github::action star -- https://github.com/o/r "https://github.com/o/r/blob/$SHA/x" https://github.com/p/q
@@ -714,6 +716,7 @@ clone_here() {
 }
 
 @test "actions: checkout here or in the ghq clone, refused elsewhere; comment, close, reopen drop the lists" {
+  load_libs log
   source "$GH_DIR/actions.sh" || :
   clone_here
   src issues "" > /dev/null
@@ -778,6 +781,7 @@ clone_here() {
   [ "$(grep -c '^api notifications?all' "$BATS_TEST_TMPDIR/gh.calls")" -eq 1 ]
   FZX_TOGGLES=read src notifications "" > /dev/null
   grep -qx 'api notifications?all=true&per_page=50' "$BATS_TEST_TMPDIR/gh.calls"
+  load_libs log
   source "$GH_DIR/actions.sh" || :
   FZX_MODE=notifications github::action read -- https://github.com/o/r/pull/40 https://github.com/o/r/actions
   [ "$(cat "$BATS_TEST_TMPDIR/read.calls" | tr '\n' '|')" = "PATCH notifications/threads/101|PATCH notifications/threads/103|" ]
@@ -896,6 +900,7 @@ clone_here() {
 }
 
 @test "actions: a run's log (failed jobs only, a running one watched), rerun, cancel in runs; the lists dropped" {
+  load_libs log
   source "$GH_DIR/actions.sh" || :
   src runs "" --repo o/r > /dev/null
   PAGER=cat run github::action log -- https://github.com/o/r/actions/runs/1
