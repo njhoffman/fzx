@@ -1,9 +1,11 @@
 # fzx TODO
 
-Status (0.83.0): the six steps of `docs/design.md` are done. Modules: actions, audio, bluetooth, capture, claude, colors, cron, dirs,
+Status (0.83.1): the six steps of `docs/design.md` are done. Modules: actions, audio, bluetooth, capture, claude, colors, cron, dirs,
 docker, files, firewall, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
-todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
-here once they are released. Keep this file current: tick items off, add what you find.
+todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
+add what you find, and tick items off (`- [x]`) as they land, never delete them; once every item of a section
+is ticked, the section moves to `## Completed` at the end as a `### <heading> (completed YYYY-MM-DD)` block
+and its heading leaves the open part. Only items dropped undone are deleted.
 
 Every item carries a priority in its first line, `(p1)` high, `(p2)` normal or `(p3)` low, and a
 category: `[bug]` `[feature]` `[refactor]` `[docs]` `[test]` `[chore]` `[perf]`, plus this repo's own below.

@@ -6,6 +6,13 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.83.1] - 2026-11-03
+
+### Changed
+
+- TODO.md keeps finished items ticked in their section until the whole section is done, then moves the
+  section to a `## Completed` checklist at the end; only items dropped undone are deleted.
+
 ## [0.83.0] - 2026-11-03
 
 ### Added
