@@ -28,6 +28,9 @@ music::opts() {
   )
   FZX_ACTION_ARGS="$a {+1}"
   FZX_ACTION_ARGS_FOR['copy']='{+3}'
+  # the songs' files, not the queue positions
+  FZX_ACTION_ARGS_FOR['rate']="$a {+3}"
+  FZX_ACTION_ARGS_FOR['tags']="$a {+3}"
   case "${FZX_MODE:-queue}" in
     artist) FZX_OPTS+=("--header=albums of $MUSIC_ARTIST") ;;
     tracks)

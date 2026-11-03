@@ -285,3 +285,110 @@ play 2" ]
   music::applicable music
   [ "$(music::summary music:playlists)" = "2 playlists" ]
 }
+
+# the edit tests' musicman: values lists two moods and a context in use; view gives each song its moods from
+# $BATS_TEST_TMPDIR/moods.<basename>; edit is logged
+edit_stubs() {
+  export FZX_MUSIC_DIR="$BATS_TEST_TMPDIR/music" XDG_CACHE_HOME="$BATS_TEST_TMPDIR/xdg"
+  cat > "$STUBS/musicman" << 'STUB'
+#!/usr/bin/env bash
+T="$BATS_TEST_TMPDIR"
+case "$1" in
+  values) echo "values ${*:2}" >> "$T/musicman.calls"
+    printf '{"context":[{"value":"Study","count":40}],"mood":[{"value":"Mellow","count":9},{"value":"Upbeat","count":3}],"picks":[]}\n' ;;
+  view) f="${2##*/}"; printf '[{"rating":"3.5","mood":"%s","context":""}]\n' "$(cat "$T/moods.$f" 2> /dev/null)" ;;
+  edit) echo "edit ${*:2}" >> "$T/musicman.calls" ;;
+esac
+STUB
+  # fzf: records its input and options, prints STUB_PICK's lines (query, key, then the picked keys' rows)
+  cat > "$STUBS/fzf" << 'STUB'
+#!/usr/bin/env bash
+cat > "$BATS_TEST_TMPDIR/fzf.input"
+printf '%s\n' "$@" > "$BATS_TEST_TMPDIR/fzf.opts"
+printf '%s\n' "${STUB_PICK:-}" | while IFS= read -r key; do
+  case "$key" in QUERY=*) echo "${key#QUERY=}" ;; KEY=*) echo "${key#KEY=}" ;; *) grep "^$key"$'\t' "$BATS_TEST_TMPDIR/fzf.input" ;; esac
+done
+STUB
+  chmod +x "$STUBS"/*
+  mkdir -p "$FZX_MUSIC_DIR/ms/she" "$FZX_MUSIC_DIR/z7/garden"
+  touch "$FZX_MUSIC_DIR/ms/she/01.mp3" "$FZX_MUSIC_DIR/z7/garden/04.mp3"
+}
+# music_fn <fn> <args...>: a music:: function with the actions loaded, music::ask answering $ANSWER
+music_fn() {
+  bash -c 'source "$1/lib/core.sh"; fzx::require log config; fzx::config_load "$2" music; source "$2/actions.sh"
+    music::ask() { local -n _a="$1"; _a="$ANSWER"; }; shift 2; "$@"' _ "$FZX_REPO" "$MUSIC" "$@"
+}
+
+@test "rate: every selected song gets the rating, by its path under the music directory; bad ones refused" {
+  edit_stubs
+  ANSWER=4.5 FZX_MODE=queue run music_fn music::action rate -- ms/she/01.mp3 z7/garden/04.mp3
+  [ "$status" -eq 0 ]
+  grep -qxF "edit $FZX_MUSIC_DIR/ms/she/01.mp3 4.5" "$BATS_TEST_TMPDIR/musicman.calls"
+  grep -qxF "edit $FZX_MUSIC_DIR/z7/garden/04.mp3 4.5" "$BATS_TEST_TMPDIR/musicman.calls"
+  : > "$BATS_TEST_TMPDIR/musicman.calls"
+  ANSWER=4.3 FZX_MODE=queue run music_fn music::action rate -- ms/she/01.mp3
+  [ "$status" -eq 1 ] && [[ "$output" == *'not a rating'* ]]
+  ANSWER=6 FZX_MODE=queue run music_fn music::action rate -- ms/she/01.mp3
+  [ "$status" -eq 1 ]
+  ! grep -q '^edit' "$BATS_TEST_TMPDIR/musicman.calls"
+  # an empty answer changes nothing; albums are not songs
+  ANSWER= FZX_MODE=queue run music_fn music::action rate -- ms/she/01.mp3
+  [ "$status" -eq 0 ] && [ ! -s "$BATS_TEST_TMPDIR/musicman.calls" ]
+  ANSWER=4 FZX_MODE=albums run music_fn music::action rate -- x
+  [ "$status" -eq 1 ] && [[ "$output" == *'works on songs'* ]]
+}
+
+@test "rate drops the songs' cached musicman answers, so the preview reads the new rating" {
+  edit_stubs
+  FZX_MODE=queue "$MUSIC/preview.sh" -- 2 song ms/she/01.mp3 > /dev/null
+  [ "$(ls "$XDG_CACHE_HOME/fzx/music/tags" | wc -l)" -eq 1 ]
+  ANSWER=5 FZX_MODE=queue music_fn music::action rate -- ms/she/01.mp3
+  [ "$(ls "$XDG_CACHE_HOME/fzx/music/tags" | wc -l)" -eq 0 ]
+}
+
+@test "tags: values marked by how many selected songs have them, every song's selected at the start" {
+  edit_stubs
+  echo 'Mellow,Sunny' > "$BATS_TEST_TMPDIR/moods.01.mp3"
+  echo 'Mellow' > "$BATS_TEST_TMPDIR/moods.04.mp3"
+  STUB_PICK=$'\n\nmood:Mellow' FZX_MODE=tracks run music_fn music::action tags -- ms/she/01.mp3 z7/garden/04.mp3
+  [ "$status" -eq 0 ]
+  grep -qxF 'values context mood picks --format json' "$BATS_TEST_TMPDIR/musicman.calls"
+  # library values in its order, then a value only the songs have (count 0)
+  run cut -f2 "$BATS_TEST_TMPDIR/fzf.input"
+  [ "${lines[0]}" = '○ context   Study 40' ]
+  [ "${lines[1]}" = '● mood      Mellow 9' ]
+  [ "${lines[2]}" = '○ mood      Upbeat 3' ]
+  [ "${lines[3]}" = '◐ mood      Sunny 0' ]
+  grep -qxF -- '--bind' "$BATS_TEST_TMPDIR/fzf.opts"
+  grep -qxF 'load:pos(2)+toggle+first' "$BATS_TEST_TMPDIR/fzf.opts"
+  # nothing changed: Mellow kept, Sunny (some songs) left alone
+  ! grep -q '^edit' "$BATS_TEST_TMPDIR/musicman.calls"
+}
+
+@test "tags: selected values are added to every song, deselected shared ones removed, alt-enter adds the query" {
+  edit_stubs
+  echo 'Mellow,Sunny' > "$BATS_TEST_TMPDIR/moods.01.mp3"
+  echo 'Mellow' > "$BATS_TEST_TMPDIR/moods.04.mp3"
+  # Mellow deselected, Upbeat and Sunny selected, a new context typed
+  STUB_PICK=$'QUERY=context:Pool\nKEY=alt-enter\nmood:Upbeat\nmood:Sunny' FZX_MODE=queue \
+    run music_fn music::action tags -- ms/she/01.mp3 z7/garden/04.mp3
+  [ "$status" -eq 0 ]
+  [ "$(grep -c '^edit' "$BATS_TEST_TMPDIR/musicman.calls")" -eq 2 ]
+  local line
+  line="$(grep "^edit $FZX_MUSIC_DIR/ms/she/01.mp3 " "$BATS_TEST_TMPDIR/musicman.calls")"
+  [[ "$line" == *' context=+Pool '* || "$line" == *' context=+Pool' ]]
+  [[ "$line" == *' mood='* && "$line" == *'+Upbeat'* && "$line" == *'+Sunny'* && "$line" == *'-Mellow'* ]]
+  # a new value that is not field:value of an edited field is refused
+  : > "$BATS_TEST_TMPDIR/musicman.calls"
+  STUB_PICK=$'QUERY=genre:Rock\nKEY=alt-enter' FZX_MODE=queue run music_fn music::action tags -- ms/she/01.mp3
+  [ "$status" -eq 1 ] && [[ "$output" == *'field:value'* ]]
+  ! grep -q '^edit' "$BATS_TEST_TMPDIR/musicman.calls"
+}
+
+@test "under fzx: rate and tags get the songs' files, not queue positions" {
+  stub_fzf
+  run "$FZX" -m music
+  [ "$status" -eq 0 ]
+  [[ "$(fzf_bind 'alt-*')" == *"_cb action rate -- {+3}"* ]]
+  [[ "$(fzf_bind alt-t)" == *"_cb action tags -- {+3}"* ]]
+}

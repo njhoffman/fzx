@@ -4,6 +4,10 @@
 
 # shellcheck source=./source.sh
 source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
+# shellcheck source=./preview.sh
+source "$(dirname "${BASH_SOURCE[0]}")/preview.sh"
+# shellcheck source=./edit.sh
+source "$(dirname "${BASH_SOURCE[0]}")/edit.sh"
 
 # music::files <ids...>: the files the ids stand for under FZX_MODE, one per line, in play order
 music::files() {
@@ -25,6 +29,8 @@ music::files() {
 #   remove:   queue: the selected positions; delete: playlists: the selected playlists
 #   clear:    the queue; save: the queue as a playlist named on the terminal
 #   pause, next, previous: the player
+#   rate, tags: queue and tracks: the songs' rating, or their context, mood and picks (edit.sh); the ids
+#   are the files here (FZX_ACTION_ARGS_FOR)
 music::action() {
   local action="${1:-}" files=() i name
   shift
@@ -73,6 +79,12 @@ music::action() {
       read -r -e -p "save the queue as playlist: " name || return 0
       [[ -n "$name" ]] || return 0
       command mpc -q save "$name"
+      ;;
+    rate | tags)
+      case "${FZX_MODE:-queue}" in
+        queue | tracks) "music::$action" "$@" ;;
+        *) printf 'music: %s works on songs (the queue, an album or a playlist)\n' "$action" >&2; return 1 ;;
+      esac
       ;;
     pause) command mpc -q toggle ;;
     next) command mpc -q next ;;

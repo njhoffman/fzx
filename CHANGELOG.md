@@ -6,6 +6,17 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.71.0] - 2026-11-02
+
+### Added
+
+- music: alt-* rates the selected songs (the queue and an album's or playlist's songs) through
+  `musicman edit`, asking for 0 to 5 in half steps with the first song's rating to edit.
+- music: alt-t edits the songs' context, mood and picks (`FZX_MUSIC_EDIT_FIELDS`) in an fzf of the values in
+  use, from `musicman values` (musicman 1.61 or later). Each value is marked by how many of the songs have
+  it, and the ones every song has start selected; enter writes the difference to every song, alt-enter also
+  adds the query as a new `field:value`. Previews read the new values right away.
+
 ## [0.70.0] - 2026-11-02
 
 ### Added

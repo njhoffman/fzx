@@ -30,6 +30,10 @@ FZX_COLORS[music_rating]="38;5;179"
 FZX_MUSIC_MUSICMAN="${FZX_MUSIC_MUSICMAN:-auto}"
 # the musicman fields shown, in this order
 FZX_MUSIC_TAGS=(rating grouping context mood picks type)
+# the multi value fields the tags action edits (musicman edit field=+a,-b), in this order
+FZX_MUSIC_EDIT_FIELDS=(context mood picks)
+# the field names in the tags picker
+FZX_COLORS[music_field]="38;5;111"
 # MPD's music_directory, for musicman's paths; empty: read from ~/.config/mpd/mpd.conf or ~/.mpdconf
 FZX_MUSIC_DIR="${FZX_MUSIC_DIR:-}"
 # the cover's height in the preview, in rows at most (it also keeps to half the preview's width)

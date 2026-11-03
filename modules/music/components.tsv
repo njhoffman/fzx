@@ -15,6 +15,8 @@ action  remove     alt-x      queue: remove the selected songs                  
 action  delete     alt-X      playlists: delete the selected playlists                               confirm,reload
 action  clear      alt-c      clear the queue                                                        confirm,reload
 action  save       alt-s      save the queue as a playlist (asks for its name)                       foreground,reload
+action  rate       alt-*      queue, songs: rate the selected songs (musicman; asks for 0-5 in half steps)  foreground,reload
+action  tags       alt-t      queue, songs: pick their context, mood and picks values (musicman)       foreground,reload
 action  pause      alt-m      play or pause                                                          silent,reload
 action  next       alt-n      the next song                                                          silent,reload
 action  previous   alt-p      the previous song                                                      silent,reload
