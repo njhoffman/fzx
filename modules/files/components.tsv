@@ -15,8 +15,8 @@ if command -v plocate > /dev/null || command -v locate > /dev/null; then
 fi
 cat << 'ROWS'
 toggle  hidden   alt-h  hidden files and directories (dotfiles)            on
-toggle  ignored  alt-i  files .gitignore and .ignore exclude                -
-toggle  follow   alt-l  follow symbolic links into directories             -
+toggle  ignored  alt-i  files, dirs, grep, replace: files .gitignore and .ignore exclude                -
+toggle  follow   alt-l  files, dirs, grep, replace: follow symbolic links into directories             -
 toggle  multiline  alt-m  grep: matches may span lines (\n in the term; ripgrep only)  -
 ROWS
 if command -v plocate > /dev/null || command -v locate > /dev/null; then

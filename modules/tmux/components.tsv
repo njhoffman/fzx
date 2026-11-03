@@ -14,9 +14,9 @@ mode  hooks      -  hooks by scope                         -
 sort  order   -  sessions, windows, panes: tmux's order               default
 sort  recent  -  sessions, windows, panes: last active first         -
 sort  name    -  sessions, windows, panes: by name                   -
-toggle  changed  alt-d  keys/options/hooks: only changes and local overrides    -
+toggle  changed  alt-d  keys, options, styles, formats, status, hooks: only changes and local overrides    -
 toggle  unassigned  alt-u  keys: show free keys in the selected table           -
-toggle  empty    alt-e  variables and hooks: include empty values               -
+toggle  empty    alt-e  variables, hooks: include empty values               -
 toggle  short    alt-c  commands: show names and aliases only                   -
 action  switch  alt-s   switch to session, window or pane (attach outside tmux)  become
 action  kill    ctrl-x  kill session, window, pane or delete buffer            foreground,reload,confirm

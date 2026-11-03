@@ -175,6 +175,13 @@ fzx::nav_toggle() {
     printf 'fzx: unknown toggle: %s\n' "$name" >&2
     return 2
   fi
+  # a toggle this mode does not have: its key does nothing (as a sort row's does)
+  local here=()
+  fzx::comp_toggle_names here
+  if [[ " ${here[*]} " != *" $name "* ]]; then
+    printf 'ignore'
+    return 0
+  fi
   fzx::comp_current
   for t in $FZX_TOGGLES; do
     if [[ "$t" == "$name" ]]; then found=1; else on+=("$t"); fi

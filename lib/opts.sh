@@ -149,9 +149,12 @@ fzx::component_line() {
       if [[ "$_m" == "$FZX_MODE" ]]; then _items+=($'1\ton\tmode\t'"$_m"); else _items+=($'1\toff\tmode\t'"$_m"); fi
     done
   fi
-  while IFS=$'\t' read -r _k _n _ _ _; do
+  # the toggles this mode has (a row scoped to other modes does nothing here)
+  local _toggles=()
+  fzx::comp_toggle_names _toggles
+  for _n in "${_toggles[@]}"; do
     if fzx::comp_on "$_n"; then _items+=($'2\ton\ttoggle\t'"${_on:+$_on }$_n"); else _items+=($'2\toff\ttoggle\t'"${_off:+$_off }$_n"); fi
-  done < <(fzx::comp_rows toggle)
+  done
   [[ -n "${FZX_SORT:-}" ]] && _items+=($'3\ton\tsort\t'"${_sort:-↓} $FZX_SORT")
   ((${#_items[@]})) || { printf -v "$1" '%s' ""; return; }
   case "$_style" in

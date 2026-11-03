@@ -41,7 +41,7 @@ kept() {
   [ -f "$DIR/data/one+big@size" ]
   FZX_SESSION="$SID" "$FZX" _cb toggle hidden > /dev/null
   FZX_SESSION="$SID" "$FZX" _cb load > /dev/null
-  [ -f "$DIR/data/one+big,hidden@size" ]
+  [ -f "$DIR/data/one+hidden,big@size" ]  # table order: the same view however it was reached
   [ "$(< "$COUNTER_FILE")" = 2 ]
   FZX_SESSION="$SID" "$FZX" _cb toggle hidden > /dev/null
   FZX_SESSION="$SID" "$FZX" _cb load > /dev/null
@@ -221,6 +221,56 @@ EOF2
   echo 'FZX_SORTED_SHOW=rows' > "$FZX_CONFIG_DIR/config.sh"
   FZX_SESSION="$SID" run "$FZX" _cb mode other
   [[ "$output" == change-border-label* ]]
+}
+
+@test "toggles scoped by mode: only those in the footer, their key does nothing elsewhere, the cache ignores them" {
+  export COUNTER_MODES="one two"
+  cat > "$FZX_CONFIG_DIR/modules/counter/components.tsv" << 'EOF2'
+toggle  all   alt-a  everywhere                     -
+toggle  mine  alt-m  one: only the first mode's     -
+EOF2
+  run "$FZX" -m counter:two
+  read_fzf_args
+  local footer
+  footer="$(printf '%s\n' "${FZF_ARGS[@]}" | grep -- '^--footer=')"
+  [[ "$footer" == *all* && "$footer" != *mine* ]]
+  # still bound, since a mode switch does not rebind: it does nothing here
+  [[ "$(fzf_bind alt-m)" == *"toggle mine"* ]]
+  run "$FZX" -m counter:one
+  read_fzf_args
+  footer="$(printf '%s\n' "${FZF_ARGS[@]}" | grep -- '^--footer=')"
+  [[ "$footer" == *all* && "$footer" == *mine* ]]
+  kept
+  FZX_SESSION="$SID" run "$FZX" _cb toggle mine
+  [[ "$output" == change-border-label* ]]
+  [ "$(< "$DIR/state/toggles")" = mine ]
+  FZX_SESSION="$SID" "$FZX" _cb mode two > /dev/null
+  FZX_SESSION="$SID" run "$FZX" _cb toggle mine
+  [ "$output" = ignore ]
+  [ "$(< "$DIR/state/toggles")" = mine ]
+  # two's view is the same with mine on or off
+  FZX_SESSION="$SID" "$FZX" _cb load > /dev/null
+  [ -f "$DIR/data/two+" ]
+  # back in one the toggle is as it was left
+  FZX_SESSION="$SID" run "$FZX" _cb mode one
+  [[ "$output" == *mine* ]]
+}
+
+@test "toggle descriptions name modes that exist, or they would apply everywhere" {
+  local f m row names
+  for f in "$FZX_REPO"/modules/*/components.tsv; do
+    [[ -x "$f" ]] && continue
+    names=" $(awk '$1 == "mode" { print $2 }' "$f" | tr '\n' ' ')"
+    while IFS= read -r row; do
+      # "word, word: text" where a word is not a mode is plain text with a colon
+      local scope="${row%%: *}"
+      [[ "$row" == *": "* && "$scope" =~ ^[a-z0-9_,\ -]+$ ]] || continue
+      local IFS_=, w
+      for w in ${scope//,/ }; do
+        [[ "$names" == *" $w "* ]] || { printf '%s: %s is not a mode: %s\n' "$f" "$w" "$row"; return 1; }
+      done
+    done < <(awk '$1 == "toggle" { d = ""; for (i = 4; i <= NF; i++) d = d (i > 4 ? " " : "") $i; print d }' "$f")
+  done
 }
 
 @test "ps: the sorted column is underlined, header too; tree has no sort" {

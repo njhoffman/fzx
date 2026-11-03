@@ -317,6 +317,11 @@ once. A sort row flagged `desc` orders its column's values from the largest (mos
 date); the header row's arrow points down for it (`FZX_SORT_DESC`). The footer shows modes, toggles and the sort
 key, active ones highlighted (`FZX_COLORS[toggle_on|toggle_off|sort]`).
 
+A toggle row's description may be scoped by mode too (`params: exported ones only`; `fzx::comp_toggle_names`): it shows in
+the footer only in the modes it names, its key does nothing elsewhere (fzf keeps its bindings across modes,
+so it stays bound; `ignore`), and it stays out of those modes' cache key, so turning it on elsewhere
+does not make them read their list again. Its state is kept for when you come back.
+
 A sort row's description may be scoped by mode as an action's is (`branches: last commit first`,
 `mine, starred: most stars first`): the row then exists only in the modes it names
 (`fzx::comp_sort_names`), and a mode no row names has no sort (`FZX_SORT` empty, no footer item, f11/f12

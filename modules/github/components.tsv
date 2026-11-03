@@ -13,11 +13,11 @@ mode  runs     -  a repository's workflow runs, latest first (--repo OWNER/REPO,
 mode  issues   -  issues of the repository here (--repo OWNER/REPO), else involving you       -
 mode  prs      -  pull requests of the repository here (--repo OWNER/REPO), else involving you  -
 mode  notifications  -  your notifications (unread; the latest 50)                             -
-toggle  private  alt-1  private repositories only (with public: both)                          -
-toggle  public   alt-2  public repositories only (with private: both)                          -
-toggle  sources  alt-3  repositories that are not forks (with forks: both)                     -
-toggle  forks    alt-4  forks only (with sources: both)                                        -
-toggle  missing  alt-5  only repositories not cloned here yet (cloned ones are marked)        -
+toggle  private  alt-1  repos, mine, starred: private repositories only (with public: both)                          -
+toggle  public   alt-2  repos, mine, starred: public repositories only (with private: both)                          -
+toggle  sources  alt-3  repos, mine, starred: repositories that are not forks (with forks: both)                     -
+toggle  forks    alt-4  repos, mine, starred: forks only (with sources: both)                                        -
+toggle  missing  alt-5  repos, mine, starred: only repositories not cloned here yet (cloned ones are marked)        -
 toggle  closed      alt-6  issues, prs: closed (and merged) ones too                            -
 toggle  everywhere  alt-7  issues, prs: the ones involving you anywhere, not the repository's   -
 toggle  read        alt-8  notifications: read ones too                                         -

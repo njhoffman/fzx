@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.95.0] - 2026-11-03
+
+### Changed
+
+- The footer shows only the toggles the current mode has, by the mode names in each toggle's description; the
+  key of any other does nothing there, and it no longer invalidates that mode's cache. files, github, ps,
+  network and tmux toggles now name their modes.
+
 ## [0.94.0] - 2026-11-03
 
 ### Added

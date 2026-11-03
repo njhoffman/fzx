@@ -3,7 +3,7 @@ mode  user  -  your processes, busiest first                default
 mode  all   -  all processes, busiest first                 -
 mode  top   -  all processes, refreshed every few seconds   restart
 mode  tree  -  process tree (input order: sorting off)      restart
-toggle  kernel  alt-k  show kernel threads                      -
+toggle  kernel  alt-k  all, top, tree: show kernel threads                      -
 sort    cpu     -      user, all, top: busiest first                 default,desc
 sort    mem     -      user, all, top: most memory first             desc
 sort    age     -      user, all, top: newest first                  -

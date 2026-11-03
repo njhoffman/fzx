@@ -8,7 +8,7 @@ mode    routes       -  the routing table (IPv4, then IPv6)                     
 mode    wifi         -  wifi networks in range (nmcli)                          -
 mode    services     -  mDNS services on the network (avahi; cached)            -
 mode    files        -  the open files of a process (--pid PID)                 hidden
-toggle  root     alt-u  ss and lsof through sudo -n: every process (needs a cached sudo: run sudo -v)  -
+toggle  root     alt-u  ports, connections, files: ss and lsof through sudo -n: every process (needs a cached sudo: run sudo -v)  -
 sort    port     -      ports: by port                                         default
 sort    remote   -      connections: by remote address                         -
 sort    process  -      ports, connections: by process name                    -

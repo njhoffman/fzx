@@ -33,7 +33,7 @@ section() {
   run section ps
   [[ "$output" =~ ctrl-x\ +action:\ send\ SIGTERM ]]
   [[ "$output" =~ ctrl-o\ +open\ the\ children ]]
-  [[ "$output" =~ alt-k\ +toggle:\ show\ kernel\ threads ]]
+  [[ "$output" =~ alt-k\ +toggle:\ all,\ top,\ tree:\ show\ kernel\ threads ]]
   [[ "$output" != *ctrl-r* ]]
 }
 

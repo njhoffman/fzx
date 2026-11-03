@@ -205,6 +205,23 @@ fzx::comp_sort_names() {
   eval "$1=(\"\${_names[@]}\")"
 }
 
+# fzx::comp_toggle_names <array var>: the toggles that do something in FZX_MODE, table order. As with sort,
+# a description scoped by mode ("params: exported ones only") limits the row to the modes it names.
+fzx::comp_toggle_names() {
+  local _row _k _n _d _modes=() _names=()
+  for _row in "${FZX_COMP[@]}"; do
+    IFS=$'\t' read -r _k _n _ _ <<< "$_row"
+    [[ "$_k" == mode ]] && _modes+=("$_n")
+  done
+  for _row in "${FZX_COMP[@]}"; do
+    IFS=$'\t' read -r _k _n _ _d _ <<< "$_row"
+    [[ "$_k" == toggle ]] || continue
+    ((${#_modes[@]})) && ! fzx::mode_desc "$_d" "${FZX_MODE:-}" _d "${_modes[@]}" && continue
+    _names+=("$_n")
+  done
+  eval "$1=(\"\${_names[@]}\")"
+}
+
 # fzx::comp_on <toggle>: the toggle is on (expects comp_current)
 fzx::comp_on() {
   [[ " $FZX_TOGGLES " == *" $1 "* ]]
@@ -214,7 +231,15 @@ fzx::comp_on() {
 # table has toggles / sort keys, and "#header" with a header row, so each combination is cached on its own
 fzx::data_key() {
   local _key="$FZX_MODE"
-  fzx::comp_has toggle && _key+="+${FZX_TOGGLES// /,}"
+  # only what matters to this mode: a toggle it ignores must not make it read its list again
+  if fzx::comp_has toggle; then
+    local _here=() _n _on=""
+    fzx::comp_toggle_names _here
+    for _n in "${_here[@]}"; do
+      fzx::comp_on "$_n" && _on+="${_on:+,}$_n"
+    done
+    _key+="+$_on"
+  fi
   [[ -n "$FZX_SORT" ]] && _key+="@$FZX_SORT"
   [[ "${FZX_SORT_HEADER:-0}" == 1 ]] && _key+="#header"
   printf -v "$1" '%s' "$_key"
