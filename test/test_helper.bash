@@ -21,6 +21,8 @@ setup_fzx() {
   # sort marking in the rows only, header cells in fzf's header color, bold without an underline (the header
   # row's tests turn it on; test/lib.bats covers the defaults), whatever the environment has
   export FZX_SORTED_SHOW=rows FZX_HEADER_COLUMN_COLOR="" FZX_SORTED_HEADER_STYLE=bold
+  # the border title in fzf's label color, so tests read it as text (test/lib.bats covers the colors)
+  export FZX_TITLE_COLOR="" FZX_TITLE_CURRENT_COLOR=""
   unset FZX_SORT_HEADER FZX_SORT_DESC FZX_SORTED_HEADER_COLOR FZX_SORTED_ARROWS
   export COUNTER_FILE="$BATS_TEST_TMPDIR/counter"
   LOG="$FZX_STATE_DIR/fzx.log"

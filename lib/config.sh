@@ -79,6 +79,7 @@ fzx::_sgr_join() {
 #   FZX_COLORS[header_column]  a header row's other columns: FZX_HEADER_COLUMN_COLOR; empty leaves fzf's
 #                              header color
 #   FZX_COLORS[header_sorted]  its sorted column and arrow: FZX_SORTED_HEADER_STYLE and FZX_SORTED_HEADER_COLOR
+# and the border title's: FZX_COLORS[title] (FZX_TITLE_COLOR), [title_current] (bold FZX_TITLE_CURRENT_COLOR).
 fzx::_sorted_sgr() {
   local _sgr=()
   case "${FZX_SORTED_SHOW:-header}" in
@@ -99,6 +100,17 @@ fzx::_sorted_sgr() {
     _sgr=()
     fzx::_sgr_color FZX_HEADER_COLUMN_COLOR "${FZX_HEADER_COLUMN_COLOR-#007e95}" 38 _sgr
     fzx::_sgr_join _sgr "" "FZX_COLORS[header_column]"
+  fi
+  if [[ -z "${FZX_COLORS[title]+set}" ]]; then
+    _sgr=()
+    fzx::_sgr_color FZX_TITLE_COLOR "${FZX_TITLE_COLOR-7}" 38 _sgr
+    fzx::_sgr_join _sgr "" "FZX_COLORS[title]"
+  fi
+  if [[ -z "${FZX_COLORS[title_current]+set}" ]]; then
+    _sgr=()
+    fzx::_sgr_color FZX_TITLE_CURRENT_COLOR "${FZX_TITLE_CURRENT_COLOR-15}" 38 _sgr
+    ((${#_sgr[@]})) && _sgr=(1 "${_sgr[@]}")
+    fzx::_sgr_join _sgr "" "FZX_COLORS[title_current]"
   fi
   if [[ -z "${FZX_COLORS[header_sorted]:-}" ]]; then
     _sgr=()

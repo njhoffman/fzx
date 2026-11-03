@@ -9,6 +9,6 @@ sort    recent     -       history: last visited first                          
 sort    visits     -       history: most visited first                                  -
 action  open       -       open in the row's browser and profile, then close            become,default
 action  open-stay  ctrl-o  open in the row's browser and profile                        silent
-action  xdg        alt-o   open in the default browser (xdg-open)                        silent
+action  xdg        alt-O   open in the default browser (xdg-open)                        silent
 action  copy       ctrl-y  copy the URLs                                                silent,builtin
 action  copy-title  alt-y   copy the titles                                             notify

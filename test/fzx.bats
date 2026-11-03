@@ -310,8 +310,10 @@ setup() {
   run env FZX_SESSION="$root" "$FZX" _cb nav goto counter:three --x
   child="${output% -m*}"
   child="${child##* }"
-  run "$FZX" --resume "$child" -m :three --dry-run
+  FZX_ICONS=none run "$FZX" --resume "$child" -m :three --dry-run
   [[ "$output" == *"'--border-label= counter:two > counter:three '"* ]]
+  run "$FZX" --resume "$child" -m :three --dry-run
+  [[ "$output" == *"'--border-label= counter:two "$'\xef\x90\xb2'" counter:three '"* || "$output" == *'--border-label= counter:two '$'\357\220\262'' counter:three '* ]]
 }
 
 @test "the owner removes child sessions with the root" {

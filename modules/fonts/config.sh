@@ -4,8 +4,8 @@
 # shellcheck disable=SC2034  # settings here are read by lib/ and the module
 declare -gA FZX_COLORS
 
-# prompt icon (Nerd Font); FZX_ICON="" keeps fzf's own prompt
-FZX_ICON=""
+# prompt icon (Nerd Font: nf-fa-font); FZX_ICON="" keeps fzf's own prompt
+FZX_ICON=""
 # the icon's color in the menu
 FZX_COLORS[fonts_icon]="38;5;180"
 # the monospace marker in the list

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # menu: what `fzx` opens without arguments. Lists the entries of every module's manifest.sh that apply
-# here; enter opens one as a child session, so alt-left comes back to the menu. Mode groups (default) puts
+# here; enter opens one as a child session, so alt-left comes back to the menu. Mode groups puts
 # the most used entries first, then the rest under group headers; mode list keeps module order.
 
 FZX_MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

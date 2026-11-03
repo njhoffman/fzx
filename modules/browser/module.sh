@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # browser: history and bookmarks of every Chromium-family (Chrome, Chromium, Brave, Vivaldi) and Firefox
 # profile. `fzx -m browser[:bookmarks]`. Enter opens the URLs in the browser and profile each came from
-# and closes; ctrl-o opens them and stays, alt-o uses xdg-open. The databases are copied before reading
+# and closes; ctrl-o opens them and stays, alt-O uses xdg-open. The databases are copied before reading
 # (a running browser locks them) and cached for five minutes: ctrl-r reads them again.
 
 FZX_MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

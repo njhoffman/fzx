@@ -65,7 +65,7 @@ fzx::_nav_refresh() {
   # (a mode switch has loaded it already)
   [[ -n "${_FZX_NAV_CONFIG:-}" ]] || fzx::config_load "$FZX_MODULE_DIR" "$FZX_MODULE"
   fzx::comp_current
-  fzx::session_label label
+  fzx::session_title label
   fzx::component_line line
   # before the header: in the header position the hook's text goes to meta/header, which the header
   # callback below draws under the component line
@@ -250,6 +250,7 @@ fzx::nav() {
     # the old name of the placement key's action
     popout) fzx::_nav_placement next ;;
     goto) fzx::_nav_goto "$@" ;;
+    menu) fzx::_nav_menu ;;
     entry) fzx::_nav_entry "$@" ;;
     *)
       fzx::log error "unknown nav action: $action"
@@ -282,6 +283,25 @@ fzx::_nav_back() {
     fi
     printf '%s' "${1:-bell}"
   fi
+}
+
+# fzx::_nav_menu: to the main menu: the one in the session's path, however deep (its place and query are
+# kept), else a new one under this screen, so alt-left comes back here
+fzx::_nav_menu() {
+  local dir="$FZX_SESSION_DIR" sid="" module depth=0
+  while [[ -d "$dir/meta" ]] && ((depth++ < 32)); do
+    module=""
+    fzx::_kv_get "$dir/meta/module" module || :
+    if [[ "$module" == menu ]]; then
+      fzx::log info "nav menu -> ${sid:-$FZX_SESSION}"
+      _FZX_STAT=(nav - menu)
+      fzx::_nav_become "${sid:-$FZX_SESSION}"
+      return
+    fi
+    fzx::_kv_get "$dir/meta/parent" sid || break
+    dir="$FZX_SESSIONS_DIR/$sid"
+  done
+  fzx::_nav_goto menu
 }
 
 # fzx::_nav_placement [next|prev|popup-toggle|PLACEMENT]: move the session tree to the next placement of

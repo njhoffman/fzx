@@ -2,7 +2,7 @@
 # sessions menu entry: always listed (a kept or live tree may exist in another terminal)
 
 sessions::manifest() {
-  fzx::entry sessions "fzx sessions: resume a kept one, copy a live one"
+  fzx::entry sessions "fzx sessions: resume or copy one"
 }
 
 # sessions::summary <target>: kept and live trees other than the menu's own

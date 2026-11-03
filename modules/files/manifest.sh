@@ -5,7 +5,7 @@ files::manifest() {
   fzx::entry files "Files under this directory"
   fzx::entry files:dirs "Directories under this directory"
   fzx::entry files:grep "Search file contents as you type"
-  fzx::entry files:locate "Paths the locate database has under this directory"
+  fzx::entry files:locate "Paths in the locate database under here"
 }
 
 files::applicable() {

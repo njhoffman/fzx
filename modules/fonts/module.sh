@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # fonts: fontconfig's font families with a sample drawn in each (ImageMagick and chafa; sharpest with
 # FZX_PREVIEW_IMAGE_FORMAT=kitty or sixels), its styles and files. `fzx -m fonts`. alt-m: monospace only;
-# ctrl-y copies the names, alt-y the files, alt-o opens the folder. Enter prints the family names.
+# ctrl-y copies the names, alt-y the files, alt-O opens the folder. Enter prints the family names.
 
 FZX_MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../lib/core.sh

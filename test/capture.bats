@@ -202,7 +202,7 @@ src() { FZX_MODE="$1" "$CAP/source.sh" "${@:2}"; }
   [[ " ${FZF_ARGS[*]} " == *" --header=pane 1/1  $PANE  bash  "*"10 on screen "* ]]
   [[ "$(fzf_bind alt-.)" == *'_cb transform pane next --pane '* ]]
   [[ "$(fzf_bind alt-p)" == *'_cb action paste --pane '* ]]
-  [[ "$(fzf_bind alt-o)" == *'_cb action open --pane '* ]]
+  [[ "$(fzf_bind alt-O)" == *'_cb action open --pane '* ]]
   [[ "$(fzf_bind ctrl-e)" == *'execute('*'_cb action edit --pane '* ]]
   [[ "$(fzf_bind ctrl-y)" == *'builtin copy {+1}'* || "$(fzf_bind ctrl-y)" == *'copy'*'{+1}'* ]]
   run "$FZX" -m tmux:urls

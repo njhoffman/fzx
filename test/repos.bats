@@ -46,7 +46,7 @@ plain() { sed 's/\x1b\[[0-9;:]*m//g'; }
 src() { FZX_MODE="${1:-all}" "$REPOS/source.sh" | plain; }
 # run a repos::function with config loaded
 repos_fn() {
-  bash -c 'source "$FZX_REPO/lib/core.sh"; fzx::require log config; fzx::config_load "$1" repos; source "$1/actions.sh"; shift; "$@"' _ "$REPOS" "$@"
+  FZX_REPO="$FZX_REPO" bash -c 'source "$FZX_REPO/lib/core.sh"; fzx::require log config; fzx::config_load "$1" repos; source "$1/actions.sh"; shift; "$@"' _ "$REPOS" "$@"
 }
 
 @test "before any scan: every repository, owner/name (host when not github), no state" {
@@ -106,8 +106,10 @@ repos_fn() {
   run "$REPOS/source.sh"
   [[ "${lines[0]}" == $'\tREPOSITORY '*'BRANCH '*$'\e[1;38;2;0;215;255mAGE^\e[0m  STATUS' && "$output" != *$'\e[4m'* ]]
   # (the unicode icons: the branch's, then the changed files')
-  header_aligned 1 "${lines[0]}" BRANCH "${lines[1]}" "⎇"
-  header_aligned 1 "${lines[0]}" STATUS "${lines[1]}" "●"
+  local row
+  row="$(grep alpha <<< "$output")"
+  header_aligned 1 "${lines[0]}" BRANCH "$row" "⎇"
+  header_aligned 1 "${lines[0]}" STATUS "$row" "●"
 }
 
 @test "extra roots: their repositories are added, links into ghq collapse" {

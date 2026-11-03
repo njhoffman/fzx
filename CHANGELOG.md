@@ -6,6 +6,28 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.93.0] - 2026-11-03
+
+### Added
+
+- alt-o goes to the main menu from any module (`FZX_KEYS[menu]`): the menu in the path, however deep, or a new
+  one under this screen, so alt-left comes back.
+- The border title uses a Nerd Font arrow between screens (else `>`), in white where it came from and bold
+  bright white on the current screen: `FZX_TITLE_COLOR` and `FZX_TITLE_CURRENT_COLOR`, or `FZX_COLORS[title]`
+  and `[title_current]`.
+- fonts has an icon.
+
+### Changed
+
+- alt-o moves to alt-O where modules had it: open in browser, capture, claude, fonts, github, network and
+  youtube, the open files in ps, the files module in repos.
+- The menu opens in its list mode; groups is the second mode.
+
+### Fixed
+
+- A long menu description no longer runs into the status column: it is cut to fit, and the two over the width
+  (files:locate, sessions) are shorter.
+
 ## [0.92.0] - 2026-11-03
 
 ### Changed

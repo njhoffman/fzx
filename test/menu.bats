@@ -302,7 +302,7 @@ EOF2
   [ "$(fzf_bind start)" = "start:reload:$FZX _cb load" ]
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " == *" start:+bg-transform:$FZX _cb transform refresh "* ]]
-  [[ " ${FZF_ARGS[*]} " == *" --border-label= menu:groups "* ]]
+  [[ " ${FZF_ARGS[*]} " == *" --border-label= menu:list "* ]]
 }
 
 @test "the menu run directly lists entries but cannot open them" {
@@ -401,7 +401,7 @@ collected() {
 
 @test "grouped, the cursor starts under the first header; not in list mode, nor over a saved place" {
   stub_fzf
-  run "$FZX" --keep
+  run "$FZX" --keep -m menu:groups
   [ "$(fzf_bind result-final)" = "result-final:pos(2)+unbind(result-final)" ]
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " == *" --with-nth=2,3 --nth=1 --tabstop=1 "* ]]
@@ -410,11 +410,71 @@ collected() {
   printf '5' > "$FZX_SESSIONS_DIR/$sid/state/pos"
   run "$FZX" --resume "$sid"
   [ "$(fzf_binds result-final)" = "result-final:pos(5)+unbind(result-final)" ]
-  run "$FZX" -m menu:list
+  # list is what the menu opens in
+  run "$FZX"
   [ "$status" -eq 0 ]
   [ "$(< "$BATS_TEST_TMPDIR/fzf.mode")" = list ]
   run fzf_bind result-final
   [ "$status" -eq 1 ]
+}
+
+@test "descriptions stay in their column: the modules' fit, a longer one is cut; every module has an icon" {
+  local long
+  long="$(grep -hoE 'fzx::entry +[^ ]+ +"[^"]*"' "$FZX_REPO"/modules/*/manifest.sh | awk -F'"' 'length($2) > 42')"
+  [ -z "$long" ] || { printf 'too long for the column:\n%s\n' "$long"; return 1; }
+  local m="$BATS_TEST_TMPDIR/mods/wordy"
+  mkdir -p "$m"
+  cat > "$m/manifest.sh" << 'EOF2'
+wordy::manifest() { fzx::entry wordy "0123456789012345678901234567890123456789 and more"; }
+wordy::summary() { echo STATUS; }
+EOF2
+  export FZX_MODULE_PATH="$BATS_TEST_TMPDIR/mods" FZX_SESSION_DIR="$BATS_TEST_TMPDIR" FZX_LOG_FILE=/dev/null
+  load_libs log config menu
+  run fzx::menu_lines
+  [[ "$output" == *'01234567890123456789012345678901234567890…'* || "$output" == *'0123456789012345678901234567890123456789 …'* ]]
+  [[ "$output" != *'and more'* ]]
+  local missing="" d
+  for d in "$FZX_REPO"/modules/*/; do
+    [[ -f "$d/manifest.sh" ]] || continue
+    grep -qE "^FZX_ICON=(\\$'|\"[^\"])" "$d/config.sh" || missing+=" ${d%/}"
+  done
+  [ -z "$missing" ] || { printf 'no icon:%s\n' "$missing"; return 1; }
+}
+
+@test "alt-o: to the menu in the path, however deep; else a new one under this screen; not bound in the menu" {
+  stub_fzf
+  run "$FZX" --keep
+  local menu child grand
+  menu="$(< "$BATS_TEST_TMPDIR/fzf.session")"
+  run fzf_bind alt-o
+  [ "$status" -eq 1 ]
+  run env FZX_SESSION="$menu" "$FZX" _cb nav goto counter
+  child="${output#become:$FZX --resume }" child="${child%% *}"
+  run env FZX_SESSION="$child" "$FZX" _cb nav goto counter:two --x
+  grand="${output#become:$FZX --resume }" grand="${grand%% *}"
+  [ -n "$grand" ] && [ "$grand" != "$child" ]
+  run env FZX_SESSION="$grand" "$FZX" _cb nav menu
+  [ "$output" = "become:$FZX --resume $menu" ]
+  # started outside the menu: a child menu, and alt-left comes back
+  run "$FZX" --keep -m counter
+  [ "$(fzf_bind alt-o)" = "alt-o:transform:$FZX _cb nav menu" ]
+  local solo sub
+  solo="$(< "$BATS_TEST_TMPDIR/fzf.session")"
+  run env FZX_SESSION="$solo" "$FZX" _cb nav menu
+  sub="${output#become:$FZX --resume }" sub="${sub%% *}"
+  [ "$sub" != "$solo" ]
+  [ "$(< "$FZX_SESSIONS_DIR/$sub/meta/module")" = menu ]
+  [ "$(< "$FZX_SESSIONS_DIR/$sub/meta/parent")" = "$solo" ]
+  # the same menu the next time
+  run env FZX_SESSION="$solo" "$FZX" _cb nav menu
+  [[ "$output" == "become:$FZX --resume $sub"* ]]
+}
+
+@test "alt-o is free in every module: no component row or module key takes it" {
+  run grep -lE '^(action|toggle|mode|sort)[[:space:]]+[^[:space:]]+[[:space:]]+alt-o[[:space:]]' "$FZX_REPO"/modules/*/components.tsv
+  [ -z "$output" ]
+  run grep -lE '=alt-o([[:space:]]|$)' "$FZX_REPO"/modules/*/config.sh
+  [ -z "$output" ]
 }
 
 @test "every module in the menu has a group from FZX_MENU_GROUPS" {

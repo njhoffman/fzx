@@ -306,6 +306,29 @@ setup() {
   [ "$label" = "a:x > b > c:z" ]
 }
 
+@test "border title: white where it came from, brighter and bold where it is; nerd arrow, else >; settings" {
+  unset FZX_TITLE_COLOR FZX_TITLE_CURRENT_COLOR
+  fzx::config_load
+  [ "${FZX_COLORS[title]}" = "38;5;7" ] && [ "${FZX_COLORS[title_current]}" = "1;38;5;15" ]
+  load_libs icons
+  local t
+  FZX_ICONS=none fzx::title_paint t menu:list glyphs:nerd
+  [ "$t" = $'\e[38;5;7mmenu:list > \e[0m\e[1;38;5;15mglyphs:nerd\e[0m' ]
+  FZX_ICONS=nerd fzx::title_paint t menu:list glyphs:nerd
+  [[ "$t" == *$'menu:list \357\220\262 '* ]]
+  FZX_ICONS=none fzx::title_paint t ps:user
+  [ "$t" = $'\e[1;38;5;15mps:user\e[0m' ]
+  NO_COLOR=1 FZX_ICONS=none fzx::title_paint t a b c
+  [ "$t" = "a > b > c" ]
+  mkdir -p "$FZX_CONFIG_DIR"
+  echo 'FZX_TITLE_COLOR="#112233"; FZX_TITLE_CURRENT_COLOR=""' > "$FZX_CONFIG_DIR/config.sh"
+  fzx::config_load
+  [ "${FZX_COLORS[title]}" = "38;2;17;34;51" ] && [ "${FZX_COLORS[title_current]}" = "" ]
+  echo 'FZX_COLORS[title_current]="7"' > "$FZX_CONFIG_DIR/config.sh"
+  fzx::config_load
+  [ "${FZX_COLORS[title_current]}" = 7 ]
+}
+
 @test "component_line: modes, toggles and the sort key, active ones highlighted" {
   load_libs components
   fzx::config_load

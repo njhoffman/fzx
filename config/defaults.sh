@@ -15,6 +15,7 @@ declare -gA FZX_KEYS=(
   [sort_next]="f12,ctrl-_"
   [sort_prev]=f11
   [back]=alt-left
+  [menu]=alt-o
   [escape]=esc
   [popout]="ctrl-^"
   # between a popup and the plain terminal only (alt-shift-6: terminals send ESC ^)
@@ -149,6 +150,12 @@ FZX_SORTED_HEADER_COLOR="${FZX_SORTED_HEADER_COLOR-#00d7ff}"
 FZX_SORTED_ARROWS="${FZX_SORTED_ARROWS-↑ ↓}"
 # set by a module that sorts without a column to mark (files, todos): 0 shows no header row
 FZX_SORTED_COLUMNS=1
+
+# the border title, the path of screens ("menu:list > glyphs:nerd"): the color of where you came from and of
+# the screen you are on (#rrggbb, a 256-color number, or "" for fzf's label color). The current one is also
+# bold. FZX_COLORS[title] and [title_current] (raw SGR parameters) override them
+FZX_TITLE_COLOR="${FZX_TITLE_COLOR-7}"
+FZX_TITLE_CURRENT_COLOR="${FZX_TITLE_CURRENT_COLOR-15}"
 
 # the prompt: {icon} is FZX_ICON (set per module in its config.sh) in FZX_COLORS[prompt_loaded], or in
 # [prompt_loading] while the list loads. A prompt that is empty or blank leaves fzf's own prompt alone,

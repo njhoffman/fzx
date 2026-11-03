@@ -95,7 +95,7 @@ fzx::_summary_fresh() {
 
 # print the menu: "id<TAB>display<TAB>header" per line, arranged by fzx::_menu_arrange for FZX_MODE.
 fzx::menu_lines() {
-  fzx::_menu_collect | fzx::_menu_arrange "${FZX_MODE:-groups}"
+  fzx::_menu_collect | fzx::_menu_arrange "${FZX_MODE:-list}"
 }
 
 # every applicable entry as "id<TAB>display<TAB>target<TAB>group", display padded into columns.
@@ -145,7 +145,7 @@ fzx::_menu_module() {
       fzx::log warn "menu: manifest of $name failed"
       exit 0
     }
-    local i label summary file icon mode color group="${FZX_MENU_GROUP:-other}"
+    local i label summary file icon mode color desc group="${FZX_MENU_GROUP:-other}"
     for i in "${!FZX_ENTRY_TARGETS[@]}"; do
       fzx::menu_entry_args "$i"
       if declare -F "$name::applicable" > /dev/null &&
@@ -168,8 +168,11 @@ fzx::_menu_module() {
         color="${FZX_COLORS[${name}_icon_$mode]:-${FZX_COLORS[${name}_icon]:-${FZX_COLORS[menu_target]:-0}}}"
         icon=$'\e['"${color}m$icon"$'\e[0m '
       fi
+      # the description stays in its column: the summary lines up after it
+      desc="${FZX_ENTRY_DESCS[i]}"
+      ((${#desc} > 42)) && desc="${desc:0:41}…"
       printf '%s\t%s\e[%sm%-24s\e[0m %-42s \e[%sm%s\e[0m\t%s\t%s\n' \
-        "$name#$i" "$icon" "${FZX_COLORS[menu_target]:-0}" "$label" "${FZX_ENTRY_DESCS[i]}" \
+        "$name#$i" "$icon" "${FZX_COLORS[menu_target]:-0}" "$label" "$desc" \
         "${FZX_COLORS[menu_summary]:-0}" "$summary" "${FZX_ENTRY_TARGETS[i]}" "${group//[$'\t\n']/ }"
     done
   ) > "$out.part"

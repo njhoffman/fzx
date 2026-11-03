@@ -5,7 +5,7 @@ mode    active  -  uncommitted, unpushed, or a session in FZX_CLAUDE_ACTIVE_DAYS
 sort    recent  -  last session, newest first                                        default
 sort    name    -  by name                                                           -
 action  claude  ctrl-o  start Claude Code there (in tmux: a new window per project)  foreground
-action  resume  alt-o   continue the last session there (claude --continue)          foreground
+action  resume  alt-O   continue the last session there (claude --continue)          foreground
 action  edit    ctrl-e  open the project in $EDITOR                                  foreground
 action  card    alt-i   the full claude-projects card (tests, changelog) in $PAGER   foreground
 action  rescan  -       scan the projects again now                                  foreground,reload

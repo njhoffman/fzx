@@ -1,6 +1,6 @@
 # menu components: grouped by use or the plain list; the built-in actions make no sense on menu entries
-mode    groups     -  most used first, then by group     default
-mode    list       -  every entry, in module order       -
+mode    list       -  every entry, in module order       default
+mode    groups     -  most used first, then by group     -
 action  copy       -  -  off
 action  copy-line  -  -  off
 action  view       -  -  off

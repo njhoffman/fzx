@@ -24,7 +24,7 @@ toggle  read        alt-8  notifications: read ones too                         
 sort    listed   -      mine: last push first; starred: most recently starred first          default
 sort    stars    -      mine, starred: most stars first                                       desc
 sort    name     -      mine, starred: by name                                                -
-action  browser   alt-o   open in the browser                                                    silent
+action  browser   alt-O   open in the browser                                                    silent
 action  clone     alt-c   clone the repositories with ghq (yours over ssh) and link them (FZX_REPOS_LINKS_DIR)  foreground
 action  fetch     alt-d   repos, mine, starred: clone; code, tree: download the selected files and directories  foreground
 action  edit      ctrl-e  code, tree: open the file in $EDITOR (a read-only copy)                 foreground

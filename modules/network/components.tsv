@@ -18,4 +18,4 @@ action  kill        ctrl-x  ports, connections: SIGTERM to the process (sudo whe
 action  connect     alt-c   wifi: connect (a saved connection, else asks for the password)  foreground,reload
 action  disconnect  alt-d   wifi: disconnect the wifi device                               foreground,confirm,reload
 action  rescan      alt-s   wifi: scan again; services: browse again (avahi, a few seconds)  silent,reload
-action  open        alt-o   services: open http and https services in the browser          silent
+action  open        alt-O   services: open http and https services in the browser          silent

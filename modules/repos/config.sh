@@ -11,7 +11,7 @@ FZX_ICON=""
 FZX_COLORS[repos_icon]="38;5;141"
 
 FZX_KEYS[repos.git]=ctrl-o   # the git module on the repository
-FZX_KEYS[repos.files]=alt-o  # the files module on the repository
+FZX_KEYS[repos.files]=alt-O  # the files module on the repository
 
 # owners for the mine mode (the directory above the repository under ghq); empty: git's github.user, else
 # ghq.user, else the user gh is logged in as (~/.config/gh/hosts.yml), else the login name

@@ -243,7 +243,7 @@ stub() {
   [ "$(fzf_flag --preview)" = "$FZX _cb preview {1}" ]
   [[ "$(fzf_bind ctrl-x)" == "ctrl-x:transform($FZX _cb notify term {+1})+change-prompt("*")+reload($FZX _cb source)" ]]
   [ "$(fzf_bind ctrl-o)" = "ctrl-o:transform:$FZX _cb nav goto ps --ppid {1}" ]
-  [ "$(fzf_bind alt-o)" = "alt-o:transform:$FZX _cb nav goto network:files --pid {1}" ]
+  [ "$(fzf_bind alt-O)" = "alt-O:transform:$FZX _cb nav goto network:files --pid {1}" ]
   [ "$(fzf_bind alt-t)" = "alt-t:execute($FZX _cb action trace {+1})" ]
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " != *" --no-sort "* ]]

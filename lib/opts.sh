@@ -293,6 +293,43 @@ fzx::_taken_keys() {
 }
 
 # fzx::opts_build <module>; expects config loaded, module.sh sourced, FZX_MODES and FZX_MODE set
+# fzx::title_paint <var> <module:mode>...: the border title of a path of screens, the last one the current:
+# FZX_COLORS[title] for where it came from and the separator (FZX_ICONS' breadcrumb, else ">"),
+# FZX_COLORS[title_current] for the current one. Empty colors leave fzf's label color alone.
+fzx::title_paint() {
+  local __tp_var="$1" __tp_sep="" __tp_out="" __tp_c __tp_n=$# __tp_i=1 __tp_r=$'\e[0m'
+  shift
+  fzx::require icons
+  fzx::icon breadcrumb __tp_sep
+  [[ -n "$__tp_sep" ]] || __tp_sep=">"
+  local __tp_from="${FZX_COLORS[title]:-}" __tp_cur="${FZX_COLORS[title_current]:-}"
+  [[ -n "${NO_COLOR+x}" ]] && __tp_from="" __tp_cur=""
+  [[ -n "$__tp_from" ]] && __tp_from=$'\e['"${__tp_from}m"
+  [[ -n "$__tp_cur" ]] && __tp_cur=$'\e['"${__tp_cur}m"
+  [[ -n "$__tp_from$__tp_cur" ]] || __tp_r=""
+  for __tp_c; do
+    __tp_i=$((__tp_i + 1))
+    if ((__tp_i == __tp_n)); then
+      __tp_out+="$__tp_cur$__tp_c$__tp_r"
+    else
+      __tp_out+="$__tp_from$__tp_c $__tp_sep $__tp_r"
+    fi
+  done
+  printf -v "$__tp_var" '%s' "$__tp_out"
+}
+
+# fzx::session_title <var>: the session's path as the border title
+fzx::session_title() {
+  local _plain _parts=() _p
+  fzx::session_label _plain
+  while [[ "$_plain" == *" > "* ]]; do
+    _parts+=("${_plain%% > *}")
+    _plain="${_plain#* > }"
+  done
+  _parts+=("$_plain")
+  fzx::title_paint "$1" "${_parts[@]}"
+}
+
 fzx::opts_build() {
   local module="$1" label query pos
   FZX_OPTS=("${FZX_FZF_OPTS[@]}")
@@ -314,13 +351,16 @@ fzx::opts_build() {
   fzx::bind "${FZX_KEYS[reload_hard]}" "$act" "reload: run the source again"
 
   if fzx::in_session; then
-    fzx::session_label label
+    fzx::session_title label
     FZX_OPTS+=(
       "--listen=$FZX_SESSION_DIR/fzf.sock"
       "--border-label= $label "
     )
     fzx::bind "${FZX_KEYS[reload_soft]}" "transform:$(fzx::cb nav resume)" "restart the interface, data from cache"
     fzx::bind "${FZX_KEYS[back]}" "transform:$(fzx::cb nav back)" "back to the previous screen"
+    # the menu has nowhere to go from itself
+    [[ "$module" == menu || -z "${FZX_KEYS[menu]:-}" ]] ||
+      fzx::bind "${FZX_KEYS[menu]}" "transform:$(fzx::cb nav menu)" "the main menu"
     fzx::bind "${FZX_KEYS[escape]}" "transform:$(fzx::cb nav escape)" "back to the previous screen; quit at the root"
     fzx::bind "${FZX_KEYS[popout]}" "transform:$(fzx::cb nav placement next)" "next placement: ${FZX_PLACEMENTS[*]}"
     [[ -n "${FZX_KEYS[popup_toggle]:-}" ]] &&
@@ -366,7 +406,8 @@ fzx::opts_build() {
     fzx::state_get pos pos && [[ "$pos" =~ ^[0-9]+$ ]] && ((pos > 1)) &&
       FZX_OPTS+=(--bind "result-final:pos($pos)+unbind(result-final)")
   else
-    FZX_OPTS+=("--border-label= $module${FZX_MODE:+:$FZX_MODE} ")
+    fzx::title_paint label "$module${FZX_MODE:+:$FZX_MODE}"
+    FZX_OPTS+=("--border-label= $label ")
   fi
 
   # the module's opts hook may set these for its action bindings (lib/actions.sh)

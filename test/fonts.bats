@@ -95,14 +95,14 @@ STUB
   [ "$status" -eq 2 ]
 }
 
-@test "under fzx: families accepted, the preview gets the sample file, alt-o the files" {
+@test "under fzx: families accepted, the preview gets the sample file, alt-O the files" {
   stub_fzf
   run "$FZX" -m fonts
   [ "$status" -eq 0 ]
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " == *" --accept-nth=1 "* ]]
   [[ "$(fzf_flag --preview)" == *"preview {1} {2}"* ]]
-  [[ "$(fzf_bind alt-o)" == "alt-o:execute-silent($FZX _cb action folder {+2})"* ]]
+  [[ "$(fzf_bind alt-O)" == "alt-O:execute-silent($FZX _cb action folder {+2})"* ]]
   [[ "$(fzf_bind alt-m)" == *toggle* ]]
 }
 
