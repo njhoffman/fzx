@@ -18,7 +18,7 @@ fzx -m tmux:formats
 fzx -m tmux:status
 ```
 
-The modes are sessions, windows, panes, lines, urls, paths, words, hashes, ips (IPv4), buffers,
+The modes are sessions, windows, panes, lines, urls, paths, words, hashes, ips (IPv4 and IPv6), buffers,
 keys, commands, options, variables, styles, formats, status and hooks. `alt-0` / `alt-9` cycle modes.
 Lists use aligned columns, colored scopes/names/values, syntax highlights and full descriptions in
 the preview. Reference rows are returned as text and never executed.

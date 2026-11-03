@@ -103,10 +103,32 @@ capture::read() {
 }
 
 # capture::extract <mode>: "y<TAB>where<TAB>text" lines -> "value<TAB>where<TAB>y" per value, the first
-# (nearest) place of each. Plain text only: nothing is run or pasted.
+# (nearest) place of each. Plain text only: nothing is run or pasted. ips: IPv4, then IPv6 (see ipv6()).
 capture::extract() {
   awk -F'\t' -v kind="$1" '
     function emit(s) { if (!seen[s]++) print s "\t" where "\t" y }
+    # ipv6(s): s is an IPv6 address: one "::" at most, 1-4 hex digits a group, a dotted IPv4 last counts
+    # as two; 8 groups without "::", fewer with it; a digit somewhere, which keeps "::" alone and code
+    # such as "a::b" out
+    function ipv6(s,   n, g, i, groups, dbl, v4, p) {
+      if (s !~ /[0-9]/ || s ~ /:::/) return 0
+      dbl = gsub(/::/, "::", s)
+      if (dbl > 1) return 0
+      if (!dbl && (s ~ /^:/ || s ~ /:$/)) return 0
+      if (dbl && (s ~ /^:[^:]/ || s ~ /[^:]:$/)) return 0
+      n = split(s, g, ":"); groups = 0
+      for (i = 1; i <= n; i++) {
+        if (g[i] == "") continue
+        if (i == n && g[i] ~ /\./) {
+          if (g[i] !~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/) return 0
+          split(g[i], v4, "."); for (p = 1; p <= 4; p++) if (v4[p] > 255) return 0
+          groups += 2; continue
+        }
+        if (g[i] !~ /^[[:xdigit:]][[:xdigit:]]?[[:xdigit:]]?[[:xdigit:]]?$/) return 0
+        groups++
+      }
+      return dbl ? groups <= 7 : groups == 8
+    }
     {
       y = $1; where = $2; t = $0; sub(/^[^\t]*\t[^\t]*\t/, "", t)
       if (kind == "lines") { gsub(/\t/, "    ", t); if (t ~ /[^ ]/) emit(t); next }
@@ -137,6 +159,24 @@ capture::extract() {
           if (!ok) continue
         }
         emit(s)
+      }
+      if (kind == "ips") {
+        # IPv6: runs of hex digits, colons and dots that touch no word character, with a %zone and a
+        # /prefix kept; brackets ([::1]:8080) and sentence ends fall outside the run
+        t = $0; sub(/^[^\t]*\t[^\t]*\t/, "", t)
+        while (match(t, /[[:xdigit:]:.]*:[[:xdigit:]:.]*/)) {
+          s = substr(t, RSTART, RLENGTH); before = substr(t, RSTART - 1, 1); t = substr(t, RSTART + RLENGTH)
+          if (before ~ /[[:alnum:]_]/) continue
+          sub(/\.+$/, "", s)
+          if (s ~ /[^:]:$/) sub(/:$/, "", s)
+          else if (t ~ /^[[:alnum:]_]/) continue
+          if (!ipv6(s)) continue
+          if (match(t, /^%[[:alnum:]_.-]+/)) { s = s substr(t, 1, RLENGTH); t = substr(t, RLENGTH + 1) }
+          if (match(t, /^\/[0-9][0-9]?[0-9]?/) && substr(t, 2, RLENGTH - 1) + 0 <= 128 && substr(t, RLENGTH + 1, 1) !~ /[[:alnum:]_]/) {
+            s = s substr(t, 1, RLENGTH); t = substr(t, RLENGTH + 1)
+          }
+          emit(s)
+        }
       }
     }'
 }

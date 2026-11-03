@@ -9,6 +9,8 @@ All notable changes to fzx are recorded here. The format follows
 ### Added
 
 - capture: alt-o in urls mode opens the selected URLs in the browser.
+- capture: ips mode also finds IPv6 addresses, with their zone (`%eth0`) and prefix length; code such as
+  `fzx::cb`, MAC addresses and times are left out.
 
 ## [0.63.0] - 2026-11-02
 

@@ -4,7 +4,7 @@ mode  urls    -  URLs                                   -
 mode  paths   -  paths (may include line numbers)       -
 mode  words   -  words and identifiers                  -
 mode  hashes  -  hexadecimal hashes                     -
-mode  ips     -  IPv4 addresses                         -
+mode  ips     -  IP addresses (IPv4 and IPv6)            -
 toggle  visible  alt-v  only the visible screen (copy mode's view when scrolled)  -
 action  paste  alt-p  paste into the pane fzx was opened from (bracketed, no Enter)  silent
 action  open   alt-o  urls: open in the browser                                     silent

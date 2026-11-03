@@ -97,6 +97,24 @@ src() { FZX_MODE="$1" "$CAP/source.sh" "${@:2}"; }
   [[ "$output" != *cap-done* ]]
 }
 
+@test "extraction: IPv6 with zones, prefixes, brackets and mapped IPv4; code, MACs, times and bad forms are not" {
+  local out
+  out="$(printf '0\tvis\t%s\n' \
+    'inet6 fe80::1c2b:3cff:fe4d:5e6f/64 scope link' \
+    'inet6 ::1/128 scope host' \
+    'listen [2001:db8::42]:443 ok' \
+    'full 2001:0db8:85a3:0000:0000:8a2e:0370:7334.' \
+    'mapped ::ffff:192.168.1.10 and zone fe80::1%eth0' \
+    'code fzx::cb std::vector a::b Foo::Bar ::' \
+    'mac aa:bb:cc:dd:ee:ff time 12:30:45 fp 1:2:3:4:5:6:7:8:9' \
+    'bad 2001:db8::1::2 12345::1 1:2:3:4:5:6:7::8:9 fe80::1/129' \
+    'url http://[2001:db8::7]/x' |
+    bash -c "source '$CAP/source.sh'; capture::extract ips" | cut -f1)"
+  [ "$out" = "$(printf '%s\n' 'fe80::1c2b:3cff:fe4d:5e6f/64' '::1/128' '2001:db8::42' \
+    '2001:0db8:85a3:0000:0000:8a2e:0370:7334' '192.168.1.10' '::ffff:192.168.1.10' 'fe80::1%eth0' \
+    'fe80::1' '2001:db8::7')" ]
+}
+
 @test "extraction: urls with queries, paths with line numbers, hashes, valid ips, words; the nearest copy wins" {
   fill "printf '%s\n' 'https://example.test/a?q=1&b=2' '/tmp/with-file.txt:42' 'README.md' 'abcdef123456 192.168.1.3 999.2.3.4'; for i in \$(seq 1 15); do echo pad; done; echo https://example.test/a?q=1\&b=2"
   run src urls
