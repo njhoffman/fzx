@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.77.1): the six steps of `docs/design.md` are done. Modules: actions, audio, bluetooth, capture, claude, colors, cron, dirs,
+Status (0.77.2): the six steps of `docs/design.md` are done. Modules: actions, audio, bluetooth, capture, claude, colors, cron, dirs,
 docker, files, firewall, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
@@ -12,7 +12,7 @@ category: `[bug]` `[feature]` `[refactor]` `[docs]` `[test]` `[chore]` `[perf]`,
 
 Categories: module
 
-Reviewed: 2026-11-02
+Reviewed: 2026-11-03
 
 ## 1. Next up
 
@@ -26,8 +26,9 @@ Reviewed: 2026-11-02
 - [ ] **Floats follow the window** (p3) [feature]: popups are reopened on a window resize (`fzx _resized`,
       `nav relayout`); a float keeps its first size. `tmux resize-pane -x/-y` plus a move to the new
       position (if new-pane floats can be moved) would do it without a relaunch.
-- [ ] **Summary wording** (p3) [chore]: summaries print "1 buffers", "1 recent searches"; a small plural
-      helper for the manifests.
+- [ ] **Summary wording** (p3) [chore]: summaries print "1 buffers", "1 recent searches", and the newer
+      "1 entries" (cron, git reflog), "1 profiles" (firewall), "1 stars", "1 stashes", "1 scripts"; a small
+      plural helper for the manifests (about 20 printf lines under modules/*/manifest.sh).
 
 ## 3. Keys and help
 
@@ -47,6 +48,10 @@ Reviewed: 2026-11-02
       key that puts the rg/fd arguments into the query, enter applies them; show the current arguments in
       the preview's top line or a label. Prior art: resources/ (older setups). Grep mode's switch between
       grepping and fzf filtering (ctrl-t) shipped in 0.40.0; fd and ripgrep are already the tools used.
+- [ ] **Refresh hook: bindings too** (p3) [refactor]: `<module>::refresh` (0.77.0) sets the header and search
+      on or off; `files:grep` and `packages:search` still restart because they also switch the
+      `change:reload` binding. Letting the hook add `rebind(change)` / `unbind(change)` (or a list of raw
+      actions) would switch them in place too; ps:top and ps:tree stay restarts (sorting, the refresh loop).
 - [ ] **sessions: resumed trees in a pane** (p3) [feature]: a kept tree resumed from the sessions list runs
       under the list's owner, not its own, so a placement change into or out of a split or float (which needs
       the tree's owner to relaunch) only works in the list's own placement. Handing the tree to the list's
@@ -67,6 +72,15 @@ Reviewed: 2026-11-02
       matches (fzfmenu files/sad).
 - [ ] **files: multiline grep** (p3) [feature]: a toggle in `files:grep` for multiline matching
       (`rg -U --multiline-dotall`) that reloads.
+- [ ] **git: the dotfiles repository** (p2) [feature]: the git module over dotbare's bare repository (`~/.cfg`,
+      work tree `~`) through `--git-dir`/`--work-tree` arguments, with a menu entry where `~/.cfg` exists;
+      status limited to tracked files (dotbare's `status.showUntrackedFiles no`). dotbare is installed here
+      (~/.dotbare) and is how ~/.config projects are versioned.
+- [ ] **git: grep, reset and clean** (p3) [feature]: a `git grep` mode (as files:grep, over the index or a
+      commit), reset to the selected commit (soft, mixed; hard only with FZX_GIT_DESTRUCTIVE=1) and clean
+      of untracked files with a dry-run preview. Refs: fzfmenu/proto-widgets/git/fzg-grep, fzg-reset, fzg-clean.
+- [ ] **files: locate mode** (p3) [feature]: plocate's database (`plocate -i`, as you type like grep) for
+      paths outside the base directory, in milliseconds where fd would walk. Has: plocate. Ref: zaw's locate.
 - [ ] **dirs: bookmark from the list** (p3) [feature]: add and remove bookmarks with keys (fzf-marks' mark/unmark),
       kept in a file under FZX_STATE_DIR instead of only FZX_DIRS_BOOKMARKS in config. Ref: fzf-marks.plugin.zsh.
 - [ ] **snippets and paste history** (p3) [feature]: both kinds: an automatic history of what capture and tmux
@@ -78,7 +92,7 @@ Reviewed: 2026-11-02
 
 Built from the reference repos in `resources/` (fzfmenu widgets, proto-widgets, vendored widgets and
 completers, the fzf attempt's modules, fzf-scripts) and checked against what is installed here
-(2026-10-20). "has" lists tools found on PATH, "missing" what the old code used that is not installed.
+(2026-10-20; tools rechecked 2026-11-03). "has" lists tools found on PATH, "missing" what the old code used that is not installed.
 
 - [ ] **repl** (p2) [module]: live jq/awk/sed/grep/sh filter over a file with the result in the preview
       (`change:reload`). Refs: ref/mods/repl.sh + repl-data, development/fzr-*, fzf/_scratch/repl.*.
@@ -88,10 +102,16 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [ ] **browser** (p3) [module]: Chrome and Firefox history and bookmarks from their sqlite/JSON files (copy the
       db first, it is locked while the browser runs). Refs: chrome/{history,bookmarks}.sh,
       vendors/widgets/fzf-chrome-history.sh, fzf-bookmarks.{sh,rb}. Has: google-chrome, firefox, sqlite3.
-      Missing: buku (chrome/buku*.sh, fzf-scripts/fzbuku).
+      Missing: buku (chrome/buku*.sh, fzf-scripts/fzbuku). Open tabs too (fzfmenu list.md "chrome:tabs"):
+      Chrome only lists them through its remote debugging port (`--remote-debugging-port`, /json).
 - [ ] **zsh docs** (p3) [module]: the zsh manual index (option, builtin, parameter) opening the right section;
       possibly a mode of the man module. Refs: fzfmenu system/zman*, zmandata.tsv.
 - [ ] **i3** (p3) [module]: windows and workspaces (focus, move), scratchpads. Refs: list.md "i3". Has: i3-msg.
+- [ ] **applications** (p3) [module]: desktop entries (/usr/share/applications and ~/.local/share/applications,
+      489 here) by name with their icon and categories, launched detached (`gtk-launch` or the Exec line); for
+      launching from a tmux popup bound in i3. Ref: zaw's applications.
+- [ ] **gpg keys** (p3) [module]: public and secret keys (`gpg --list-keys --with-colons`, 44 here): copy the
+      fingerprint, export armored, edit trust, delete (confirm). Ref: fzfmenu list.md "pgp". Has: gpg.
 - [ ] **fonts** (p3) [module]: fc-list families with a sample preview. Has: fc-list.
 - [ ] **displays** (p3) [module]: xrandr outputs and modes. Has: xrandr.
 - [ ] **bluetooth: background scan** (p3) [feature]: the scan action blocks for `FZX_BLUETOOTH_SCAN_SECONDS`
@@ -111,9 +131,8 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [ ] **kubernetes** (p3) [module]: contexts, namespaces, pods (logs, exec, describe). Refs: kubectl_fzf.plugin.zsh,
       kubernetes/fz-k, vendors/completers/kubectl.zsh. Has: kubectl. Missing: helm.
 - [ ] **aws** (p3) [module]: EC2, ECS, EKS, RDS and CloudWatch logs. Refs: widgets/aws/*. Has: aws. Missing: vault
-      (aws-vault.zsh). Held back (2026-11-02): no ~/.aws or profiles on this machine, so nothing can be
-      checked live; start with a profile picker, EC2 and log groups once credentials are here.
-- [ ] **versions** (p3) [module]: asdf plugins and installed versions. Refs: system/asdf*, fzasdf-plugins. Has: asdf.
+      (aws-vault.zsh). Held back (2026-11-02): ~/.aws holds only the CLI's caches, no config, credentials or
+      profiles, so nothing can be checked live; start with a profile picker, EC2 and log groups once they are.
 - [ ] **llm** (p3) [module]: ollama models (list, pull, rm). Has: ollama.
 - [ ] **tasks-personal** (p3) [module]: taskwarrior tasks and calcurse appointments. Has: task, calcurse.
 - [ ] **web search** (p3) [module]: DuckDuckGo, GitHub, Stack Overflow queries opening in the browser.
@@ -123,9 +142,13 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 
 ## 7. Known issues
 
-- [ ] **menu_scores test flakes under load** (p3) [test]: test/menu.bats "menu_scores: launches by module ..."
+- [ ] **Timing-sensitive tests under load** (p3) [test]: test/menu.bats "menu_scores: launches by module ..."
       stamps rows "now minus N days" and compares the decayed scores to six decimals; under the parallel suite
-      a second's delay gives 0.999999 (seen 2026-11-01, passes alone). Compare rounded to 3 decimals.
+      a second's delay gives 0.999999 (seen 2026-11-01, passes alone): compare rounded to 3 decimals. The same
+      class hit test/modules.bats's applicability test (the 2s FZX_APPLICABLE_TIMEOUT, fixed in 0.77.1 with a
+      longer one); look for other tests that run the menu's summary or applicable timeouts and raise theirs.
+- [ ] **firewall: header with nothing added** (p3) [bug]: with ufw off the header says "rules added, not in
+      effect" even when `ufw show added` lists none; say it only when there are some.
 - [ ] **Zellij popups untested** (p3) [test]: popups are only checked on tmux; zellij is not installed here.
 - [ ] **Undocumented fzf behaviour we depend on** (p3) [test]: `become()` inside a `--popup` runs in the original
       terminal, so every launch re-requests the popup (`fzx::_placement`). Observed on fzf 0.74 (devel);

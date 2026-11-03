@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.77.2] - 2026-11-03
+
+### Changed
+
+- docs/design.md lists the youtube module in its modules table and drops the stale note about modules
+  missing preview layouts (every module has them). TODO.md reviewed: new items from resources/ and this
+  week's work, the versions module dropped (asdf is no longer installed).
+
 ## [0.77.1] - 2026-11-02
 
 ### Fixed
