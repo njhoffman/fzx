@@ -28,9 +28,22 @@ fzx::stat() {
   return 0
 }
 
+# fzx::_awk_when <var>: the awk function when(seconds) -> "YYYY-MM-DD HH:MM": strftime where awk has it (gawk,
+# mawk 1.3.4+, busybox, the one true awk's second edition), else date(1) once per distinct second. Chosen
+# here, since an awk without strftime refuses a program that merely names it.
+fzx::_awk_when() {
+  if awk 'BEGIN { strftime("%Y", 0) }' > /dev/null 2>&1; then
+    printf -v "$1" '%s' 'function when(s) { return strftime("%Y-%m-%d %H:%M", s) }'
+  else
+    # shellcheck disable=SC2016  # awk, not shell
+    printf -v "$1" '%s' 'function when(s,   c, out) { if (s in whens) return whens[s]
+      c = "date -d @" s " \"+%Y-%m-%d %H:%M\" 2> /dev/null"; out = "-"; c | getline out; close(c); return whens[s] = out }'
+  fi
+}
+
 # fzx::stats [--since DURATION] [--module NAME] [--raw]
 fzx::stats() {
-  local since="" since_s=0 module="" raw=0 cutoff=0
+  local since="" since_s=0 module="" raw=0 cutoff=0 when
   while (($#)); do
     case "$1" in
       --since)
@@ -67,7 +80,8 @@ fzx::stats() {
     return 0
   fi
 
-  awk -F'\t' -v cutoff="$cutoff" -v module="$module" '
+  fzx::_awk_when when
+  awk -F'\t' -v cutoff="$cutoff" -v module="$module" "$when"'
     function dur(ms) {
       if (ms < 1000) return sprintf("%dms", ms)
       if (ms < 60000) return sprintf("%.1fs", ms / 1000)
@@ -106,7 +120,7 @@ fzx::stats() {
       for (i = 1; i <= n; i++) {
         m = order[i]
         loads = hit[m] + miss[m]
-        printf fmt, m, runs[m] + 0, strftime("%Y-%m-%d %H:%M", int(last[m] / 1000)),
+        printf fmt, m, runs[m] + 0, when(int(last[m] / 1000)),
           exits[m] ? dur(avg(tsum[m], exits[m])) "/" dur(tmax[m]) : "-",
           src[m] ? sprintf("%d %s/%s", src[m], dur(avg(ssum[m], src[m])), dur(smax[m])) (fail[m] ? sprintf(" (%d failed)", fail[m]) : "") : (fail[m] ? sprintf("0 (%d failed)", fail[m]) : "-"),
           in_[m] ? sprintf("%d", avg(isum[m], in_[m])) : "-",

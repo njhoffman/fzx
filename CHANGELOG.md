@@ -6,6 +6,11 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- stats: `fzx stats` works with an awk that has no `strftime` (mawk before 1.3.4): the dates come from
+  date(1) then.
+
 ## [0.66.0] - 2026-11-02
 
 ### Added

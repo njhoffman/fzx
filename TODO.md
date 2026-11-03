@@ -148,7 +148,7 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [ ] **`files` alt-up** (p3) [bug]: each parent directory becomes a new child session instead of reusing an
       existing ancestor in the tree; harmless (cleaned on exit) but deep trees and long labels.
 - [ ] **Stats prune** (p3) [bug] can drop rows appended while the file is being rewritten.
-- [ ] **`fzx stats` needs `strftime` in awk** (p3) [bug] (gawk, or mawk 1.3.4+).
+- [x] **`fzx stats` needs `strftime` in awk** (p3) [bug] (gawk, or mawk 1.3.4+).
 - [ ] **nvcat is slow for previews** (p3) [perf]: about 300-1200ms per focus change (it starts Neovim), for
       markdown and every filetype `nvcat-dispatch` claims (any *.conf, systemd units, ...); files over
       FZX_PREVIEW_NVCAT_MAX_LINES already go to bat. Cache its output under $FZX_CACHE_DIR keyed by path,

@@ -185,6 +185,22 @@ write_stats() {
   [[ "${lines[3]}" =~ ^git\ +0\  ]]
 }
 
+@test "stats: an awk without strftime gets the dates from date(1)" {
+  write_stats
+  local want
+  want="$("$FZX" stats | awk 'NR == 2 { print $3, $4 }')"
+  [[ "$want" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}\ [0-9]{2}:[0-9]{2}$ ]]
+  # an awk that, like mawk before 1.3.4, refuses any program naming strftime
+  local real
+  real="$(command -v awk)"
+  printf '#!/usr/bin/env bash\n[[ "$*" == *strftime* ]] && { echo "awk: function strftime never defined" >&2; exit 2; }\nexec %q "$@"\n' \
+    "$real" > "$BATS_TEST_TMPDIR/bin/awk"
+  chmod +x "$BATS_TEST_TMPDIR/bin/awk"
+  run "$FZX" stats
+  [ "$status" -eq 0 ]
+  [ "$(printf '%s\n' "${lines[1]}" | "$real" '{ print $3, $4 }')" = "$want" ]
+}
+
 @test "stats: --since and --module filter rows" {
   write_stats
   run "$FZX" stats --since 7d
