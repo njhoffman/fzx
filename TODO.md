@@ -1,7 +1,7 @@
 # fzx TODO
 
-Status (0.62.0): the six steps of `docs/design.md` are done. Modules: actions, audio, capture, colors, dirs,
-docker, files, git, github, glyphs, history, keybindings, logs, man, menu, network, packages, ps, recent, repos, shell, systemd, tasks, tmux,
+Status (0.63.0): the six steps of `docs/design.md` are done. Modules: actions, audio, capture, colors, dirs,
+docker, files, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
 
@@ -113,12 +113,9 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       Has: jq, awk, sed. Missing: yq (fzr-yq mode).
 - [ ] **pass** (p2) [module]: password-store entries, copy password or a field with a clear timer.
       Refs: system/fzpass.sh, fzpass2.sh, ffpass.sh. Has: pass, gpg, ~/.password-store.
-- [ ] **music** (p2) [module]: a navigable interface to mpc or musicman (~/ghq/github.com/njhoffman/musicman,
-      its cli/), moving forward and back between areas (artists -> albums -> tracks, queue, playlists) as
-      child sessions, so back and the cached lists come from the session tree. Play, add, remove as action
-      rows; cover/info preview. Earlier attempts in resources/: fzf/modules/music/fmpc,
-      fzfmenu/proto-widgets/audio/{fz-mpc,mpc.sh,fmui/mpc.sh}, fzfmenu/ref/mods/mpc.sh,
-      fzf-rsc/modules/audio/fz-mpc. Has: mpc, mpd, ncmpcpp.
+- [ ] **music: rating and tag edits** (p3) [feature]: rate the selected songs and edit musicman's
+      multi-value fields (context, mood, picks) through `musicman edit`, from the tracks and queue modes;
+      held back from 0.63.0, which only browses and plays.
 - [ ] **browser** (p3) [module]: Chrome and Firefox history and bookmarks from their sqlite/JSON files (copy the
       db first, it is locked while the browser runs). Refs: chrome/{history,bookmarks}.sh,
       vendors/widgets/fzf-chrome-history.sh, fzf-bookmarks.{sh,rb}. Has: google-chrome, firefox, sqlite3.

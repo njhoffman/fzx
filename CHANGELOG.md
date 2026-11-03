@@ -6,6 +6,17 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.63.0] - 2026-11-02
+
+### Added
+
+- music module: MPD's queue, artists, albums and playlists through mpc. Enter goes from an artist to their
+  albums to an album's songs (and from a playlist to its songs), each a child session that back returns
+  from; enter on a song plays its album or playlist from there. Play, add, play next, remove, delete
+  playlists, clear and save the queue, and play/pause, next and previous. The preview shows the cover,
+  the song's tags, musicman's rating, grouping, mood and context when musicman is installed, and the
+  player's state in the queue.
+
 ## [0.62.0] - 2026-11-02
 
 ### Added

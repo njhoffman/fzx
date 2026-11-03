@@ -1,0 +1,21 @@
+# music components: kind  name  key  description  flags (see lib/components.sh)
+# Enter: queue: play the song; artists: their albums; albums, playlists: their songs; an album's or a
+# playlist's songs: play it from that song. Back (alt-left) returns from a drill-down.
+mode    queue      -          the play queue, the current song marked                                default
+mode    artists    -          album artists (the byartist toggle: by artist), with album and song counts   -
+mode    albums     -          every album, by artist then year                                       -
+mode    playlists  -          stored playlists                                                       -
+mode    artist     -          an artist's albums by year (--artist A)                                hidden
+mode    tracks     -          an album's songs (--artist A --album B) or a playlist's (--playlist P)  hidden
+toggle  byartist   alt-1      artists, albums: by the artist tag instead of the album artist          -
+action  play       alt-enter  replace the queue with the selection and play it (queue: play the song)  notify,reload
+action  add        alt-a      add the selection to the end of the queue                              notify
+action  insert     alt-i      play the selection next                                                notify
+action  remove     alt-x      queue: remove the selected songs                                       silent,reload
+action  delete     alt-X      playlists: delete the selected playlists                               confirm,reload
+action  clear      alt-c      clear the queue                                                        confirm,reload
+action  save       alt-s      save the queue as a playlist (asks for its name)                       foreground,reload
+action  pause      alt-m      play or pause                                                          silent,reload
+action  next       alt-n      the next song                                                          silent,reload
+action  previous   alt-p      the previous song                                                      silent,reload
+action  copy       ctrl-y     copy the files (artists, playlists: names; albums: "artist - album")   silent,builtin
