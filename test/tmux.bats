@@ -13,6 +13,15 @@ setup() {
   mkdir -p "$BATS_TEST_TMPDIR/bin"
   cat > "$BATS_TEST_TMPDIR/bin/tmux" <<'STUB'
 #!/usr/bin/env bash
+# run's replay: a fake attached client, and the key table switch and replayed key logged instead of sent
+if [[ -n "${TEST_TMUX_CLIENT:-}" && "$1" == list-clients ]]; then
+  printf '1 %s\n' "$TEST_TMUX_CLIENT"
+  exit 0
+fi
+if [[ -n "${TEST_TMUX_KEYS_LOG:-}" && ( "$1" == switch-client || ( "$1" == send-keys && " $* " == *" -K "* ) ) ]]; then
+  printf '%s\n' "$*" >> "$TEST_TMUX_KEYS_LOG"
+  exit 0
+fi
 if [[ -n "${TEST_TMUX_SWITCH_LOG:-}" && ( "$1" == switch-client || "$1" == attach-session ) ]]; then
   printf '%s\n' "$@" > "$TEST_TMUX_SWITCH_LOG"
   exit 0
@@ -260,6 +269,71 @@ DATA
   [ "$status" -eq 0 ]
 }
 
+# key_meta <table> <key>: the keys row's metadata column for that binding
+key_meta() { src keys | awk -F'\t' -v t="$1" -v k="$2" '$1 ~ ("-T " t " " k " ") { print $3; exit }'; }
+
+# wait_log <lines>: until the replay log has that many lines
+wait_log() {
+  local n
+  for n in {1..100}; do
+    [[ -f "$TEST_TMUX_KEYS_LOG" && "$(wc -l < "$TEST_TMUX_KEYS_LOG")" -ge "$1" ]] && return 0
+    sleep 0.02
+  done
+  return 1
+}
+
+@test "tmux: run replays the binding's key on the session's client, its table first; root keys directly" {
+  export TMUX=fake TEST_TMUX_CLIENT=/dev/pts/77 TEST_TMUX_KEYS_LOG="$BATS_TEST_TMPDIR/keys.log" FZX_TMUX_RUN_DELAY=0
+  tmux bind-key -T prefix F7 display-message 'run test'
+  tmux bind-key -n F8 display-message 'root test'
+  run act keys run --pane "$PANE" -- "$(key_meta prefix F7)"
+  [ "$status" -eq 0 ]
+  wait_log 2
+  [ "$(cat "$TEST_TMUX_KEYS_LOG")" = $'switch-client -c /dev/pts/77 -T prefix\nsend-keys -K -c /dev/pts/77 -- F7' ]
+  rm -f "$TEST_TMUX_KEYS_LOG"
+  run act keys run --pane "$PANE" -- "$(key_meta root F8)"
+  [ "$status" -eq 0 ]
+  wait_log 1
+  [ "$(cat "$TEST_TMUX_KEYS_LOG")" = 'send-keys -K -c /dev/pts/77 -- F8' ]
+}
+
+@test "tmux: run refuses copy-mode keys, unassigned keys, other modes, no client and outside tmux" {
+  export TMUX=fake TEST_TMUX_KEYS_LOG="$BATS_TEST_TMPDIR/keys.log" FZX_TMUX_RUN_DELAY=0
+  tmux bind-key -T prefix F7 display-message 'run test'
+  run act keys run --pane "$PANE" -- "$(key_meta copy-mode-vi q)"
+  [ "$status" -eq 2 ] && [[ "$output" == *'run only in copy mode'* ]]
+  run act keys run --pane "$PANE" -- '{"table": "prefix", "key": "F9", "unassigned": true}'
+  [ "$status" -eq 2 ] && [[ "$output" == *'nothing is bound'* ]]
+  # no client attached to the private server
+  run act keys run --pane "$PANE" -- "$(key_meta prefix F7)"
+  [ "$status" -eq 2 ] && [[ "$output" == *'no client is attached'* ]]
+  TEST_TMUX_CLIENT=/dev/pts/77 run act options run --pane "$PANE" -- "$(key_meta prefix F7)"
+  [ "$status" -eq 0 ]
+  TMUX="" TEST_TMUX_CLIENT=/dev/pts/77 run act keys run --pane "$PANE" -- "$(key_meta prefix F7)"
+  [ "$status" -eq 2 ] && [[ "$output" == *'inside tmux'* ]]
+  sleep 0.2
+  [ ! -e "$TEST_TMUX_KEYS_LOG" ]
+}
+
+@test "tmux: run asks before a binding that kills, unless tmux's confirm-before wraps it" {
+  export TMUX=fake TEST_TMUX_CLIENT=/dev/pts/77 TEST_TMUX_KEYS_LOG="$BATS_TEST_TMPDIR/keys.log" FZX_TMUX_RUN_DELAY=0
+  tmux bind-key -T prefix F5 kill-window
+  tmux bind-key -T prefix F6 run-shell 'tmux kill-server'
+  tmux bind-key -T prefix F4 confirm-before -p 'kill? ' kill-pane
+  source "$FZX_REPO/lib/core.sh"
+  fzx::require builtin
+  source "$TMUX_MOD/actions.sh" || :
+  fzx::confirm() { printf '%s\n' "$*" >> "$BATS_TEST_TMPDIR/asked"; return 1; }
+  FZX_MODE=keys tmux::action run --pane "$PANE" -- "$(key_meta prefix F5)"
+  FZX_MODE=keys tmux::action run --pane "$PANE" -- "$(key_meta prefix F6)"
+  [ "$(wc -l < "$BATS_TEST_TMPDIR/asked")" -eq 2 ] && [[ "$(head -1 "$BATS_TEST_TMPDIR/asked")" == 'Run prefix F5: kill-window' ]]
+  sleep 0.2
+  [ ! -e "$TEST_TMUX_KEYS_LOG" ]
+  FZX_MODE=keys tmux::action run --pane "$PANE" -- "$(key_meta prefix F4)"
+  wait_log 2
+  [ "$(wc -l < "$BATS_TEST_TMPDIR/asked")" -eq 2 ]
+}
+
 @test "tmux: rename and move retain spaces and stable targets" {
   source "$TMUX_MOD/actions.sh" || :
   tmux::ask() { printf -v "$2" '%s' "$ANSWER"; }
@@ -370,6 +444,8 @@ DATA
   [[ "$output" == *'_cb action kill --pane '* && "$output" == *'+reload('* ]]
   run fzf_bind ctrl-o
   [[ "$output" == *'_cb transform capture'* ]]
+  run fzf_bind alt-enter
+  [[ "$output" == 'alt-enter:become('*"_cb action run --pane $PANE -- {3})" ]]
   run fzf_flag --preview
   [[ "$output" == *"--pane $PANE -- {1} {2} {3}" ]]
 }

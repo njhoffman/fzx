@@ -13,6 +13,9 @@ All notable changes to fzx are recorded here. The format follows
   `fzx::cb`, MAC addresses and times are left out.
 - capture and tmux buffers: ctrl-e edits the selection in `$EDITOR` before pasting it into the origin
   pane; emptying the text (or quitting with `:cq`) pastes nothing.
+- tmux keys: alt-enter runs the binding under the cursor as if its key were pressed, after fzx (and its
+  popup) has closed. Copy-mode bindings are refused, and bindings that kill something ask first unless
+  they already use tmux's confirm-before.
 
 ## [0.63.0] - 2026-11-02
 

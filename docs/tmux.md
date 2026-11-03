@@ -21,10 +21,15 @@ fzx -m tmux:status
 The modes are sessions, windows, panes, lines, urls, paths, words, hashes, ips (IPv4 and IPv6), buffers,
 keys, commands, options, variables, styles, formats, status and hooks. `alt-0` / `alt-9` cycle modes.
 Lists use aligned columns, colored scopes/names/values, syntax highlights and full descriptions in
-the preview. Reference rows are returned as text and never executed.
+the preview. Reference rows are returned as text and never executed, with one explicit exception:
+`alt-enter` in keys mode runs the binding under the cursor (below).
 
 Keys show their table, key, note, command and `*` changed / `+` repeat markers. Their preview compares
-the current binding with the installed tmux defaults. `--table` accepts comma-separated tables
+the current binding with the installed tmux defaults. `alt-enter` runs a binding as if its key were pressed: fzx exits, and
+0.3s later (`FZX_TMUX_RUN_DELAY`, so a popup is gone first) the key is sent to the session's most recently
+active client with `send-keys -K`, after `switch-client -T TABLE` for a table other than root. tmux parses
+and targets the command as it would from the keyboard. Copy-mode tables and unassigned keys are refused; a
+command that kills something (`kill-` anywhere in it) asks first, unless tmux's `confirm-before` wraps it. `--table` accepts comma-separated tables
 (`prefix`, `root`, `copy-mode`, `copy-mode-vi`, custom tables), or `all` (the default).
 
 Options and hooks show server, global session/window and local session/window/pane scopes; hooks list
@@ -50,6 +55,7 @@ and `#S`/`#W`-style substitutions). Using both avoids querying the live server f
 | alt-m | Move the first selected window or pane; prompt for the destination ID |
 | alt-p | Paste selected captured text or buffers into the invoking pane, without Enter |
 | ctrl-e | Buffers: edit the selected buffers in `$EDITOR`, then paste the result (emptied or `:cq`: nothing) |
+| alt-enter | Keys: run the binding under the cursor (see above) |
 | alt-v | Toggle capture of only the visible viewport (also in copy mode) |
 | alt-d | Keys/options/hooks: show only changes |
 | alt-u | Keys: show unassigned keys in the selected table (prefix when all tables are selected) |

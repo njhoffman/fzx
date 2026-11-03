@@ -21,6 +21,8 @@ tmux::opts() {
     '--preview-window=right,60%,wrap,nohidden'
   )
   FZX_ACTION_ARGS="$args {+1}"
+  # run reads the key row's metadata (table, key, command), the row under the cursor
+  FZX_ACTION_ARGS_FOR['run']="$args {3}"
   if fzx::in_session; then
     fzx::bind "${FZX_KEYS[tmux.capture]}" "transform:$(fzx::cb transform capture "$args" '{1}')" 'open capture from this session, window or pane'
   fi

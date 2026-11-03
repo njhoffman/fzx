@@ -27,6 +27,7 @@ action  link    -       link window into another session                      fo
 action  mark    -       mark selected pane                                    silent,reload
 action  paste   alt-p   paste the buffer into the origin pane                 silent
 action  edit    ctrl-e  buffers: edit in $EDITOR, then paste into the origin pane  foreground
+action  run     alt-enter  keys: run the binding as if its key were pressed (kill- commands ask first)  become
 action  next-session  -  switch to the next session matching the prefix        become
 action  prev-session  -  switch to the previous session matching the prefix    become
 action  theme-main    -  apply the main theme to the selected session           foreground,reload

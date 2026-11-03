@@ -66,6 +66,47 @@ tmux::reference_nvim() {
   rm -f -- "$file"
 }
 
+# tmux::run_binding <metadata json>: keys mode, the first selection: the binding runs as if its key were
+# pressed (send-keys -K on the client, after switch-client -T for a table other than root), so its command
+# is parsed and targeted by tmux exactly as from the keyboard. fzx exits first (become): the replay waits
+# FZX_TMUX_RUN_DELAY (0.3s) in a detached process, so a popup is gone before the key arrives. Copy-mode
+# tables and unassigned keys are refused; a binding that kills something asks first, unless tmux's own
+# confirm-before wraps it.
+tmux::run_binding() {
+  local table key command session client
+  [[ -n "${TMUX:-}" ]] || { printf 'tmux: run needs to be inside tmux\n' >&2; return 2; }
+  IFS=$'\t' read -r table key command < <(python3 -c '
+import json, sys
+d = json.loads(sys.argv[1])
+if d.get("unassigned") or not d.get("command"):
+    sys.exit(1)
+print(d["table"], d["key"], " ".join(d["command"].split()), sep="\t")' "$1") || {
+    printf 'tmux: nothing is bound to that key\n' >&2
+    return 2
+  }
+  case "$table" in
+    copy-mode | copy-mode-vi) printf 'tmux: %s bindings run only in copy mode\n' "$table" >&2; return 2 ;;
+  esac
+  if [[ " $command" =~ [[:space:]\;]kill- && "$command" != confirm-before* ]]; then
+    fzx::require builtin
+    fzx::confirm "Run $table $key:" "$command" || return 0
+  fi
+  local origin=() detach=(setsid -f)
+  [[ -z "$TMUX_TARGET_PANE" ]] || origin=(-t "$TMUX_TARGET_PANE")
+  session="$(command tmux display-message -p "${origin[@]}" '#{session_id}')" || return
+  # the session's most recently active client
+  client="$(command tmux list-clients -t "$session" -F '#{client_activity} #{client_name}' | sort -rn | head -1)"
+  client="${client#* }"
+  [[ -n "$client" ]] || { printf 'tmux: no client is attached to %s\n' "$session" >&2; return 2; }
+  command -v setsid > /dev/null || detach=(nohup)
+  # shellcheck disable=SC2016  # expanded by the detached bash
+  "${detach[@]}" bash -c '
+    sleep "$1"
+    [[ "$3" == root ]] || command tmux switch-client -c "$2" -T "$3"
+    command tmux send-keys -K -c "$2" -- "$4"' _ "${FZX_TMUX_RUN_DELAY:-0.3}" "$client" "$table" "$key" \
+    < /dev/null > /dev/null 2>&1 &
+}
+
 # Actions receive the original module args, --, then selected IDs.
 tmux::action() {
   local action="${1:-}" mode="${FZX_MODE:-sessions}" id value target
@@ -76,6 +117,12 @@ tmux::action() {
     scratch) tmux::helper popup-shell.sh; return ;;
     nvim-layout) tmux::helper nvim-layout.sh; return ;;
     nvim) tmux::reference_nvim "$mode"; return ;;
+    run)
+      [[ "$mode" == keys ]] || return 0
+      ((${#TMUX_IDS[@]})) || return 0
+      tmux::run_binding "${TMUX_IDS[0]}"
+      return
+      ;;
     theme-main | theme-float)
       target="$TMUX_TARGET_PANE"
       case "$mode" in
@@ -96,7 +143,7 @@ tmux::action() {
   ((${#TMUX_IDS[@]})) || return 0
   case "$action" in
     switch | kill | rename | move | swap | link | mark)
-      # Reference and extraction screens never execute their rows as tmux commands.
+      # Reference screens never execute their rows as tmux commands (run, above, replays a key instead).
       case "$mode" in sessions | windows | panes | buffers) ;; *) return 0 ;; esac
       for id in "${TMUX_IDS[@]}"; do
         tmux::object_id "$id" || { printf 'tmux: invalid %s id: %s\n' "$mode" "$id" >&2; return 2; }
