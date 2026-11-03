@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # logs preview: the last FZX_LOGS_LINES lines of a file, unit journal or container, following new lines
-# while the row has focus (FZX_LOGS_PREVIEW_FOLLOW, fzf stops it on the next focus change). Files and
+# while the row has focus (FZX_LOGS_PREVIEW_FOLLOW; fzf stops it on the next focus change, logs::_watch
+# when fzf is gone or became something else). Files and
 # containers go through FZX_LOGS_COLORIZER (ccze -A by default), journals keep systemd's own colors, and a
 # unit's journal has the top of its `systemctl status` above it, FZX_LOGS_STATUS_LINES lines and a rule:
 # the units mode pins those lines as the preview's sticky header (module.sh).
@@ -71,9 +72,57 @@ logs::status() {
   printf '\e[%sm%s\e[0m\n' "${FZX_COLORS[dim]:-38;5;240}" "${rule// /─}"
 }
 
-# logs::view <kind> <target> <follow 0|1>: the log as the preview and the follow action show it
+# logs::_focused: the text of fzf's focused row, from its --listen socket (FZF_SOCK, or FZF_PORT); fails
+# when there is no socket to ask or nothing answers (fzf exited, or became another program)
+logs::_focused() {
+  local out
+  if [[ -n "${FZF_SOCK:-}" ]]; then
+    out="$(command curl -s -m 1 --unix-socket "$FZF_SOCK" 'http://localhost?limit=0' 2> /dev/null)" || return 1
+  elif [[ -n "${FZF_PORT:-}" ]]; then
+    out="$(command curl -s -m 1 ${FZF_API_KEY:+-H "x-api-key: $FZF_API_KEY"} "http://localhost:$FZF_PORT?limit=0" 2> /dev/null)" || return 1
+  else
+    return 1
+  fi
+  command jq -r '.current.text // ""' <<< "$out" 2> /dev/null
+}
+
+# logs::_kill_tree <pid>: the process and everything under it (tail and the colorizer run in the
+# pipeline's function subshells, so they are grandchildren)
+logs::_kill_tree() {
+  local c
+  for c in $(command pgrep -P "$1" 2> /dev/null); do logs::_kill_tree "$c"; done
+  kill -TERM "$1" 2> /dev/null
+}
+
+# logs::_watch <kind> <target> <pid>: stop the follow (pid) once its row loses focus or fzf stops answering.
+# fzf ends a preview on a focus change, but not one left behind by become() or by fzf exiting: a follow
+# of a quiet log never writes again, so it never gets the SIGPIPE that would end it
+logs::_watch() {
+  local want="$1"$'\t'"$2" cur
+  while sleep "${FZX_LOGS_FOLLOW_CHECK:-2}"; do
+    kill -0 "$3" 2> /dev/null || return 0
+    cur="$(logs::_focused)" || break
+    [[ "$cur" == "$want" || "$cur" == "$want"$'\t'* ]] || break
+  done
+  logs::_kill_tree "$3"
+}
+
+# logs::view <kind> <target> <follow 0|1>: the log as the preview and the follow action show it. A followed
+# preview (_LOGS_PREVIEW set; not the follow action, which fzf runs with execute and cannot answer its socket
+# meanwhile) under an fzf that can be asked what has focus (its --listen socket, curl and jq) is watched and
+# stopped when it should be; elsewhere fzf alone ends it
 logs::view() {
-  local kind="$1" target="$2" follow="$3"
+  local kind="$1" target="$2" follow="$3" pid watcher
+  if ((follow)) && [[ -n "${_LOGS_PREVIEW:-}" && -n "${FZF_SOCK:-}${FZF_PORT:-}" && -z "${_LOGS_WATCHED:-}" ]] &&
+    command -v curl > /dev/null && command -v jq > /dev/null; then
+    _LOGS_WATCHED=1 logs::view "$@" &
+    pid=$!
+    logs::_watch "$kind" "$target" "$pid" &
+    watcher=$!
+    wait "$pid"
+    kill "$watcher" 2> /dev/null
+    return 0
+  fi
   case "$kind" in
     file | docker)
       local cz=()
@@ -94,7 +143,7 @@ logs::view() {
 
 # logs::preview <kind> <target>
 logs::preview() {
-  logs::view "${1:-}" "${2:-}" "$([[ "${FZX_LOGS_PREVIEW_FOLLOW:-1}" == 1 ]] && echo 1 || echo 0)"
+  _LOGS_PREVIEW=1 logs::view "${1:-}" "${2:-}" "$([[ "${FZX_LOGS_PREVIEW_FOLLOW:-1}" == 1 ]] && echo 1 || echo 0)"
 }
 
 [[ "${BASH_SOURCE[0]}" == "$0" ]] && logs::preview "$@"

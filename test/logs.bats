@@ -238,3 +238,40 @@ CFG
   run "$MODS/logs/source.sh"
   [[ "${lines[0]}" == *new.log* && "${lines[0]}" != *●* ]]
 }
+
+@test "logs: a followed preview stops once its row loses focus or fzf stops answering; the follow action is not watched" {
+  local log="$BATS_TEST_TMPDIR/quiet-$$.log" focus="$BATS_TEST_TMPDIR/focus.json" pid
+  echo first > "$log"
+  # fzf's socket: the focused row from focus.json; no file, no answer
+  stub_cmd curl '[[ -f "'"$focus"'" ]] || exit 7; cat "'"$focus"'"'
+  printf '{"current":{"text":"file\\t%s\\tquiet"}}' "$log" > "$focus"
+  export FZF_SOCK="$BATS_TEST_TMPDIR/fzf.sock" FZX_LOGS_FOLLOW_CHECK=0.2
+  "$MODS/logs/preview.sh" file "$log" > "$BATS_TEST_TMPDIR/out" &
+  pid=$!
+  sleep 1
+  # still focused: still following
+  kill -0 "$pid"
+  pgrep -f "tail -n 200 -F -- $log" > /dev/null
+  printf '{"current":{"text":"file\\t/var/log/other\\tother"}}' > "$focus"
+  local i
+  for ((i = 0; i < 30; i++)); do kill -0 "$pid" 2> /dev/null || break; sleep 0.1; done
+  ! kill -0 "$pid" 2> /dev/null
+  ! pgrep -f "tail -n 200 -F -- $log"
+  [[ "$(plain < "$BATS_TEST_TMPDIR/out")" == first* ]]
+  # fzf gone (become, exit): the socket stops answering
+  printf '{"current":{"text":"file\\t%s\\tquiet"}}' "$log" > "$focus"
+  "$MODS/logs/preview.sh" file "$log" > /dev/null &
+  pid=$!
+  sleep 0.6
+  rm "$focus"
+  for ((i = 0; i < 30; i++)); do kill -0 "$pid" 2> /dev/null || break; sleep 0.1; done
+  ! kill -0 "$pid" 2> /dev/null
+  ! pgrep -f "tail -n 200 -F -- $log"
+  # the follow action (execute: fzf cannot answer meanwhile) is never stopped by the watcher
+  "$MODS/logs/actions.sh" follow file "$log" > /dev/null &
+  pid=$!
+  sleep 1
+  kill -0 "$pid"
+  pkill -f "tail -n 200 -F -- $log" || :
+  wait "$pid" || :
+}

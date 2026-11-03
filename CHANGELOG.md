@@ -6,6 +6,16 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.77.3] - 2026-11-03
+
+### Fixed
+
+- logs: a followed preview kept running after its pane or popup was closed under fzf (fzf runs previews in a
+  process group of their own, so the hangup never reached them), following a quiet log forever. The
+  preview now asks fzf's socket every `FZX_LOGS_FOLLOW_CHECK` seconds (2) whether its row still has focus
+  and stops, tail and colorizer included, once it does not or fzf no longer answers. The follow action
+  (alt-F) is left alone.
+
 ## [0.77.2] - 2026-11-03
 
 ### Changed

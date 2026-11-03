@@ -37,6 +37,9 @@ FZX_LOGS_LINES=200
 
 # the preview follows the log while the row has focus (0: a snapshot)
 FZX_LOGS_PREVIEW_FOLLOW=1
+# how often (seconds) a followed preview asks fzf's socket whether its row still has focus, so a follow
+# left behind (the pane or popup closed under fzf, become()) stops instead of running on
+FZX_LOGS_FOLLOW_CHECK="${FZX_LOGS_FOLLOW_CHECK:-2}"
 
 # files and container logs pass through this, line by line; () shows them plain (files: bat's log
 # highlighting). ccze -A, or grcat with one of grc's configs: (grcat conf.log)
