@@ -9,6 +9,8 @@
 #   reload      reload the list afterwards (the source runs again)
 #   restart     restart the interface afterwards with fresh data (header and options are rebuilt)
 #   confirm     ask on the terminal first (so it runs in the foreground)
+#   asks        the action asks on the terminal itself (its own questions, e.g. one per kind of target):
+#               listed as asking first, runs in the foreground, and fzx asks nothing
 #   default     bound to enter as well (unless the module's opts hook binds enter itself); without one,
 #               enter prints the selection
 #   builtin     one of fzx's own (lib/builtin.sh, config/components.tsv), not the module's actions.sh
@@ -87,9 +89,12 @@ fzx::_action_bind_string() {
     printf -v "$3" 'become(%s)' "$_cmd"
     return
   fi
-  if fzx::_action_notifies "$_name" "$2" && fzx::in_session && [[ "$_flags" != *,confirm,* ]]; then
+  # an action that asks needs the terminal
+  local _asks=0
+  [[ "$_flags" == *,confirm,* || "$_flags" == *,asks,* ]] && _asks=1
+  if fzx::_action_notifies "$_name" "$2" && fzx::in_session && ((!_asks)); then
     _act="transform($(fzx::cb notify "$_name" "$_args"))"
-  elif [[ "$_flags" == *,silent,* || "$_flags" == *,notify,* ]] && [[ "$_flags" != *,confirm,* ]]; then
+  elif [[ "$_flags" == *,silent,* || "$_flags" == *,notify,* ]] && ((!_asks)); then
     _act="execute-silent($_cmd)"
   else
     _act="execute($_cmd)"

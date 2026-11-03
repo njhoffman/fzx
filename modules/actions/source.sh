@@ -51,11 +51,11 @@ actions::sgr() {
   fi
 }
 
-# actions::how <flags> <var>: how the action runs, from its flags: confirm (asks first), become (replaces
+# actions::how <flags> <var>: how the action runs, from its flags: confirm (asks first: confirm or asks), become (replaces
 # fzf; print too), silent (in the background; notify too), else run (in the terminal)
 actions::how() {
   local _f=",$1,"
-  if [[ "$_f" == *,confirm,* ]]; then printf -v "$2" confirm
+  if [[ "$_f" == *,confirm,* || "$_f" == *,asks,* ]]; then printf -v "$2" confirm
   elif [[ "$_f" == *,become,* || "$_f" == *,print,* ]]; then printf -v "$2" become
   elif [[ "$_f" == *,silent,* || "$_f" == *,notify,* ]]; then printf -v "$2" silent
   else printf -v "$2" run; fi

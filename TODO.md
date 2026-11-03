@@ -71,7 +71,7 @@ Reviewed: 2026-10-28
       matches (fzfmenu files/sad).
 - [ ] **files: multiline grep** (p3) [feature]: a toggle in `files:grep` for multiline matching
       (`rg -U --multiline-dotall`) that reloads.
-- [ ] **git: remote branch delete** (p3) [feature]: drop on a remote-tracking branch pushes the delete
+- [x] **git: remote branch delete** (p3) [feature]: drop on a remote-tracking branch pushes the delete
       (`git push REMOTE --delete BRANCH`); left out of 0.18.0 as an outward action.
 - [ ] **dirs: bookmark from the list** (p3) [feature]: add and remove bookmarks with keys (fzf-marks' mark/unmark),
       kept in a file under FZX_STATE_DIR instead of only FZX_DIRS_BOOKMARKS in config. Ref: fzf-marks.plugin.zsh.

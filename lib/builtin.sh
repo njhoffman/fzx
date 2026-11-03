@@ -60,13 +60,17 @@ fzx::edit_text() {
   ((_rc == 0)) && [[ -n "${!1}" ]]
 }
 
-# fzx::confirm <what> [args...]: ask on the terminal; true on y
+# fzx::confirm <what> [args...]: ask on the terminal (FZX_TTY, default /dev/tty); true on y. The answers
+# come through one descriptor per process, so a test's FZX_TTY file of answers ("yn") feeds them in turn.
 fzx::confirm() {
-  local what="$1" ans=""
+  local what="$1" ans="" tty="${FZX_TTY:-/dev/tty}"
   shift
-  printf '\n\e[1m%s\e[0m %s\n[y/N] ' "$what" "$*" > /dev/tty
-  IFS= read -rsn1 ans < /dev/tty || :
-  printf '\n' > /dev/tty
+  if [[ -z "${_FZX_CONFIRM_FD:-}" ]]; then
+    exec {_FZX_CONFIRM_FD}< "$tty" || return 1
+  fi
+  printf '\n\e[1m%s\e[0m %s\n[y/N] ' "$what" "$*" >> "$tty"
+  IFS= read -rsn1 ans <&"$_FZX_CONFIRM_FD" || :
+  printf '\n' >> "$tty"
   [[ "$ans" == [yY] ]]
 }
 

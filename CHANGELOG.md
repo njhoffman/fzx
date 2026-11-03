@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- git: alt-x (drop) in branches deletes remote branches too, on their remote (`git push REMOTE --delete`,
+  one push per remote). Local and remote ones are asked about separately, so a mixed selection never
+  pushes a delete under the local question.
+- Action rows take an `asks` flag: the action asks its own questions on the terminal (listed as asking
+  first in f1 and the actions menu; fzx asks nothing). `fzx::confirm` reads `FZX_TTY` when set.
+
 ### Fixed
 
 - github: after alt-7 (everywhere) the issues and prs header kept naming the repository; the toggle now

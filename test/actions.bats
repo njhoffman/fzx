@@ -168,6 +168,35 @@ fake_clipboard() {
   grep -q "action zap: not confirmed" "$LOG"
 }
 
+@test "asks: the action asks itself: foreground, no confirm in the binding or the callback; menu shows it asks" {
+  echo 'action  ask  alt-k  ask itself  silent,notify,asks' >> "$FZX_CONFIG_DIR/modules/counter/components.tsv"
+  run "$FZX" -m counter
+  [ "$(fzf_bind alt-k)" = "alt-k:execute($FZX _cb action ask {+1})" ]
+  run "$FZX_REPO/test/fixtures/modules/counter/module.sh"
+  local dir="$FZX_REPO/test/fixtures/modules/counter"
+  [ "$(fzf_bind alt-k)" = "alt-k:execute($dir/actions.sh ask {+1})" ]
+  kept
+  FZX_SESSION="$SID" run "$FZX" _cb action ask a < /dev/null
+  [ "$(< "$COUNTER_FILE.actions")" = "ask a" ]
+  ! grep -q "not confirmed" "$LOG"
+  local out
+  out="$(FZX_SESSION="$SID" "$FZX" _cb nav goto actions mark,ask a --fzx--)"
+  CHILD="${out#become:"$FZX" --resume }"
+  NO_COLOR=1 FZX_ICONS=unicode FZX_SESSION="$CHILD" run "$FZX" _cb source
+  [[ "${lines[1]}" == $'ask\t?   ask'* ]]
+  NO_COLOR=1 FZX_SESSION="$CHILD" run "$FZX" _cb preview ask
+  [[ "$output" == *"asks        asks on the terminal itself, a question per kind of target"* ]]
+}
+
+@test "confirm: answers come from FZX_TTY in turn" {
+  load_libs builtin
+  printf 'yn' > "$BATS_TEST_TMPDIR/tty"
+  FZX_TTY="$BATS_TEST_TMPDIR/tty"
+  fzx::confirm "first?" a
+  ! fzx::confirm "second?" b
+  grep -q "second?" "$FZX_TTY"
+}
+
 @test "builtin: unknown names fail, copy without a clipboard tool fails" {
   run "$FZX" builtin bogus
   [ "$status" -eq 2 ]

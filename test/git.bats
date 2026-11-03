@@ -509,7 +509,7 @@ subjects() { git log --format=%s "$@" | tr '\n' ' '; }
   run "$GIT_DIR_MOD/components.tsv"
   [[ "$output" != *drop* ]]
   FZX_GIT_DESTRUCTIVE=1 run "$GIT_DIR_MOD/components.tsv"
-  [[ "$output" == *$'\n''action  drop     alt-x'*confirm* ]]
+  [[ "$output" == *$'\n''action  drop     alt-x'*asks* ]]
   stub_fzf
   run "$FZX" -m git "$REPO"
   [ -z "$(fzf_bind alt-x)" ]
@@ -521,8 +521,16 @@ subjects() { git log --format=%s "$@" | tr '\n' ' '; }
   [ -e "u space.txt" ]
 }
 
-@test "drop: status discards unstaged changes (staged kept) and deletes untracked files" {
+# answers() <keys>: the terminal fzx::confirm reads, answering its questions in turn
+answers() { printf '%s' "$1" > "$BATS_TEST_TMPDIR/tty"; export FZX_TTY="$BATS_TEST_TMPDIR/tty"; }
+
+@test "drop: status discards unstaged changes (staged kept) and deletes untracked files; asked first" {
   echo more >> s.txt
+  answers n
+  FZX_GIT_DESTRUCTIVE=1 act status drop -- "$REAL/u space.txt"
+  [ -e "u space.txt" ]
+  grep -q "discard the unstaged changes" "$FZX_TTY"
+  answers y
   FZX_GIT_DESTRUCTIVE=1 act status drop -- "$REAL/a.txt" "$REAL/s.txt" "$REAL/u space.txt"
   [ "$(cat a.txt)" = "$(printf 'one\ntwo')" ]
   [ "$(cat s.txt)" = staged ]
@@ -530,16 +538,46 @@ subjects() { git log --format=%s "$@" | tr '\n' ' '; }
   [ ! -e "u space.txt" ]
 }
 
-@test "drop: local branches deleted, remote ones left; stashes dropped highest first" {
+@test "drop: branches ask once per kind: local ones deleted, remote ones deleted on their remote" {
+  git push -q origin main:other main:keep
+  # yes to the local ones, no to the remote ones
+  answers yn
+  FZX_GIT_DESTRUCTIVE=1 act branches drop -- feature origin/feature
+  ! git show-ref --verify --quiet refs/heads/feature
+  git show-ref --verify --quiet refs/remotes/origin/feature
+  git --git-dir="$REMOTE" show-ref --verify --quiet refs/heads/feature
+  grep -q "delete the local branches:.* feature" "$FZX_TTY"
+  grep -q "delete on the remote (git push --delete):.* origin/feature" "$FZX_TTY"
+  # remote ones only: one question; one push for both; the tracking refs go with it
+  answers y
+  FZX_GIT_DESTRUCTIVE=1 act branches drop -- origin/feature origin/other
+  ! git --git-dir="$REMOTE" show-ref --verify --quiet refs/heads/feature
+  ! git --git-dir="$REMOTE" show-ref --verify --quiet refs/heads/other
+  git --git-dir="$REMOTE" show-ref --verify --quiet refs/heads/keep
+  ! git show-ref --verify --quiet refs/remotes/origin/feature
+  [ "$(grep -c '\[y/N\]' "$FZX_TTY")" -eq 1 ]
+  ! grep -q "local branches" "$FZX_TTY"
+}
+
+@test "drop: a remote whose name holds a slash keeps it; other names are skipped" {
+  git remote add team/a "$REMOTE"
+  git fetch -q team/a
+  answers y
+  FZX_GIT_DESTRUCTIVE=1 act branches drop -- team/a/feature
+  ! git --git-dir="$REMOTE" show-ref --verify --quiet refs/heads/feature
+  answers y
+  FZX_GIT_DESTRUCTIVE=1 run act branches drop -- nothing/here
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"skipped, not a branch: nothing/here"* ]]
+}
+
+@test "drop: stashes dropped highest first, asked first" {
   git stash -q -u
   echo x > x.txt && git stash -q -u
   echo y > y.txt && git stash -q -u
-  FZX_GIT_DESTRUCTIVE=1 run act branches drop -- feature origin/feature
-  ! git show-ref --verify --quiet refs/heads/feature
-  git show-ref --verify --quiet refs/remotes/origin/feature
-  [[ "$output" == *"not a local branch: origin/feature"* ]]
   local keep
   keep="$(git rev-parse 'stash@{1}')"
+  answers y
   FZX_GIT_DESTRUCTIVE=1 act stash drop -- 'stash@{0}' 'stash@{2}'
   [ "$(git stash list | wc -l)" -eq 1 ]
   [ "$(git rev-parse 'stash@{0}')" = "$keep" ]

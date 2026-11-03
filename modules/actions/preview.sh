@@ -16,6 +16,7 @@ actions::flag_meaning() {
     reload) _m="the list reloads afterwards" ;;
     restart) _m="the screen restarts with fresh data afterwards" ;;
     confirm) _m="asks on the terminal first" ;;
+    asks) _m="asks on the terminal itself, a question per kind of target" ;;
     default) _m="bound to enter as well" ;;
     builtin) _m="one of fzx's own, not the module's" ;;
     *) _m="" ;;
@@ -46,7 +47,7 @@ actions::preview() {
   for f in ${flags//,/ }; do
     [[ "$f" == - ]] && continue
     case "$f" in
-      confirm) how=actions_confirm ;;
+      confirm | asks) how=actions_confirm ;;
       become | print) how=actions_become ;;
       silent | notify) how=actions_silent ;;
       reload | restart) how=actions_reload ;;

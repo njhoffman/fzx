@@ -111,17 +111,56 @@ git::discard() {
   return "$rc"
 }
 
-# drop in branches: local branches, force-deleted (asked first); remote-tracking ones are left alone
+# git::confirm <question> <items...>: drop is flagged "asks" (components.tsv), so its questions are its own
+git::confirm() {
+  # shellcheck source=../../lib/core.sh
+  declare -F fzx::require > /dev/null || source "$(dirname "${BASH_SOURCE[0]}")/../../lib/core.sh"
+  fzx::require builtin
+  fzx::confirm "$@"
+}
+
+# git::remote_of <ref> <remote var> <branch var>: a remote-tracking branch's short name split at the
+# longest remote name it starts with (remote names may hold slashes); fails for anything else
+git::remote_of() {
+  local _ref="${1#remotes/}" _r _best=""
+  git::g show-ref --verify --quiet "refs/remotes/$_ref" || return 1
+  while IFS= read -r _r; do
+    [[ "$_ref" == "$_r"/* && ${#_r} -gt ${#_best} ]] && _best="$_r"
+  done < <(git::g remote)
+  [[ -n "$_best" ]] || return 1
+  printf -v "$2" '%s' "$_best"
+  printf -v "$3" '%s' "${_ref#"$_best"/}"
+}
+
+# drop in branches: one question for the local branches (force-deleted), one for the remote-tracking ones
+# (the delete pushed, one push per remote; git drops the tracking ref when it succeeds). A no to one kind
+# still asks the other.
 git::delete_branches() {
-  local b rc=0
+  local b r name rc=0 locals=() remotes=() shown=() names=()
+  local -A by=()
   for b; do
     if git::g show-ref --verify --quiet "refs/heads/$b"; then
-      git::g branch -D -- "$b" || rc=$?
+      locals+=("$b")
+    elif git::remote_of "$b" r name; then
+      [[ -n "${by[$r]:-}" ]] || remotes+=("$r")
+      by[$r]+="${by[$r]:+ }$name"
+      shown+=("$r/$name")
     else
-      printf 'skipped, not a local branch: %s (remote branches are not deleted here)\n' "$b" >&2
+      printf 'skipped, not a branch: %s\n' "$b" >&2
       rc=1
     fi
   done
+  if ((${#locals[@]})) && git::confirm "delete the local branches:" "${locals[@]}"; then
+    for b in "${locals[@]}"; do
+      git::g branch -D -- "$b" || rc=$?
+    done
+  fi
+  if ((${#remotes[@]})) && git::confirm "delete on the remote (git push --delete):" "${shown[@]}"; then
+    for r in "${remotes[@]}"; do
+      read -ra names <<< "${by[$r]}"
+      git::g push "$r" --delete "${names[@]/#/refs/heads/}" || rc=$?
+    done
+  fi
   return "$rc"
 }
 
@@ -243,9 +282,10 @@ git::action() {
     stash:status) git::g stash push --include-untracked -- "$@" ;;
     stash:stash) git::g stash pop "$1" ;;
     ignore:status) git::ignore "$@" ;;
-    drop:status) git::discard "$@" ;;
+    # a no is not a failure
+    drop:status) ! git::confirm "discard the unstaged changes, delete the untracked files:" "$@" || git::discard "$@" ;;
     drop:branches) git::delete_branches "$@" ;;
-    drop:stash) git::drop_stashes "$@" ;;
+    drop:stash) ! git::confirm "drop the stashes:" "$@" || git::drop_stashes "$@" ;;
     fixup:log | squash:log | reword:log | rebase:log) git::rewrite "$action" "$1" ;;
     *) return 0 ;;
   esac
