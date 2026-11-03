@@ -10,11 +10,19 @@
 # where systemd ANDs them, so such an entry is two expressions and the earlier run wins. anacron jobs run
 # PERIOD days after their last run (the mtime of FZX_CRON_ANACRON_SPOOL/ID).
 
-# cron::_parse <kind> <file label>: the entries of a crontab on stdin, one record per line:
-# id, kind, user, schedule, command, expr1, expr2, state ("", disabled, reboot, invalid or
-# anacron:PERIOD:DELAY:JOB). system crontabs have a user field, anacrontab "PERIOD DELAY JOB COMMAND"
+# cron::_parse <kind> <file label> [user]: the entries of a crontab on stdin, one record per line:
+# id, kind, user, schedule, command, expr1, expr2, state ("", disabled, reboot, invalid,
+# anacron:PERIOD:DELAY:JOB or anacron-off:PERIOD:DELAY:JOB). kind user is your crontab, spool another
+# user's (user names them), system crontabs have a user field, anacrontab "PERIOD DELAY JOB COMMAND".
+# Commented-out lines that parse as entries are disabled ones; in system files their user must exist (the
+# example line "* * * * * user-name command" does not count). CRON_TZ= lines move the schedules that
+# follow into that zone where cron honors it (cron::honors_tz)
 cron::_parse() {
-  awk -v kind="$1" -v file="$2" -v me="${USER:-$(id -un)}" -F '\t' -v OFS='\t' '
+  local users="" tzok=0
+  [[ "$1" == system ]] && users=" $(getent passwd 2> /dev/null | cut -d: -f1 | tr '\n' ' ') "
+  cron::honors_tz && tzok=1
+  awk -v kind="$1" -v file="$2" -v me="${3:-${USER:-$(id -un)}}" -v users="$users" -v tzok="$tzok" \
+    -F '\t' -v OFS='\t' '
     BEGIN {
       split("jan feb mar apr may jun jul aug sep oct nov dec", m, " "); for (i = 1; i <= 12; i++) mon[m[i]] = i
       split("sun mon tue wed thu fri sat", d, " "); for (i = 1; i <= 7; i++) dow[d[i]] = i - 1
@@ -63,6 +71,8 @@ cron::_parse() {
         if (n != 5 || mi == "" || ho == "" || dm == "" || mo == "" || dw == "") return 0
         if (f[3] !~ /^\*/ && f[5] !~ /^\*/) { e1 = cal(mi, ho, dm, mo, "*"); e2 = cal(mi, ho, "*", mo, dw) }
         else e1 = cal(mi, ho, dm, mo, dw)
+        # systemd takes a zone after the time
+        if (tzok && tz != "") { e1 = e1 " " tz; if (e2 != "") e2 = e2 " " tz }
       }
       gsub(/\t/, " ", cmd)
       print kind ":" file ":" NR, kind, user, sched, cmd, e1, e2, state
@@ -73,18 +83,21 @@ cron::_parse() {
       if (line == "") next
       off = ""
       if (line ~ /^#/) {
-        # a commented-out entry of your crontab is shown as disabled; other comments are skipped
-        if (kind != "user") next
+        # a commented-out entry is shown as disabled; other comments are skipped (they do not parse)
         off = "disabled"; sub(/^#+ */, "", line)
+        if (line == "") next
       }
-      # VAR=value lines
-      if (line ~ /^[A-Za-z_][A-Za-z0-9_]* *=/) next
+      # VAR=value lines (CRON_TZ: the zone of the entries after it)
+      if (line ~ /^[A-Za-z_][A-Za-z0-9_]* *=/) {
+        if (off == "" && line ~ /^CRON_TZ *=/) { tz = line; sub(/^CRON_TZ *= */, "", tz); gsub(/^["\047]|["\047] *$/, "", tz); sub(/ +$/, "", tz) }
+        next
+      }
       if (kind == "anacron") {
         n = split(line, w, / +/)
-        if (n < 4 || (w[1] !~ /^[0-9]+$/ && w[1] !~ /^@(daily|weekly|monthly|yearly|annually)$/)) next
+        if (n < 4 || (w[1] !~ /^[0-9]+$/ && w[1] !~ /^@(daily|weekly|monthly|yearly|annually)$/) || w[2] !~ /^[0-9]+$/) next
         cmd = line; for (i = 1; i <= 3; i++) sub(/^[^ ]+ +/, "", cmd)
         gsub(/\t/, " ", cmd)
-        print kind ":" file ":" NR, kind, "root", w[1], cmd, "", "", "anacron:" w[1] ":" w[2] ":" w[3]
+        print kind ":" file ":" NR, kind, "root", w[1], cmd, "", "", (off == "" ? "anacron:" : "anacron-off:") w[1] ":" w[2] ":" w[3]
         next
       }
       nf = (line ~ /^@/ ? 1 : 5) + (kind == "system" ? 1 : 0)
@@ -92,6 +105,7 @@ cron::_parse() {
       if (n <= nf) next
       sched = w[1]; for (i = 2; i <= (line ~ /^@/ ? 1 : 5); i++) sched = sched " " w[i]
       user = (kind == "system" ? w[nf] : me)
+      if (off != "" && kind == "system" && index(users, " " user " ") == 0) next
       cmd = line; for (i = 1; i <= nf; i++) sub(/^[^ ]+ +/, "", cmd)
       if (!entry(sched, user, cmd, off) && off == "") {
         # a broken line of a crontab cron would reject too: listed so it can be fixed
@@ -109,17 +123,68 @@ cron::split() {
   printf -v "$3" '%s' "${_rest%:*}"
 }
 
+# cron::honors_tz: the cron daemon takes CRON_TZ (cronie does; Debian's cron runs every entry in its own
+# zone): FZX_CRON_HONORS_TZ 1 or 0, else whether cronie's crond is installed
+cron::honors_tz() {
+  case "${FZX_CRON_HONORS_TZ:-}" in
+    1) return 0 ;;
+    0) return 1 ;;
+  esac
+  command -v crond > /dev/null 2>&1 || [[ -x /usr/sbin/crond ]]
+}
+
+# cron::_root: CRON_ROOT, the prefix that reads root's files (none as root, `sudo -n` when it is cached);
+# fails when sudo would ask
+cron::_root() {
+  CRON_ROOT=(command)
+  ((EUID == 0)) && return 0
+  command sudo -n true 2> /dev/null || return 1
+  CRON_ROOT=(command sudo -n)
+}
+
+# cron::spool_dir: where every user's crontab is kept (FZX_CRON_SPOOL_DIR; Debian's crontabs directory,
+# else cronie's /var/spool/cron)
+cron::spool_dir() {
+  if [[ -n "${FZX_CRON_SPOOL_DIR:-}" ]]; then printf '%s\n' "$FZX_CRON_SPOOL_DIR"
+  elif [[ -d /var/spool/cron/crontabs ]]; then printf '/var/spool/cron/crontabs\n'
+  else printf '/var/spool/cron\n'; fi
+}
+
+# cron::content <kind> <file>: the crontab's text: yours through crontab -l, another user's through sudo,
+# a system file as it is
+cron::content() {
+  case "$1" in
+    user) command crontab -l 2> /dev/null ;;
+    spool) cron::_root && "${CRON_ROOT[@]}" cat -- "$2" 2> /dev/null ;;
+    *) cat -- "$2" 2> /dev/null ;;
+  esac
+}
+
 # cron::record <id>: the entry's record (cron::_parse's fields), read again from its file now; nothing when
 # the line no longer holds an entry
 cron::record() {
   local _k _f _l
   cron::split "$1" _k _f _l
   [[ "$_l" =~ ^[1-9][0-9]*$ ]] || return 1
-  if [[ "$_k" == user ]]; then
-    command crontab -l 2> /dev/null | sed -n "${_l}p"
-  else
-    sed -n "${_l}p" "$_f" 2> /dev/null
-  fi | cron::_parse "$_k" "$_f" | awk -F '\t' -v OFS='\t' -v id="$1" '{ $1 = id; print; exit }'
+  # the zone of a CRON_TZ line before it counts: the lines up to the entry, only its own record kept
+  cron::content "$_k" "$_f" | sed -n "1,${_l}p" | cron::_parse "$_k" "$_f" "$([[ "$_k" == spool ]] && printf '%s' "${_f##*/}")" |
+    awk -F '\t' -v OFS='\t' -v id="$1" -v want="$_k:$_f:$_l" '$1 == want { $1 = id; print; exit }'
+}
+
+# cron::env <id>: the VAR=value lines of the entry's crontab before it, as NAME=VALUE (quotes around the
+# value removed), in order: cron hands them to the command
+cron::env() {
+  local _k _f _l
+  cron::split "$1" _k _f _l
+  cron::content "$_k" "$_f" | awk -v n="$_l" '
+    NR >= n { exit }
+    /^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*[[:space:]]*=/ {
+      line = $0; sub(/^[[:space:]]+/, "", line)
+      name = line; sub(/[[:space:]]*=.*/, "", name)
+      val = line; sub(/^[^=]*=[[:space:]]*/, "", val); sub(/[[:space:]]+$/, "", val)
+      if (val ~ /^".*"$/ || val ~ /^\047.*\047$/) val = substr(val, 2, length(val) - 2)
+      print name "=" val
+    }'
 }
 
 # cron::_ignored <name>: run-parts and cron skip file names outside [A-Za-z0-9_-] (*.dpkg-new, backups)
@@ -133,6 +198,17 @@ cron::entries() {
   local mode="${FZX_MODE:-all}" f
   if [[ "$mode" == all || "$mode" == user ]]; then
     command crontab -l 2> /dev/null | cron::_parse user -
+  fi
+  if [[ "$mode" == all || "$mode" == system ]]; then
+    # the other users' crontabs, readable with a cached sudo
+    local spool me="${USER:-$(id -un)}" u
+    spool="$(cron::spool_dir)"
+    if cron::_root && [[ -n "$("${CRON_ROOT[@]}" ls -A -- "$spool" 2> /dev/null)" ]]; then
+      while IFS= read -r u; do
+        [[ -n "$u" && "$u" != "$me" && "$u" != .* ]] || continue
+        "${CRON_ROOT[@]}" cat -- "$spool/$u" 2> /dev/null | cron::_parse spool "$spool/$u" "$u"
+      done < <("${CRON_ROOT[@]}" ls -1 -- "$spool" 2> /dev/null)
+    fi
   fi
   if [[ "$mode" != user ]]; then
     for f in ${FZX_CRON_SYSTEM_FILES:-/etc/crontab /etc/cron.d}; do
@@ -221,10 +297,11 @@ cron::_rows() {
     function pad(t, w) { return length(t) > w ? substr(t, 1, w - 1) "…" : sprintf("%-" w "s", t) }
     {
       split($1, id, ":"); f = $1; sub(/^[^:]+:/, "", f); line = f; sub(/.*:/, "", line); sub(/:[0-9]+$/, "", f)
-      src = (f == "-" ? "crontab" : f) (line > 0 ? ":" line : "")
+      src = (f == "-" ? "crontab" : $2 == "spool" ? $3 "\047s crontab" : f) (line > 0 ? ":" line : "")
       sched = $4
-      if ($8 ~ /^anacron:/) { split($8, a, ":"); sched = (a[2] ~ /^[0-9]+$/ ? "every " a[2] "d" : a[2]) }
-      if ($8 == "disabled") nx = "disabled"
+      if ($8 ~ /^anacron(-off)?:/) { split($8, a, ":"); sched = (a[2] ~ /^[0-9]+$/ ? "every " a[2] "d" : a[2]) }
+      off = ($8 == "disabled" || $8 ~ /^anacron-off:/)
+      if (off) nx = "disabled"
       else if ($8 == "reboot") nx = "at boot"
       else if ($8 == "invalid") nx = "invalid"
       else if ($9 == "") nx = "never"
@@ -232,7 +309,7 @@ cron::_rows() {
       nc = (nx == "invalid" ? x : (nx == "disabled" || nx == "at boot" || nx == "never") ? d : "")
       nxs = (sort == "next" ? nc hl pad(nx, 12) r : nc pad(nx, 12) r)
       srt = (sort == "next" ? ($9 == "" ? 9999999999 : $9) : sprintf("%s %06d", f, line))
-      disp = nxs "  " s pad(sched, 18) r "  " u pad($3, 8) r "  " ($8 == "disabled" ? d $5 r : $5) "  " d src r
+      disp = nxs "  " s pad(sched, 18) r "  " u pad($3, 8) r "  " (off ? d $5 r : $5) "  " d src r
       print srt, $1, $5, disp
     }' "$1" | sort -t $'\t' -k1,1 -s | cut -f2-
 }
@@ -247,7 +324,7 @@ cron::scripts() {
     [[ -d "$dir" ]] || continue
     period="${dir##*/}" period="${period#cron.}"
     IFS=$'\t' read -r nx job < <(awk -F '\t' -v dir="$dir" '
-      index($5, dir) && $8 != "disabled" { k = ($2 == "anacron" ? 0 : 1); if (!(k in best) || $9 < nx[k]) { best[k] = $1; nx[k] = $9 } }
+      index($5, dir) && $8 != "disabled" && $8 !~ /^anacron-off:/ { k = ($2 == "anacron" ? 0 : 1); if (!(k in best) || $9 < nx[k]) { best[k] = $1; nx[k] = $9 } }
       END { if (0 in best) print nx[0] "\t" best[0]; else if (1 in best) print nx[1] "\t" best[1] }' "$recs")
     if [[ -z "$job" ]]; then when="no job runs it"
     elif [[ -z "$nx" ]]; then when=never

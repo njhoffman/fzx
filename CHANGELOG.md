@@ -6,6 +6,23 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.87.0] - 2026-11-03
+
+### Added
+
+- cron: with a cached sudo, the all and system modes list every other user's crontab too; ctrl-e edits one
+  with `sudo crontab -u`.
+- cron: alt-d disables and enables system entries and anacron jobs (the line commented out) and run-parts
+  scripts (made non-executable), through a cached sudo; disabled system entries stay listed.
+- cron: alt-enter runs system entries, anacron jobs and scripts too, as their user through sudo.
+- cron: `CRON_TZ=` lines put the next runs in that zone where the cron daemon honors it (cronie); on
+  Debian's cron, which ignores it, the preview says so.
+
+### Changed
+
+- cron: run-now runs your own entries as cron would as well: in your home with only cron's environment
+  (HOME, LOGNAME, SHELL, PATH=/usr/bin:/bin, then the crontab's variables), not your shell's.
+
 ## [0.86.0] - 2026-11-03
 
 ### Added

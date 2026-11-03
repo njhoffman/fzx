@@ -13,9 +13,18 @@ setup() {
   export NO_COLOR=1 FZX_ICONS=none TZ=UTC FZX_CRON_NOW="$NOW"
   STUBS="$BATS_TEST_TMPDIR/stubs"
   mkdir -p "$STUBS" "$BATS_TEST_TMPDIR/etc/cron.d" "$BATS_TEST_TMPDIR/spool" "$BATS_TEST_TMPDIR/etc/cron.daily"
-  # crontab: -l prints the fixture (none: exit 1), - replaces it, -e is logged
+  # crontab: -l prints the fixture (none: exit 1), - replaces it, -e is logged; -u USER: the spool's file
   cat > "$STUBS/crontab" << 'STUB'
 #!/usr/bin/env bash
+if [[ "$1" == -u ]]; then
+  f="$BATS_TEST_TMPDIR/spool-cron/$2"
+  case "$3" in
+    -l) cat "$f" ;;
+    -) cat > "$f" ;;
+    *) echo "crontab -u $2 $3" >> "$BATS_TEST_TMPDIR/calls" ;;
+  esac
+  exit
+fi
 case "$1" in
   -l) [[ -f "$BATS_TEST_TMPDIR/crontab" ]] || { echo "no crontab for $USER" >&2; exit 1; }; cat "$BATS_TEST_TMPDIR/crontab" ;;
   -) cat > "$BATS_TEST_TMPDIR/crontab" ;;
@@ -47,6 +56,20 @@ STUB
 #!/usr/bin/env bash
 echo "sudoedit $* SUDO_EDITOR=$SUDO_EDITOR" >> "$BATS_TEST_TMPDIR/calls"
 STUB
+  # sudo: -n fails when $BATS_TEST_TMPDIR/nosudo exists; -u USER is logged; runs the command as is
+  cat > "$STUBS/sudo" << 'STUB'
+#!/usr/bin/env bash
+while [[ "$1" == -* ]]; do
+  case "$1" in
+    -n) [[ -f "$BATS_TEST_TMPDIR/nosudo" ]] && { echo "sudo: a password is required" >&2; exit 1; } ;;
+    -u) echo "sudo -u $2" >> "$BATS_TEST_TMPDIR/calls"; shift ;;
+  esac
+  shift
+done
+[[ "$1" == true ]] || echo "sudo $*" >> "$BATS_TEST_TMPDIR/calls"
+exec "$@"
+STUB
+  printf '#!/usr/bin/env bash\necho "anacron $*" >> "%s/calls"\n' "$BATS_TEST_TMPDIR" > "$STUBS/anacron"
   chmod +x "$STUBS"/*
   export PATH="$STUBS:$PATH"
   cat > "$BATS_TEST_TMPDIR/crontab" << 'TAB'
@@ -74,6 +97,10 @@ TAB
   export FZX_CRON_SYSTEM_FILES="$BATS_TEST_TMPDIR/etc/crontab $BATS_TEST_TMPDIR/etc/cron.d"
   export FZX_CRON_ANACRONTAB="$BATS_TEST_TMPDIR/etc/anacrontab" FZX_CRON_ANACRON_SPOOL="$BATS_TEST_TMPDIR/spool"
   export FZX_CRON_SCRIPT_DIRS="$BATS_TEST_TMPDIR/etc/cron.daily $BATS_TEST_TMPDIR/etc/cron.none"
+  # every user's crontab: only yours, which is read through crontab -l instead
+  mkdir -p "$BATS_TEST_TMPDIR/spool-cron"
+  printf '0 0 * * * never-listed\n' > "$BATS_TEST_TMPDIR/spool-cron/${USER:-$(id -un)}"
+  export FZX_CRON_SPOOL_DIR="$BATS_TEST_TMPDIR/spool-cron" FZX_CRON_HONORS_TZ=0
   printf '%s\t%s\n' \
     '*-*-* *:0,15,30,45:00' '2026-01-01 00:15:00' \
     'Mon,Tue,Wed,Thu,Fri *-*-* 9:0:00' '2026-01-01 09:00:00' \
@@ -196,35 +223,111 @@ id2	" ]
   [[ "$output" == *$'next runs\n  Fri 2026-01-02 00:00\n  Sat 2026-01-03 00:00\n  Sun 2026-01-04 00:00\n  Mon 2026-01-05 00:00\n  Tue 2026-01-06 00:00'* ]]
 }
 
-@test "actions: disable comments your entry out and back in; system entries refused" {
+@test "actions: disable comments your entry out and back in; a line that is not an entry is left" {
   "$CRON/actions.sh" disable user:-:3
   [ "$(sed -n 3p "$BATS_TEST_TMPDIR/crontab")" = "#*/15 * * * * echo quarter" ]
   "$CRON/actions.sh" disable user:-:3 user:-:7
   [ "$(sed -n 3p "$BATS_TEST_TMPDIR/crontab")" = "*/15 * * * * echo quarter" ]
   [ "$(sed -n 7p "$BATS_TEST_TMPDIR/crontab")" = "30 2 * * * echo off" ]
-  run "$CRON/actions.sh" disable "system:$BATS_TEST_TMPDIR/etc/crontab:2"
-  [ "$status" -eq 2 ]
-  [[ "$output" == *"only your crontab's entries"* ]]
-  # a line that is not an entry
   run "$CRON/actions.sh" disable user:-:1
   [ "$status" -eq 1 ]
   [ "$(sed -n 1p "$BATS_TEST_TMPDIR/crontab")" = "# m h  dom mon dow   command" ]
 }
 
-@test "actions: run yours in your home, % as stdin lines and \\% a percent; system entries refused" {
+@test "actions: disable system entries, anacron jobs and scripts through a cached sudo; without one a hint" {
+  local tab="$BATS_TEST_TMPDIR/etc/crontab" ana="$BATS_TEST_TMPDIR/etc/anacrontab" sc="$BATS_TEST_TMPDIR/etc/cron.daily/logrotate"
+  "$CRON/actions.sh" disable "system:$tab:2" "anacron:$ana:2" "script:$sc:0"
+  [ "$(sed -n 2p "$tab")" = "#17 * * * * root cd / && run-parts /etc/cron.hourly" ]
+  [[ "$(sed -n 2p "$ana")" == "#@monthly"* ]]
+  [ ! -x "$sc" ]
+  grep -q "^sudo sed -i 2s/^/#/ $tab" "$BATS_TEST_TMPDIR/calls"
+  # listed as disabled now, and back
+  run src system
+  [[ "$output" == *"disabled      17 * * * *"* && "$output" == *"disabled      @monthly"* ]]
+  "$CRON/actions.sh" disable "system:$tab:2" "anacron:$ana:2" "script:$sc:0"
+  [ "$(sed -n 2p "$tab")" = "17 * * * * root cd / && run-parts /etc/cron.hourly" ]
+  [[ "$(sed -n 2p "$ana")" == "@monthly"* ]]
+  [ -x "$sc" ]
+  touch "$BATS_TEST_TMPDIR/nosudo"
+  run "$CRON/actions.sh" disable "system:$tab:2"
+  [ "$status" -eq 1 ] && [[ "$output" == *"run sudo -v first"* ]]
+  [ "$(sed -n 2p "$tab")" = "17 * * * * root cd / && run-parts /etc/cron.hourly" ]
+}
+
+@test "parse: commented-out system entries count when their user exists; the crontab example line does not" {
+  printf '# *  *  *  *  * user-name command to be executed\n#0 3 * * * root echo off\n# a note\n' |
+    parse system /etc/crontab > "$BATS_TEST_TMPDIR/out"
+  [ "$(cut -f1,3,8 "$BATS_TEST_TMPDIR/out" | tr '\t' '|')" = "system:/etc/crontab:2|root|disabled" ]
+  printf '#7\t10\tcron.weekly\trun-parts /etc/cron.weekly\n# See anacron(8) for details.\n' | parse anacron /etc/anacrontab > "$BATS_TEST_TMPDIR/out"
+  [ "$(cut -f8 "$BATS_TEST_TMPDIR/out")" = "anacron-off:7:10:cron.weekly" ]
+}
+
+@test "parse: CRON_TZ moves the entries after it into its zone where cron honors it" {
+  printf '0 1 * * * echo before\nCRON_TZ="Europe/Berlin"\n0 9 * * * echo after\n' > "$BATS_TEST_TMPDIR/crontab"
+  FZX_CRON_HONORS_TZ=1 run parse user - < "$BATS_TEST_TMPDIR/crontab"
+  [ "$(cut -f6 <<< "$output" | tr '\n' '|')" = "*-*-* 1:0:00|*-*-* 9:0:00 Europe/Berlin|" ]
+  FZX_CRON_HONORS_TZ=0 run parse user - < "$BATS_TEST_TMPDIR/crontab"
+  [ "$(cut -f6 <<< "$output" | tr '\n' '|')" = "*-*-* 1:0:00|*-*-* 9:0:00|" ]
+  # the preview says which
+  FZX_CRON_HONORS_TZ=1 run "$CRON/preview.sh" user:-:3
+  [[ "$output" == *"zone      Europe/Berlin (CRON_TZ)"* ]]
+  FZX_CRON_HONORS_TZ=0 run "$CRON/preview.sh" user:-:3
+  [[ "$output" == *"CRON_TZ=Europe/Berlin is ignored"* ]]
+  FZX_CRON_HONORS_TZ=0 run "$CRON/preview.sh" user:-:1
+  [[ "$output" != *zone* ]]
+}
+
+@test "other users' crontabs: listed with a cached sudo (not yours twice), disabled and edited through crontab -u" {
+  printf 'MAILTO=a\n30 4 * * * alice-job\n' > "$BATS_TEST_TMPDIR/spool-cron/alice"
+  run src system
+  [[ "$output" == *"alice     alice-job  alice's crontab:2"* ]]
+  [[ "$output" != *never-listed* ]]
+  run src user
+  [[ "$output" != *alice* ]]
+  "$CRON/actions.sh" disable "spool:$BATS_TEST_TMPDIR/spool-cron/alice:2"
+  [ "$(sed -n 2p "$BATS_TEST_TMPDIR/spool-cron/alice")" = "#30 4 * * * alice-job" ]
+  "$CRON/actions.sh" edit "spool:$BATS_TEST_TMPDIR/spool-cron/alice:2"
+  grep -qx "crontab -u alice -e" "$BATS_TEST_TMPDIR/calls"
+  run "$CRON/preview.sh" "spool:$BATS_TEST_TMPDIR/spool-cron/alice:2"
+  [[ "$output" == *"user      alice"* && "$output" == *"alice's crontab ($BATS_TEST_TMPDIR/spool-cron/alice):2"* ]]
+  touch "$BATS_TEST_TMPDIR/nosudo"
+  run src system
+  [[ "$output" != *alice* ]]
+}
+
+@test "actions: run as cron would: in your home with only cron's environment and the crontab's variables" {
   run "$CRON/actions.sh" run user:-:9
   [ "$status" -eq 0 ]
   [[ "$output" == *'$ cat '* && "$output" == *$'first%\nsecond'* ]]
-  printf '* * * * * pwd\n' > "$BATS_TEST_TMPDIR/crontab"
-  run "$CRON/actions.sh" run user:-:1
-  [[ "$output" == *"$HOME"* ]]
-  run "$CRON/actions.sh" run "system:$BATS_TEST_TMPDIR/etc/crontab:2"
-  [ "$status" -eq 2 ]
-  [[ "$output" == *"runs as root"* ]]
+  printf 'MAILTO=me\nPATH = "/opt/x:/usr/bin:/bin"\n* * * * * pwd; env | sort\n' > "$BATS_TEST_TMPDIR/crontab"
+  run "$CRON/actions.sh" run user:-:3
+  local home
+  home="$(getent passwd "$(id -un)" | cut -d: -f6)"
+  [[ "$output" == *$'\n'"$home"$'\n'* ]]
+  [[ "$output" == *"HOME=$home"*"LOGNAME=$(id -un)"*"MAILTO=me"*"PATH=/opt/x:/usr/bin:/bin"*"SHELL=/bin/sh"* ]]
+  [[ "$output" != *BATS_TEST_TMPDIR* ]]
+  ! grep -q '^sudo' "$BATS_TEST_TMPDIR/calls" 2> /dev/null
   source "$CRON/source.sh" || :
   source "$CRON/actions.sh" || :
   { IFS= read -r -d '' c; IFS= read -r -d '' i; } < <(cron::_command 'cat%a\%b%c'; printf '\0')
   [ "$c" = cat ] && [ "$i" = $'a%b\nc' ]
+}
+
+@test "actions: run system entries as their user through sudo, anacron jobs with anacron, scripts as root" {
+  printf 'SHELL=/bin/sh\nPATH=/sbin:/bin\n0 1 * * * nobody echo hi from cron\n' > "$BATS_TEST_TMPDIR/etc/cron.d/hello"
+  printf '#!/bin/sh\necho "script $PATH"\n' > "$BATS_TEST_TMPDIR/etc/cron.daily/hello"
+  chmod +x "$BATS_TEST_TMPDIR/etc/cron.daily/hello"
+  run "$CRON/actions.sh" run "system:$BATS_TEST_TMPDIR/etc/cron.d/hello:3" "anacron:$BATS_TEST_TMPDIR/etc/anacrontab:1" \
+    "script:$BATS_TEST_TMPDIR/etc/cron.daily/hello:0"
+  [ "$status" -eq 0 ]
+  # nobody's home does not exist: from /
+  [[ "$output" == *"hi from cron"* && "$output" == *"(as nobody in /,"* && "$output" == *"PATH=/sbin:/bin"* ]]
+  # a script gets /etc/crontab's environment (the first system file)
+  [[ "$output" == *"script /usr/bin:/bin"* ]]
+  [ "$(grep -c '^sudo -u nobody' "$BATS_TEST_TMPDIR/calls")" -eq 1 ] && [ "$(grep -c '^sudo -u root' "$BATS_TEST_TMPDIR/calls")" -eq 2 ]
+  grep -qx "anacron -d -f -n -t $BATS_TEST_TMPDIR/etc/anacrontab cron.daily" "$BATS_TEST_TMPDIR/calls"
+  run "$CRON/actions.sh" run "system:$BATS_TEST_TMPDIR/etc/cron.d/hello:1"
+  [ "$status" -eq 1 ] && [[ "$output" == *"no longer an entry"* ]]
 }
 
 @test "actions: edit your crontab with crontab -e, system files with sudoedit at the line" {

@@ -22,6 +22,14 @@ FZX_COLORS[cron_invalid]="38;5;203"
 FZX_CRON_SYSTEM_FILES="${FZX_CRON_SYSTEM_FILES:-/etc/crontab /etc/cron.d}"
 FZX_CRON_ANACRONTAB="${FZX_CRON_ANACRONTAB:-/etc/anacrontab}"
 FZX_CRON_ANACRON_SPOOL="${FZX_CRON_ANACRON_SPOOL:-/var/spool/anacron}"
+
+# every user's crontab, read with a cached sudo (all and system modes; yours is read through crontab -l):
+# empty is Debian's /var/spool/cron/crontabs where it exists, else cronie's /var/spool/cron
+FZX_CRON_SPOOL_DIR="${FZX_CRON_SPOOL_DIR:-}"
+
+# whether cron takes CRON_TZ= lines (next runs then follow the zone): 1, 0, or empty for "when cronie's
+# crond is installed" (Debian's cron ignores CRON_TZ)
+FZX_CRON_HONORS_TZ="${FZX_CRON_HONORS_TZ:-}"
 FZX_CRON_SCRIPT_DIRS="${FZX_CRON_SCRIPT_DIRS:-/etc/cron.hourly /etc/cron.daily /etc/cron.weekly /etc/cron.monthly /etc/cron.yearly}"
 # how many next runs the preview lists
 FZX_CRON_PREVIEW_RUNS="${FZX_CRON_PREVIEW_RUNS:-5}"

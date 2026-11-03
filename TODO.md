@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.86.0): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, bluetooth, browser, capture, claude, colors, cron, dirs,
+Status (0.87.0): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, bluetooth, browser, capture, claude, colors, cron, dirs,
 docker, files, firewall, fonts, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
 add what you find, and tick items off (`- [x]`) as they land, never delete them; once every item of a section
@@ -114,10 +114,10 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       and lists its finds after. A scan kept running while the all mode shows (`bluetoothctl scan on` in the
       background, a reload as `InterfacesAdded` arrives through `busctl monitor`, stopped when fzf leaves the
       mode or exits) would show devices as they appear.
-- [ ] **cron: system entries through sudo** (p3) [feature]: disable and run-now act on your crontab only.
+- [x] **cron: system entries through sudo** (p3) [feature]: disable and run-now act on your crontab only.
       Commenting a line of /etc/cron.d out through `sudo sed`, and running an entry as its user with cron's
       environment (`sudo -u USER env -i SHELL=/bin/sh HOME=... sh -c`), would cover the system's too.
-- [ ] **cron: CRON_TZ and other users' crontabs** (p3) [feature]: next runs ignore `CRON_TZ=` lines, and
+- [x] **cron: CRON_TZ and other users' crontabs** (p3) [feature]: next runs ignore `CRON_TZ=` lines, and
       only your crontab is read; with a cached sudo, /var/spool/cron/crontabs holds every user's.
 - [ ] **browser: open tabs** (p3) [feature]: Chrome lists its tabs only through the remote debugging port
       (`/json`), and since Chrome 136 `--remote-debugging-port` does nothing on the default user data dir

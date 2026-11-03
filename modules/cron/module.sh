@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # cron: crontab entries with their next run, anacron's jobs and the run-parts scripts.
-# `fzx -m cron[:user|:system|:scripts]`. ctrl-e edits, alt-d disables or enables an entry of your crontab,
-# alt-enter runs one now. Enter prints the commands (scripts: their paths).
+# `fzx -m cron[:user|:system|:scripts]`; with a cached sudo the other users' crontabs are listed too.
+# ctrl-e edits, alt-d disables or enables an entry (or a script), alt-enter runs one now as cron would.
+# Enter prints the commands (scripts: their paths).
 
 FZX_MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../lib/core.sh

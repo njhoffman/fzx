@@ -44,7 +44,7 @@ cron::preview() {
   IFS=$'\x1f' read -r _id _k user sched cmd e1 e2 state <<< "${rec//$'\t'/$'\x1f'}"
   printf '%s\n' "$cmd" | fzx::render_text --language sh --style plain --wrap 2> /dev/null || printf '%s\n' "$cmd"
   echo
-  if [[ "$state" == anacron:* ]]; then
+  if [[ "$state" == anacron* ]]; then
     local period delay job last="" spool="${FZX_CRON_ANACRON_SPOOL:-/var/spool/anacron}"
     IFS=: read -r _ period delay job <<< "$state"
     [[ -e "$spool/$job" ]] && last="$(command date -d "@$(stat -c %Y "$spool/$job")" '+%a %Y-%m-%d %H:%M' 2> /dev/null)"
@@ -56,9 +56,22 @@ cron::preview() {
     printf '%sschedule%s  %s\n' "$d" "$r" "$sched"
     printf '%suser%s      %s\n' "$d" "$r" "$user"
   fi
-  printf '%sfile%s      %s\n' "$d" "$r" "$([[ "$file" == - ]] && echo "your crontab (crontab -e)" || echo "$file"):$line"
+  local where="$file"
+  [[ "$file" == - ]] && where="your crontab (crontab -e)"
+  [[ "$kind" == spool ]] && where="$user's crontab ($file)"
+  printf '%sfile%s      %s\n' "$d" "$r" "$where:$line"
+  # a zone set before the entry: honored (cronie), else said to be ignored
+  local tz
+  tz="$(cron::env "$id" | sed -n 's/^CRON_TZ=//p' | tail -1)"
+  if [[ -n "$tz" ]]; then
+    if cron::honors_tz; then
+      printf '%szone%s      %s (CRON_TZ)\n' "$d" "$r" "$tz"
+    else
+      printf '%szone%s      %sCRON_TZ=%s is ignored: this cron runs every entry in its own zone%s\n' "$d" "$r" "$x" "$tz" "$r"
+    fi
+  fi
   case "$state" in
-    disabled) printf '\n%sdisabled: commented out (alt-d enables it)%s\n' "$d" "$r" ;;
+    disabled | anacron-off:*) printf '\n%sdisabled: commented out (alt-d enables it)%s\n' "$d" "$r" ;;
     reboot) printf '\n%sruns when cron starts (at boot)%s\n' "$d" "$r" ;;
     invalid) printf '\n%scron rejects this schedule%s\n' "$x" "$r" ;;
     anacron:*) ;;

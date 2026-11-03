@@ -6,7 +6,7 @@ mode    system   -          /etc/crontab, /etc/cron.d and anacron's jobs        
 mode    scripts  -          the run-parts directories (cron.daily ...) and when their job runs next  -
 sort    next     -          all, user, system: next run first                                      default
 sort    file     -          all, user, system: in file order                                       -
-action  edit     ctrl-e     your crontab: crontab -e; system files and scripts: sudoedit at the line  foreground,reload
-action  disable  alt-d      your crontab: comment the entry out, or back in                        notify,reload
-action  run      alt-enter  your crontab: run the command now, in your home through /bin/sh (system entries are refused)  foreground
+action  edit     ctrl-e     your crontab: crontab -e; another user's: sudo crontab -u; system files and scripts: sudoedit at the line  foreground,reload
+action  disable  alt-d      comment the entry out, or back in; scripts: chmod -x, or +x (others' and system files: a cached sudo)  notify,reload
+action  run      alt-enter  run now as cron would: as its user, in its home, with only cron's environment (anacron: anacron -f -n)  foreground
 action  copy     ctrl-y     copy the commands                                                      silent,builtin
