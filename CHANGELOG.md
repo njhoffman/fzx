@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.77.1] - 2026-11-02
+
+### Fixed
+
+- firewall: with ufw off, the rules mode was empty, since `ufw status` lists no rules then. It now lists the
+  rules added (`ufw show added`), marked as not in effect, under a header that says so; delete removes them
+  by rule, and the apps mode marks the profiles they name.
+
 ## [0.77.0] - 2026-11-02
 
 ### Added

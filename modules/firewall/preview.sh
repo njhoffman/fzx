@@ -32,6 +32,15 @@ firewall::preview() {
   case "${FZX_MODE:-rules}" in
     rules)
       [[ -z "$FIREWALL_NOROOT" ]] || { echo "needs root: run sudo -v"; return 0; }
+      if [[ "$id" == added:* ]]; then
+        local spec="${id#added:}" name
+        printf '%sufw %s%s\n\n' "$b" "$spec" "$r"
+        printf '%snot in effect: ufw is off (enable turns it on, with every added rule)%s\n' "$d" "$r"
+        name="$(sed -E "s/^[a-z]+ ((in|out) )?//; s/ comment .*//; s/^'(.*)'\$/\\1/; s/^\"(.*)\"\$/\\1/" <<< "$spec")"
+        out="$(firewall::_profile "$name")"
+        [[ -n "$out" ]] && printf '\n%sprofile%s  %s\n' "$d" "$r" "$(sed -n 's/^ports=//p' <<< "$out")"
+        return 0
+      fi
       line="$(firewall::ufw status numbered 2> /dev/null | grep -E "^\[ *$id\] ")"
       [[ -n "$line" ]] || { printf 'no rule %s (any more)\n' "$id"; return 0; }
       awk -v b="$b" -v d="$d" -v r="$r" '{

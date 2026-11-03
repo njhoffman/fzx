@@ -132,6 +132,8 @@ need() { command -v "$1" > /dev/null || skip "$1 not installed"; }
 # ---- manifests
 
 @test "menu: entries from the new modules apply on this machine" {
+  # what applies, not how fast: under the parallel suite a manifest can pass the 2s menu timeout
+  export FZX_APPLICABLE_TIMEOUT=20
   load_libs log session menu
   fzx::session_create menu "$MODS/menu"
   run "$FZX" _cb source

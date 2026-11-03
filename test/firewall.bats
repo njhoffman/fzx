@@ -22,6 +22,13 @@ echo "sudo $*" >> "$BATS_TEST_TMPDIR/calls"
 STUB
   cat > "$STUBS/ufw" << 'STUB'
 #!/usr/bin/env bash
+# ufw off ($BATS_TEST_TMPDIR/inactive): status lists nothing, show added the rules
+if [[ -f "$BATS_TEST_TMPDIR/inactive" ]]; then
+  case "$*" in
+    status*) echo "Status: inactive"; exit 0 ;;
+    "show added") printf "Added user rules (see 'ufw status' for running firewall):\nufw allow 22/tcp\nufw limit 2222/tcp comment 'ssh'\nufw allow OpenSSH\nufw deny 'Postfix SMTPS'\n"; exit 0 ;;
+  esac
+fi
 case "$*" in
   "status verbose") printf 'Status: active\nLogging: on (low)\nDefault: deny (incoming), allow (outgoing), disabled (routed)\nNew profiles: skip\n\nTo                         Action      From\n--                         ------      ----\n22/tcp                     ALLOW IN    Anywhere\n' ;;
   "status numbered") cat "$BATS_TEST_TMPDIR/numbered" ;;
@@ -131,6 +138,30 @@ ufw disable" ]
   [ "$status" -eq 2 ]
   FZX_MODE=rules run "$FW/actions.sh" allow 1
   [ "$status" -eq 2 ]
+}
+
+@test "ufw off: the added rules, not in effect, ids by rule; profiles marked from them; delete by rule" {
+  touch "$BATS_TEST_TMPDIR/inactive"
+  run src rules
+  [ "$status" -eq 0 ]
+  [ "${#lines[@]}" -eq 5 ]
+  [ "${lines[0]}" = $'-\t-\tufw  inactive  rules added, not in effect' ]
+  [ "${lines[1]}" = $'added:allow 22/tcp\tallow 22/tcp\t  -  ALLOW       22/tcp  (not in effect)' ]
+  [[ "${lines[2]}" == $'added:limit 2222/tcp comment \'ssh\'\t'*"  LIMIT       2222/tcp comment 'ssh'  (not in effect)" ]]
+  run src apps
+  [[ "${lines[3]}" == $'OpenSSH\tOpenSSH\tOpenSSH '*"  ALLOW off  "* ]]
+  [[ "${lines[2]}" == $'CUPS\tCUPS\tCUPS '*"            631"* ]]
+  FZX_MODE=rules run "$FW/preview.sh" "added:allow OpenSSH"
+  [ "${lines[0]}" = "ufw allow OpenSSH" ]
+  [[ "$output" == *"not in effect: ufw is off"* && "$output" == *"profile  22/tcp" ]]
+  FZX_MODE=rules "$FW/actions.sh" delete "added:limit 2222/tcp comment 'ssh'" "added:deny 'Postfix SMTPS'" 3
+  [ "$(grep '^ufw' "$BATS_TEST_TMPDIR/calls")" = "ufw delete limit 2222/tcp
+ufw delete deny Postfix SMTPS
+ufw --force delete 3" ]
+  source "$FW/source.sh" || :
+  source "$FW/actions.sh" || :
+  firewall::_words "allow from 10.0.0.1 to any app 'Postfix SMTPS' comment 'x y'"
+  [ "${#FIREWALL_WORDS[@]}" -eq 7 ] && [ "${FIREWALL_WORDS[6]}" = "Postfix SMTPS" ]
 }
 
 @test "under fzx: the header row, rules or names accepted, the action keys" {

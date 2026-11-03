@@ -42,6 +42,7 @@ firewall::header() {
     /^Logging:/ { sub(/^Logging: */, ""); lg = $0 }
     END {
       printf "-\t-\t%sufw%s  %s%s%s", b, r, (st == "active" ? on : off), st, r
+      if (st == "inactive") printf "  %srules added, not in effect%s", d, r
       if (pol != "") printf "  %s%s%s", d, pol, r
       if (lg != "") printf "  %slogging %s%s", d, lg, r
       printf "\n"
@@ -60,6 +61,10 @@ firewall::rules() {
     return 0
   fi
   firewall::header "$verbose"
+  if [[ "$verbose" == "Status: inactive"* ]]; then
+    firewall::added
+    return 0
+  fi
   out="$(firewall::ufw status numbered 2> /dev/null)" || return 0
   awk -v a="$a" -v x="$x" -v l="$l" -v d="$d" -v r="$r" '
     function pad(t, w) { return length(t) > w ? substr(t, 1, w - 1) "…" : sprintf("%-" w "s", t) }
@@ -75,6 +80,21 @@ firewall::rules() {
       printf "%s\t%s\t%s%3s%s  %s  %s%s%s  %s%s\n", n, to " " act " " from, d, n, r, pad(to, 28), c, pad(act, 10), r, pad(from, 26),
         (cm == "" ? "" : "  " d "# " cm r)
     }' <<< "$out"
+}
+
+# firewall::added: while ufw is off `ufw status` lists no rules, so the rules added (`ufw show added`, the
+# commands that made them) are listed instead, ids "added:SPEC" (delete takes the rule itself: there are
+# no numbers while ufw is off)
+firewall::added() {
+  local a=$'\e['"${FZX_COLORS[firewall_allow]:-38;5;114}m" x=$'\e['"${FZX_COLORS[firewall_deny]:-38;5;203}m"
+  local l=$'\e['"${FZX_COLORS[firewall_limit]:-38;5;180}m" d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
+  [[ -n "${NO_COLOR+x}" ]] && a="" x="" l="" d="" r=""
+  firewall::ufw show added 2> /dev/null | awk -v a="$a" -v x="$x" -v l="$l" -v d="$d" -v r="$r" '
+    /^ufw / {
+      spec = substr($0, 5); act = $2; rest = spec; sub(/^[^ ]+ */, "", rest)
+      c = (act == "allow" ? a : act == "limit" ? l : x)
+      printf "added:%s\t%s\t%s  -%s  %s%-10s%s  %s  %s(not in effect)%s\n", spec, spec, d, r, c, toupper(act), r, rest, d, r
+    }'
 }
 
 # firewall::profiles: every application profile in FZX_FIREWALL_APPS_DIR, one "name<TAB>title<TAB>ports" line
@@ -101,7 +121,19 @@ firewall::apps() {
   [[ -n "${NO_COLOR+x}" ]] && d="" a="" x="" r=""
   firewall::_sudo
   if [[ -z "$FIREWALL_NOROOT" ]] && verbose="$(firewall::ufw status verbose 2> /dev/null)"; then
-    rules="$(firewall::ufw status 2> /dev/null)"
+    if [[ "$verbose" == "Status: inactive"* ]]; then
+      # ufw off: the added rules that name a profile ("allow OpenSSH", "allow 'Postfix SMTPS'"), as
+      # status would list them, marked off
+      rules="$(firewall::ufw show added 2> /dev/null | awk '
+        /^ufw (allow|deny|reject|limit)( (in|out))? / {
+          act = toupper($2); name = $0; sub(/^ufw [a-z]+ ((in|out) )?/, "", name); sub(/ comment .*/, "", name)
+          gsub(/^\047|\047$|^"|"$/, "", name)
+          if (name ~ /^[A-Za-z]/) printf "%s %s off\n", name, act
+        }')"
+      [[ -n "$rules" ]] || rules=" "
+    else
+      rules="$(firewall::ufw status 2> /dev/null)"
+    fi
   else
     verbose=""
   fi
@@ -111,6 +143,11 @@ firewall::apps() {
     BEGIN {
       n = split(rules, L, "\n")
       for (i = 1; i <= n; i++) {
+        if (L[i] ~ / (ALLOW|DENY|REJECT|LIMIT) off$/) {
+          to = L[i]; sub(/ [A-Z]+ off$/, "", to); act = L[i]; sub(/ off$/, "", act); sub(/.* /, "", act)
+          if (!(to in st)) st[to] = act " off"
+          continue
+        }
         if (!match(L[i], / +(ALLOW|DENY|REJECT|LIMIT)( (IN|OUT|FWD))? +/)) continue
         to = substr(L[i], 1, RSTART - 1); act = substr(L[i], RSTART, RLENGTH); gsub(/^ +| +$/, "", act)
         sub(/ \(v6\)$/, "", to)
@@ -119,7 +156,7 @@ firewall::apps() {
     }
     {
       # the rule column only when ufw could be read
-      s = rules == "" ? "" : (($1 in st) ? ((st[$1] ~ /^(ALLOW|LIMIT)/ ? a : x) pad(st[$1], 10) r) : pad("", 10)) "  "
+      s = rules == "" ? "" : (($1 in st) ? ((st[$1] ~ / off$/ ? d : st[$1] ~ /^(ALLOW|LIMIT)/ ? a : x) pad(st[$1], 10) r) : pad("", 10)) "  "
       printf "%s\t%s\t%s  %s%s%s%s  %s\n", $1, $1, pad($1, 24), s, d, pad($3, 26), r, $2
     }'
 }
