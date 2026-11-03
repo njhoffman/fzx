@@ -33,6 +33,7 @@ case "$*" in
   "status verbose") printf 'Status: active\nLogging: on (low)\nDefault: deny (incoming), allow (outgoing), disabled (routed)\nNew profiles: skip\n\nTo                         Action      From\n--                         ------      ----\n22/tcp                     ALLOW IN    Anywhere\n' ;;
   "status numbered") cat "$BATS_TEST_TMPDIR/numbered" ;;
   "status") sed -E 's/^\[ *[0-9]+\] //' "$BATS_TEST_TMPDIR/numbered" ;;
+  --dry-run*bogus*) echo "ERROR: Bad port" >&2; echo "ufw $*" >> "$BATS_TEST_TMPDIR/calls"; exit 1 ;;
   *) echo "ufw $*" >> "$BATS_TEST_TMPDIR/calls" ;;
 esac
 STUB
@@ -164,6 +165,27 @@ ufw --force delete 3" ]
   [ "${#FIREWALL_WORDS[@]}" -eq 7 ] && [ "${FIREWALL_WORDS[6]}" = "Postfix SMTPS" ]
 }
 
+@test "add and insert: checked with --dry-run, then added (at a position); verbs only; insert needs a number" {
+  source "$FW/actions.sh" || :
+  firewall::_add "" "ufw allow from 10.0.0.0/8 to any port 22 proto tcp comment 'lan ssh'"
+  firewall::_add 3 "deny out 25"
+  [ "$(grep '^ufw' "$BATS_TEST_TMPDIR/calls")" = "ufw --dry-run allow from 10.0.0.0/8 to any port 22 proto tcp comment lan ssh
+ufw allow from 10.0.0.0/8 to any port 22 proto tcp comment lan ssh
+ufw --dry-run insert 3 deny out 25
+ufw insert 3 deny out 25" ]
+  : > "$BATS_TEST_TMPDIR/calls"
+  run firewall::_add "" "allow bogus"
+  [ "$status" -eq 1 ] && [ "$output" = "ERROR: Bad port" ]
+  [ "$(grep -c '^ufw' "$BATS_TEST_TMPDIR/calls")" -eq 1 ]
+  run firewall::_add "" "reset"
+  [ "$status" -eq 2 ] && [[ "$output" == *"starts with allow, deny, reject or limit"* ]]
+  # insert without a numbered rule (the header row, rules added while ufw is off)
+  FZX_MODE=rules run "$FW/actions.sh" insert - "added:allow 22/tcp"
+  [ "$status" -eq 2 ] && [[ "$output" == *"above a numbered rule"* ]]
+  FZX_MODE=apps run "$FW/actions.sh" insert OpenSSH
+  [ "$status" -eq 2 ]
+}
+
 @test "under fzx: the header row, rules or names accepted, the action keys" {
   stub_fzf
   run "$FZX" -m firewall
@@ -173,6 +195,8 @@ ufw --force delete 3" ]
   [[ "$(fzf_bind alt-x)" == "alt-x:execute($FZX _cb action delete {+1})+"*"reload("* ]]
   [[ "$(fzf_bind alt-a)" == "alt-a:execute($FZX _cb action allow {+1})+"*"reload("* ]]
   [[ "$(fzf_bind ctrl-y)" == *"copy {+2}"* ]]
+  [[ "$(fzf_bind alt-n)" == "alt-n:execute($FZX _cb action add {+1})+"*"reload("* ]]
+  [[ "$(fzf_bind alt-I)" == "alt-I:execute($FZX _cb action insert {+1})+"*"reload("* ]]
 }
 
 @test "menu: where ufw is installed; on or off from ufw.conf; the profile count" {

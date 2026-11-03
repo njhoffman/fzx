@@ -6,6 +6,18 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.86.0] - 2026-11-03
+
+### Added
+
+- firewall: alt-n adds a rule you type (`allow 8080/tcp from 192.168.1.0/24`, with readline and the earlier
+  rules on up and down), checked with `ufw --dry-run` before it is applied; alt-I inserts one above the
+  focused rule.
+
+### Changed
+
+- The prompt with a history behind docker's alt-E moved into fzx itself, so modules share it.
+
 ## [0.85.0] - 2026-11-03
 
 ### Added

@@ -6,6 +6,8 @@ mode    apps     -       application profiles, with the rule that names each (ro
 action  delete   alt-x   rules: delete the rules (highest number first)              foreground,confirm,reload
 action  allow    alt-a   apps: allow the profiles                                     foreground,reload
 action  deny     alt-D   apps: deny the profiles                                      foreground,reload
+action  add      alt-n   type a rule (readline, up and down: earlier ones), checked with --dry-run, then added  foreground,reload
+action  insert   alt-I   rules: type a rule to insert above the focused one (ufw insert N)  foreground,reload
 action  enable   alt-e   turn ufw on (and on at boot)                                 foreground,confirm,reload
 action  disable  alt-d   turn ufw off                                                 foreground,confirm,reload
 action  copy     ctrl-y  copy the rules (apps: the profile names)                     silent,builtin

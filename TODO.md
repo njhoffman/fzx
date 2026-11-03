@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.85.0): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, bluetooth, browser, capture, claude, colors, cron, dirs,
+Status (0.86.0): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, bluetooth, browser, capture, claude, colors, cron, dirs,
 docker, files, firewall, fonts, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
 add what you find, and tick items off (`- [x]`) as they land, never delete them; once every item of a section
@@ -129,7 +129,7 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       action's Exec line (field codes %f %u %F %U removed, %i %c %k expanded) from a second list would.
 - [ ] **applications: TryExec and OnlyShowIn** (p3) [feature]: entries whose TryExec is not installed and
       those `OnlyShowIn`/`NotShowIn` excludes from this desktop are listed; the spec hides both.
-- [ ] **firewall: add rules** (p3) [feature]: rules come only from profiles (alt-a, alt-D). A prompt for a
+- [x] **firewall: add rules** (p3) [feature]: rules come only from profiles (alt-a, alt-D). A prompt for a
       free rule (`allow 8080/tcp from 192.168.1.0/24`, readline as docker's alt-E has, checked with
       `ufw --dry-run`) would add any rule; inserting at a position (`ufw insert N`) from the focused row too.
 - [ ] **ssh** (p3) [module]: hosts from ~/.ssh/config and known_hosts, connect or scp. Refs: vendors/widgets/

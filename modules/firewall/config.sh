@@ -21,6 +21,9 @@ FZX_COLORS[firewall_limit]="38;5;180"
 FZX_FIREWALL_CONF="${FZX_FIREWALL_CONF:-/etc/ufw/ufw.conf}"
 FZX_FIREWALL_APPS_DIR="${FZX_FIREWALL_APPS_DIR:-/etc/ufw/applications.d}"
 
+# typed rules kept for the add and insert prompts (up and down), in $FZX_STATE_DIR/firewall/rule_history
+FZX_FIREWALL_RULE_HISTORY="${FZX_FIREWALL_RULE_HISTORY:-100}"
+
 # rules change with the actions and sudo comes and goes: read again on every load
 FZX_PERSIST=none
 

@@ -88,7 +88,7 @@ act() { FZX_MODE="$1" "$DOCKER/actions.sh" "${@:2}"; }
 }
 
 # run a docker:: function with the module's actions loaded
-docker_fn() { bash -c 'source "$FZX_REPO/lib/core.sh"; source "$1/actions.sh"; shift; "$@"' _ "$DOCKER" "$@"; }
+docker_fn() { FZX_REPO="$FZX_REPO" bash -c 'source "$FZX_REPO/lib/core.sh"; source "$1/actions.sh"; shift; "$@"' _ "$DOCKER" "$@"; }
 
 @test "cmd: through the container's sh when it has one, as words without; a header per container" {
   run docker_fn docker::cmd_run 'ls / | head -1' c2 c3

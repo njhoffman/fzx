@@ -33,26 +33,14 @@ docker::cmd_history() { printf '%s/docker/cmd_history' "$FZX_STATE_DIR"; }
 
 # docker::cmd_remember <command>: add it to the history (once, as the newest; FZX_DOCKER_CMD_HISTORY kept)
 docker::cmd_remember() {
-  local file tmp
-  file="$(docker::cmd_history)"
-  mkdir -p -- "${file%/*}"
-  tmp="$file.$BASHPID"
-  { [[ -f "$file" ]] && grep -vxF -- "$1" "$file"; printf '%s\n' "$1"; } | tail -n "${FZX_DOCKER_CMD_HISTORY:-200}" > "$tmp"
-  mv -f -- "$tmp" "$file"
+  fzx::require ask
+  fzx::ask_remember "$(docker::cmd_history)" "$1" "${FZX_DOCKER_CMD_HISTORY:-200}"
 }
 
 # docker::cmd_ask <var>: read a command line on the terminal, with readline and the history (up and down)
 docker::cmd_ask() {
-  local _file _line
-  _file="$(docker::cmd_history)"
-  set -o history
-  history -c
-  [[ -f "$_file" ]] && history -r "$_file"
-  read -r -e -p $'\e[1mcommand:\e[0m ' _line < /dev/tty || return 1
-  set +o history
-  [[ -n "${_line// /}" ]] || return 1
-  docker::cmd_remember "$_line"
-  printf -v "$1" '%s' "$_line"
+  fzx::require ask
+  fzx::ask "$(docker::cmd_history)" command: "$1" "${FZX_DOCKER_CMD_HISTORY:-200}"
 }
 
 # docker::cmd_run <command> <container...>: run the command in each container, under a header naming it:
