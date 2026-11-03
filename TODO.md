@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.64.0): the six steps of `docs/design.md` are done. Modules: actions, audio, capture, colors, dirs,
+Status (0.65.0): the six steps of `docs/design.md` are done. Modules: actions, audio, capture, colors, dirs,
 docker, files, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
@@ -73,11 +73,6 @@ Reviewed: 2026-10-28
       (`rg -U --multiline-dotall`) that reloads.
 - [ ] **git: remote branch delete** (p3) [feature]: drop on a remote-tracking branch pushes the delete
       (`git push REMOTE --delete BRANCH`); left out of 0.18.0 as an outward action.
-- [x] **logs: colored previews** (p3) [feature]: ccze -A or grcat (conf.tail) over log files and journals (both
-      installed here), and a unit's `systemctl status` above its journal in the units preview; the preview
-      window in follow mode. Refs: widgets/system/logs/logs.preview.sh, logs.fzf.sh.
-- [x] **logs: age dots** (p3) [feature]: a colored dot per log entry showing how recently it was modified
-      (the user has this in one of their scripts; get its path to reuse the colors and thresholds).
 - [ ] **dirs: bookmark from the list** (p3) [feature]: add and remove bookmarks with keys (fzf-marks' mark/unmark),
       kept in a file under FZX_STATE_DIR instead of only FZX_DIRS_BOOKMARKS in config. Ref: fzf-marks.plugin.zsh.
 - [ ] **snippets and paste history** (p3) [feature]: both kinds: an automatic history of what capture and tmux
@@ -89,15 +84,8 @@ Reviewed: 2026-10-28
       action; inside fzx it saves one key over alt-s on the marked pane. Ref: proto-widgets/tmux/jump-marked.
 - [ ] **docker: exec a command** (p3) [feature]: fzf-runinc: exec a typed command (not a shell) in the container,
       output kept on screen; and docker system df as the images/volumes summary. Ref: fzf-rsc/modules/docker.
-- [x] **youtube follow-ups** (p3) [feature]: thumbnails in the preview; after a result is chosen, list its
-      formats (`yt-dlp <url> --list-formats`) to pick the download from. The mp3 action
-      (`yt-dlp -x --audio-format mp3`) already covers the audio case.
 - [ ] **github: octo.nvim styling** (p3) [feature]: borrow from pwntester/octo.nvim's look: more icons
       (state, review, draft, merged), labels drawn as colored chips, nicer issue/PR rows and previews.
-- [x] **top in ps** (p3) [feature]: a refreshing mode of `ps` (`every(N):reload`) rather than a module.
-      Refs: system/fzf.top.zsh, fzf-scripts/fztop.
-- [x] **ps: plain-left PIDs** (p3) [refactor]: since ~/.config/fzf/fzfrc dropped its `--delimiter`, the ps source no
-      longer needs left-aligned PIDs for `{1}`; right-align them like the other numeric columns.
 
 ## 6. New modules
 

@@ -6,6 +6,8 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.65.0] - 2026-11-02
+
 ### Added
 
 - youtube: the preview shows the video's thumbnail (chafa; fetched once with curl into the cache;

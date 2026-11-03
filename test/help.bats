@@ -47,7 +47,7 @@ section() {
   [[ "$output" =~ f1\ +this\ help ]]
   output="$all"
   run section components
-  [[ "$output" == *"modes    user  all  tree"* ]]
+  [[ "$output" == *"modes    user  all  top  tree"* ]]
   [[ "$output" == *"toggles  kernel [alt-k]"* ]]
   [[ "$output" == *"actions  term [ctrl-x]  kill"* ]]
 }
