@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.65.0): the six steps of `docs/design.md` are done. Modules: actions, audio, capture, colors, dirs,
+Status (0.66.0): the six steps of `docs/design.md` are done. Modules: actions, audio, capture, colors, dirs,
 docker, files, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
@@ -71,8 +71,6 @@ Reviewed: 2026-10-28
       matches (fzfmenu files/sad).
 - [ ] **files: multiline grep** (p3) [feature]: a toggle in `files:grep` for multiline matching
       (`rg -U --multiline-dotall`) that reloads.
-- [x] **git: remote branch delete** (p3) [feature]: drop on a remote-tracking branch pushes the delete
-      (`git push REMOTE --delete BRANCH`); left out of 0.18.0 as an outward action.
 - [ ] **dirs: bookmark from the list** (p3) [feature]: add and remove bookmarks with keys (fzf-marks' mark/unmark),
       kept in a file under FZX_STATE_DIR instead of only FZX_DIRS_BOOKMARKS in config. Ref: fzf-marks.plugin.zsh.
 - [ ] **snippets and paste history** (p3) [feature]: both kinds: an automatic history of what capture and tmux
@@ -84,8 +82,6 @@ Reviewed: 2026-10-28
       action; inside fzx it saves one key over alt-s on the marked pane. Ref: proto-widgets/tmux/jump-marked.
 - [ ] **docker: exec a command** (p3) [feature]: fzf-runinc: exec a typed command (not a shell) in the container,
       output kept on screen; and docker system df as the images/volumes summary. Ref: fzf-rsc/modules/docker.
-- [x] **github: octo.nvim styling** (p3) [feature]: borrow from pwntester/octo.nvim's look: more icons
-      (state, review, draft, merged), labels drawn as colored chips, nicer issue/PR rows and previews.
 
 ## 6. New modules
 
@@ -93,10 +89,6 @@ Built from the reference repos in `resources/` (fzfmenu widgets, proto-widgets, 
 completers, the fzf attempt's modules, fzf-scripts) and checked against what is installed here
 (2026-10-20). "has" lists tools found on PATH, "missing" what the old code used that is not installed.
 
-- [x] **github: header after the everywhere toggle** (p3) [bug]: the issues and prs header is set when fzf
-      starts ("issues of o/r ..."), so after alt-7 it still names the repository while the list shows
-      everything involving you. Toggles reload in place with no header hook; the fix is a toggle flag or
-      change-header in the reload (lib/opts.sh).
 - [x] **shell** (p2) [module]: modes for executables on PATH, aliases and shell functions (man/tldr or
       definition preview, the man module's renderer), and environment variables and parameters with values.
       Done in 0.37.0 (modules/shell).

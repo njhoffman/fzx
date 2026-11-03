@@ -6,6 +6,8 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.66.0] - 2026-11-02
+
 ### Added
 
 - git: alt-x (drop) in branches deletes remote branches too, on their remote (`git push REMOTE --delete`,
