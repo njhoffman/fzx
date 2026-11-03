@@ -12,7 +12,7 @@ category: `[bug]` `[feature]` `[refactor]` `[docs]` `[test]` `[chore]` `[perf]`,
 
 Categories: module
 
-Reviewed: 2026-10-28
+Reviewed: 2026-11-02
 
 ## 1. Next up
 
@@ -40,9 +40,6 @@ Reviewed: 2026-10-28
       or plain backspace for it, and binding those would stop backspace deleting query characters.
 - [ ] **All keys list** (p3) [feature]: a mode of the keybindings module listing fzf's `--keys` names (every
       key fzf knows), marking the bound ones with their action.
-
-- [x] **ctrl-_ for the next sort** (p3) [feature]: bound with f12 (`FZX_KEYS[sort_next]="f12,ctrl-_"`; fzf
-      calls it ctrl-/, terminals send ctrl-_ for both).
 - [ ] **alt-^ flips popup and inline** (p3) [feature]: a second placement key that switches only between the
       popup and the plain terminal, skipping split and float (ctrl-^, `FZX_KEYS[popout]`, keeps the full cycle).
       Check what the terminal sends for alt-shift-6 and that fzf accepts `alt-^`.
@@ -53,6 +50,11 @@ Reviewed: 2026-10-28
       key that puts the rg/fd arguments into the query, enter applies them; show the current arguments in
       the preview's top line or a label. Prior art: resources/ (older setups). Grep mode's switch between
       grepping and fzf filtering (ctrl-t) shipped in 0.40.0; fd and ripgrep are already the tools used.
+- [ ] **Header hook for in-place refreshes** (p3) [refactor]: a mode, toggle or sort change refreshes the
+      label and component line but never the module's header, so rows that change it are flagged `restart`
+      (github's issues, prs, notifications, mine, starred and the everywhere toggle). An optional
+      `<module>::header` called from `fzx::_nav_refresh` (writing meta/header, emitting change-header or
+      transform-header, as `files::_header` does by hand) would let them switch in place without the flicker.
 - [ ] **Sessions module** (p3) [module]: a picker over `fzx debug ls` that resumes a kept or running session from
       another terminal.
 - [ ] **Piping** (p3) [feature]: when stdin is not a tty and no module is given, match each manifest's `detect`
@@ -82,6 +84,9 @@ Reviewed: 2026-10-28
       action; inside fzx it saves one key over alt-s on the marked pane. Ref: proto-widgets/tmux/jump-marked.
 - [ ] **docker: exec a command** (p3) [feature]: fzf-runinc: exec a typed command (not a shell) in the container,
       output kept on screen; and docker system df as the images/volumes summary. Ref: fzf-rsc/modules/docker.
+- [ ] **github: review threads** (p3) [feature]: a pull request's preview has its reviews' verdicts and texts,
+      but not their inline comments: `gh pr view` lacks them; `gh api repos/O/R/pulls/N/comments` has them with
+      path, line and `in_reply_to_id`, to draw as threads under the file and line (octo.nvim's review view).
 
 ## 6. New modules
 
@@ -89,9 +94,6 @@ Built from the reference repos in `resources/` (fzfmenu widgets, proto-widgets, 
 completers, the fzf attempt's modules, fzf-scripts) and checked against what is installed here
 (2026-10-20). "has" lists tools found on PATH, "missing" what the old code used that is not installed.
 
-- [x] **shell** (p2) [module]: modes for executables on PATH, aliases and shell functions (man/tldr or
-      definition preview, the man module's renderer), and environment variables and parameters with values.
-      Done in 0.37.0 (modules/shell).
 - [ ] **repl** (p2) [module]: live jq/awk/sed/grep/sh filter over a file with the result in the preview
       (`change:reload`). Refs: ref/mods/repl.sh + repl-data, development/fzr-*, fzf/_scratch/repl.*.
       Has: jq, awk, sed. Missing: yq (fzr-yq mode).
@@ -147,8 +149,6 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       existing ancestor in the tree; harmless (cleaned on exit) but deep trees and long labels.
 - [ ] **Stats prune** (p3) [bug] can drop rows appended while the file is being rewritten.
 - [ ] **`fzx stats` needs `strftime` in awk** (p3) [bug] (gawk, or mawk 1.3.4+).
-- [ ] **man preview fails on `[`** (p3) [bug]: the first row of `fzx -m man`, `[ (1)`, logs
-      `cb preview [(1) rc=16` and shows nothing; the page name needs quoting or `--` (modules/man/preview.sh).
 - [ ] **nvcat is slow for previews** (p3) [perf]: about 300-1200ms per focus change (it starts Neovim), for
       markdown and every filetype `nvcat-dispatch` claims (any *.conf, systemd units, ...); files over
       FZX_PREVIEW_NVCAT_MAX_LINES already go to bat. Cache its output under $FZX_CACHE_DIR keyed by path,
@@ -157,6 +157,10 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       (the module binds it, lib/actions.sh skips the default's enter), but the actions menu still draws ⏎ on
       `run` since it reads the flags from `meta/components`. Record the override in the session (a meta key)
       and drop the mark (modules/actions/source.sh).
+- [ ] **github: comment headings look like the body's** (p3) [bug]: the preview's timeline puts each comment
+      under a `###` heading, so a body or comment using `###` itself reads like a new comment. Draw the
+      comment headers some other way that the markdown renderer still styles (a blockquote line, or a level
+      the bodies rarely use), or demote the bodies' headings (modules/github/preview.sh, github::item_details).
 - [ ] **tasks: multi-line just docs show their last line** (p3) [bug]: `just --dump` keeps only the comment
       line right above a recipe, so a two-line comment shows its tail (`lint`: "idioms trip most checks)").
       Read the comment block from the justfile instead (modules/tasks/source.sh, tasks::scan).
