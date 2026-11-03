@@ -58,13 +58,19 @@ Inside any module, f1 shows every key, mode, toggle and action. The common ones:
 | Module | Lists |
 |---|---|
 | actions | the actions menu of the screen it was opened from |
+| applications | desktop entries with their icons: launch one (a launcher for a window-manager popup) |
 | audio | outputs, inputs, playing streams and media players |
+| bluetooth | paired and nearby devices: connect, pair, trust, remove |
+| browser | Chrome, Chromium, Brave, Vivaldi and Firefox history and bookmarks, opened in their own profile |
 | claude | Claude Code projects: git state, version, open TODOs and sessions; start or resume Claude there |
 | capture | URLs, paths, words, hashes, IPs or lines out of a tmux pane |
 | colors | the 256-color palette, the terminal's 16 colors, X11 names and fzx's own colors |
+| cron | crontab and system cron entries with their next runs, anacron jobs and cron scripts |
 | dirs | directories under ~, and bookmarks |
 | docker | containers, images, volumes, networks and compose projects |
 | files | files and directories, or a grep of their contents |
+| firewall | ufw rules and application profiles |
+| fonts | font families with a sample drawn in each |
 | git | status, log, branches, tags, stash, reflog and work trees |
 | github | repository and code search, your repositories and stars, issues, pull requests, runs, notifications |
 | glyphs | Nerd Font glyphs, Unicode characters and blocks, emoji |
@@ -79,6 +85,7 @@ Inside any module, f1 shows every key, mode, toggle and action. The common ones:
 | ps | processes: user, all, top and tree |
 | recent | frecent files and directories |
 | repos | git repositories with their branch, changes, ahead/behind and open TODOs |
+| sessions | fzx's own session trees: resume kept ones, open a copy of live ones |
 | shell | commands on PATH, zsh builtins, aliases, functions and parameters |
 | systemd | user and system units, failed ones, timers and sockets |
 | tasks | project scripts: make, just, npm, Taskfile, cargo aliases, pdm/poe/hatch |

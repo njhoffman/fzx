@@ -114,10 +114,10 @@ EOF
 }
 
 @test "source: modules are listed at once; one over FZX_APPLICABLE_TIMEOUT is left out and logged" {
-  mkdir -p "$BATS_TEST_TMPDIR/mods/aslow" "$BATS_TEST_TMPDIR/mods/zslow"
-  cat > "$BATS_TEST_TMPDIR/mods/aslow/manifest.sh" << 'EOF2'
-aslow::manifest() { fzx::entry aslow "slow but in time"; }
-aslow::applicable() { sleep 0.4; }
+  mkdir -p "$BATS_TEST_TMPDIR/mods/aaslow" "$BATS_TEST_TMPDIR/mods/zslow"
+  cat > "$BATS_TEST_TMPDIR/mods/aaslow/manifest.sh" << 'EOF2'
+aaslow::manifest() { fzx::entry aaslow "slow but in time"; }
+aaslow::applicable() { sleep 0.4; }
 EOF2
   cat > "$BATS_TEST_TMPDIR/mods/zslow/manifest.sh" << 'EOF2'
 zslow::manifest() { fzx::entry zslow "too slow"; }
@@ -131,7 +131,7 @@ EOF2
   run plain_lines
   ((EPOCHSECONDS - start < 12))
   # in module order, the slow one in time included
-  [[ "${lines[0]}" == "aslow#0|"* ]]
+  [[ "${lines[0]}" == "aaslow#0|"* ]]
   [ -n "$(entry 'counter#0')" ]
   [[ "$output" != *zslow* ]]
   grep -q 'menu: zslow took over 6s, left out' "$LOG"

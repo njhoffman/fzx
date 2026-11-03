@@ -1,7 +1,7 @@
 # fzx TODO
 
-Status (0.84.0): the six steps of `docs/design.md` are done. Modules: actions, audio, bluetooth, capture, claude, colors, cron, dirs,
-docker, files, firewall, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
+Status (0.85.0): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, bluetooth, browser, capture, claude, colors, cron, dirs,
+docker, files, firewall, fonts, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
 add what you find, and tick items off (`- [x]`) as they land, never delete them; once every item of a section
 is ticked, the section moves to `## Completed` at the end as a `### <heading> (completed YYYY-MM-DD)` block
@@ -95,7 +95,7 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       Has: jq, awk, sed. Missing: yq (fzr-yq mode).
 - [ ] **pass** (p2) [module]: password-store entries, copy password or a field with a clear timer.
       Refs: system/fzpass.sh, fzpass2.sh, ffpass.sh. Has: pass, gpg, ~/.password-store.
-- [ ] **browser** (p3) [module]: Chrome and Firefox history and bookmarks from their sqlite/JSON files (copy the
+- [x] **browser** (p3) [module]: Chrome and Firefox history and bookmarks from their sqlite/JSON files (copy the
       db first, it is locked while the browser runs). Refs: chrome/{history,bookmarks}.sh,
       vendors/widgets/fzf-chrome-history.sh, fzf-bookmarks.{sh,rb}. Has: google-chrome, firefox, sqlite3.
       Missing: buku (chrome/buku*.sh, fzf-scripts/fzbuku). Open tabs too (fzfmenu list.md "chrome:tabs"):
@@ -103,12 +103,12 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [ ] **zsh docs** (p3) [module]: the zsh manual index (option, builtin, parameter) opening the right section;
       possibly a mode of the man module. Refs: fzfmenu system/zman*, zmandata.tsv.
 - [ ] **i3** (p3) [module]: windows and workspaces (focus, move), scratchpads. Refs: list.md "i3". Has: i3-msg.
-- [ ] **applications** (p3) [module]: desktop entries (/usr/share/applications and ~/.local/share/applications,
+- [x] **applications** (p3) [module]: desktop entries (/usr/share/applications and ~/.local/share/applications,
       489 here) by name with their icon and categories, launched detached (`gtk-launch` or the Exec line); for
       launching from a tmux popup bound in i3. Ref: zaw's applications.
 - [ ] **gpg keys** (p3) [module]: public and secret keys (`gpg --list-keys --with-colons`, 44 here): copy the
       fingerprint, export armored, edit trust, delete (confirm). Ref: fzfmenu list.md "pgp". Has: gpg.
-- [ ] **fonts** (p3) [module]: fc-list families with a sample preview. Has: fc-list.
+- [x] **fonts** (p3) [module]: fc-list families with a sample preview. Has: fc-list.
 - [ ] **displays** (p3) [module]: xrandr outputs and modes. Has: xrandr.
 - [ ] **bluetooth: background scan** (p3) [feature]: the scan action blocks for `FZX_BLUETOOTH_SCAN_SECONDS`
       and lists its finds after. A scan kept running while the all mode shows (`bluetoothctl scan on` in the
@@ -119,6 +119,16 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       environment (`sudo -u USER env -i SHELL=/bin/sh HOME=... sh -c`), would cover the system's too.
 - [ ] **cron: CRON_TZ and other users' crontabs** (p3) [feature]: next runs ignore `CRON_TZ=` lines, and
       only your crontab is read; with a cached sudo, /var/spool/cron/crontabs holds every user's.
+- [ ] **browser: open tabs** (p3) [feature]: Chrome lists its tabs only through the remote debugging port
+      (`/json`), and since Chrome 136 `--remote-debugging-port` does nothing on the default user data dir
+      (it is set here, and 9222 does not answer): it needs Chrome started with `--user-data-dir` too. Firefox
+      keeps open tabs in sessionstore-backups/recovery.jsonlz4 (mozlz4: an lz4 block with a magic header,
+      which needs a decoder such as python's lz4).
+- [ ] **applications: desktop actions** (p3) [feature]: the preview lists an entry's `[Desktop Action]`
+      groups (New Window, New Private Window), but neither gtk-launch nor dex starts one. Running the
+      action's Exec line (field codes %f %u %F %U removed, %i %c %k expanded) from a second list would.
+- [ ] **applications: TryExec and OnlyShowIn** (p3) [feature]: entries whose TryExec is not installed and
+      those `OnlyShowIn`/`NotShowIn` excludes from this desktop are listed; the spec hides both.
 - [ ] **firewall: add rules** (p3) [feature]: rules come only from profiles (alt-a, alt-D). A prompt for a
       free rule (`allow 8080/tcp from 192.168.1.0/24`, readline as docker's alt-E has, checked with
       `ufw --dry-run`) would add any rule; inserting at a position (`ufw insert N`) from the focused row too.

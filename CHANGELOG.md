@@ -6,6 +6,20 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.85.0] - 2026-11-03
+
+### Added
+
+- browser module: history and bookmarks of every Chrome, Chromium, Brave, Vivaldi and Firefox profile in one
+  list (toggles per browser; history newest or most visited first). Enter opens the URLs in the browser and
+  profile they came from and closes, ctrl-o opens them and stays, alt-o uses xdg-open. The databases are
+  copied first, so a running browser does not get in the way.
+- applications module: desktop entries by name with their icon in the preview; enter launches the selection
+  detached (gtk-launch) and closes, so `fzx -m applications --popup` bound in the window manager works as a
+  launcher. alt-h lists hidden entries too, alt-e edits the desktop file.
+- fonts module: fontconfig's families with a sample drawn in each (ImageMagick and chafa), their styles and
+  files; alt-m lists monospace families only.
+
 ## [0.84.0] - 2026-11-03
 
 ### Changed

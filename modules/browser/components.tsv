@@ -1,0 +1,14 @@
+# browser components: kind  name  key  description  flags (see lib/components.sh)
+# Rows come from every Chromium-family and Firefox profile; enter opens the URLs in the browser and profile
+# they came from and closes, ctrl-o opens them and stays.
+mode    history    -       history, newest first across profiles                        default
+mode    bookmarks  -       bookmarks, by folder                                         -
+toggle  chrome     -       Chrome, Chromium, Brave and Vivaldi profiles                 on
+toggle  firefox    -       Firefox profiles                                             on
+sort    recent     -       history: last visited first                                  default
+sort    visits     -       history: most visited first                                  -
+action  open       -       open in the row's browser and profile, then close            become,default
+action  open-stay  ctrl-o  open in the row's browser and profile                        silent
+action  xdg        alt-o   open in the default browser (xdg-open)                        silent
+action  copy       ctrl-y  copy the URLs                                                silent,builtin
+action  copy-title  alt-y   copy the titles                                             notify
