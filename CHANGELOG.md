@@ -8,6 +8,8 @@ All notable changes to fzx are recorded here. The format follows
 
 ### Fixed
 
+- tasks: a just recipe documented by several comment lines shows them all, not just the last one
+  (a `[doc]` attribute still wins).
 - stats: `fzx stats` works with an awk that has no `strftime` (mawk before 1.3.4): the dates come from
   date(1) then.
 

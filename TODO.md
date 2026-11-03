@@ -161,7 +161,7 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       under a `###` heading, so a body or comment using `###` itself reads like a new comment. Draw the
       comment headers some other way that the markdown renderer still styles (a blockquote line, or a level
       the bodies rarely use), or demote the bodies' headings (modules/github/preview.sh, github::item_details).
-- [ ] **tasks: multi-line just docs show their last line** (p3) [bug]: `just --dump` keeps only the comment
+- [x] **tasks: multi-line just docs show their last line** (p3) [bug]: `just --dump` keeps only the comment
       line right above a recipe, so a two-line comment shows its tail (`lint`: "idioms trip most checks)").
       Read the comment block from the justfile instead (modules/tasks/source.sh, tasks::scan).
 - [ ] **No README** (p3) [docs]: the repo has CLAUDE.md, PLAN.md and docs/, but nothing a new reader lands on:

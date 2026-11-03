@@ -84,6 +84,32 @@ act() { FZX_MODE="$1" "$TASKS/actions.sh" "${@:2}"; }
   [[ "$output" != *_hidden* ]]
 }
 
+@test "scan: a just recipe's whole comment block, attributes between; a [doc] attribute wins" {
+  command -v just > /dev/null && command -v jq > /dev/null || skip "just or jq not installed"
+  cat > "$B/justfile" << 'EOF2'
+# lint every file (the long
+# comment goes on)
+[no-cd]
+@lint *ARGS:
+    # a comment in the body is not a doc
+    true
+
+# not this one
+[doc("from the attribute")]
+build:
+    true
+
+# separated by a blank line
+
+bare:
+    true
+EOF2
+  run "$TASKS/source.sh" --scan "$B"
+  [[ "$output" == *$'\t'just$'\t'lint$'\t'"lint every file (the long comment goes on)"* ]]
+  [[ "$output" == *$'\t'just$'\t'build$'\t'"from the attribute"* ]]
+  [[ "$output" == *$'\t'just$'\t'bare$'\t'* && "$output" != *"separated"* ]]
+}
+
 @test "modes: selected is this repository's tasks and the picks; repos the chosen projects; projects marks" {
   cd "$A"
   run src selected

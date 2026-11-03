@@ -69,7 +69,7 @@ tasks::gotask() {
 
 # tasks::scan <dir>: "dir<TAB>kind<TAB>name<TAB>description" per task the repository defines, in file order
 tasks::scan() {
-  local dir="${1%/}" f gotask
+  local dir="${1%/}" f gotask docs
   {
     # make: explicit targets (not pattern rules, special .TARGETS or variable assignments); a "## text"
     # after the target, else a "## text" comment line right above it, is its description
@@ -85,10 +85,19 @@ tasks::scan() {
         }
         !/^##/ { doc = "" }' "$f"
     fi
-    # just: public recipes with their doc comments
+    # just: public recipes with their doc comments. just keeps only a comment's last line, so the whole block
+    # of comment lines above a recipe (attribute lines may sit between) is read from the justfile, joined;
+    # a [doc] attribute, or a recipe the file does not define (import, mod), keeps just's own
     if f="$(tasks::justfile "$dir")" && command -v just > /dev/null; then
+      docs="$(awk '
+        /^#/ && !/^#!/ { line = $0; sub(/^#+[ \t]*/, "", line); doc = doc == "" ? line : doc " " line; next }
+        /^\[/ { next }
+        /^@?[A-Za-z_][A-Za-z0-9_-]*([ \t]|:)/ && doc != "" { name = $1; sub(/^@/, "", name); sub(/:.*/, "", name); print name "\t" doc }
+        { doc = "" }' "$f" | command jq -Rn '[inputs | split("\t") | {(.[0]): .[1]}] | add // {}')" || docs='{}'
       command just --justfile "$f" --working-directory "$dir" --dump --dump-format json 2> /dev/null |
-        command jq -r '.recipes | to_entries | sort_by(.value.name) | .[].value | select(.private | not) | ["just", .name, (.doc // "")] | @tsv'
+        command jq -r --argjson docs "${docs:-"{}"}" '.recipes | to_entries | sort_by(.value.name) | .[].value | select(.private | not) |
+          (if (.attributes | map(objects | has("doc")) | any) then .doc else ($docs[.name] // .doc) end) as $doc |
+          ["just", .name, ($doc // "")] | @tsv'
     fi
     # package.json scripts: the command is the description
     if [[ -f "$dir/package.json" ]]; then
