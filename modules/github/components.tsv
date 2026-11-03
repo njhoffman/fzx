@@ -1,24 +1,25 @@
 # github components: kind  name  key  description  flags (see lib/components.sh)
 # Searches run on enter (a new query), not as you type: GitHub allows 30 searches a minute, 10 for code.
-# mine and starred are lists fzf filters, so entering or leaving them restarts fzf.
+# mine, starred, issues, prs and notifications are lists fzf filters: switching to or from them turns fzf's
+# search on or off in place (github::refresh), with the header of the new list.
 # Ids are github.com URLs, so every action works on any row: a repository, a file or a directory.
 mode  repos    -  search repositories (GitHub qualifiers in the query: language:go stars:>100)  default
 mode  code     -  search code (qualifiers: repo:o/r language:sh filename:x path:y)              -
-mode  mine     -  your repositories (--owner NAME: someone else's), last pushed first          restart
-mode  starred  -  the repositories you starred, last starred first                             restart
+mode  mine     -  your repositories (--owner NAME: someone else's), last pushed first          -
+mode  starred  -  the repositories you starred, last starred first                             -
 mode  tree     -  the files of a repository (--repo OWNER/REPO [--ref REF])                     hidden
 mode  repo     -  a repository's files, issues, pull requests and workflow runs (--repo OWNER/REPO, else the one here)  hidden
 mode  runs     -  a repository's workflow runs, latest first (--repo OWNER/REPO, else the one here)  hidden
-mode  issues   -  issues of the repository here (--repo OWNER/REPO), else involving you       restart
-mode  prs      -  pull requests of the repository here (--repo OWNER/REPO), else involving you  restart
-mode  notifications  -  your notifications (unread; the latest 50)                             restart
+mode  issues   -  issues of the repository here (--repo OWNER/REPO), else involving you       -
+mode  prs      -  pull requests of the repository here (--repo OWNER/REPO), else involving you  -
+mode  notifications  -  your notifications (unread; the latest 50)                             -
 toggle  private  alt-1  private repositories only (with public: both)                          -
 toggle  public   alt-2  public repositories only (with private: both)                          -
 toggle  sources  alt-3  repositories that are not forks (with forks: both)                     -
 toggle  forks    alt-4  forks only (with sources: both)                                        -
 toggle  missing  alt-5  only repositories not cloned here yet (cloned ones are marked)        -
 toggle  closed      alt-6  issues, prs: closed (and merged) ones too                            -
-toggle  everywhere  alt-7  issues, prs: the ones involving you anywhere, not the repository's   restart
+toggle  everywhere  alt-7  issues, prs: the ones involving you anywhere, not the repository's   -
 toggle  read        alt-8  notifications: read ones too                                         -
 sort    listed   -      mine: last push first; starred: most recently starred first          default
 sort    stars    -      mine, starred: most stars first                                       -

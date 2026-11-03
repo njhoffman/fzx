@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.76.0): the six steps of `docs/design.md` are done. Modules: actions, audio, bluetooth, capture, claude, colors, cron, dirs,
+Status (0.77.0): the six steps of `docs/design.md` are done. Modules: actions, audio, bluetooth, capture, claude, colors, cron, dirs,
 docker, files, firewall, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
@@ -47,11 +47,6 @@ Reviewed: 2026-11-02
       key that puts the rg/fd arguments into the query, enter applies them; show the current arguments in
       the preview's top line or a label. Prior art: resources/ (older setups). Grep mode's switch between
       grepping and fzf filtering (ctrl-t) shipped in 0.40.0; fd and ripgrep are already the tools used.
-- [ ] **Header hook for in-place refreshes** (p3) [refactor]: a mode, toggle or sort change refreshes the
-      label and component line but never the module's header, so rows that change it are flagged `restart`
-      (github's issues, prs, notifications, mine, starred and the everywhere toggle). An optional
-      `<module>::header` called from `fzx::_nav_refresh` (writing meta/header, emitting change-header or
-      transform-header, as `files::_header` does by hand) would let them switch in place without the flicker.
 - [ ] **sessions: resumed trees in a pane** (p3) [feature]: a kept tree resumed from the sessions list runs
       under the list's owner, not its own, so a placement change into or out of a split or float (which needs
       the tree's owner to relaunch) only works in the list's own placement. Handing the tree to the list's

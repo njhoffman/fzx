@@ -19,4 +19,14 @@ counter::opts() {
   return 0
 }
 
+# the refresh hook, only with COUNTER_REFRESH (on, off or keep): the header follows the mode, and fzf's
+# search turns on or off
+# shellcheck disable=SC2034  # FZX_REFRESH_*: read by lib/nav.sh
+counter::refresh() {
+  [[ -n "${COUNTER_REFRESH:-}" ]] || return 0
+  [[ "$COUNTER_REFRESH" == fail ]] && return 1
+  FZX_REFRESH_HEADER="mode:$FZX_MODE${COUNTER_ARGS_IN_HEADER:+ ${FZX_ARGS[*]}}"
+  [[ "$COUNTER_REFRESH" == keep ]] || FZX_REFRESH_SEARCH="$COUNTER_REFRESH"
+}
+
 fzx::module_main "$@"

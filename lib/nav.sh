@@ -52,14 +52,18 @@ fzx::nav_mode() {
   fzx::_nav_refresh
 }
 
-# in place after a mode, toggle or sort change: new label and component line, reload from the cache
-# of the new view (or the source when that view was never loaded)
+# in place after a mode, toggle or sort change: new label and component line, the module's refresh hook
+# (header, search on or off), reload from the cache of the new view (or the source when that view was
+# never loaded)
 fzx::_nav_refresh() {
-  local label line place reload
+  local label line place reload extra=""
   fzx::config_load "$FZX_MODULE_DIR" "$FZX_MODULE"
   fzx::comp_current
   fzx::session_label label
   fzx::component_line line
+  # before the header: in the header position the hook's text goes to meta/header, which the header
+  # callback below draws under the component line
+  fzx::_nav_module_refresh extra
   # in the header the line sits above the module's header, which may hold any text: fetch it through a
   # callback instead of quoting it into change-header(...)
   if [[ "${FZX_HEADER_POSITION:-footer}" == header ]]; then
@@ -68,7 +72,42 @@ fzx::_nav_refresh() {
     place="change-footer($line)"
   fi
   fzx::reload_action "$(fzx::cb load)" reload
-  printf 'change-border-label( %s )+%s+%s' "$label" "$place" "$reload"
+  printf 'change-border-label( %s )+%s%s+%s' "$label" "$place" "$extra" "$reload"
+}
+
+# fzx::_nav_module_refresh <var>: the module's <module>::refresh hook (in its module.sh, which callbacks
+# do not load otherwise; sourcing it is safe: fzx::module_main returns when sourced), run with the new
+# mode, toggles, sort and the session's arguments. It sets FZX_REFRESH_HEADER (the module's header for the
+# new view; unset leaves it) and FZX_REFRESH_SEARCH (on or off: fzf's search, for modules whose modes
+# differ in --disabled; empty leaves it). Into var: "+"-prefixed fzf actions, or nothing
+fzx::_nav_module_refresh() {
+  local _fn="${FZX_MODULE}::refresh" _act="" _h
+  printf -v "$1" '%s' ""
+  if ! declare -F "$_fn" > /dev/null; then
+    [[ -f "$FZX_MODULE_DIR/module.sh" ]] && grep -q "^${FZX_MODULE}::refresh()" "$FZX_MODULE_DIR/module.sh" || return 0
+    # shellcheck source=/dev/null
+    source "$FZX_MODULE_DIR/module.sh" || return 0
+    declare -F "$_fn" > /dev/null || return 0
+  fi
+  unset FZX_REFRESH_HEADER
+  FZX_REFRESH_SEARCH=""
+  fzx::session_args
+  "$_fn" || { fzx::log warn "$_fn failed"; return 0; }
+  case "$FZX_REFRESH_SEARCH" in
+    on) _act+="+enable-search" ;;
+    off) _act+="+disable-search" ;;
+  esac
+  if [[ -n "${FZX_REFRESH_HEADER+set}" ]]; then
+    if [[ "${FZX_HEADER_POSITION:-footer}" == header ]]; then
+      fzx::meta_set header "$FZX_REFRESH_HEADER"
+    elif fzx::action_arg change-header "$FZX_REFRESH_HEADER" _h; then
+      _act+="+$_h"
+    else
+      fzx::log warn "$_fn: a header change-header cannot hold: $FZX_REFRESH_HEADER"
+    fi
+  fi
+  fzx::log debug "refresh hook: ${_act#+}"
+  printf -v "$1" '%s' "$_act"
 }
 
 # fzx::nav_footer: the footer text: the component line when it sits in the footer, else nothing

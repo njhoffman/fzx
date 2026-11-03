@@ -106,6 +106,29 @@ line_for() {
   [ "${lines[1]}" = "mode:one" ]
 }
 
+@test "refresh hook: the module's header and search follow an in-place switch; a failing hook is skipped" {
+  "$FZX" --keep -m counter -- x1
+  local sid
+  sid="$(basename "$(session_dirs)")"
+  COUNTER_REFRESH=off COUNTER_ARGS_IN_HEADER=1 FZX_SESSION="$sid" run "$FZX" _cb mode next
+  [[ "$output" == "change-border-label( counter:two )+change-footer("*")+disable-search+change-header(mode:two x1)+reload($FZX _cb load)" ]]
+  COUNTER_REFRESH=keep FZX_SESSION="$sid" run "$FZX" _cb mode prev
+  [[ "$output" == *")+change-header(mode:one)+reload("* && "$output" != *search* ]]
+  # no hook output without the hook's say-so, and a failing hook leaves the refresh as it was
+  FZX_SESSION="$sid" run "$FZX" _cb mode next
+  [[ "$output" != *change-header* ]]
+  COUNTER_REFRESH=fail FZX_SESSION="$sid" run "$FZX" _cb mode prev
+  [ "$status" -eq 0 ]
+  [[ "$output" != *change-header* && "$output" == *"reload("* ]]
+  grep -q "counter::refresh failed" "$LOG"
+  # the header position: into meta/header, drawn by the header callback
+  conf 'FZX_HEADER_POSITION=header'
+  COUNTER_REFRESH=on FZX_SESSION="$sid" run "$FZX" _cb mode next
+  [ "$output" = "change-border-label( counter:two )+transform-header($FZX _cb header)+enable-search+reload($FZX _cb load)" ]
+  FZX_SESSION="$sid" run "$FZX" _cb header
+  [ "${lines[1]}" = "mode:two" ]
+}
+
 @test "standalone shows the component line too" {
   run "$(readlink -f "$BATS_TEST_DIRNAME/fixtures/modules/counter")/module.sh"
   read_fzf_args

@@ -852,19 +852,43 @@ clone_here() {
   [[ " ${FZF_ARGS[*]} " == *" --header=issues involving you, last updated first "* ]]
 }
 
-@test "under fzx: the everywhere toggle restarts fzf, so the header stops naming the repository" {
+@test "under fzx: the everywhere toggle switches in place; the header stops naming the repository" {
   load_libs log session
   clone_here
   fzx::session_create github "$GH_DIR"
   fzx::state_set mode prs
   FZF_QUERY="abc" run "$FZX" _cb toggle everywhere
-  [ "$output" = "become:$FZX --resume $FZX_SESSION" ]
+  [ "$status" -eq 0 ]
+  [[ "$output" != become:* ]]
+  # the header holds parentheses: change-header takes another pair of delimiters
+  [[ "$output" == *"+enable-search+change-header[pull requests involving you, last updated first (alt-7: o/r only)]+"*"reload("* ]]
   [ "$(< "$FZX_SESSION_DIR/state/toggles")" = everywhere ]
-  [ "$(< "$FZX_SESSION_DIR/state/query")" = abc ]
+  # a relaunch builds the same header
   stub_fzf
   run "$FZX" --resume "$FZX_SESSION"
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " == *" --header=pull requests involving you, last updated first (alt-7: o/r only) "* ]]
+}
+
+@test "under fzx: modes switch in place; search off in repos and code (a ctrl-t filter dropped), on in the lists" {
+  load_libs log session
+  clone_here
+  fzx::session_create github "$GH_DIR"
+  fzx::state_set mode repos
+  printf 'repos\0code\0mine\0starred\0issues\0prs\0notifications\0' > "$FZX_SESSION_DIR/meta/modes"
+  run "$FZX" _cb mode issues
+  [ "$status" -eq 0 ]
+  [[ "$output" != become:* ]]
+  [[ "$output" == *"+enable-search+change-header"*"issues of o/r, last updated first (alt-7: involving you anywhere)"* ]]
+  fzx::state_set github_filter_code 1
+  run "$FZX" _cb mode code
+  [[ "$output" == *"+disable-search+change-header"* ]]
+  [ -z "$(< "$FZX_SESSION_DIR/state/github_filter_code")" ]
+  # in the header position the header goes to meta/header, drawn by the header callback
+  mkdir -p "$FZX_CONFIG_DIR" && echo 'FZX_HEADER_POSITION=header' > "$FZX_CONFIG_DIR/config.sh"
+  run "$FZX" _cb mode starred
+  [[ "$output" == *"transform-header("*"+enable-search+"* && "$output" != *change-header* ]]
+  [ "$(< "$FZX_SESSION_DIR/meta/header")" = "your stars, last starred first" ]
 }
 
 @test "menu: issues and prs summaries from the last list only" {

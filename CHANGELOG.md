@@ -6,6 +6,20 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.77.0] - 2026-11-02
+
+### Added
+
+- A module refresh hook: `<module>::refresh` in a module's module.sh sets the header and turns fzf's search
+  on or off when a mode, toggle or sort changes in place, so modes that differ only in those no longer need
+  a restart.
+
+### Changed
+
+- github: mine, starred, issues, pull requests and notifications, and the everywhere toggle, switch in place
+  instead of restarting fzf: the header follows the view, and typing filters in the lists and is the query
+  in the searches. A ctrl-t filter left on in repos or code is dropped on the way back, as the restart did.
+
 ## [0.76.0] - 2026-11-02
 
 ### Added
