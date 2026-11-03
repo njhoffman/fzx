@@ -22,6 +22,14 @@ exit "${STUB_YT_RC:-0}"
 STUB
   printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$@" > "$BATS_TEST_TMPDIR/mpv.args"\n' > "$STUBS/mpv"
   printf '#!/usr/bin/env bash\nexit 0\n' > "$STUBS/ffmpeg"
+  # curl: records its args, writes "img" to -o unless $STUB_CURL_RC is set; chafa: a marker with its size
+  cat > "$STUBS/curl" << 'STUB'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$BATS_TEST_TMPDIR/curl.calls"
+[[ -n "${STUB_CURL_RC:-}" ]] && exit "$STUB_CURL_RC"
+while (($#)); do [[ "$1" == -o ]] && printf img > "$2"; shift; done
+STUB
+  printf '#!/usr/bin/env bash\nfor a; do [[ "$a" == --size=* ]] && echo "[thumb ${a#--size=}]"; done\n' > "$STUBS/chafa"
   chmod +x "$STUBS"/*
   export PATH="$STUBS:$PATH"
   export STUB_YT_JSON='{"id":"aaa","url":"https://www.youtube.com/watch?v=aaa","title":"First video","channel":"Chan","duration_string":"2:33","view_count":2081261,"description":"about it"}
@@ -200,4 +208,129 @@ yt_calls() { cat "$BATS_TEST_TMPDIR/yt.calls" 2> /dev/null || echo 0; }
   [ -z "$output" ]
   src "one" > /dev/null
   [ "$(youtube::summary youtube)" = "1 recent searches" ]
+}
+
+FORMATS_JSON='{"title":"First video","formats":[
+  {"format_id":"sb0","ext":"mhtml","vcodec":"none","acodec":"none"},
+  {"format_id":"140","ext":"m4a","vcodec":"none","acodec":"mp4a.40.2","filesize":3400000,"tbr":129.5,"format_note":"medium","resolution":"audio only"},
+  {"format_id":"18","ext":"mp4","vcodec":"avc1","acodec":"mp4a","filesize_approx":9000000,"resolution":"640x360","fps":25.0},
+  {"format_id":"137","ext":"mp4","vcodec":"avc1.640028","acodec":"none","filesize":52428800,"resolution":"1920x1080","fps":29.97,"format_note":"1080p"}]}'
+
+@test "video ids: watch, youtu.be, shorts, live and embed urls; anything else fails" {
+  source "$YT_DIR/source.sh" || :
+  local id u
+  for u in "https://www.youtube.com/watch?v=dQw4w9WgXcQ" "https://www.youtube.com/watch?feature=x&v=dQw4w9WgXcQ&t=1" \
+    "https://youtu.be/dQw4w9WgXcQ?t=3" "https://www.youtube.com/shorts/dQw4w9WgXcQ" \
+    "https://www.youtube.com/live/dQw4w9WgXcQ" "https://www.youtube.com/embed/dQw4w9WgXcQ"; do
+    id=""
+    youtube::video_id "$u" id
+    [ "$id" = dQw4w9WgXcQ ]
+  done
+  ! youtube::video_id "https://www.youtube.com/@channel" id
+  ! youtube::video_id "https://www.youtube.com/watch?v=short" id
+}
+
+@test "preview: a video's thumbnail above its fields, fetched once; none on failure or when turned off" {
+  local u=https://www.youtube.com/watch?v=dQw4w9WgXcQ
+  export FZF_PREVIEW_LINES=40 FZF_PREVIEW_COLUMNS=100
+  run "$YT_DIR/preview.sh" "$u" "First video" Chan 2:33 5 "about it"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "[thumb 35x10]" ]
+  [[ "$output" == *"First video"* ]]
+  [[ "$(cat "$BATS_TEST_TMPDIR/curl.calls")" =~ ^-fsSL\ --max-time\ 3\ -o\ $FZX_CACHE_DIR/youtube/thumbs/dQw4w9WgXcQ\.jpg\.[0-9]+\ https://i\.ytimg\.com/vi/dQw4w9WgXcQ/mqdefault\.jpg$ ]]
+  [ -s "$FZX_CACHE_DIR/youtube/thumbs/dQw4w9WgXcQ.jpg" ]
+  # cached: no second fetch
+  run "$YT_DIR/preview.sh" "$u" "First video" Chan 2:33 5 "about it"
+  [ "${lines[0]}" = "[thumb 35x10]" ]
+  [ "$(wc -l < "$BATS_TEST_TMPDIR/curl.calls")" -eq 1 ]
+  # a short preview leaves no room: text only
+  FZF_PREVIEW_LINES=10 run "$YT_DIR/preview.sh" "$u" "First video" Chan 2:33 5 "about it"
+  [[ "${lines[0]}" == *"First video"* ]]
+  # a failed fetch: no thumbnail, nothing cached
+  STUB_CURL_RC=22 run "$YT_DIR/preview.sh" https://www.youtube.com/watch?v=bbbbbbbbbbb "B" Chan 1:00 5 ""
+  [[ "${lines[0]}" == *B* && "$output" != *thumb* ]]
+  [ -z "$(ls "$FZX_CACHE_DIR/youtube/thumbs" | grep bbbb)" ]
+  FZX_YOUTUBE_THUMBS=0 run "$YT_DIR/preview.sh" https://www.youtube.com/watch?v=ccccccccccc "C" Chan 1:00 5 ""
+  [[ "$output" != *thumb* ]]
+  ! grep -q cccc "$BATS_TEST_TMPDIR/curl.calls"
+}
+
+@test "formats: best first, storyboards left out, kinds and sizes; cached per video; bad arguments fail" {
+  local u=https://www.youtube.com/watch?v=dQw4w9WgXcQ
+  STUB_YT_JSON="$FORMATS_JSON" FZX_MODE=formats run --separate-stderr "$YT_DIR/source.sh" --url "$u"
+  [ "$status" -eq 0 ]
+  [ "${#lines[@]}" -eq 3 ]
+  [ "$(printf '%s\n' "${lines[@]}" | cut -f1,2,3,4,5 | tr '\t\n' ' |')" = "$u 137 First video video 52428800|$u 18 First video both 9000000|$u 140 First video audio 3400000|" ]
+  [ "$(cut -f6 <<< "${lines[0]}")" = "format 137; video; mp4; 50M; 1920x1080; 29.97 fps; avc1.640028; 1080p" ]
+  [[ "$(cut -f7 <<< "${lines[2]}" | sed 's/\x1b\[[0-9;:]*m//g')" =~ ^140\ +m4a\ +audio\ only\ +audio\ +3M\ +mp4a\.40\.2\ +129k\ +medium$ ]]
+  grep -qx -- -J "$BATS_TEST_TMPDIR/yt.args" && grep -qx -- "$u" "$BATS_TEST_TMPDIR/yt.args"
+  STUB_YT_JSON="$FORMATS_JSON" FZX_MODE=formats run "$YT_DIR/source.sh" --url "$u"
+  [ "$(yt_calls)" -eq 1 ]
+  FZX_MODE=formats run --separate-stderr "$YT_DIR/source.sh" --url https://example.com/x
+  [ "$status" -eq 2 ] && [[ "$stderr" == *"not a video url"* ]]
+  FZX_MODE=formats run --separate-stderr "$YT_DIR/source.sh"
+  [ "$status" -eq 2 ] && [[ "$stderr" == *"needs --url"* ]]
+  # yt-dlp failing: exit 1, nothing cached
+  STUB_YT_RC=1 FZX_MODE=formats run "$YT_DIR/source.sh" --url https://youtu.be/bbbbbbbbbbb
+  [ "$status" -eq 1 ] && [ ! -e "$FZX_CACHE_DIR/youtube/formats/bbbbbbbbbbb" ]
+}
+
+@test "formats preview: the thumbnail, the title and the format's details one per line" {
+  export FZF_PREVIEW_LINES=40 FZF_PREVIEW_COLUMNS=100
+  FZX_MODE=formats run "$YT_DIR/preview.sh" https://youtu.be/dQw4w9WgXcQ 137 "First video" video 52428800 "format 137; video; mp4"
+  [ "${lines[0]}" = "[thumb 35x10]" ]
+  [[ "$output" == *"First video"* ]]
+  [ "${lines[-3]}" = "format 137" ] && [ "${lines[-2]}" = video ] && [ "${lines[-1]}" = mp4 ]
+}
+
+@test "download: search mode at best into the videos dir; formats merged, a lone video one with the best audio" {
+  local u=https://www.youtube.com/watch?v=dQw4w9WgXcQ args
+  export FZX_YOUTUBE_VIDEO_DIR="$BATS_TEST_TMPDIR/videos" FZX_YOUTUBE_AUDIO_DIR="$BATS_TEST_TMPDIR/music"
+  run "$YT_DIR/actions.sh" download "$u"
+  [ "$status" -eq 0 ]
+  mapfile -t args < "$BATS_TEST_TMPDIR/yt.args"
+  [[ " ${args[*]} " != *" -f "* && " ${args[*]} " == *" -o $BATS_TEST_TMPDIR/videos/%(title)s.%(ext)s -- $u " ]]
+  # the formats come from the cache the formats list wrote
+  STUB_YT_JSON="$FORMATS_JSON" FZX_MODE=formats "$YT_DIR/source.sh" --url "$u" > /dev/null
+  FZX_MODE=formats run "$YT_DIR/actions.sh" download "$u" 137
+  mapfile -t args < "$BATS_TEST_TMPDIR/yt.args"
+  [[ " ${args[*]} " == *" -f 137+bestaudio "* && " ${args[*]} " == *"/videos/"* ]]
+  FZX_MODE=formats run "$YT_DIR/actions.sh" download "$u" 137 140
+  mapfile -t args < "$BATS_TEST_TMPDIR/yt.args"
+  [[ " ${args[*]} " == *" -f 137+140 "* ]]
+  FZX_MODE=formats run "$YT_DIR/actions.sh" download "$u" 18
+  mapfile -t args < "$BATS_TEST_TMPDIR/yt.args"
+  [[ " ${args[*]} " == *" -f 18 "* ]]
+  # audio only: the audio dir
+  FZX_MODE=formats run "$YT_DIR/actions.sh" download "$u" 140
+  mapfile -t args < "$BATS_TEST_TMPDIR/yt.args"
+  [[ " ${args[*]} " == *" -f 140 "* && " ${args[*]} " == *" -o $BATS_TEST_TMPDIR/music/%(title)s.%(ext)s -- $u " ]]
+  [ "$(yt_calls)" -eq 6 ]
+  # nothing selected: no call
+  FZX_MODE=formats run "$YT_DIR/actions.sh" download "$u"
+  [ "$(yt_calls)" -eq 6 ]
+}
+
+@test "under fzx: alt-F opens a video's formats as a child session; elsewhere a bell" {
+  load_libs log session
+  fzx::session_create youtube "$YT_DIR"
+  run "$FZX" _cb transform formats https://www.youtube.com/watch?v=aaa
+  [[ "$output" == "become:$FZX --resume "* ]]
+  [ -n "$(ls "$FZX_SESSION_DIR/children")" ]
+  run "$FZX" _cb transform formats search
+  [ "$output" = bell ]
+}
+
+@test "options: search binds alt-F; formats accepts the format id and downloads on enter and alt-d" {
+  stub_fzf
+  run "$FZX" -m youtube
+  [ "$(fzf_bind alt-F)" = "alt-F:transform:$FZX _cb transform formats {1}" ]
+  [ "$(fzf_bind alt-d)" = "alt-d:execute($FZX _cb action download {+1})" ]
+  run "$FZX" -m youtube:formats --url https://youtu.be/dQw4w9WgXcQ
+  [ "$status" -eq 0 ]
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *" --accept-nth=2 "* && " ${FZF_ARGS[*]} " != *" --disabled "* ]]
+  [ "$(fzf_bind enter)" = "enter:execute($FZX _cb action download {1} {+2})" ]
+  [ "$(fzf_bind alt-d)" = "alt-d:execute($FZX _cb action download {1} {+2})" ]
+  [ "$(fzf_bind alt-m)" = "alt-m:execute($FZX _cb action mp3 {+1})" ]
 }

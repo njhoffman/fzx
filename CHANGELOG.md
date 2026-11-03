@@ -8,6 +8,13 @@ All notable changes to fzx are recorded here. The format follows
 
 ### Added
 
+- youtube: the preview shows the video's thumbnail (chafa; fetched once with curl into the cache;
+  `FZX_YOUTUBE_THUMBS=0` leaves it out).
+- youtube: alt-F lists the formats of the video under the cursor (resolution, fps, codecs, size, bitrate),
+  best first; enter or alt-d downloads the selected ones: a video and an audio format are merged, a
+  video-only format alone gets the best audio, audio-only formats go to the audio directory. alt-d in the
+  search results downloads the videos at their best (`FZX_YOUTUBE_VIDEO_DIR`, else the XDG videos
+  directory).
 - logs: a dot before each file in the color of its age (`FZX_LOGS_AGE_DOT`; "" leaves it out).
 - logs: the preview follows the log while its row has focus (`FZX_LOGS_PREVIEW_FOLLOW=0` for a snapshot).
 - logs: files and container logs are colored by `FZX_LOGS_COLORIZER` (ccze -A by default; grcat works too),

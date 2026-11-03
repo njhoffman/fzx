@@ -89,7 +89,7 @@ Reviewed: 2026-10-28
       action; inside fzx it saves one key over alt-s on the marked pane. Ref: proto-widgets/tmux/jump-marked.
 - [ ] **docker: exec a command** (p3) [feature]: fzf-runinc: exec a typed command (not a shell) in the container,
       output kept on screen; and docker system df as the images/volumes summary. Ref: fzf-rsc/modules/docker.
-- [ ] **youtube follow-ups** (p3) [feature]: thumbnails in the preview; after a result is chosen, list its
+- [x] **youtube follow-ups** (p3) [feature]: thumbnails in the preview; after a result is chosen, list its
       formats (`yt-dlp <url> --list-formats`) to pick the download from. The mp3 action
       (`yt-dlp -x --audio-format mp3`) already covers the audio case.
 - [ ] **github: octo.nvim styling** (p3) [feature]: borrow from pwntester/octo.nvim's look: more icons

@@ -22,6 +22,20 @@ FZX_YOUTUBE_PLAYER=(mpv)
 FZX_YOUTUBE_AUDIO_DIR="${FZX_YOUTUBE_AUDIO_DIR:-}"
 FZX_YOUTUBE_MP3_ARGS=(--audio-quality 0 --embed-metadata)
 
+# where the download action saves (formats mode: audio-only formats go to the audio directory); empty:
+# the XDG videos directory, else ~/Videos. Then its extra yt-dlp args
+FZX_YOUTUBE_VIDEO_DIR="${FZX_YOUTUBE_VIDEO_DIR:-}"
+FZX_YOUTUBE_DOWNLOAD_ARGS=(--embed-metadata)
+
+# thumbnails above the preview (chafa, fetched once with curl): 0 leaves them out; their height in rows;
+# the fetch's timeout in seconds
+FZX_YOUTUBE_THUMBS="${FZX_YOUTUBE_THUMBS:-1}"
+FZX_YOUTUBE_THUMB_ROWS="${FZX_YOUTUBE_THUMB_ROWS:-10}"
+FZX_YOUTUBE_THUMB_TIMEOUT="${FZX_YOUTUBE_THUMB_TIMEOUT:-3}"
+
+declare -gA FZX_KEYS
+FZX_KEYS[youtube.formats]=alt-F # the formats of the video under the cursor (youtube:formats)
+
 # titles and channels make rows wide, the description wraps: right from 150 columns
 FZX_PREVIEW_LAYOUTS=("0:down,45%,border-top" "150:right,45%")
 
