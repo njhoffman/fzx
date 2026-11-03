@@ -153,7 +153,7 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       markdown and every filetype `nvcat-dispatch` claims (any *.conf, systemd units, ...); files over
       FZX_PREVIEW_NVCAT_MAX_LINES already go to bat. Cache its output under $FZX_CACHE_DIR keyed by path,
       mtime and width (lib/render.sh, fzx::_render_nvcat), or keep one Neovim running.
-- [ ] **Actions menu marks run as default under `tasks --paste`** (p3) [bug]: with `--paste` enter pastes
+- [x] **Actions menu marks run as default under `tasks --paste`** (p3) [bug]: with `--paste` enter pastes
       (the module binds it, lib/actions.sh skips the default's enter), but the actions menu still draws ⏎ on
       `run` since it reads the flags from `meta/components`. Record the override in the session (a meta key)
       and drop the mark (modules/actions/source.sh).

@@ -82,12 +82,14 @@ actions::how_icon() {
 }
 
 # actions::source [menu args...]: "name<TAB>display" per action: how it runs, the name (fzx's own
-# built-ins dimmer), the key as a keycap, a mark on the default (enter) one, the description
+# built-ins dimmer), the key as a keycap, a mark on the default (enter) one unless the parent's module bound
+# enter itself (meta/enter_owned, lib/actions.sh), the description
 # an action whose description is scoped by mode (lib/components.sh, fzx::mode_desc) is listed with the
 # parent's mode's part, and left out when no part names that mode
 actions::source() {
-  local dir k n key desc flags mode="" modes=() rows=() w=0 nw=12 i icon name cap def dsc
+  local dir k n key desc flags mode="" modes=() rows=() w=0 nw=12 i icon name cap def dsc owned=0
   actions::parent dir || return
+  [[ -f "$dir/meta/enter_owned" ]] && owned=1
   fzx::require components
   [[ -f "$dir/state/mode" ]] && mode="$(< "$dir/state/mode")"
   while IFS=$'\t' read -r k n _; do
@@ -128,7 +130,7 @@ actions::source() {
       cap=""
     fi
     def=" "
-    [[ ",$flags," == *,default,* ]] && actions::sgr actions_default '38;5;114' "⏎" def
+    [[ ",$flags," == *,default,* ]] && ((!owned)) && actions::sgr actions_default '38;5;114' "⏎" def
     actions::sgr dim '38;5;244' "$desc" dsc
     printf '%s\t%s%s %s %s %s\n' "$n" "$icon" "$name" "$cap" "$def" "$dsc"
   done

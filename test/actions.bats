@@ -256,6 +256,22 @@ menu_open() {
   [ "${lines[0]}" = $'mark\tmark          alt-m    mark the items' ]
 }
 
+@test "actions menu: no enter mark on the default action when the module bound enter itself" {
+  # a module that leaves enter to the default action: marked
+  menu_open
+  NO_COLOR=1 FZX_ICONS=unicode FZX_SESSION="$CHILD" run "$FZX" _cb source
+  [[ "${lines[3]}" == *"⏎ open the item" ]]
+  # one kept session at a time: kept finds it by listing them
+  "$FZX" gc --all > /dev/null
+  COUNTER_BIND_ENTER=1 kept
+  [ "$(< "$DIR/meta/enter_owned")" = 1 ]
+  local out
+  out="$(FZX_SESSION="$SID" "$FZX" _cb nav goto actions mark,open a --fzx--)"
+  CHILD="${out#become:"$FZX" --resume }"
+  NO_COLOR=1 FZX_ICONS=unicode FZX_SESSION="$CHILD" run "$FZX" _cb source
+  [[ "${lines[1]}" == $'open\t'* && "${lines[1]}" != *⏎* ]]
+}
+
 @test "actions menu: colors from FZX_COLORS[actions_*]; built-ins dimmer; NO_COLOR draws none" {
   menu_open
   FZX_SESSION="$CHILD" run "$FZX" _cb source

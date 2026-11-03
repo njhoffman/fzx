@@ -135,9 +135,15 @@ fzx::actions_bind() {
     fzx::_action_bind_string "$_n" "$_flags" act
     [[ -n "$_key" && "$_key" != - ]] &&
       _FZX_BIND_SCOPE="$module" fzx::bind "$_key" "$act" "action: ${_desc:-$_n}"
-    # a module whose opts hook bound enter itself keeps it (tasks --paste)
-    [[ ",$_flags," == *,default,* ]] && ! fzx::_module_bound "$module" enter &&
-      _FZX_BIND_SCOPE="$module" fzx::bind enter "$act" "default action: ${_desc:-$_n}"
+    # a module whose opts hook bound enter itself keeps it (tasks --paste); the session records that, so
+    # the actions menu does not mark the default action as enter's
+    if [[ ",$_flags," == *,default,* ]]; then
+      if fzx::_module_bound "$module" enter; then
+        fzx::in_session && fzx::meta_set enter_owned 1
+      else
+        _FZX_BIND_SCOPE="$module" fzx::bind enter "$act" "default action: ${_desc:-$_n}"
+      fi
+    fi
     # group the actions by their arguments for the menu, in table order
     fzx::action_args "$_n" "$_flags" args
     [[ -n "${order[$args]:-}" ]] || { order[$args]=1; templates+=("$args"); }

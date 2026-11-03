@@ -13,6 +13,8 @@ counter::opts() {
     --bind "ctrl-x:execute-silent($(fzx::cb action mark '{+1}'))"
     "--header=mode:$FZX_MODE"
   )
+  # the module's own enter (as tasks --paste binds it), over the default action's
+  [[ -n "${COUNTER_BIND_ENTER:-}" ]] && fzx::bind enter accept "the module's own enter"
   [[ -n "${COUNTER_OPTS_FAIL:-}" ]] && return 1
   return 0
 }
