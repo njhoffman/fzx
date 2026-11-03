@@ -134,7 +134,7 @@ github::preview_issue() {
 # author's association with the repository, the verdict and the date, and its reactions below. Cached by the
 # last update, so a new comment fetches them again; the markdown also by the icon style
 github::item_details() {
-  local url="$1" repo="$2" num="$3" updated="$4" kind fields view md tmp
+  local url="$1" repo="$2" num="$3" updated="$4" kind fields view md heads tmp
   local d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m' y=$'\e[38;5;180m'
   local g=$'\e['"${FZX_COLORS[github_open]:-38;5;114}m" red=$'\e['"${FZX_COLORS[github_closed]:-38;5;203}m"
   local i_ok i_failed i_review n
@@ -173,14 +173,18 @@ github::item_details() {
           "  \($col)\($c | ascii_downcase | if . == "" then "pending" else . end)\($r)  \(.name // .context)")
        else empty end)' -- "$view"
   fi
-  # the body and the timeline, one markdown file per version and icon style
+  # the body and the timeline, one markdown file per version and icon style; each timeline entry starts with
+  # a marker paragraph, replaced after rendering by a header line (github::timeline_heads)
   md="${view%.json}.${FZX_ICONS:-nerd}.md"
+  heads="${view%.json}.heads.json"
   # the temporary name taken here: $BASHPID in a redirection would be the child's
   tmp="$md.$BASHPID"
+  [[ -f "$heads" ]] || { command jq "$GITHUB_JQ_TIMELINE"'[timeline | {who, assoc, what, at}]' -- "$view" > "$tmp" &&
+    mv -f -- "$tmp" "$heads"; }
   [[ -f "$md" ]] || {
     command jq -r --arg up "${re[thumbs_up]}" --arg down "${re[thumbs_down]}" --arg laugh "${re[laugh]}" \
       --arg hooray "${re[hooray]}" --arg confused "${re[confused]}" --arg heart "${re[heart]}" --arg rocket "${re[rocket]}" \
-      --arg eyes "${re[eyes]}" '
+      --arg eyes "${re[eyes]}" "$GITHUB_JQ_TIMELINE"'
       {THUMBS_UP: $up, THUMBS_DOWN: $down, LAUGH: $laugh, HOORAY: $hooray, CONFUSED: $confused, HEART: $heart,
        ROCKET: $rocket, EYES: $eyes} as $icons |
       # the reactions given, "<icon> N" each (FZX_ICONS=none: +1, -1 or the name)
@@ -188,22 +192,41 @@ github::item_details() {
         (if ($icons[.content] // "") != "" then $icons[.content]
          else ({THUMBS_UP: "+1", THUMBS_DOWN: "-1"}[.content] // (.content | ascii_downcase)) end) + " \(.users.totalCount)"] |
         join("  ");
-      def assoc: (.authorAssociation // "NONE") | if . == "NONE" or . == "" then "" else " (\(ascii_downcase | gsub("_"; " ")))" end;
       ((.body // "") | if . == "" then "*no description*" else . end),
       (reactions | select(. != "") | "\n" + .),
-      ([(.comments[]? | {who: .author.login, assoc: assoc, at: .createdAt, what: "", body, reactions: reactions}),
-        (.reviews[]? | select(.state != "PENDING" and (.state != "COMMENTED" or (.body // "") != "")) |
-          {who: .author.login, assoc: assoc, at: .submittedAt,
-           what: (if .state == "COMMENTED" then "reviewed" else .state | ascii_downcase | gsub("_"; " ") end),
-           body, reactions: reactions})] |
-        sort_by(.at)[] |
-        "\n---\n\n### \(.who // "ghost")\(.assoc)\(if .what != "" then " · " + .what else "" end) · \(.at[0:10])",
+      ([timeline] | to_entries[] | .key as $n | .value |
+        "\nFZXCOMMENT\($n)",
         (if (.body // "") != "" then "\n" + .body else empty end),
-        (if .reactions != "" then "\n" + .reactions else empty end))' -- "$view" > "$tmp" &&
+        (.item | reactions | select(. != "") | "\n" + .))' -- "$view" > "$tmp" &&
       mv -f -- "$tmp" "$md"
   }
   printf '\n'
-  github::markdown "$md"
+  github::markdown "$md" | github::timeline_heads "$heads"
+}
+
+# github::timeline_heads <heads file>: the rendered markdown (stdin) with each marker line (FZXCOMMENT<n>) replaced
+# by entry n's header: "── author (association) · verdict · date ───", as wide as the preview, in color
+github::timeline_heads() {
+  local heads="$1" lines
+  local d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m' b=$'\e['"${FZX_COLORS[github_author]:-1;38;5;75}m"
+  local g=$'\e['"${FZX_COLORS[github_open]:-38;5;114}m" red=$'\e['"${FZX_COLORS[github_closed]:-38;5;203}m"
+  local y=$'\e['"${FZX_COLORS[github_running]:-38;5;180}m"
+  [[ -n "${NO_COLOR+x}" ]] && d="" r="" b="" g="" red="" y=""
+  # "n<TAB>header" per entry; jq counts the width in characters, so · and ─ are one column each
+  lines="$(command jq -r --argjson w "${FZF_PREVIEW_COLUMNS:-80}" --arg d "$d" --arg r "$r" --arg b "$b" --arg g "$g" \
+    --arg red "$red" --arg y "$y" '
+    def rule($k): [range(0; [$k, 3] | max)] | map("─") | join("");
+    to_entries[] | .key as $n | .value |
+    [(.who // "ghost"), (.assoc | if . == "" then "" else " (\(.))" end),
+     (if .what == "" then "" else " · " + .what end), " · \(.at[0:10])"] as $t |
+    ("── " + ($t | join("")) + " ") as $plain |
+    (if .what == "approved" then $g elif .what == "changes requested" then $red else $y end) as $vc |
+    "\($n)\t\($d)── \($r)\($b)\($t[0])\($r)\($d)\($t[1])\($r)\($vc)\($t[2])\($r)\($d)\($t[3]) \(rule($w - ($plain | length)))\($r)"' \
+    -- "$heads" 2> /dev/null)"
+  awk -v heads="$lines" '
+    BEGIN { n = split(heads, h, "\n"); for (i = 1; i <= n; i++) { t = index(h[i], "\t"); head[substr(h[i], 1, t - 1)] = substr(h[i], t + 1) } }
+    match($0, /FZXCOMMENT[0-9]+/) { k = substr($0, RSTART + 10, RLENGTH - 10); if (k in head) { print head[k]; next } }
+    { print }'
 }
 
 # github::preview_notification <list file> <index>: the repository, the subject's type and title, why you got

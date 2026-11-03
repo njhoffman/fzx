@@ -157,7 +157,7 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       (the module binds it, lib/actions.sh skips the default's enter), but the actions menu still draws ⏎ on
       `run` since it reads the flags from `meta/components`. Record the override in the session (a meta key)
       and drop the mark (modules/actions/source.sh).
-- [ ] **github: comment headings look like the body's** (p3) [bug]: the preview's timeline puts each comment
+- [x] **github: comment headings look like the body's** (p3) [bug]: the preview's timeline puts each comment
       under a `###` heading, so a body or comment using `###` itself reads like a new comment. Draw the
       comment headers some other way that the markdown renderer still styles (a blockquote line, or a level
       the bodies rarely use), or demote the bodies' headings (modules/github/preview.sh, github::item_details).

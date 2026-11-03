@@ -185,7 +185,7 @@ JSON
   "subject":{"type":"Discussion","title":"Ideas","url":null}}]
 JSON
   cat > "$BATS_TEST_TMPDIR/view-issue.json" << 'JSON'
-{"body":"The body","reactionGroups":[{"content":"THUMBS_UP","users":{"totalCount":3}},{"content":"EYES","users":{"totalCount":0}},
+{"body":"The body\n\n### Steps\n\nrun it","reactionGroups":[{"content":"THUMBS_UP","users":{"totalCount":3}},{"content":"EYES","users":{"totalCount":0}},
  {"content":"HEART","users":{"totalCount":1}}],
  "comments":[{"author":{"login":"carol"},"authorAssociation":"MEMBER","createdAt":"2026-01-01T10:00:00Z","body":"a comment",
   "reactionGroups":[{"content":"ROCKET","users":{"totalCount":2}}]},
@@ -710,12 +710,21 @@ clone_here() {
   [ "${lines[2]}" = "author  alice" ]
   [ "${lines[4]}" = "labels  [bug] [docs]" ]
   # reactions given (none left out), then each comment under its heading, its association and reactions
-  [[ "$output" == *$'The body\n\n+1 3  heart 1\n\n---\n\n### carol (member) · 2026-01-01\n\na comment\n\nrocket 2\n\n---\n\n### ghost · 2026-01-02\n\nsecond' ]]
+  # each comment under a header line as wide as the preview; the body's own heading stays the body's
+  local rule
+  rule="$(printf '─%.0s' {1..49})"
+  [[ "$output" == *$'The body\n\n### Steps\n\nrun it\n\n+1 3  heart 1\n\n── carol (member) · 2026-01-01 '"$rule"$'\n\na comment\n\nrocket 2\n\n── ghost · 2026-01-02 '* ]]
+  [[ "$output" == *$'\n\nsecond' && "$output" != *FZXCOMMENT* ]]
   run env FZX_PREVIEW_VIEWERS=markdown=cat "$GH_DIR/preview.sh" https://github.com/o/r/pull/40 pr o/r \
     "$FZX_CACHE_DIR/github/issues/prs-o__r-open.json" 0
   [[ "$output" == *$'branch  feat/x -> main\nchanges 3 files, +10 -2\nreview  approved\n\nchecks\n  failure  ci\n  pending  lint'* ]]
   # reviews with a verdict or a text join the comments by date; pending ones and empty comment reviews do not
-  [[ "$output" == *$'*no description*\n\n---\n\n### erin · changes requested · 2026-01-01\n\nfix it\n\n---\n\n### carol (owner) · 2026-01-02\n\nping\n\n---\n\n### dan (contributor) · approved · 2026-01-03' ]]
+  [[ "$output" == *$'*no description*\n\n── erin · changes requested · 2026-01-01 ─'*$'\n\nfix it\n\n── carol (owner) · 2026-01-02 ─'*$'\n\nping\n\n── dan (contributor) · approved · 2026-01-03 ─'* ]]
+  # narrower: the rule shrinks to fit, never below three
+  run env FZF_PREVIEW_COLUMNS=40 FZX_PREVIEW_VIEWERS=markdown=cat "$GH_DIR/preview.sh" https://github.com/o/r/pull/40 pr o/r \
+    "$FZX_CACHE_DIR/github/issues/prs-o__r-open.json" 0
+  [[ "$output" == *$'\n── carol (owner) · 2026-01-02 ──────────\n'* ]]
+  [[ "$output" == *$'\n── erin · changes requested · 2026-01-01 ───\n'* ]]
   [[ "$output" != *fay* && "$output" != *gus* ]]
   # cached by the last update: viewed once
   # glow gets no stdin (it reads one that is not a terminal, file argument or not, and a pipe never ends)
@@ -744,6 +753,8 @@ clone_here() {
   run env -u NO_COLOR FZX_ICONS=nerd FZX_PREVIEW_VIEWERS=markdown=cat "$GH_DIR/preview.sh" https://github.com/o/r/pull/40 pr o/r \
     "$FZX_CACHE_DIR/github/issues/prs-o__r-open.json" 0
   [[ "$output" == *$'review \e[0m \e[38;5;114m'"$ok approved"$'\e[0m'* ]]
+  # a header line: the author in color, the verdict in its own
+  [[ "$output" == *$'\e[1;38;5;75mdan\e[0m\e[38;5;244m (contributor)\e[0m\e[38;5;114m · approved\e[0m'* ]]
 }
 
 @test "actions: checkout here or in the ghq clone, refused elsewhere; comment, close, reopen drop the lists" {

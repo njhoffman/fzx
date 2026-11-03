@@ -97,6 +97,19 @@ GITHUB_JQ_CHIP='
       (if ($c[0] * 299 + $c[1] * 587 + $c[2] * 114) / 1000 > 140 then "30" else "97" end) as $fg |
       "\u001b[48;2;\($c | map(tostring) | join(";"));\($fg)m \(.name) \u001b[0m" end;'
 
+# jq: timeline, the comments and a pull request's reviews (those with a verdict or a text; pending ones are only
+# their author's) of a `gh issue|pr view` file, oldest first, as {who, assoc, what, at, body, item}: assoc the
+# author's association with the repository ("" for none), what the review's verdict ("" for a comment), item
+# the comment or review itself. Shared by the preview's markdown and its header lines.
+# shellcheck disable=SC2016,SC2034  # jq, not shell; used by preview.sh
+GITHUB_JQ_TIMELINE='
+  def assoc: (.authorAssociation // "NONE") | if . == "NONE" or . == "" then "" else ascii_downcase | gsub("_"; " ") end;
+  def timeline: [(.comments[]? | {who: .author.login, assoc: assoc, at: .createdAt, what: "", body, item: .}),
+    (.reviews[]? | select(.state != "PENDING" and (.state != "COMMENTED" or (.body // "") != "")) |
+      {who: .author.login, assoc: assoc, at: .submittedAt,
+       what: (if .state == "COMMENTED" then "reviewed" else .state | ascii_downcase | gsub("_"; " ") end), body, item: .})] |
+    sort_by(.at)[];'
+
 # github::issue_rows <file> <scope>: "url  issue|pr  owner/name  file  index  display" per item: the state's
 # icon in its color, the repository (a list that is not one repository's), #number, the title, the labels in
 # their GitHub colors, the author and the last activity's age; a repository's pull requests add their

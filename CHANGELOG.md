@@ -8,6 +8,9 @@ All notable changes to fzx are recorded here. The format follows
 
 ### Fixed
 
+- github: comment and review headers in issue and pull request previews are lines of their own (a rule
+  with the author, association, verdict and date, `FZX_COLORS[github_author]`) instead of `###` headings, which
+  a body's own headings looked like.
 - actions menu: no enter mark on the default action when the module binds enter itself (`tasks --paste`,
   where enter pastes).
 - tasks: a just recipe documented by several comment lines shows them all, not just the last one

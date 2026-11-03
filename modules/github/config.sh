@@ -55,6 +55,9 @@ FZX_COLORS[github_open]="38;5;114"
 FZX_COLORS[github_closed]="38;5;203"
 FZX_COLORS[github_merged]="38;5;141"
 FZX_COLORS[github_draft]="38;5;244"
+# the preview's comment and review header lines: the author (the rule, association and date are dim; a
+# verdict takes open, closed or github_running)
+FZX_COLORS[github_author]="1;38;5;75"
 # workflow runs in progress or queued (succeeded, failed and cancelled ones take open, closed and draft)
 FZX_COLORS[github_running]="38;5;180"
 # notifications: the unread mark, the subject's type icon
