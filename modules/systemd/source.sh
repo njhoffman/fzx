@@ -6,7 +6,8 @@
 # disabled ones always, static, masked, generated and alias ones with the files toggle ($FZX_TOGGLES).
 # Template units (foo@.service) are left out: they need an instance name to start or enable.
 # $FZX_SORT: name (default) or state (failed, running, other active, inactive, not loaded); the sorted column
-# is drawn in FZX_COLORS[sorted] as well.
+# is drawn in FZX_COLORS[sorted] as well. With a header row (FZX_SORT_HEADER, lib/header.sh) the columns are
+# named first.
 
 # systemd::_awk_lib: awk functions shared by the lists
 systemd::_awk_lib() {
@@ -125,7 +126,24 @@ systemd::_both() {
   } | sort -s -t $'\t' -k1,1 | cut -f2-
 }
 
+# systemd::header: the header row (lib/header.sh) of the mode's list, when the view has one
+systemd::header() {
+  fzx::require header
+  local state=STATE
+  case "${FZX_MODE:-user}" in
+    timers) state=NEXT ;;
+    sockets) state=ACTIVATES ;;
+  esac
+  [[ "${FZX_SORT:-name}" == name ]] && state=UNIT
+  case "${FZX_MODE:-user}" in
+    timers) fzx::header_print 2 "$state" "" 1 0 MANAGER 7 0 UNIT 44 0 NEXT 9 0 LAST 10 0 ACTIVATES 0 0 ;;
+    sockets) fzx::header_print 2 "$state" "" 1 0 MANAGER 7 0 UNIT 44 0 LISTEN 36 0 ACTIVATES 0 0 ;;
+    *) fzx::header_print 2 "$state" "" 1 0 UNIT 48 0 STATE 8 0 DESCRIPTION 0 0 ;;
+  esac
+}
+
 systemd::source() {
+  systemd::header
   case "${FZX_MODE:-user}" in
     user) systemd::units user --all ;;
     system) systemd::units system --all ;;
@@ -142,4 +160,9 @@ systemd::source() {
   esac
 }
 
-[[ "${BASH_SOURCE[0]}" == "$0" ]] && systemd::source "$@"
+[[ "${BASH_SOURCE[0]}" == "$0" ]] && {
+  source "$(dirname "${BASH_SOURCE[0]}")/../../lib/core.sh"
+  fzx::require log config
+  fzx::config_load "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" systemd
+  systemd::source "$@"
+}

@@ -12,7 +12,7 @@ toggle  root     alt-u  ss and lsof through sudo -n: every process (needs a cach
 sort    port     -      ports: by port                                         default
 sort    remote   -      connections: by remote address                         -
 sort    process  -      ports, connections: by process name                    -
-sort    signal   -      wifi: strongest first                                  -
+sort    signal   -      wifi: strongest first                                  desc
 sort    name     -      wifi, services: by name                                -
 action  kill        ctrl-x  ports, connections: SIGTERM to the process (sudo when it is not yours; a port without a visible process: fuser as root)  foreground,confirm,reload
 action  connect     alt-c   wifi: connect (a saved connection, else asks for the password)  foreground,reload

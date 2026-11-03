@@ -7,7 +7,7 @@ toggle  failed     alt-e  only commands whose last run failed                 -
 toggle  succeeded  alt-s  only commands whose last run succeeded              -
 toggle  runs       alt-a  every run, not one row per command (newest first)   -
 sort    recent     -  most recently run first                                default
-sort    frequent   -  most often run first                                   -
+sort    frequent   -  most often run first                                   desc
 sort    frecent    -  often and lately: each run counts less as it ages      -
 action  insert     -          put the command on the command line               default,print
 action  run        alt-enter  run the command (the zsh widget accepts the line)  print

@@ -6,9 +6,9 @@ mode    networks    -  networks                                          -
 mode    compose     -  compose projects                                  -
 toggle  running     alt-a  containers: only running ones                 -
 sort    state       -      containers: running first                     default
-sort    created     -      images: newest first                          -
+sort    created     -      images: newest first                          desc
 sort    name        -      containers, images: by name                   -
-sort    size        -      images: largest first                         -
+sort    size        -      images: largest first                         desc
 action  start       alt-s   start containers / compose up -d             reload
 action  stop        ctrl-x  stop containers / compose down               reload
 action  restart     alt-R   restart containers / compose restart         reload

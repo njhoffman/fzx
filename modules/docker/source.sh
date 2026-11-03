@@ -3,7 +3,8 @@
 # running ones), images (dangling ones dim), volumes (unused ones dim), networks, compose (projects).
 # The id is what docker commands take: container/image/network ID, volume name, compose project name.
 # $FZX_SORT: containers by state (running first, default) or name; images by created (newest first,
-# default), size or name. The sorted column is drawn in FZX_COLORS[sorted] as well.
+# default), size or name. The sorted column is drawn in FZX_COLORS[sorted] as well; with a header row
+# (FZX_SORT_HEADER, lib/header.sh) containers and images name their columns first.
 
 # docker::color <name> <default SGR>: an escape sequence from FZX_COLORS
 docker::color() { printf '\e[%sm' "${FZX_COLORS[$1]:-$2}"; }
@@ -20,6 +21,9 @@ docker::source() {
       [[ " ${FZX_TOGGLES:-} " == *" running "* ]] && all=()
       fzx::require icons
       fzx::icon_vars running paused stopped created
+      fzx::require header
+      fzx::header_print 1 "$([[ "${sort:-state}" == name ]] && echo NAME || echo STATUS)" \
+        "" 1 0 NAME 28 0 IMAGE 34 0 STATUS 24 0 PORTS 0 0
       command docker ps "${all[@]}" --format '{{.ID}}\t{{.State}}\t{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' |
         awk -F'\t' "${FZX_ICON_VARS[@]}" -v dim="$dim" -v rst="$rst" -v name="$name" -v run="$run" -v pause="$pause" -v stop="$stop" \
           -v sort="${sort:-state}" -v hl=$'\e['"${hl}m" '
@@ -36,6 +40,10 @@ docker::source() {
     images)
       local dangling
       dangling=" $(command docker images -q --filter dangling=true | tr '\n' ' ') "
+      local sorted=CREATED
+      case "$sort" in size) sorted=SIZE ;; name) sorted=REPOSITORY:TAG ;; esac
+      fzx::require header
+      fzx::header_print 1 "$sorted" REPOSITORY:TAG 48 0 "IMAGE ID" 14 0 CREATED 16 0 SIZE 0 0
       command docker images --format '{{.ID}}\t{{.Repository}}\t{{.Tag}}\t{{.CreatedSince}}\t{{.Size}}' |
         awk -F'\t' -v dim="$dim" -v rst="$rst" -v name="$name" -v dangling="$dangling" -v sort="${sort:-created}" -v hl=$'\e['"${hl}m" '
           function cell(color, text, w, on) { return on ? color hl text rst sprintf("%" (w - length(text) > 0 ? w - length(text) : 0) "s", "") : color sprintf("%-" w "s", text) rst }

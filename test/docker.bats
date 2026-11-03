@@ -157,6 +157,25 @@ STUB
   [[ "${lines[0]}" == i1$'\t'* && "${lines[0]}" == *$'4m2 weeks ago\e[0m'* ]]
 }
 
+@test "header row (FZX_SORTED_SHOW=header): the columns named over the rows, the sorted one marked, the rows plain" {
+  run env FZX_SORTED_SHOW=header FZX_SORT_HEADER=1 FZX_SORT=name FZX_MODE=containers FZX_SORTED_ARROWS='^ v' "$DOCKER/source.sh"
+  [ "${#lines[@]}" -eq 3 ]
+  [[ "${lines[0]}" == $'\t'*$'mNAME^\e[0m'* && "${lines[1]}" != *$'\e[4m'* ]]
+  local head row
+  head="$(plain <<< "${lines[0]}")" row="$(plain <<< "${lines[1]}")"
+  [[ "$head" == $'\t  NAME^'*IMAGE*STATUS*PORTS ]]
+  # IMAGE starts where the image does
+  local pre="${head%%IMAGE*}" rpre="${row#*$'\t'}"
+  pre="${pre#*$'\t'}" rpre="${rpre%%busybox*}"
+  [ "${#pre}" -eq "${#rpre}" ]
+  run env FZX_SORTED_SHOW=both FZX_SORT_HEADER=1 FZX_SORT=size FZX_SORT_DESC=1 FZX_MODE=images FZX_SORTED_ARROWS='^ v' "$DOCKER/source.sh"
+  [[ "$(plain <<< "${lines[0]}")" == $'\tREPOSITORY:TAG'*"IMAGE ID"*CREATED*SIZEv ]]
+  [[ "${lines[1]}" == *$'\e[4m180MB\e[0m'* ]]
+  # no header row without FZX_SORT_HEADER
+  run env FZX_SORTED_SHOW=header FZX_SORT=size FZX_MODE=images "$DOCKER/source.sh"
+  [[ "${lines[0]}" == i1$'\t'* ]]
+}
+
 @test "menu: the daemon is asked once for all the module's entries; compose needs the compose plugin" {
   load_libs log config menu
   fzx::menu_entries docker "$DOCKER"

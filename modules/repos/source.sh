@@ -58,8 +58,14 @@ repos::source() {
   cache="$(repos::cache_file)"
   [[ -f "$cache" ]] || cache=/dev/null
   [[ "${FZX_MODE:-all}" == mine ]] && owners="$(repos::owners)"
-  fzx::require icons
+  fzx::require icons header
   fzx::icon_vars branch changed ahead behind todo
+  # the header row (lib/header.sh): the branch column starts with its icon and a space
+  local glyph bw=0
+  fzx::icon branch glyph
+  [[ -n "$glyph" ]] && bw=2
+  fzx::header_print 1 "$([[ "${FZX_SORT:-recent}" == name ]] && echo REPOSITORY || echo AGE)" \
+    REPOSITORY 43 0 BRANCH $((bw + 19)) 0 AGE 4 1 "" 0 0 STATUS 0 0
   repos::list | awk -F'\t' -v OFS='\t' -v cache="$cache" "${FZX_ICON_VARS[@]}" -v mode="${FZX_MODE:-all}" -v sort="${FZX_SORT:-recent}" \
     -v owners=" $owners " -v ghq="${FZX_REPOS_GHQ_ROOT:-$(command ghq root 2> /dev/null)}/" -v home="$HOME/" \
     -v now="$(date +%s)" -v c_name=$'\e['"${FZX_COLORS[repos_name]:-1;38;5;111}m" \

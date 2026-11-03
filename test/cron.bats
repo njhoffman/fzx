@@ -166,6 +166,16 @@ echo either
   [[ "$output" != *never-read* ]]
 }
 
+@test "a header row (FZX_SORTED_SHOW=header) over the entries, next marked; by file nothing" {
+  export FZX_SORTED_SHOW=header FZX_SORT_HEADER=1 FZX_SORTED_ARROWS='^ v'
+  run "$CRON/source.sh"
+  [ "${lines[0]}" = $'\t\tNEXT^         SCHEDULE            USER      COMMAND' ]
+  header_aligned 2 "${lines[0]}" SCHEDULE "${lines[1]}" "$(cut -f3 <<< "${lines[1]}" | awk -F'  +' '{ print $2 }')"
+  header_aligned 2 "${lines[0]}" COMMAND "${lines[1]}" "$(cut -f3 <<< "${lines[1]}" | awk -F'  +' '{ print $4 }')"
+  FZX_SORT=file run "$CRON/source.sh"
+  [ "${lines[0]}" = $'\t\tNEXT          SCHEDULE            USER      COMMAND' ]
+}
+
 @test "user, system and the file sort; no crontab; an expression systemd-analyze rejects only loses its own time" {
   run src user
   [ "${#lines[@]}" -eq 7 ]

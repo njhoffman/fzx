@@ -12,9 +12,14 @@
 # stopped blue); the tty cyan; the command's name bold white after its dim directory, options blue, paths
 # light grey, kernel threads cyan, the tree's branches dim. Kernel threads (pid 2 and its children) are
 # dropped unless kernel is 1. The pid stays first ({1}); NO_COLOR leaves the escapes out.
-# The sorted column (the column number given, 0 for none) is also drawn in FZX_COLORS[sorted], its header too.
+# The sorted column (the column number given, 0 for none) is also drawn in FZX_COLORS[sorted]; the header
+# row is lib/header.sh's (the sorted column marked there under FZX_SORTED_SHOW header or both, else drawn like
+# the rows).
 ps::color() {
-  awk -v kernel="$1" -v scol="${2:-0}" -v hl="${FZX_COLORS[sorted]:-4}" -v me="${USER:-$(id -un)}" -v nocolor="${NO_COLOR+x}" '
+  fzx::require header
+  fzx::header_vars
+  awk -v kernel="$1" -v scol="${2:-0}" -v hl="${FZX_COLORS[sorted]:-4}" -v me="${USER:-$(id -un)}" -v nocolor="${NO_COLOR+x}" \
+    "${FZX_HEADER_VARS[@]}" "$FZX_HEADER_AWK"'
     function c(code, text) { return nocolor != "" || text ~ /^ *$/ ? text : "\033[" code "m" text "\033[0m" }
     function pad(text, w, right) { return right ? sprintf("%" w "s", text) : sprintf("%-" w "s", text) }
     # col(i, code, text, right): column i padded to its width; the sorted one adds hl to the text, not the padding
@@ -61,9 +66,13 @@ ps::color() {
       split("PID PPID USER %CPU %MEM RSS ELAPSED STAT TT", h, " ")
       right[1] = right[2] = right[4] = right[5] = right[6] = right[7] = 1
       line = ""
-      for (i = 1; i <= 9; i++) if (length(h[i]) > w[i]) w[i] = length(h[i])
-      for (i = 1; i <= 9; i++) line = line col(i, "1;38;5;245", h[i], right[i]) " "
-      print line c("1;38;5;245", "COMMAND")
+      for (i = 1; i <= 9; i++) if (hwidth(h[i], hon && i == scol) > w[i]) w[i] = hwidth(h[i], hon && i == scol)
+      # the header: marked by lib/header.sh with a header row, else the sorted column as the rows draw it
+      for (i = 1; i <= 9; i++) {
+        if (hon || i != scol || nocolor != "") line = line hcell(h[i], w[i], right[i], hon && i == scol) " "
+        else line = line col(i, hcol != "" ? hcol : "0", h[i], right[i]) " "
+      }
+      print line hcell("COMMAND", 0, 0, 0)
       for (r = 1; r <= n; r++) {
         u = row[r, 3]
         line = col(1, "1;38;5;141", row[r, 1], 1) " " col(2, "38;5;244", row[r, 2], 1) " "
@@ -129,4 +138,9 @@ ps::source() {
   printf '%s\n' "$out" | ps::color "$kernel" "$scol"
 }
 
-[[ "${BASH_SOURCE[0]}" == "$0" ]] && ps::source "$@"
+[[ "${BASH_SOURCE[0]}" == "$0" ]] && {
+  source "$(dirname "${BASH_SOURCE[0]}")/../../lib/core.sh"
+  fzx::require log config
+  fzx::config_load "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" ps
+  ps::source "$@"
+}

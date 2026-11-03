@@ -53,13 +53,19 @@ recent::score() {
 
 # recent::format <files|dirs>: "score<TAB>path" -> "path<TAB>display" (dim score, prettypath when on, as
 # directories in the dirs kind), only paths that still exist as that kind. The column FZX_SORT orders by
-# (rank: the score, path: the path) is drawn in FZX_COLORS[sorted] as well.
+# (rank: the score, path: the path) is drawn in FZX_COLORS[sorted] as well; with a header row
+# (FZX_SORT_HEADER, lib/header.sh) the columns are named first.
 recent::format() {
   local kind="$1" dim=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" rst=$'\e[0m' in line test=-f pretty=() width=5
   local hl=$'\e['"${FZX_COLORS[sorted]:-4}m" sort="${FZX_SORT:-rank}" hs="" hp=""
   [[ "$sort" == rank ]] && hs="$hl"
   [[ "$sort" == path ]] && hp="$hl"
   [[ "$kind" == dirs ]] && test=-d pretty=(--dirs) width=7
+  # the header row (lib/header.sh): visited ranks by its own order, 1 first
+  fzx::require header
+  local FZX_SORT_DESC="${FZX_SORT_DESC:-0}"
+  [[ "${FZX_MODE:-}" == visited ]] && FZX_SORT_DESC=0
+  fzx::header_print 1 "$([[ "$sort" == path ]] && echo PATH || echo RANK)" RANK "$width" 1 "" 0 0 PATH 0 0
   in="$(cat)"
   [[ -n "$in" ]] || return 0
   fzx::require pretty

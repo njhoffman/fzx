@@ -751,12 +751,56 @@ def preview(args):
         section("Reference", reference)
 
 
+HEADER_LABELS = {"sessions": "SESSION", "windows": "WINDOW", "panes": "PANE"}
+
+
+def header_cell(name, width, marked):
+    """A header row's cell padded to width, colored in the text only (fzx's lib/header.sh, as resolved
+    values in FZX_TMUX_HEADER_COLUMN, FZX_TMUX_HEADER_SORTED and FZX_TMUX_HEADER_ARROW)."""
+    text = name + (os.environ.get("FZX_TMUX_HEADER_ARROW", "") if marked else "")
+    code = os.environ.get("FZX_TMUX_HEADER_SORTED" if marked else "FZX_TMUX_HEADER_COLUMN", "")
+    pad = " " * max(width - len(text), 0)
+    if text and re.fullmatch(r"[0-9;:]+", code):
+        text = f"\033[{code}m{text}{RESET}"
+    return text + pad
+
+
+def activity_rows(args, rows):
+    """sessions, windows and panes with a header row (FZX_TMUX_HEADER=1): the name, the details and the
+    activity age as padded columns under it, the sorted one (name or recent) marked."""
+    marked = {"name": 0, "recent": 2}.get(args.sorted, -1)
+    labels = [HEADER_LABELS[args.mode], "DETAILS", "ACTIVITY"]
+    arrow = len(os.environ.get("FZX_TMUX_HEADER_ARROW", ""))
+    widths = [len(label) + (arrow if i == marked else 0) for i, label in enumerate(labels)]
+    for _, *cells in rows:
+        widths = [max(w, len(c)) for w, c in zip(widths, cells)]
+    row("", "  ".join(header_cell(label, widths[i] if i < 2 else 0, i == marked) for i, label in enumerate(labels)))
+    for identifier, first, rest, age in rows:
+        pad = " " * max(widths[0] - len(first), 0)
+        decorated = mark(args.sorted == "name") + paint(first, "name") + pad + "  " + paint(rest.ljust(widths[1]), "dim")
+        decorated = decorated.replace("attached", paint("attached", "value"))
+        row(identifier, decorated + "  " + mark(args.sorted == "recent") + paint(age, "dim"))
+
+
+def mark(on):
+    """The rows' sorted-column marking (FZX_COLORS[sorted]), for the column it is on."""
+    code = os.environ.get("FZX_TMUX_COLOR_SORTED", "4")
+    return f"\033[{code}m" if on and re.fullmatch(r"[0-9;:]+", code) else ""
+
+
 def stream(args):
+    header = os.environ.get("FZX_TMUX_HEADER") == "1" and args.mode in HEADER_LABELS
+    rows = []
     for line in sys.stdin:
         fields = line.rstrip("\n").split("\t", 1)
         if len(fields) != 2:
             continue
         identifier, display = fields
+        if header:
+            first, _, rest = display.partition("  ")
+            rest, _, age = rest.rpartition("  ")
+            rows.append((identifier, first, rest, age))
+            continue
         if args.mode in ("sessions", "windows", "panes"):
             # the last field is the age of the last activity; the sorted column also gets the sorted color
             first, _, rest = display.partition("  ")
@@ -774,6 +818,8 @@ def stream(args):
             pane, _, text = display.partition("  ")
             decorated = paint(pane.ljust(6), "scope") + " " + paint(text, "value")
         row(identifier, decorated)
+    if header:
+        activity_rows(args, rows)
 
 
 def main():

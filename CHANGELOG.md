@@ -6,6 +6,28 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.91.0] - 2026-11-03
+
+### Added
+
+- `FZX_SORTED_SHOW=header` (or `both`): every module that sorts by a column (ps, network, docker, tmux,
+  systemd, recent, dirs, logs, git, github, repos, history, claude, cron, browser, packages) shows a header
+  row naming its columns, the sorted one marked with an arrow for its direction; with `header` the rows stay
+  plain. `rows`, the default, keeps the marking in the rows as before.
+- Header row settings: `FZX_HEADER_COLUMN_COLOR` (the other columns; empty keeps fzf's header color),
+  `FZX_SORTED_HEADER_STYLE` (default bold) and `FZX_SORTED_HEADER_COLOR` (default `#00d7ff`) for the sorted
+  column, `FZX_SORTED_ARROWS` (default `↑ ↓`, empty for none); `FZX_COLORS[header_column]` and
+  `[header_sorted]` override them.
+- Sort rows take a `desc` flag (the arrow points down); the built-in modules set it where they sort the
+  largest or newest first.
+
+### Changed
+
+- ps's and network's header rows use fzf's header color instead of a fixed gray.
+- Switching between a mode with a header row and one without restarts fzf.
+- The git, network, packages, systemd and tmux sources read the config layers when run on their own, as the
+  other modules' sources do.
+
 ## [0.90.0] - 2026-11-03
 
 ### Added

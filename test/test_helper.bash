@@ -18,6 +18,9 @@ setup_fzx() {
   # the sorted column as a plain underline (\e[4m), which the module tests match; test/lib.bats covers the
   # decorations
   export FZX_SORTED_STYLE=underline FZX_SORTED_UNDERLINE_COLOR=""
+  # sort marking in the rows only (the header row's tests turn it on), whatever the environment has
+  unset FZX_SORTED_SHOW FZX_SORT_HEADER FZX_SORT_DESC FZX_HEADER_COLUMN_COLOR FZX_SORTED_HEADER_STYLE \
+    FZX_SORTED_HEADER_COLOR FZX_SORTED_ARROWS
   export COUNTER_FILE="$BATS_TEST_TMPDIR/counter"
   LOG="$FZX_STATE_DIR/fzx.log"
   # renderers that start Neovim or draw by the user's own config (lib/render.sh) fail, so previews go to
@@ -99,4 +102,16 @@ fzf_flag() {
 
 session_dirs() {
   find "$FZX_RUNTIME_DIR/sessions" -mindepth 1 -maxdepth 1 -type d 2> /dev/null
+}
+
+# header_aligned <fields> <header row> <label> <row> <text>: past the first <fields> tab-separated fields,
+# <text> starts in the row at the column <label> starts at in the header (colors stripped); says where not
+header_aligned() {
+  local n="$1" h r i
+  # shellcheck disable=SC2001  # the same expression the tests strip colors with
+  h="$(sed 's/\x1b\[[0-9;:]*m//g' <<< "$2")" r="$(sed 's/\x1b\[[0-9;:]*m//g' <<< "$4")"
+  for ((i = 0; i < n; i++)); do h="${h#*$'\t'}" r="${r#*$'\t'}"; done
+  [[ "$h" == *"$3"* && "$r" == *"$5"* ]] || { printf 'no %s in %s, or no %s in %s\n' "$3" "$h" "$5" "$r"; return 1; }
+  h="${h%%"$3"*}" r="${r%%"$5"*}"
+  ((${#h} == ${#r})) || { printf 'header %s at %s, row %s at %s\n' "$3" "${#h}" "$5" "${#r}"; return 1; }
 }

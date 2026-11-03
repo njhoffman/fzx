@@ -51,6 +51,18 @@ STUB
   [[ "$output" == *$'\e[4m'*other.txt* && "$output" != *$'\e[4m'[0-9]* ]]
 }
 
+@test "sort: a header row (FZX_SORTED_SHOW=header) over the score and path, the sorted one marked; visited ranks up" {
+  export FZX_SORTED_SHOW=header FZX_SORT_HEADER=1 FZX_SORTED_ARROWS='^ v'
+  FZX_SORT_DESC=1 run "$RECENT/source.sh"
+  [[ "${lines[0]}" == $'\t\e[1;38;2;0;215;255mRANKv\e[0m  PATH' && "${lines[1]}" != *$'\e[4m'* ]]
+  header_aligned 1 "${lines[0]}" PATH "${lines[1]}" /
+  FZX_SORT=path run "$RECENT/source.sh"
+  [[ "${lines[0]}" == $'\t RANK  \e[1;38;2;0;215;255mPATH^\e[0m' ]]
+  # visited: the rank is its order, 1 first
+  FZX_MODE=visited FZX_SORT_DESC=1 run "$RECENT/source.sh"
+  [[ "${lines[0]}" == *'RANK^'* ]]
+}
+
 @test "words: each one, in order, anywhere in the path, ignoring case" {
   run bash -c "'$RECENT/source.sh' PROJ md | cut -f1"
   [ "$output" = "$T/proj/docs/a.md"$'\n'"$T/proj/docs/b.md"$'\n'"$T/proj/old.md" ]

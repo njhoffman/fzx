@@ -56,8 +56,14 @@ claude::source() {
   # the first open ever waits for the scan; later ones show the cache and refresh behind it
   [[ -f "$cache" ]] || claude::refresh force || :
   [[ -f "$cache" ]] || return 0
-  fzx::require icons
+  fzx::require icons header
   fzx::icon_vars branch changed ahead behind todo
+  # the header row (lib/header.sh): the branch column starts with its icon and a space
+  local glyph bw=0
+  fzx::icon branch glyph
+  [[ -n "$glyph" ]] && bw=2
+  fzx::header_print 1 "$([[ "${FZX_SORT:-recent}" == name ]] && echo PROJECT || echo AGE)" \
+    PROJECT 21 0 KIND 8 0 VERSION 8 0 BRANCH $((bw + 15)) 0 AGE 4 1 SESS 4 1 "" 0 0 STATUS 0 0
   awk -F'\t' -v OFS='\t' "${FZX_ICON_VARS[@]}" -v mode="${FZX_MODE:-all}" -v sort="${FZX_SORT:-recent}" \
     -v now="$(date +%s)" -v active_days="${FZX_CLAUDE_ACTIVE_DAYS:-7}" \
     -v c_name=$'\e['"${FZX_COLORS[claude_name]:-1;38;5;111}m" -v c_dim=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" \

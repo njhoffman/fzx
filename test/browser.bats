@@ -100,6 +100,16 @@ calls_settle() {
   [ "$status" -eq 2 ]
 }
 
+@test "history: a header row (FZX_SORTED_SHOW=header) over the columns, the date marked when sorted by it" {
+  export FZX_SORTED_SHOW=header FZX_SORT_HEADER=1 FZX_SORTED_ARROWS='^ v'
+  FZX_SORT_DESC=1 FZX_MODE=history run "$BR/source.sh"
+  [[ "${lines[0]}" == $'\t\tPROFILE '*'VISITEDv'*'TITLE'*'URL' ]]
+  header_aligned 2 "${lines[0]}" VISITEDv "${lines[1]}" "$(cut -f6 <<< "${lines[1]}")"
+  header_aligned 2 "${lines[0]}" URL "${lines[1]}" "$(cut -f2 <<< "${lines[1]}")"
+  FZX_SORT=visits FZX_MODE=history run "$BR/source.sh"
+  [[ "${lines[0]}" == *'VISITED   '* && "${lines[0]}" != *'^'* ]]
+}
+
 @test "bookmarks: Chrome's folders by path, Firefox's from the root; tags and queries left out" {
   run src bookmarks
   [ "$status" -eq 0 ]

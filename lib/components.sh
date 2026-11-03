@@ -168,8 +168,23 @@ fzx::comp_current() {
   # a sort name that is not (or no longer) in the table, or not for this mode, falls back to the default
   [[ -n "$_s" && " ${_sorts[*]} " != *" $_s "* ]] && _s=""
   [[ -n "$_s" ]] || _s="${_def_sort:-$_first_sort}"
-  FZX_TOGGLES="$_t" FZX_SORT="$_s"
-  export FZX_TOGGLES FZX_SORT
+  FZX_TOGGLES="$_t" FZX_SORT="$_s" FZX_SORT_DESC=0 FZX_SORT_HEADER=0
+  [[ -n "$_s" ]] && fzx::comp_flag sort "$_s" desc && FZX_SORT_DESC=1
+  fzx::sort_header_on "$_s" && FZX_SORT_HEADER=1
+  export FZX_TOGGLES FZX_SORT FZX_SORT_DESC FZX_SORT_HEADER
+}
+
+# fzx::sort_header_on <sort>: a view sorted so (empty: none) has a header row (lib/header.sh): FZX_SORTED_SHOW
+# is header or both and the module marks a column (FZX_SORTED_COLUMNS, 0 for modules that sort without one)
+fzx::sort_header_on() {
+  [[ -n "$1" && "${FZX_SORTED_SHOW:-rows}" =~ ^(header|both)$ && "${FZX_SORTED_COLUMNS:-1}" != 0 ]]
+}
+
+# fzx::mode_has_header <mode>: the mode's views have a header row (it has a sort and headers are on)
+fzx::mode_has_header() {
+  local _sorts=() FZX_MODE="$1"
+  fzx::comp_sort_names _sorts
+  fzx::sort_header_on "${_sorts[0]:-}"
 }
 
 # fzx::comp_sort_names <array var>: the sort orders that apply in FZX_MODE, table order. A sort row whose
@@ -196,11 +211,12 @@ fzx::comp_on() {
 }
 
 # fzx::data_key <var>: cache key for the current view: the mode, plus "+toggles" and "@sort" when the
-# table has toggles / sort keys, so each combination is cached on its own
+# table has toggles / sort keys, and "#header" with a header row, so each combination is cached on its own
 fzx::data_key() {
   local _key="$FZX_MODE"
   fzx::comp_has toggle && _key+="+${FZX_TOGGLES// /,}"
   [[ -n "$FZX_SORT" ]] && _key+="@$FZX_SORT"
+  [[ "${FZX_SORT_HEADER:-0}" == 1 ]] && _key+="#header"
   printf -v "$1" '%s' "$_key"
 }
 

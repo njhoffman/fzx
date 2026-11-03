@@ -297,6 +297,31 @@ github::repo_rows() {
     sort -s -t $'\t' -k1,1 | cut -f2-
 }
 
+# github::repo_header: the header row of mine and starred (lib/header.sh) over github::repo_rows' columns,
+# printed before the list is read so an error row is not taken for it
+github::repo_header() {
+  [[ "${FZX_SORT_HEADER:-0}" == 1 ]] || return 0
+  fzx::require icons header
+  local lead=() sorted=AGE name glyph star fork issue
+  local -A w=()
+  # each count's icon and a space before it
+  for name in star fork issue; do
+    fzx::icon "$name" glyph
+    w[$name]=1
+    [[ -n "$glyph" ]] && w[$name]=$(($(fzx::header_width "$glyph") + 1))
+  done
+  star=$((w[star] + 6)) fork=$((w[fork] + 5)) issue=$((w[issue] + 4))
+  # the language icon (or the repository one) and a space; then the cloned mark and a space
+  fzx::icon repo glyph
+  [[ "${FZX_ICONS:-nerd}" == nerd || -n "$glyph" ]] && lead=("" 1 0)
+  case "${FZX_SORT:-}" in name) sorted=NAME ;; stars) sorted=STARS ;; listed) [[ "${FZX_MODE:-}" == mine ]] || sorted="" ;; esac
+  # without an icon the issue count's column is narrower than ISSUES
+  local issues=ISSUES
+  ((issue < 6)) && issues=OPEN
+  fzx::header_print 5 "$sorted" "${lead[@]}" "" 1 0 NAME 39 0 STARS "$star" 1 "" 0 0 FORKS "$fork" 1 "" 0 0 \
+    "$issues" "$issue" 1 "" 0 0 AGE 4 1 "" 0 0 DESCRIPTION 0 0
+}
+
 # github::code_rows <file>: a code search's rows: the repository, the path and how many matches
 github::code_rows() {
   local o=$'\e['"${FZX_COLORS[github_owner]:-38;5;244}m" n=$'\e['"${FZX_COLORS[github_name]:-1;38;5;75}m"
@@ -442,6 +467,7 @@ github::source() {
       ;;
     mine | starred)
       github::args "$@" || return
+      github::repo_header
       if ! github::list "$mode" file; then
         printf 'github: cannot list %s: %s\n' "$mode" "$GITHUB_ERROR" >&2
         printf '%s\terror\t-\t-\t-\t%scannot list %s:%s %s\n' "$GITHUB_ERROR" "$red" "$mode" "$r" "$GITHUB_ERROR"

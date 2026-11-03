@@ -31,6 +31,14 @@ bookmarks() {
   [[ "$output" != *$'\e[4ma\e[0m'* && "$output" == *$'\e[4m'*alpha* ]]
 }
 
+@test "bookmarks: a header row (FZX_SORTED_SHOW=header) over the name and path, the sorted one marked" {
+  bookmarks
+  FZX_MODE=bookmarks FZX_SORT=path FZX_SORTED_SHOW=header FZX_SORT_HEADER=1 FZX_SORTED_ARROWS='^ v' run "$DIRS/source.sh"
+  [ "${#lines[@]}" -eq 3 ]
+  [[ "${lines[0]}" == $'\t   NAME  \e[1;38;2;0;215;255mPATH^\e[0m' && "${lines[1]}" != *$'\e[4m'* ]]
+  header_aligned 1 "${lines[0]}" PATH "${lines[1]}" /
+}
+
 @test "modes: all is the default, bookmarks only when configured; frecent modes are gone" {
   stub_fzf
   run "$FZX" -m dirs

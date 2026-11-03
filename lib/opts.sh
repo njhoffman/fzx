@@ -379,6 +379,11 @@ fzx::opts_build() {
     "$module::opts" || return 1
     _FZX_BIND_SCOPE=fzx
   fi
+  # a view with a header row (lib/header.sh) shows the source's first line as fzf's header, unless the
+  # module always has one
+  if [[ "${FZX_SORT_HEADER:-0}" == 1 && " ${FZX_OPTS[*]} " != *" --header-lines="* ]]; then
+    FZX_OPTS+=(--header-lines=1)
+  fi
   # FZX_READ0=1 (a module's opts hook may set it): items end with NUL and may span lines; the callbacks
   # count them by NUL (meta/read0)
   [[ "${FZX_READ0:-0}" == 1 ]] && FZX_OPTS+=(--read0 --highlight-line)

@@ -22,7 +22,7 @@ toggle  closed      alt-6  issues, prs: closed (and merged) ones too            
 toggle  everywhere  alt-7  issues, prs: the ones involving you anywhere, not the repository's   -
 toggle  read        alt-8  notifications: read ones too                                         -
 sort    listed   -      mine: last push first; starred: most recently starred first          default
-sort    stars    -      mine, starred: most stars first                                       -
+sort    stars    -      mine, starred: most stars first                                       desc
 sort    name     -      mine, starred: by name                                                -
 action  browser   alt-o   open in the browser                                                    silent
 action  clone     alt-c   clone the repositories with ghq (yours over ssh) and link them (FZX_REPOS_LINKS_DIR)  foreground

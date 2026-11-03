@@ -42,6 +42,15 @@ tmux::reference() {
     [[ -z "${FZX_COLORS[$name]:-}" ]] || colors+=("FZX_TMUX_COLOR_${role^^}=${FZX_COLORS[$name]}")
   done
   colors+=("FZX_TMUX_COLOR_SORTED=${FZX_COLORS[sorted]:-4}")
+  # a header row (lib/header.sh) over sessions, windows and panes
+  if [[ "${FZX_SORT_HEADER:-0}" == 1 ]]; then
+    local arrow=""
+    fzx::require header
+    fzx::header_arrow arrow
+    colors+=(FZX_TMUX_HEADER=1 "FZX_TMUX_HEADER_ARROW=$arrow")
+    [[ -n "${NO_COLOR+x}" ]] ||
+      colors+=("FZX_TMUX_HEADER_COLUMN=${FZX_COLORS[header_column]:-}" "FZX_TMUX_HEADER_SORTED=${FZX_COLORS[header_sorted]:-1}")
+  fi
   command env "${colors[@]}" python3 "$(dirname "${BASH_SOURCE[0]}")/reference.py" "$@" \
     --pane "$TMUX_TARGET_PANE" "${TMUX_REFERENCE_ARGS[@]}"
 }
@@ -112,4 +121,9 @@ tmux::source() {
   esac
 }
 
-[[ "${BASH_SOURCE[0]}" == "$0" ]] && tmux::source "$@"
+[[ "${BASH_SOURCE[0]}" == "$0" ]] && {
+  source "$(dirname "${BASH_SOURCE[0]}")/../../lib/core.sh"
+  fzx::require log config
+  fzx::config_load "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" tmux
+  tmux::source "$@"
+}

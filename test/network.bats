@@ -107,8 +107,12 @@ act() { FZX_MODE="$1" "$NET/actions.sh" "${@:2}"; }
   FZX_SORT=process run src connections
   [[ "${lines[1]}" == *alpha* ]]
   run env FZX_MODE=ports "$NET/source.sh"
-  [[ "${lines[0]}" == *$'\e[1;38;5;245;4mPORT'* ]]
+  [[ "${lines[0]}" == *$'\e[0;4mPORT'* ]]
   [[ "${lines[1]}" == *$'\e[1;38;5;141;4m22'* ]]
+  # FZX_SORTED_SHOW=header: the header marks it with the arrow, the rows stay plain
+  run env FZX_MODE=ports FZX_SORTED_SHOW=header FZX_SORT_HEADER=1 FZX_SORTED_ARROWS='^ v' "$NET/source.sh"
+  [[ "${lines[0]}" == *$'\e[1;38;2;0;215;255mPORT^\e[0m PROCESS'* ]]
+  [[ "${lines[1]}" == *$'\e[1;38;5;141;24m22'* ]]
 }
 
 @test "root: ss through sudo -n; without a cached sudo, as you, and the header says so" {

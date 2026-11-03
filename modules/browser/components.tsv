@@ -5,7 +5,7 @@ mode    history    -       history, newest first across profiles                
 mode    bookmarks  -       bookmarks, by folder                                         -
 toggle  chrome     -       Chrome, Chromium, Brave and Vivaldi profiles                 on
 toggle  firefox    -       Firefox profiles                                             on
-sort    recent     -       history: last visited first                                  default
+sort    recent     -       history: last visited first                                  default,desc
 sort    visits     -       history: most visited first                                  -
 action  open       -       open in the row's browser and profile, then close            become,default
 action  open-stay  ctrl-o  open in the row's browser and profile                        silent

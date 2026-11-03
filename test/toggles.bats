@@ -185,9 +185,47 @@ EOF2
   [ "$(< "$DIR/state/sort")" = name ]
 }
 
+@test "header rows (FZX_SORTED_SHOW=header): --header-lines, the sort's direction, a cache of their own; modes without a sort restart" {
+  export COUNTER_MODES="one two other"
+  cat > "$FZX_CONFIG_DIR/modules/counter/components.tsv" << 'EOF2'
+sort  size  f5  one: largest first  default,desc
+sort  name  -   one, two: by name   -
+EOF2
+  echo 'FZX_SORTED_SHOW=header' > "$FZX_CONFIG_DIR/config.sh"
+  STUB_FZF_RUN='echo "$FZX_SORT|$FZX_SORT_DESC|$FZX_SORT_HEADER" > "$BATS_TEST_TMPDIR/env"' run "$FZX" -m counter:one
+  [ "$(< "$BATS_TEST_TMPDIR/env")" = "size|1|1" ]
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *" --header-lines=1 "* ]]
+  STUB_FZF_RUN='echo "$FZX_SORT|$FZX_SORT_DESC|$FZX_SORT_HEADER" > "$BATS_TEST_TMPDIR/env"' run "$FZX" -m counter:other
+  [ "$(< "$BATS_TEST_TMPDIR/env")" = "|0|0" ]
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " != *" --header-lines="* ]]
+  # a module that sorts without a column (FZX_SORTED_COLUMNS=0) has none
+  echo 'FZX_SORTED_COLUMNS=0' > "$FZX_CONFIG_DIR/modules/counter/config.sh"
+  STUB_FZF_RUN='echo "$FZX_SORT|$FZX_SORT_HEADER" > "$BATS_TEST_TMPDIR/env"' run "$FZX" -m counter:one
+  [ "$(< "$BATS_TEST_TMPDIR/env")" = "size|0" ]
+  rm "$FZX_CONFIG_DIR/modules/counter/config.sh"
+  kept
+  FZX_SESSION="$SID" "$FZX" _cb load > /dev/null
+  [ -f "$DIR/data/one@size#header" ]
+  # one and two both have a sort: in place; other has none: a restart, both ways
+  FZX_SESSION="$SID" run "$FZX" _cb mode two
+  [[ "$output" == change-border-label* ]]
+  FZX_SESSION="$SID" run "$FZX" _cb mode other
+  [[ "$output" == "become:"* ]]
+  # (become relaunches into other; here the state says so instead)
+  fzx::state_set mode other
+  FZX_SESSION="$SID" run "$FZX" _cb mode one
+  [[ "$output" == "become:"* ]]
+  # rows only: no header rows, so in place
+  echo 'FZX_SORTED_SHOW=rows' > "$FZX_CONFIG_DIR/config.sh"
+  FZX_SESSION="$SID" run "$FZX" _cb mode other
+  [[ "$output" == change-border-label* ]]
+}
+
 @test "ps: the sorted column is underlined, header too; tree has no sort" {
   FZX_MODE=all FZX_SORT=mem run "$BATS_TEST_DIRNAME/../modules/ps/source.sh"
-  [[ "${lines[0]}" == *$'\e[1;38;5;245;4m%MEM\e[0m'* && "${lines[0]}" != *'4m%CPU'* ]]
+  [[ "${lines[0]}" == *$'\e[0;4m%MEM\e[0m'* && "${lines[0]}" != *'4m%CPU'* ]]
   [[ "${lines[1]}" =~ $'\e['[0-9\;]+';4m'[0-9.]+$'\e[0m' ]]
   FZX_MODE=tree FZX_SORT= run "$BATS_TEST_DIRNAME/../modules/ps/source.sh"
   [[ "${lines[0]}" != *';4m'* ]]

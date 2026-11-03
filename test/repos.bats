@@ -101,6 +101,13 @@ repos_fn() {
   [[ "$output" =~ $'\e[4m'[0-9]+(m|h|d|w|mo|y)$'\e[0m' ]]
   run bash -c "FZX_SORT=name '$REPOS/source.sh' | grep alpha"
   [[ "$output" == *$'\e[4malpha\e[0m'* ]]
+  # a header row (FZX_SORTED_SHOW=header) over the columns, the sorted one marked, the rows plain
+  export FZX_SORTED_SHOW=header FZX_SORT_HEADER=1 FZX_SORTED_ARROWS='^ v'
+  run "$REPOS/source.sh"
+  [[ "${lines[0]}" == $'\tREPOSITORY '*'BRANCH '*$'\e[1;38;2;0;215;255mAGE^\e[0m  STATUS' && "$output" != *$'\e[4m'* ]]
+  # (the unicode icons: the branch's, then the changed files')
+  header_aligned 1 "${lines[0]}" BRANCH "${lines[1]}" "⎇"
+  header_aligned 1 "${lines[0]}" STATUS "${lines[1]}" "●"
 }
 
 @test "extra roots: their repositories are added, links into ghq collapse" {

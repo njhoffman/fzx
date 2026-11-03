@@ -4,8 +4,8 @@ mode  all   -  all processes, busiest first                 -
 mode  top   -  all processes, refreshed every few seconds   restart
 mode  tree  -  process tree (input order: sorting off)      restart
 toggle  kernel  alt-k  show kernel threads                      -
-sort    cpu     -      user, all, top: busiest first                 default
-sort    mem     -      user, all, top: most memory first             -
+sort    cpu     -      user, all, top: busiest first                 default,desc
+sort    mem     -      user, all, top: most memory first             desc
 sort    age     -      user, all, top: newest first                  -
 sort    pid     -      user, all, top: by pid                        -
 action  term          ctrl-x  send SIGTERM to the selected processes (not yours: sudo -n)   notify,reload

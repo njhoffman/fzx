@@ -310,7 +310,7 @@ stub() {
     101 1 root 0.0 0.1 2048 01:00 Ss '?' '/usr/sbin/sshd -D' \
     202 101 me 75.5 12.0 3145728 02:00 R pts/1 ' \_ /usr/bin/vim --clean notes.md' \
     303 2 root 0.0 0.0 0 03:00 I '?' '[kworker/0:1]')"
-  run env -u NO_COLOR bash -c "source '$PS_DIR/source.sh'; USER=me ps::color 0 <<< \"\$1\"" _ "$table"
+  run env -u NO_COLOR bash -c "source '$FZX_REPO/lib/core.sh'; source '$PS_DIR/source.sh'; USER=me ps::color 0 <<< \"\$1\"" _ "$table"
   [ "$status" -eq 0 ]
   [ "${#lines[@]}" -eq 3 ]
   # pid first; root red, sleeping dim, running green, high cpu and mem red, rss as M/G
@@ -322,6 +322,6 @@ stub() {
   plain="$(sed 's/\x1b\[[0-9;:]*m//g' <<< "${lines[2]}")"
   [[ "$plain" =~ ^202\ +101\ me\ +75\.5\ 12\.0\ +3\.0G\ +02:00\ R\ +pts/1\ +\ \\_\ /usr/bin/vim\ --clean\ notes\.md$ ]]
   # kernel threads (parent 2) only with the toggle; then cyan
-  run env -u NO_COLOR bash -c "source '$PS_DIR/source.sh'; USER=me ps::color 1 <<< \"\$1\" | tail -1" _ "$table"
+  run env -u NO_COLOR bash -c "source '$FZX_REPO/lib/core.sh'; source '$PS_DIR/source.sh'; USER=me ps::color 1 <<< \"\$1\" | tail -1" _ "$table"
   [[ "$output" == *$'\e[38;5;81m[kworker/0:1]'* ]]
 }

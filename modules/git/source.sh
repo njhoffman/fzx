@@ -110,11 +110,15 @@ git::source_log() {
     --format=$'%H\t%C(white)%h%C(reset) %C(green)%ad%C(reset) %C(blue)%<(14,trunc)%an%C(reset)%C(auto)%d%C(reset) %s'
 }
 
-# FZX_SORT: recent (last commit first, default) or name; the sorted column is drawn in FZX_COLORS[sorted] too
+# FZX_SORT: recent (last commit first, default) or name; the sorted column is drawn in FZX_COLORS[sorted] too,
+# and a header row (FZX_SORT_HEADER, lib/header.sh) names the columns
 git::source_branches() {
   local sort=-committerdate
   [[ "${FZX_SORT:-recent}" == name ]] && sort=refname
   # filtered on the full ref name: newer git shortens refs/remotes/origin/HEAD to just "origin"
+  fzx::require header
+  fzx::header_print 1 "$([[ "${FZX_SORT:-recent}" == name ]] && echo BRANCH || echo COMMITTED)" \
+    "" 1 0 BRANCH 40 0 UPSTREAM 16 0 COMMITTED 16 0 SUBJECT 0 0
   git::g for-each-ref --sort="$sort" refs/heads refs/remotes \
     --format=$'%(refname)\t%(refname:short)\t%(HEAD)\t%(upstream:track)\t%(committerdate:relative)\t%(subject)' |
     awk -F'\t' -v sort="${FZX_SORT:-recent}" -v hl="${FZX_COLORS[sorted]:-4}" '
@@ -227,5 +231,7 @@ git::source() {
 
 [[ "${BASH_SOURCE[0]}" == "$0" ]] && {
   source "$(dirname "${BASH_SOURCE[0]}")/../../lib/core.sh"
+  fzx::require log config
+  fzx::config_load "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" git
   git::source "$@"
 }

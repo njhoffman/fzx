@@ -182,6 +182,53 @@ setup() {
   echo 'FZX_COLORS[sorted]="1;4"' > "$FZX_CONFIG_DIR/config.sh"
   fzx::config_load
   [ "${FZX_COLORS[sorted]}" = "1;4" ]
+  # ... except under FZX_SORTED_SHOW=header: the rows stay plain
+  echo 'FZX_COLORS[sorted]="1;4"; FZX_SORTED_SHOW=header' > "$FZX_CONFIG_DIR/config.sh"
+  fzx::config_load
+  [ "${FZX_COLORS[sorted]}" = 24 ]
+}
+
+@test "config_load: the header row's colors: fzf's for the columns, bold #00d7ff for the sorted one, unless set" {
+  fzx::config_load
+  [ "${FZX_COLORS[header_column]}" = "" ] && [ "${FZX_COLORS[header_sorted]}" = "1;38;2;0;215;255" ]
+  [ "$FZX_SORTED_SHOW" = rows ] && [ "$FZX_SORTED_ARROWS" = "↑ ↓" ]
+  mkdir -p "$FZX_CONFIG_DIR"
+  echo 'FZX_HEADER_COLUMN_COLOR=245; FZX_SORTED_HEADER_STYLE="bold underline"; FZX_SORTED_HEADER_COLOR=""; FZX_SORTED_SHOW=both' > "$FZX_CONFIG_DIR/config.sh"
+  fzx::config_load
+  [ "${FZX_COLORS[header_column]}" = "38;5;245" ] && [ "${FZX_COLORS[header_sorted]}" = "1;4" ]
+  [ "${FZX_COLORS[sorted]}" = 4 ]
+  echo 'FZX_SORTED_HEADER_STYLE=""; FZX_SORTED_HEADER_COLOR=""; FZX_SORTED_SHOW=sideways' > "$FZX_CONFIG_DIR/config.sh"
+  fzx::config_load
+  [ "${FZX_COLORS[header_sorted]}" = 1 ] && [ "$FZX_SORTED_SHOW" = rows ]
+  grep -q 'FZX_SORTED_SHOW: not rows, header or both: sideways' "$LOG"
+  echo 'FZX_COLORS[header_column]=""; FZX_HEADER_COLUMN_COLOR=245; FZX_COLORS[header_sorted]="7"' > "$FZX_CONFIG_DIR/config.sh"
+  fzx::config_load
+  [ "${FZX_COLORS[header_column]}" = "" ] && [ "${FZX_COLORS[header_sorted]}" = 7 ]
+}
+
+@test "header: cells padded outside their color, the sorted one with the sort's arrow; awk's the same; rows only with FZX_SORT_HEADER" {
+  load_libs header
+  declare -gA FZX_COLORS=([header_column]="" [header_sorted]=1)
+  local c
+  FZX_SORT_DESC=1 fzx::header_cell c CPU 6 1 1
+  [ "$c" = $'  \e[1mCPU↓\e[0m' ]
+  fzx::header_cell c NAME 6 0 1
+  [ "$c" = $'\e[1mNAME↑\e[0m ' ]
+  fzx::header_cell c PID 5 0 0
+  [ "$c" = "PID  " ]
+  FZX_COLORS[header_column]=245
+  FZX_SORTED_ARROWS="" fzx::header_cell c PID 0 0 1
+  [ "$c" = $'\e[1mPID\e[0m' ]
+  NO_COLOR=1 fzx::header_cell c PID 4 1 0
+  [ "$c" = " PID" ]
+  # awk: the arrow's width counted in characters
+  FZX_SORT_HEADER=1 FZX_SORT_DESC=1 NO_COLOR=1 fzx::header_vars
+  [ "$(awk "${FZX_HEADER_VARS[@]}" "$FZX_HEADER_AWK"'BEGIN { printf "[%s][%s]%d", hcell("CPU", 6, 1, 1), hcell("A", 3, 0, 0), hon }')" = "[  CPU↓][A  ]1" ]
+  # rows: empty fields first, a two-space gap, a field break, NUL-ended; none without FZX_SORT_HEADER
+  FZX_COLORS[header_column]=""
+  [ -z "$(fzx::header_print 1 A A 2 0 B 0 0)" ]
+  [ "$(FZX_SORT_HEADER=1 fzx::header_print 1 B A 2 0 "" 0 0 B 0 0 $'\t' 0 0 C 0 0)" = $'\tA   \e[1mB↑\e[0m \tC' ]
+  [ "$(FZX_SORT_HEADER=1 fzx::header_print -z 0 "" A 0 0 | tr '\0' @)" = "A@" ]
 }
 
 @test "cb: routes through fzx _cb under a session" {

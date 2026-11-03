@@ -289,6 +289,7 @@ packages::source() {
       return 2
       ;;
   esac
+  packages::header "$mode"
   case "$mode" in
     snap-available) packages::snap_available ;;
     flatpak-available) packages::flatpak_available ;;
@@ -296,7 +297,33 @@ packages::source() {
   esac
 }
 
+# packages::header <mode>: the header row (lib/header.sh) over the mode's columns: the mark, the name, then
+# the manager's own
+packages::header() {
+  [[ "${FZX_SORT_HEADER:-0}" == 1 ]] || return 0
+  fzx::require header
+  local rest=()
+  case "$1" in
+    apt) rest=(VERSION 28 0 SIZE 6 0 DESCRIPTION 0 0) ;;
+    available) rest=(DESCRIPTION 0 0) ;;
+    upgradable) rest=(INSTALLED 24 0 CANDIDATE 24 0 SUITE 0 0) ;;
+    snap) rest=(VERSION 28 0 TRACKING 16 0 PUBLISHER 18 0 NOTES 0 0) ;;
+    flatpak) rest=(VERSION 16 0 SCOPE 7 0 ID 0 0) ;;
+    flatpak-available) rest=(VERSION 16 0 BRANCH 10 0 SUMMARY 0 0) ;;
+    pipx) rest=(VERSION 20 0 APPS 0 0) ;;
+    cargo) rest=(VERSION 20 0 SOURCE 44 0 BINARIES 0 0) ;;
+    pnpm) rest=(VERSION 0 0) ;;
+    gem) rest=(VERSION 20 0 SCOPE 7 0 SUMMARY 0 0) ;;
+  esac
+  fzx::header_print 2 "$([[ "${FZX_SORT:-name}" == size ]] && echo SIZE || echo NAME)" "" 1 0 NAME 36 0 "${rest[@]}"
+}
+
 # shellcheck source=./remote.sh
 source "$(dirname "${BASH_SOURCE[0]}")/remote.sh"
 
-[[ "${BASH_SOURCE[0]}" == "$0" ]] && packages::source "$@"
+[[ "${BASH_SOURCE[0]}" == "$0" ]] && {
+  source "$(dirname "${BASH_SOURCE[0]}")/../../lib/core.sh"
+  fzx::require log config
+  fzx::config_load "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" packages
+  packages::source "$@"
+}

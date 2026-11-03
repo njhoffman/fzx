@@ -311,7 +311,9 @@ the toggle's place in the table (`FZX_TOGGLE_DIGIT_KEYS`; a number another row o
 `[sort_next]`, which also has ctrl-_) cycle the sort when there are two or more, and a sort row's key selects it. Changes reload
 in place (`transform(fzx _cb toggle NAME)`, `fzx _cb sort next|prev|NAME`); a row flagged `restart` restarts
 fzf instead. The cache key is the view, not just the mode: `<mode>[+<toggles on>][@<sort>]`
-(`data/all+kernel@mem`), so each combination is cached once. The footer shows modes, toggles and the sort
+(`data/all+kernel@mem`; `#header` appended for a view with a header row), so each combination is cached
+once. A sort row flagged `desc` orders its column's values from the largest (most stars, the newest
+date); the header row's arrow points down for it (`FZX_SORT_DESC`). The footer shows modes, toggles and the sort
 key, active ones highlighted (`FZX_COLORS[toggle_on|toggle_off|sort]`).
 
 A sort row's description may be scoped by mode as an action's is (`branches: last commit first`,
@@ -327,12 +329,33 @@ Sources draw the column a list is sorted by in `FZX_COLORS[sorted]` on top of th
 `FZX_SORTED_UNDERLINE_COLOR` (default `#6e6e6e`) unless a layer sets it; it may hold colons (`4:5`), so
 anything stripping SGR must allow `[0-9;:]`. It is drawn in the text and not its padding, header included
 where there is one. It is done in the source and not with fzf's `change-nth` and `--color nth`, because `change-nth` also narrows what
-the query matches to that column. Sorted columns: ps (cpu, mem, age, pid), docker containers (state, name)
+the query matches to that column.
+
+`FZX_SORTED_SHOW` picks where the sort shows: `rows` (the default, the above), `header` or `both`. With
+header or both, a view that has a sort (`fzx::sort_header_on`: the mode has one and the module marks a
+column, `FZX_SORTED_COLUMNS` not 0; files and todos set it to 0) gets a header row, and lib/components.sh
+exports `FZX_SORT_HEADER=1` with the view: opts_build adds `--header-lines=1` (unless the module always has
+one, ps and network) and the source prints the row first, before anything that could fail into a row of
+its own (github's error rows), and before any sort or filter its rows pass through. lib/header.sh builds it:
+`fzx::header_print [-z] <hidden fields> <sorted name> NAME WIDTH RIGHT...` for sources in bash (empty id
+fields, cells one space apart, an empty 0-wide cell for a two-space gap, a `\t` cell for a field break,
+`-z` for `--read0` lists), `fzx::header_vars` (`hcell`, `hwidth` in `FZX_HEADER_AWK`) for sources that size
+their columns in awk. Cells are padded like the rows' columns (a label wider than its column would shift
+the rest: github's issue count, 5 wide without its icon, is OPEN then), colored in the text only:
+`FZX_COLORS[header_column]` (from `FZX_HEADER_COLUMN_COLOR`, "" by default: fzf's own `header` color shows,
+which ps and network used to override with a fixed gray) and, for the sorted column and its arrow,
+`[header_sorted]` (`FZX_SORTED_HEADER_STYLE`, default bold, and `FZX_SORTED_HEADER_COLOR`, default `#00d7ff`).
+The arrows are `FZX_SORTED_ARROWS` ("ascending descending", default `↑ ↓`; "" for none). Under header the
+rows' `FZX_COLORS[sorted]` is 24, so they stay plain. fzf cannot change `--header-lines` while it runs, so a
+mode switch between a mode with a header row and one without restarts fzf (`fzx::mode_has_header` in
+`fzx::nav_mode`). tmux pads its sessions, windows and panes into columns only when there is a header row.
+Sorted columns: ps (cpu, mem, age, pid), docker containers (state, name)
 and images (created, size, name), tmux sessions, windows and panes (order, recent: an activity age column,
 name), systemd (name, state), recent (rank: the score, path), dirs bookmarks (name, path), logs files
 (recent, size, name), git branches (recent, name), github mine and starred (listed: mine's push age,
-stars, name), repos (recent, name) and history (recent: the age, frequent: the count). files (path, modification time) and
-todos (urgency) sort without a column to mark.
+stars, name), repos (recent, name), history (recent: the age, frequent: the count), claude (recent, name),
+cron (next), browser history (recent: the date; header only) and packages (name, apt's size). files (path,
+modification time) and todos (urgency) sort without a column to mark.
 
 ### Actions
 

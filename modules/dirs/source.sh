@@ -27,11 +27,13 @@ dirs::all() {
 }
 
 # dirs::format: "name<TAB>path" lines -> "path<TAB>display" (missing directories dropped); the column
-# FZX_SORT orders by (bookmarks: name or path) is drawn in FZX_COLORS[sorted] as well
+# FZX_SORT orders by (bookmarks: name or path) is drawn in FZX_COLORS[sorted] as well; a header row
+# (FZX_SORT_HEADER, lib/header.sh) names the columns first
 dirs::format() {
   local dim=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" rst=$'\e[0m' in hl=$'\e['"${FZX_COLORS[sorted]:-4}m" hn="" hp=""
   case "${FZX_SORT:-}" in name) hn="$hl" ;; path) hp="$hl" ;; esac
-  fzx::require pretty
+  fzx::require pretty header
+  fzx::header_print 1 "$([[ "${FZX_SORT:-}" == path ]] && echo PATH || echo NAME)" NAME 7 1 "" 0 0 PATH 0 0
   if fzx::pretty_on; then
     # prettypath decorates the paths; joined back to their scores by path, in the input's order (by path,
     # not by line: an older prettypath can drop lines)

@@ -77,6 +77,16 @@ claude_fn() {
   [[ "$output" == *$'\e[4malpha\e[0m'* ]]
   run bash -c "'$CLAUDE/source.sh' | grep alpha"
   [[ "$output" == *$'\e[4m1h\e[0m'* ]]
+  # a header row (FZX_SORTED_SHOW=header) over the columns, the sorted one marked, the rows plain
+  export FZX_SORTED_SHOW=header FZX_SORT_HEADER=1 FZX_SORTED_ARROWS='^ v'
+  run "$CLAUDE/source.sh"
+  [[ "${lines[0]}" == $'\tPROJECT '*KIND*VERSION*BRANCH*$'\e[1;38;2;0;215;255mAGE^\e[0m SESS  STATUS' ]]
+  [[ "$output" != *$'\e[4m'* ]]
+  local row
+  row="$(grep alpha <<< "$output")"
+  header_aligned 1 "${lines[0]}" KIND "$row" git
+  header_aligned 1 "${lines[0]}" BRANCH "$row" "⎇"
+  header_aligned 1 "${lines[0]}" AGE^ "$row" "  1h"
 }
 
 @test "refresh: once per TTL, true only when the rows changed; a failed scan keeps the cache" {

@@ -166,6 +166,23 @@ history::interrupted_sql() {
   printf '%s' "${out:--1}"
 }
 
+# history::header <failed icon> <hosts>: the header row (lib/header.sh) over history::format's columns: the
+# age, the run count, the failed mark (with its icon), the duration, the host (global), then the command
+history::header() {
+  [[ "${FZX_SORT_HEADER:-0}" == 1 ]] || return 0
+  fzx::require header
+  local cells=(AGE 4 1 RUNS 5 1) h hw=0 sorted="" z=()
+  [[ -n "$1" ]] && cells+=("" 1 0)
+  cells+=(TOOK 4 1)
+  for h in $2; do ((${#h} > hw)) && hw=${#h}; done
+  if ((hw)); then
+    if ((hw >= 4)); then cells+=(HOST "$hw" 0); else cells+=("" "$hw" 0); fi
+  fi
+  case "${FZX_SORT:-recent}" in recent) sorted=AGE ;; frequent) sorted=RUNS ;; esac
+  [[ "${FZX_HISTORY_MULTILINE:-1}" == 1 ]] && z=(-z)
+  fzx::header_print "${z[@]}" 1 "$sorted" "${cells[@]}" $'\t' 0 0 COMMAND 0 0
+}
+
 # history::format <mode>: raw rows -> "id<TAB>display" rows, filtered by the failed and succeeded toggles
 history::format() {
   local failed interrupted hosts=""
@@ -173,6 +190,7 @@ history::format() {
   fzx::icon failed failed
   fzx::icon interrupted interrupted
   [[ "$1" == global ]] && hosts="$(history::sql 'select distinct host from places order by host' | tr '\n' ' ')"
+  history::header "$failed" "$hosts"
   # mawk formats about twice as fast; the rows only measure ASCII (ages, counts, hosts)
   local awk=awk
   command -v mawk > /dev/null && awk=mawk

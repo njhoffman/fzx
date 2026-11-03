@@ -34,8 +34,13 @@ fzx::nav_mode() {
   esac
 
   # a mode row flagged "restart" needs options that cannot change while fzf runs (sorting, delimiter,
-  # header lines): entering or leaving it restarts fzf through become() with the query kept
-  if fzx::comp_flag mode "$current" restart || fzx::comp_flag mode "$mode" restart; then
+  # header lines): entering or leaving it restarts fzf through become() with the query kept; so does going
+  # between modes with and without a header row (lib/header.sh)
+  local h_from=0 h_to=0 _FZX_NAV_CONFIG=1
+  fzx::config_load "$FZX_MODULE_DIR" "$FZX_MODULE"
+  fzx::mode_has_header "$current" && h_from=1
+  fzx::mode_has_header "$mode" && h_to=1
+  if fzx::comp_flag mode "$current" restart || fzx::comp_flag mode "$mode" restart || ((h_from != h_to)); then
     fzx::state_set query "${FZF_QUERY:-}"
     fzx::state_set pos 1
     fzx::require layout && fzx::layout_save
@@ -57,7 +62,8 @@ fzx::nav_mode() {
 # never loaded)
 fzx::_nav_refresh() {
   local label line place reload extra=""
-  fzx::config_load "$FZX_MODULE_DIR" "$FZX_MODULE"
+  # (a mode switch has loaded it already)
+  [[ -n "${_FZX_NAV_CONFIG:-}" ]] || fzx::config_load "$FZX_MODULE_DIR" "$FZX_MODULE"
   fzx::comp_current
   fzx::session_label label
   fzx::component_line line

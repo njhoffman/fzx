@@ -100,6 +100,20 @@ CFG
 }
 
 
+@test "logs: a header row (FZX_SORTED_SHOW=header) over the files, the sorted one marked, with or without the dot" {
+  mkdir -p "$FZX_CONFIG_DIR/modules/logs" "$BATS_TEST_TMPDIR/logs"
+  head -c 5000 /dev/zero > "$BATS_TEST_TMPDIR/logs/big.log"
+  printf 'FZX_LOGS_FILES=()\nFZX_LOGS_GLOBS=("%s/logs/*.log")\n' "$BATS_TEST_TMPDIR" > "$FZX_CONFIG_DIR/modules/logs/config.sh"
+  export FZX_SORTED_SHOW=header FZX_SORT_HEADER=1 FZX_SORTED_ARROWS='^ v'
+  FZX_SORT=size FZX_SORT_DESC=1 run "$MODS/logs/source.sh"
+  [[ "${lines[0]}" == $'\t\t'*'AGE  '*NAME*$'\e[1;38;2;0;215;255mSIZEv\e[0m PATH' && "${lines[1]}" != *';4m'* ]]
+  header_aligned 2 "${lines[0]}" NAME "${lines[1]}" big
+  header_aligned 2 "${lines[0]}" PATH "${lines[1]}" "${BATS_TEST_TMPDIR:0:1}"
+  FZX_LOGS_AGE_DOT="" FZX_ICONS=none run "$MODS/logs/source.sh"
+  [[ "${lines[0]}" == *$'\e[1;38;2;0;215;255mAGE^\e[0m'* ]]
+  header_aligned 2 "${lines[0]}" NAME "${lines[1]}" big
+}
+
 @test "logs: an unknown mode fails with 2" {
   FZX_MODE=bogus run --separate-stderr "$MODS/logs/source.sh"
   [ "$status" -eq 2 ]

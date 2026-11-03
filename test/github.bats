@@ -493,6 +493,29 @@ searches() { grep -c '^search ' "$BATS_TEST_TMPDIR/gh.calls" 2> /dev/null || ech
   [[ "$output" == *$'\t'error$'\t'*"cannot list starred: HTTP 401: Bad credentials"* ]]
 }
 
+@test "mine and starred: a header row (FZX_SORTED_SHOW=header) over the columns, first even before an error" {
+  export FZX_SORTED_SHOW=header FZX_SORT_HEADER=1 FZX_SORTED_ARROWS='^ v'
+  FZX_SORT=stars FZX_SORT_DESC=1 run src mine ""
+  [ "${#lines[@]}" -eq 3 ]
+  # without icons the issue count's column is too narrow for ISSUES
+  [[ "${lines[0]}" == $'\t\t\t\t\t'*NAME*STARSv*FORKS*OPEN*AGE*DESCRIPTION ]]
+  header_aligned 5 "${lines[0]}" NAME "${lines[1]}" me/priv
+  header_aligned 5 "${lines[0]}" DESCRIPTION "${lines[1]}" mine
+  # each count ends under the end of its label
+  local h="${lines[0]##*$'\t'}" r="${lines[1]##*$'\t'}" pre
+  pre="${h%%STARSv*}STARSv"
+  [[ "${r:${#pre}-1:2}" =~ ^[0-9]\ $ ]]
+  pre="${h%%AGE*}AGE"
+  [[ "${r:${#pre}-1:2}" =~ ^[a-z]\ $ ]]
+  # starred lists as starred: nothing marked
+  FZX_SORT=listed run src starred ""
+  [[ "${lines[0]}" == *'AGE  DESCRIPTION' && "${lines[0]}" != *'^'* ]]
+  STUB_GH_FAIL=1 FZX_GITHUB_CACHE_TTL=0 run src starred ""
+  # (stderr comes first in the output; the list's own lines are in src.out)
+  [[ "$(sed -n 1p "$BATS_TEST_TMPDIR/src.out")" == $'\t\t\t\t\t'*NAME* ]]
+  [[ "$(sed -n 2p "$BATS_TEST_TMPDIR/src.out")" == *$'\t'error$'\t'* ]]
+}
+
 @test "toggles: private or public only, sources or forks only; both of a pair, everything" {
   local t
   run src mine ""

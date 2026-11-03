@@ -87,6 +87,22 @@ src() { FZX_MODE="$1" "$HIST/source.sh" | plain; }
   [[ "$output" == *'false'* && "$output" != *'ls -la'* ]]
 }
 
+@test "a header row (FZX_SORTED_SHOW=header): the columns over the rows (the host in global), NUL-ended multi-line" {
+  export FZX_SORTED_SHOW=header FZX_SORT_HEADER=1 FZX_SORTED_ARROWS='^ v'
+  FZX_SORT=frequent FZX_SORT_DESC=1 run src global
+  [[ "${lines[0]}" == $'\t'*AGE*RUNSv*TOOK*HOST*$'\t'COMMAND ]]
+  local row
+  row="$(grep 'remote only' <<< "$output")"
+  header_aligned 1 "${lines[0]}" HOST "$row" there
+  # the fields: the command after the second tab in both
+  [ "$(cut -f3 <<< "${lines[0]}")" = COMMAND ] && [[ "$(cut -f3 <<< "$row")" == 'remote only'* ]]
+  # host: no host column
+  run src host
+  [[ "${lines[0]}" == *TOOK$' \t'COMMAND && "${lines[0]}" == *'AGE^'* ]]
+  FZX_HISTORY_MULTILINE=1 run bash -c "FZX_MODE=host '$HIST/source.sh' | head -c 300 | tr '\\0' '@'"
+  [[ "$output" == $'\t'*$'\tCOMMAND@'* ]]
+}
+
 @test "directory: this directory and below, through a symlink, with LIKE metacharacters literal" {
   cd "$BATS_TEST_TMPDIR/link"
   run src directory

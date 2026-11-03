@@ -58,7 +58,7 @@ if ((${#modes[@]})); then
   scope="${modes[*]}"
   row sort name - "${scope// /, }: by name" default
 fi
-((apt)) && row sort size - 'apt: largest installed size first' -
+((apt)) && row sort size - 'apt: largest installed size first' desc
 
 install=""
 ((apt)) && install="available, "

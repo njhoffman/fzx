@@ -2,7 +2,7 @@
 # logs source. Lines are "kind<TAB>target<TAB>display", kind being file, unit-user, unit-system or docker.
 # Mode from $FZX_MODE: files (default), units, docker.
 # $FZX_SORT (files): recent (newest first, default), size (largest first) or name; the sorted column is
-# drawn in FZX_COLORS[sorted] as well.
+# drawn in FZX_COLORS[sorted] as well, and a header row (FZX_SORT_HEADER, lib/header.sh) names the columns.
 
 # logs::age_color <seconds> <var>: the age's color, fading from bright to dim (under a minute, an hour, a
 # day, older)
@@ -42,6 +42,13 @@ logs::source_files() {
   local -A seen=() files=()
   fzx::require icons
   fzx::icon file icon
+  # the header row (lib/header.sh), the dot and the icon one column each
+  local cells=(AGE 4 1 "" 0 0) sorted=AGE
+  [[ -n "$dot" ]] && cells+=("" 1 0)
+  [[ -n "$icon" ]] && cells+=("" 1 0)
+  case "$sort" in size) sorted=SIZE ;; name) sorted=NAME ;; esac
+  fzx::require header
+  fzx::header_print 2 "$sorted" "${cells[@]}" NAME 28 0 SIZE 5 1 PATH 0 0
   for name in "${!FZX_LOGS_FILES[@]}"; do
     files[$name]="${FZX_LOGS_FILES[$name]}"
   done

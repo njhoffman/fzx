@@ -107,6 +107,18 @@ stub_apt() {
   [[ "${lines[0]}" == *$'\e[4m4M\e[0m'* ]]
 }
 
+@test "packages: a header row (FZX_SORTED_SHOW=header) over apt's columns, the sorted one marked" {
+  stub_apt
+  export FZX_SORTED_SHOW=header FZX_SORT_HEADER=1 FZX_SORTED_ARROWS='^ v'
+  FZX_SORT=size FZX_SORT_DESC=1 run "$MODS/packages/source.sh"
+  [[ "${lines[0]}" == $'\t\t  NAME '*'VERSION '*$'\e[1;38;2;0;215;255mSIZEv\e[0m  DESCRIPTION' && "${lines[1]}" != *$'\e[4m'* ]]
+  header_aligned 2 "${lines[0]}" VERSION "${lines[2]}" 5.9
+  header_aligned 2 "${lines[0]}" SIZEv "${lines[2]}" "2M "
+  header_aligned 2 "${lines[0]}" DESCRIPTION "${lines[2]}" shell
+  FZX_MODE=upgradable run "$MODS/packages/source.sh"
+  [[ "${lines[0]}" == $'\t\t  \e[1;38;2;0;215;255mNAME^\e[0m'*INSTALLED*CANDIDATE*SUITE ]]
+}
+
 @test "packages: available is cached until apt's lists change; installed ones marked on every run" {
   stub_apt
   FZX_MODE=available run "$MODS/packages/source.sh"

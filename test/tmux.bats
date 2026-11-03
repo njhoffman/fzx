@@ -73,6 +73,25 @@ act() { FZX_MODE="$1" "$TMUX_MOD/actions.sh" "${@:2}"; }
   grep -q $'\e\[4m\e\[[0-9;:]*m[0-9]*[smhd]\e' "$BATS_TEST_TMPDIR/src.out"
 }
 
+@test "tmux: a header row (FZX_SORTED_SHOW=header) over aligned sessions, the sorted column marked, the rows plain" {
+  tmux rename-session -t '$0' a-long-session-name
+  FZX_SORTED_SHOW=header FZX_SORT_HEADER=1 FZX_SORT=name FZX_SORTED_ARROWS='^ v' run src sessions
+  [[ "${lines[0]}" == $'\tSESSION^'*'DETAILS'*'ACTIVITY'$'\t{}' ]]
+  grep -q $'^\t\e\[1;38;2;0;215;255mSESSION^\e\[0m' "$BATS_TEST_TMPDIR/src.out"
+  ! grep -q $'\e\[4m' "$BATS_TEST_TMPDIR/src.out"
+  # the details start under DETAILS on every row
+  local head="${lines[0]#$'\t'}" i col
+  col="${head%%DETAILS*}"
+  for ((i = 1; i < ${#lines[@]}; i++)); do
+    local row="${lines[i]#*$'\t'}"
+    [[ "${row:${#col}:1}" =~ [0-9] && "${row:${#col}-1:1}" == " " ]]
+  done
+  # order: nothing marked
+  FZX_SORTED_SHOW=header FZX_SORT_HEADER=1 FZX_SORT=order run src windows
+  [[ "${lines[0]}" == $'\tWINDOW '*DETAILS*'ACTIVITY'$'\t{}' ]]
+  ! grep -q '38;2;0;215;255' "$BATS_TEST_TMPDIR/src.out"
+}
+
 @test "tmux: reference modes read installed commands, bindings, options and variables" {
   local mode
   # hooks lists only set hooks, and the empty test server has none

@@ -286,6 +286,9 @@ cron::_rows() {
   local u=$'\e['"${FZX_COLORS[cron_user]:-38;5;180}m" x=$'\e['"${FZX_COLORS[cron_invalid]:-38;5;203}m"
   local hl=$'\e['"${FZX_COLORS[sorted]:-4}m" r=$'\e[0m'
   [[ -n "${NO_COLOR+x}" ]] && d="" s="" u="" x="" hl="" r=""
+  # the header row (lib/header.sh); the command is not padded, so its source is left unnamed
+  fzx::require header
+  fzx::header_print 2 "$([[ "$sort" == next ]] && echo NEXT)" NEXT 12 0 "" 0 0 SCHEDULE 18 0 "" 0 0 USER 8 0 "" 0 0 COMMAND 0 0
   awk -F '\t' -v OFS='\t' -v now="$now" -v sort="$sort" -v d="$d" -v s="$s" -v u="$u" -v x="$x" -v hl="$hl" -v r="$r" '
     function rel(t,   n) {
       n = t - now

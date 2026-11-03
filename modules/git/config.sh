@@ -14,7 +14,7 @@ FZX_KEYS[git.into]=ctrl-o   # branches, tags: the log; log, reflog, stash: the c
 FZX_KEYS[git.view]=alt-v    # status, commit: the preview shows the diff or the blame
 
 # commits listed in log mode
-FZX_GIT_LOG_LIMIT=1000
+FZX_GIT_LOG_LIMIT="${FZX_GIT_LOG_LIMIT:-1000}"
 
 # diffs in the preview are piped through this command: "auto" is delta when it is installed (at the
 # preview's width), "" none, anything else a command line, e.g. "diff-so-fancy"

@@ -17,7 +17,8 @@ network::_root() {
 }
 
 # network::_awk_lib: awk functions every table shares: c(code, text) colors (NO_COLOR: none), col(i,
-# code, text, right) pads to w[i] and adds hl to the text of the sorted column scol
+# code, text, right) pads to w[i] and adds hl to the text of the sorted column scol, head(i, right, last) the
+# header row's cells (lib/header.sh's; network::_vars sets its variables)
 network::_awk_lib() {
   cat << 'AWK'
 function c(code, text) { return nocolor != "" || text == "" ? text : "\033[" code "m" text "\033[0m" }
@@ -27,13 +28,25 @@ function col(i, code, text, right,  p) {
   if (i != scol || text == "") return c(code, p)
   return (right ? substr(p, 1, length(p) - length(text)) : "") c(code ";" hl, text) (right ? "" : substr(p, length(text) + 1))
 }
-function widths(n, cols,  r, i) { for (r = 0; r <= n; r++) for (i = 1; i <= cols; i++) if (length(t[r, i]) > w[i]) w[i] = length(t[r, i]) }
+function widths(n, cols,  r, i) {
+  for (r = 0; r <= n; r++) for (i = 1; i <= cols; i++) if (length(t[r, i]) > w[i]) w[i] = length(t[r, i])
+  if (hon && scol >= 1 && scol <= cols && hwidth(t[0, scol], 1) > w[scol]) w[scol] = hwidth(t[0, scol], 1)
+}
+# head(i, right, last): the header cell of column i (h[i]; the last one unpadded): lib/header.sh marks the
+# sorted column with a header row, else it is drawn as in the rows
+function head(i, right, last) {
+  if (hon || i != scol || nocolor != "") return hcell(h[i], last ? 0 : w[i], right, hon && i == scol)
+  return col(i, hcol != "" ? hcol : "0", h[i], right)
+}
 AWK
+  printf '%s\n' "$FZX_HEADER_AWK"
 }
 
 # network::_vars: the awk -v options of every table
 network::_vars() {
-  NETWORK_VARS=(-v "nocolor=${NO_COLOR+x}" -v "hl=${FZX_COLORS[sorted]:-4}" -v "dim=${FZX_COLORS[dim]:-38;5;244}"
+  fzx::require header
+  fzx::header_vars
+  NETWORK_VARS=("${FZX_HEADER_VARS[@]}" -v "nocolor=${NO_COLOR+x}" -v "hl=${FZX_COLORS[sorted]:-4}" -v "dim=${FZX_COLORS[dim]:-38;5;244}"
     -v "name=${FZX_COLORS[network_name]:-1;38;5;255}" -v "up=${FZX_COLORS[network_up]:-38;5;114}"
     -v "down=${FZX_COLORS[network_down]:-38;5;203}" -v "port=${FZX_COLORS[network_port]:-1;38;5;141}"
     -v "addr=${FZX_COLORS[network_addr]:-38;5;152}" -v "me=${USER:-$(id -un)}")
@@ -83,7 +96,7 @@ network::sockets() {
       for (i = 1; i <= 6; i++) t[0, i] = h[i]
       widths(r, 6)
       line = ""
-      for (i = 1; i <= 6; i++) line = line col(i, "1;38;5;245", h[i], i == 5) " "
+      for (i = 1; i <= 6; i++) line = line head(i, i == 5) " "
       if (noroot != "") line = line c(dim, "(root: run sudo -v first)")
       print "-\t-\t" line
       for (i = 1; i <= r; i++) order[i] = i
@@ -115,7 +128,7 @@ network::interfaces() {
     END {
       split("NAME STATE ADDRESSES MAC", h, " "); for (i = 1; i <= 4; i++) t[0, i] = h[i]
       widths(r, 4)
-      print "-\t-\t" col(1, "1;38;5;245", h[1]) " " col(2, "1;38;5;245", h[2]) " " col(3, "1;38;5;245", h[3]) " " c("1;38;5;245", h[4])
+      print "-\t-\t" head(1) " " head(2) " " head(3) " " head(4, 0, 1)
       for (i = 1; i <= r; i++) {
         s = t[i, 2]
         print t[i, 1] "\t" cp[i] "\t" col(1, name, t[i, 1]) " " col(2, s == "UP" ? up : s == "DOWN" ? down : dim, s) " " col(3, addr, t[i, 3]) " " c(dim, t[i, 4])
@@ -142,8 +155,8 @@ network::routes() {
       END {
         split("DESTINATION VIA DEV SRC OPTIONS", h, " "); for (i = 1; i <= 5; i++) t[0, i] = h[i]
         widths(r, 5)
-        line = ""; for (i = 1; i <= 4; i++) line = line col(i, "1;38;5;245", h[i]) " "
-        print "-\t-\t" line c("1;38;5;245", h[5])
+        line = ""; for (i = 1; i <= 4; i++) line = line head(i) " "
+        print "-\t-\t" line head(5, 0, 1)
         for (i = 1; i <= r; i++)
           print id[i] "\t" t[i, 1] "\t" col(1, t[i, 1] == "default" ? port : addr, t[i, 1]) " " col(2, name, t[i, 2]) " " col(3, up, t[i, 3]) " " col(4, addr, t[i, 4]) " " c(dim, t[i, 5])
       }'
@@ -167,8 +180,8 @@ network::wifi() {
       END {
         split("_ SSID SIGNAL CHAN RATE SECURITY", h, " "); h[1] = ""; for (i = 1; i <= 6; i++) t[0, i] = h[i]
         widths(r, 6)
-        line = ""; for (i = 1; i <= 5; i++) line = line col(i, "1;38;5;245", h[i]) " "
-        print "-\t-\t" line c("1;38;5;245", h[6])
+        line = ""; for (i = 1; i <= 5; i++) line = line head(i) " "
+        print "-\t-\t" line head(6, 0, 1)
         for (i = 1; i <= r; i++) order[i] = i
         for (i = 2; i <= r; i++) { v = order[i]; for (j = i - 1; j >= 1 && key[order[j]] > key[v]; j--) order[j + 1] = order[j]; order[j + 1] = v }
         for (k = 1; k <= r; k++) {
@@ -229,7 +242,7 @@ network::services() {
       END {
         split("NAME TYPE HOST ADDRESS", h, " "); for (i = 1; i <= 4; i++) t[0, i] = h[i]
         widths(r, 4)
-        print "-\t-\t" col(1, "1;38;5;245", h[1]) " " col(2, "1;38;5;245", h[2]) " " col(3, "1;38;5;245", h[3]) " " c("1;38;5;245", h[4])
+        print "-\t-\t" head(1) " " head(2) " " head(3) " " head(4, 0, 1)
         for (i = 1; i <= r; i++) print id[i] "\t" cp[i] "\t" col(1, name, t[i, 1]) " " col(2, t[i, 2] ~ /^_https?\._tcp$/ ? up : dim, t[i, 2]) " " col(3, addr, t[i, 3]) " " c(port, t[i, 4])
       }'
 }
@@ -253,7 +266,7 @@ network::files() {
       END {
         split("FD TYPE NAME", h, " "); for (i = 1; i <= 3; i++) t[0, i] = h[i]
         widths(r, 3)
-        print "-\t-\t" col(1, "1;38;5;245", h[1]) " " col(2, "1;38;5;245", h[2]) " " c("1;38;5;245", h[3]) (noroot != "" ? " " c(dim, "(root: run sudo -v first)") : "")
+        print "-\t-\t" head(1) " " head(2) " " head(3, 0, 1) (noroot != "" ? " " c(dim, "(root: run sudo -v first)") : "")
         for (i = 1; i <= r; i++) {
           ty = t[i, 2]
           print t[i, 3] "\t" t[i, 3] "\t" col(1, dim, t[i, 1]) " " col(2, ty ~ /^IPv/ ? port : ty == "REG" ? name : dim, ty) " " c(ty ~ /^IPv/ ? addr : "", t[i, 3])
@@ -294,5 +307,7 @@ network::source() {
 
 [[ "${BASH_SOURCE[0]}" == "$0" ]] && {
   [[ -n "${_FZX_CORE_LOADED:-}" ]] || source "$(dirname "${BASH_SOURCE[0]}")/../../lib/core.sh"
+  fzx::require log config
+  fzx::config_load "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" network
   network::source "$@"
 }

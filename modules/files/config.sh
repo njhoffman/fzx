@@ -48,3 +48,6 @@ FZX_PREVIEW_LAYOUTS=("0:down,40%,border-top" "130:right,55%")
 
 # the menu group this module is listed under (menu mode groups)
 FZX_MENU_GROUP=files
+
+# sorts without a column to mark: no header row under FZX_SORTED_SHOW=header or both
+FZX_SORTED_COLUMNS=0

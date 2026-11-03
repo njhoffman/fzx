@@ -161,6 +161,18 @@ stub_systemctl() {
   [[ "${lines[0]}" == *$'\e[38;5;244m\e[4mfailed\e[0m'* ]]
 }
 
+@test "systemd: a header row (FZX_SORTED_SHOW=header) names the columns over the rows, the sorted one marked" {
+  stub_cmd systemctl 'printf "a.service loaded inactive dead A\nb.service loaded active running B\n"'
+  FZX_SORTED_SHOW=header FZX_SORT_HEADER=1 FZX_SORT=state FZX_SORTED_ARROWS='^ v' run "$MODS/systemd/source.sh"
+  [ "${#lines[@]}" -eq 3 ]
+  [[ "${lines[0]}" == $'\t\t'*UNIT*$'\e[1;38;2;0;215;255mSTATE^\e[0m'*DESCRIPTION && "${lines[1]}" != *$'\e[4m'* ]]
+  header_aligned 2 "${lines[0]}" UNIT "${lines[1]}" b.service
+  header_aligned 2 "${lines[0]}" DESCRIPTION "${lines[1]}" B
+  # without a header row in the view, none
+  FZX_SORTED_SHOW=header run "$MODS/systemd/source.sh"
+  [ "${#lines[@]}" -eq 2 ]
+}
+
 @test "systemd: an unknown mode fails with 2" {
   stub_systemctl
   FZX_MODE=bogus run --separate-stderr "$MODS/systemd/source.sh"

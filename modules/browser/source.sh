@@ -158,6 +158,10 @@ browser::source() {
     ((${#label} > lw)) && lw=${#label}
   done <<< "$profiles"
   ((lw > 30)) && lw=30
+  # the header row (lib/header.sh; history, which has a sort): the date marked when sorted by it
+  fzx::require header
+  fzx::header_print 2 "$([[ "$sort" == recent ]] && echo VISITED)" \
+    PROFILE "$lw" 0 "" 0 0 VISITED 16 0 "" 0 0 TITLE 60 0 "" 0 0 URL 0 0
   while IFS=$'\t' read -r src label dir; do
     [[ -n "$src" ]] && "$fn" "$src" "$label" "$dir"
   done <<< "$profiles" | {

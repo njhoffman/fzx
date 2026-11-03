@@ -97,6 +97,12 @@ src() {
   grep -q $'\e\[32;4mfeature' "$BATS_TEST_TMPDIR/src.out"
   run src branches
   grep -q $'\e\[38;5;244;4m[0-9a-z ]*ago' "$BATS_TEST_TMPDIR/src.out"
+  # a header row (FZX_SORTED_SHOW=header): the columns named over the rows, the sorted one marked
+  FZX_SORTED_SHOW=header FZX_SORT_HEADER=1 FZX_SORT_DESC=1 FZX_SORTED_ARROWS='^ v' run src branches
+  [[ "${lines[0]}" == $'\t  BRANCH '*'UPSTREAM '*'COMMITTEDv '*SUBJECT ]]
+  grep -q $'\e\[1;38;2;0;215;255mCOMMITTEDv' "$BATS_TEST_TMPDIR/src.out"
+  ! grep -q ';4m' "$BATS_TEST_TMPDIR/src.out"
+  header_aligned 1 "${lines[0]}" UPSTREAM "$(printf '%s\n' "${lines[@]}" | grep $'^main\t')" '[ahead'
 }
 
 @test "stash: lists stashes" {
