@@ -11,12 +11,38 @@ source "$FZX_MODULE_DIR/source.sh"
 
 # shellcheck disable=SC2034  # FZX_ACTION_ARGS*: read by lib/actions.sh
 files::opts() {
-  files::base "${FZX_ARGS[0]:-}" || return
+  files::args "${FZX_ARGS[@]}" || return
+  files::base "$FILES_DIR" || return
+  # undo takes no rows: fzf runs no command naming a row ({+1}) when nothing matches, as after a replacement
+  FZX_ACTION_ARGS_FOR['undo']='{q}'
+
   FZX_OPTS+=(
     --delimiter=$'\t'
     "--preview-window=right,55%,nohidden"
     "--header=${FILES_BASE/#$HOME/\~}"
   )
+  if [[ "$FZX_MODE" == replace ]]; then
+    # the query is the replacement: rows and preview follow it, enter applies it
+    FZX_OPTS+=(
+      --with-nth=3
+      --accept-nth='{1}:{2}'
+      --disabled
+      --multi
+      --bind "change:reload:sleep 0.1; $(fzx::cb source)"
+      --preview "$(fzx::cb preview '{1}' '{2}' '{q}')"
+      "--header=${FILES_BASE/#$HOME/\~}  replace: $FILES_TERM  (type the replacement; \$1 is a group, \$\$ a dollar; enter applies to the selected or every match)"
+    )
+    FZX_ACTION_ARGS_FOR['apply']='{q} {+1} -- {+2}'
+    FZX_ACTION_ARGS_FOR['edit']='{1} {2}'
+    if fzx::in_session; then
+      local act flags
+      fzx::require actions
+      fzx::comp_field action apply flags flags 2> /dev/null || flags=foreground,asks,restart
+      fzx::_action_bind_string apply "$flags" act
+      fzx::bind enter "$act" "apply the replacement to the selected matches (all when none are selected)"
+    fi
+    return 0
+  fi
   if [[ "$FZX_MODE" == grep ]]; then
     FZX_OPTS+=(
       --with-nth=3
@@ -48,6 +74,9 @@ files::opts() {
     fzx::state_set files_grep_filter ""
     fzx::bind "${FZX_KEYS[files.filter]}" "transform:$(fzx::cb transform filter)" \
       "grep: filter the matches with fzf (the grep term frozen), and back to grepping"
+    command -v rg > /dev/null &&
+      fzx::bind "${FZX_KEYS[files.replace]}" "transform:$(fzx::cb transform replace)" \
+        "grep: replace the term's matches (the query becomes the replacement)"
   fi
   if fzx::in_session; then
     local parent="${FILES_BASE%/*}"

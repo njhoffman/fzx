@@ -6,6 +6,17 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.80.0] - 2026-11-03
+
+### Added
+
+- files: search and replace from grep mode. alt-s opens a replace screen for the grep term: what you type
+  is the replacement (`$1` for a capture group), the rows show each matching line as it would become, and
+  the preview shows the line before and after with its context. Enter replaces the selected matches, or
+  every match when none are selected, after a question; only those lines change, the files keep their
+  mode, and each changed file is backed up first. alt-u (in grep and the replace screen) puts back the
+  files of the last replacement, leaving any edited since.
+
 ## [0.79.0] - 2026-11-03
 
 ### Added

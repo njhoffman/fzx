@@ -265,3 +265,111 @@ trash_stub() {
   run "$FZX" -m files:grep "$B"
   [[ "$(fzf_bind alt-x)" == "alt-x:execute($FZX _cb action trash {+1})+"* ]]
 }
+
+# a replace session over $B for the term (its arguments as alt-s makes them)
+replace_session() {
+  load_libs log session
+  fzx::session_create files "$FILES" "$B" --term "$1"
+  fzx::state_set mode replace
+  export FZX_MODE=replace
+}
+
+@test "replace: rows show each match as the replacement leaves it; capture groups; no query: the matches as they are" {
+  command -v rg > /dev/null || skip "ripgrep not installed"
+  export NO_COLOR=1
+  run env FZX_TOGGLES="" FZX_MODE=replace FZF_QUERY='pin' "$FILES/source.sh" "$B" --term needle
+  [ "$status" -eq 0 ]
+  [ "$(cut -f1,2 <<< "$output" | sed "s:^$B/::" | sort | tr '\t' ':' | tr '\n' ' ')" = "a-b/y:1 a/x:1 top:1 " ]
+  [[ "$output" == *$'\ta/x:1: pin a/x'* ]]
+  run env FZX_TOGGLES="" FZX_MODE=replace FZF_QUERY='<$1>' "$FILES/source.sh" "$B" --term 'need(le)'
+  [[ "$output" == *$'\ttop:1: <le> top'* ]]
+  run env FZX_TOGGLES="" FZX_MODE=replace FZF_QUERY= "$FILES/source.sh" "$B" --term needle
+  [[ "$output" == *$'\ttop:1: needle top'* ]]
+  run env FZX_MODE=replace "$FILES/source.sh" "$B"
+  [ "$status" -eq 2 ]
+}
+
+@test "replace: the preview shows the line before and after, with context; an empty replacement says it deletes" {
+  command -v rg > /dev/null || skip "ripgrep not installed"
+  export NO_COLOR=1
+  printf 'one\ntwo needle\nthree\n' > "$B/ctx"
+  replace_session needle
+  run "$FZX" _cb preview "$B/ctx" 2 pin
+  [[ "$output" == *"    1   one"* && "$output" == *"    2 - two needle"* && "$output" == *"      + two pin"* && "$output" == *"    3   three"* ]]
+  run "$FZX" _cb preview "$B/ctx" 2 ""
+  [[ "$output" == *"the replacement is empty"* && "$output" == *"      + two "* ]]
+}
+
+@test "replace: apply asks, then changes only the selected lines (every match when none is selected), keeping mode and a missing last newline; undo puts them back" {
+  command -v rg > /dev/null || skip "ripgrep not installed"
+  printf 'needle 1\nkeep\nneedle 2\n' > "$B/m"
+  printf 'needle end' > "$B/nonl"
+  chmod 750 "$B/m"
+  replace_session needle
+  export FZX_TOGGLES="" FZX_TTY="$BATS_TEST_TMPDIR/tty"
+  # the selected match only: line 3 of m
+  printf 'y' > "$FZX_TTY"
+  FZF_SELECT_COUNT=1 run "$FZX" _cb action apply pin "$B/m" -- 3
+  [ "$status" -eq 0 ]
+  [ "$(< "$B/m")" = $'needle 1\nkeep\npin 2' ]
+  [ "$(stat -c %a "$B/m")" = 750 ]
+  # nothing selected: every match; a no at the question changes nothing
+  printf 'n' > "$FZX_TTY"
+  FZF_SELECT_COUNT=0 run "$FZX" _cb action apply pin x -- 1
+  [ "$(< "$B/top")" = "needle top" ]
+  printf 'y' > "$FZX_TTY"
+  FZF_SELECT_COUNT=0 run "$FZX" _cb action apply 'P$0' x -- 1
+  [ "$(< "$B/top")" = "Pneedle top" ]
+  [ "$(< "$B/m")" = $'Pneedle 1\nkeep\npin 2' ]
+  [ "$(head -c 50 "$B/nonl" | od -c | head -1)" = "$(printf 'Pneedle end' | od -c | head -1)" ]
+  [[ "$output" == *"replaced "*" lines in "*" files"* ]]
+  # undo: the last replacement's files back; then the one before
+  printf 'yy' > "$FZX_TTY"
+  run "$FZX" _cb action undo
+  [ "$(< "$B/top")" = "needle top" ]
+  [ "$(< "$B/m")" = $'needle 1\nkeep\npin 2' ]
+  [ "$(cat "$B/nonl")" = "needle end" ]
+  run "$FZX" _cb action undo
+  [ "$(< "$B/m")" = $'needle 1\nkeep\nneedle 2' ]
+  run "$FZX" _cb action undo
+  [[ "$output" == *"no replacement to undo"* ]]
+}
+
+@test "replace: undo leaves a file changed since alone; apply is refused outside the replace screen" {
+  command -v rg > /dev/null || skip "ripgrep not installed"
+  replace_session needle
+  export FZX_TOGGLES="" FZX_TTY="$BATS_TEST_TMPDIR/tty"
+  printf 'y' > "$FZX_TTY"
+  FZF_SELECT_COUNT=0 run "$FZX" _cb action apply pin x -- 1
+  echo edited >> "$B/top"
+  printf 'y' > "$FZX_TTY"
+  run "$FZX" _cb action undo
+  [[ "$output" == *"top changed since the replacement: left as it is"* && "$output" == *"put back 2 files, 1 changed since and left alone"* ]]
+  [ "$(< "$B/a/x")" = "needle a/x" ]
+  [ "$(head -1 "$B/top")" = "pin top" ]
+  fzx::state_set mode files
+  run env FZX_MODE=files "$FZX" _cb action apply pin x -- 1
+  [ "$status" -eq 2 ]
+}
+
+@test "replace: alt-s in grep opens the replace screen for the query (or the frozen term) as a child; enter applies there" {
+  command -v rg > /dev/null || skip "ripgrep not installed"
+  load_libs log session
+  fzx::session_create files "$FILES" "$B"
+  fzx::state_set mode grep
+  FZX_MODE=grep FZF_QUERY=needle run "$FZX" _cb transform replace
+  [[ "$output" == "become:$FZX --resume "*" -m :replace" ]]
+  local child="${output##*--resume }" args=()
+  child="${child%% *}"
+  mapfile -d '' -t args < "$FZX_RUNTIME_DIR/sessions/$child/meta/args"
+  [ "${args[*]}" = "$B --term needle" ]
+  FZX_MODE=grep FZF_QUERY= run "$FZX" _cb transform replace
+  [ "$output" = bell ]
+  stub_fzf
+  run "$FZX" -m files:grep "$B"
+  [[ "$(fzf_bind alt-s)" == "alt-s:transform:$FZX _cb transform replace" ]]
+  FZX_SESSION="" run "$FZX" -m files:replace "$B" --term needle
+  [[ "$(fzf_bind enter)" == "enter:execute($FZX _cb action apply {q} {+1} -- {+2})+transform("*"nav restart)" ]]
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *" --disabled "* && " ${FZF_ARGS[*]} " == *"replace: needle  (type the replacement"* ]]
+}

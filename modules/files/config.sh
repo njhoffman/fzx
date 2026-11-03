@@ -21,6 +21,7 @@ FZX_COLORS[files_icon_locate]="38;5;180"
 FZX_KEYS[files.into]=ctrl-o  # browse the directory under the cursor (a file's own directory)
 FZX_KEYS[files.up]=alt-up    # browse the parent directory
 FZX_KEYS[files.filter]=ctrl-t # grep: filter the matches with fzf instead of grepping, and back
+FZX_KEYS[files.replace]=alt-s # grep: replace the term's matches (a screen where the query is the replacement)
 
 # file lists can be large and change rarely within a few minutes: reuse them across runs
 FZX_PERSIST=cache:5m
@@ -37,6 +38,10 @@ FZX_FILES_IMAGE_FORMAT=symbols
 # mlocate's)
 FZX_FILES_LOCATE_LIMIT="${FZX_FILES_LOCATE_LIMIT:-2000}"
 FZX_FILES_LOCATE_DB="${FZX_FILES_LOCATE_DB:-}"
+
+# replace: how many replacements keep their backups (under $FZX_STATE_DIR/files/replace; undo puts the
+# newest back)
+FZX_FILES_REPLACE_KEEP="${FZX_FILES_REPLACE_KEEP:-20}"
 
 # the list needs about 50 columns and code about 80: the preview moves to the right from 130 columns
 FZX_PREVIEW_LAYOUTS=("0:down,40%,border-top" "130:right,55%")

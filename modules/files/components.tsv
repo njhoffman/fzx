@@ -7,6 +7,9 @@ mode  files  -  files under the directory         default
 mode  dirs   -  directories under the directory   -
 mode  grep   -  search file contents as you type  restart,nopersist
 ROWS
+if command -v rg > /dev/null; then
+  printf 'mode\treplace\t-\treplace a grep term'"'"'s matches (--term T): what you type is the replacement\thidden,nopersist\n'
+fi
 if command -v plocate > /dev/null || command -v locate > /dev/null; then
   printf 'mode\tlocate\t-\tpaths the locate database has under the directory, as you type\trestart,nopersist\n'
 fi
@@ -23,6 +26,8 @@ cat << 'ROWS'
 sort  path    -  by path                                     default
 sort  recent  -  newest first (modification time)            -
 action  edit  ctrl-e  open in $EDITOR (grep: at the matching line)  foreground
+action  apply  -  replace: the replacement into the selected matches (all when none are selected), asking first  foreground,asks,restart
+action  undo   alt-u  grep, replace: put back the files the last replacement changed (unchanged since), asking first  foreground,asks,reload
 ROWS
 if command -v trash-put > /dev/null || command -v gio > /dev/null; then
   printf 'action\ttrash\talt-x\tmove the selected files or directories to the trash (grep: the files of the matches)\tconfirm,reload\n'

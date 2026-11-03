@@ -88,12 +88,9 @@ files::list() {
 files::grep() {
   local args ex
   if command -v rg > /dev/null; then
-    args=(--line-number --no-heading --color=never --smart-case)
-    files::on hidden && args+=(--hidden)
-    files::on ignored && args+=(--no-ignore)
-    files::on follow && args+=(--follow)
+    files::rg_args args
+    args+=(--color=never)
     files::on multiline && args+=(--multiline --multiline-dotall)
-    for ex in "${FZX_FILES_EXCLUDES[@]}"; do args+=(--glob "!$ex"); done
     command rg "${args[@]}" -- "$1" "$FILES_BASE"
   else
     args=(--line-number --color=never --binary-files=without-match -E)
@@ -117,6 +114,76 @@ files::grep_term() {
   [[ -n "$_on" ]] || return 0
   fzx::state_get files_grep_term _term 2> /dev/null || _term=""
   printf -v "$1" '%s' "$_term"
+}
+
+# files::args [DIR] [--term T]: FILES_DIR (the directory argument) and FILES_TERM (the replace mode's term)
+files::args() {
+  declare -g FILES_DIR="" FILES_TERM=""
+  while (($#)); do
+    case "$1" in
+      --term)
+        FILES_TERM="${2-}"
+        (($# > 1)) && shift
+        shift
+        ;;
+      --) shift ;;
+      *)
+        if [[ -n "$FILES_DIR" ]]; then
+          printf 'files: at most one directory, got: %s %s\n' "$FILES_DIR" "$*" >&2
+          return 2
+        fi
+        FILES_DIR="$1"
+        shift
+        ;;
+    esac
+  done
+}
+
+# files::rg_args <var>: ripgrep's options for the toggles and FZX_FILES_EXCLUDES (grep and replace)
+files::rg_args() {
+  local -n _a="$1"
+  local _ex
+  _a=(--line-number --no-heading --smart-case)
+  files::on hidden && _a+=(--hidden)
+  files::on ignored && _a+=(--no-ignore)
+  files::on follow && _a+=(--follow)
+  for _ex in "${FZX_FILES_EXCLUDES[@]}"; do _a+=(--glob "!$_ex"); done
+}
+
+# files::replace_matches <term>: "path<TAB>line" of every line the term matches under FILES_BASE (never
+# multiline: a replacement must keep each file's line count)
+files::replace_matches() {
+  local args
+  files::rg_args args
+  command rg "${args[@]}" --color=never --no-config --field-match-separator=$'\x1f' -- "$1" "$FILES_BASE" |
+    awk -F '\x1f' -v OFS='\t' '{ print $1, $2 }'
+  return 0
+}
+
+# files::replace_rows <term>: "path<TAB>line<TAB>display" per match: with a query (FZF_QUERY set and not
+# empty) the line as the replacement leaves it, the new text green; without one the line as it is, the match
+# red (an empty replacement deletes it)
+files::replace_rows() {
+  local args dim=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" rst=$'\e[0m' colors=()
+  files::rg_args args
+  if [[ -n "${FZF_QUERY:-}" ]]; then
+    args+=(--replace "$FZF_QUERY")
+    colors=(--colors 'match:fg:green' --colors 'match:style:bold')
+  else
+    colors=(--colors 'match:fg:red')
+  fi
+  [[ -n "${NO_COLOR+x}" ]] && dim="" rst=""
+  command rg "${args[@]}" --no-config --field-match-separator=$'\x1f' \
+    "$([[ -n "${NO_COLOR+x}" ]] && echo --color=never || echo --color=always)" \
+    --colors 'path:none' --colors 'line:none' --colors 'match:none' "${colors[@]}" -- "$1" "$FILES_BASE" |
+    awk -F '\x1f' -v base="$FILES_BASE/" -v dim="$dim" -v rst="$rst" '
+      { path = $1; gsub(/\033\[[0-9;]*m/, "", path); line = $2; gsub(/\033\[[0-9;]*m/, "", line)
+        text = $0; sub(/^[^\x1f]*\x1f[^\x1f]*\x1f/, "", text)
+        rel = substr(path, 1, length(base)) == base ? substr(path, length(base) + 1) : path
+        printf "%s\t%s\t%s%s:%s:%s %s\n", path, line, dim, rel, line, rst, text }'
+  local rc="${PIPESTATUS[0]}"
+  ((rc <= 1)) || return "$rc"
+  return 0
 }
 
 # files::locate_db <var>: the database plocate (else locate) reads; fails without either tool
@@ -169,11 +236,8 @@ files::locate() {
 # files::source [DIR]
 files::source() {
   local mode="${FZX_MODE:-files}" dim=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" rst=$'\e[0m'
-  (($# <= 1)) || {
-    printf 'files: at most one directory, got: %s\n' "$*" >&2
-    return 2
-  }
-  files::base "${1:-}" || return
+  files::args "$@" || return
+  files::base "$FILES_DIR" || return
   case "$mode" in
     files | dirs)
       local type=f
@@ -189,6 +253,13 @@ files::source() {
             n = split(rel, parts, "/"); dir = substr(rel, 1, length(rel) - length(parts[n]))
             printf "%s\t%s%s%s%s\n", path, dim, dir, rst, parts[n] }'
       return "${PIPESTATUS[0]}"
+      ;;
+    replace)
+      [[ -n "$FILES_TERM" ]] || {
+        printf 'files: replace needs --term TERM\n' >&2
+        return 2
+      }
+      files::replace_rows "$FILES_TERM"
       ;;
     locate)
       [[ -n "${FZF_QUERY:-}" ]] || return 0
