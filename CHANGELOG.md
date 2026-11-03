@@ -6,6 +6,16 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.92.0] - 2026-11-03
+
+### Changed
+
+- Header rows are the default (`FZX_SORTED_SHOW=header`): every sortable module names its columns, the
+  sorted one marked with its arrow, and the rows are no longer underlined. `FZX_SORTED_SHOW=rows` brings
+  back the underlined column.
+- The header row's columns default to `#007e95` (`FZX_HEADER_COLUMN_COLOR`) rather than fzf's header
+  color, and the sorted one to bold and underlined `#00d7ff` (`FZX_SORTED_HEADER_STYLE`).
+
 ## [0.91.0] - 2026-11-03
 
 ### Added

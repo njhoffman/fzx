@@ -188,10 +188,11 @@ setup() {
   [ "${FZX_COLORS[sorted]}" = 24 ]
 }
 
-@test "config_load: the header row's colors: fzf's for the columns, bold #00d7ff for the sorted one, unless set" {
+@test "config_load: header rows by default: #007e95 columns, the sorted one bold, underlined #00d7ff, the rows plain" {
+  unset FZX_SORTED_SHOW FZX_HEADER_COLUMN_COLOR FZX_SORTED_HEADER_STYLE
   fzx::config_load
-  [ "${FZX_COLORS[header_column]}" = "" ] && [ "${FZX_COLORS[header_sorted]}" = "1;38;2;0;215;255" ]
-  [ "$FZX_SORTED_SHOW" = rows ] && [ "$FZX_SORTED_ARROWS" = "↑ ↓" ]
+  [ "${FZX_COLORS[header_column]}" = "38;2;0;126;149" ] && [ "${FZX_COLORS[header_sorted]}" = "1;4;38;2;0;215;255" ]
+  [ "$FZX_SORTED_SHOW" = header ] && [ "$FZX_SORTED_ARROWS" = "↑ ↓" ] && [ "${FZX_COLORS[sorted]}" = 24 ]
   mkdir -p "$FZX_CONFIG_DIR"
   echo 'FZX_HEADER_COLUMN_COLOR=245; FZX_SORTED_HEADER_STYLE="bold underline"; FZX_SORTED_HEADER_COLOR=""; FZX_SORTED_SHOW=both' > "$FZX_CONFIG_DIR/config.sh"
   fzx::config_load
@@ -199,8 +200,8 @@ setup() {
   [ "${FZX_COLORS[sorted]}" = 4 ]
   echo 'FZX_SORTED_HEADER_STYLE=""; FZX_SORTED_HEADER_COLOR=""; FZX_SORTED_SHOW=sideways' > "$FZX_CONFIG_DIR/config.sh"
   fzx::config_load
-  [ "${FZX_COLORS[header_sorted]}" = 1 ] && [ "$FZX_SORTED_SHOW" = rows ]
-  grep -q 'FZX_SORTED_SHOW: not rows, header or both: sideways' "$LOG"
+  [ "${FZX_COLORS[header_sorted]}" = 1 ] && [ "$FZX_SORTED_SHOW" = header ]
+  grep -q 'FZX_SORTED_SHOW: not header, rows or both: sideways' "$LOG"
   echo 'FZX_COLORS[header_column]=""; FZX_HEADER_COLUMN_COLOR=245; FZX_COLORS[header_sorted]="7"' > "$FZX_CONFIG_DIR/config.sh"
   fzx::config_load
   [ "${FZX_COLORS[header_column]}" = "" ] && [ "${FZX_COLORS[header_sorted]}" = 7 ]

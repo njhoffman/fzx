@@ -177,7 +177,7 @@ fzx::comp_current() {
 # fzx::sort_header_on <sort>: a view sorted so (empty: none) has a header row (lib/header.sh): FZX_SORTED_SHOW
 # is header or both and the module marks a column (FZX_SORTED_COLUMNS, 0 for modules that sort without one)
 fzx::sort_header_on() {
-  [[ -n "$1" && "${FZX_SORTED_SHOW:-rows}" =~ ^(header|both)$ && "${FZX_SORTED_COLUMNS:-1}" != 0 ]]
+  [[ -n "$1" && "${FZX_SORTED_SHOW:-header}" =~ ^(header|both)$ && "${FZX_SORTED_COLUMNS:-1}" != 0 ]]
 }
 
 # fzx::mode_has_header <mode>: the mode's views have a header row (it has a sort and headers are on)

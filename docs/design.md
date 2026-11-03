@@ -331,7 +331,8 @@ anything stripping SGR must allow `[0-9;:]`. It is drawn in the text and not its
 where there is one. It is done in the source and not with fzf's `change-nth` and `--color nth`, because `change-nth` also narrows what
 the query matches to that column.
 
-`FZX_SORTED_SHOW` picks where the sort shows: `rows` (the default, the above), `header` or `both`. With
+`FZX_SORTED_SHOW` picks where the sort shows: `header` (the default), `rows` (the above, no header rows)
+or `both`. With
 header or both, a view that has a sort (`fzx::sort_header_on`: the mode has one and the module marks a
 column, `FZX_SORTED_COLUMNS` not 0; files and todos set it to 0) gets a header row, and lib/components.sh
 exports `FZX_SORT_HEADER=1` with the view: opts_build adds `--header-lines=1` (unless the module always has
@@ -342,9 +343,9 @@ fields, cells one space apart, an empty 0-wide cell for a two-space gap, a `\t` 
 `-z` for `--read0` lists), `fzx::header_vars` (`hcell`, `hwidth` in `FZX_HEADER_AWK`) for sources that size
 their columns in awk. Cells are padded like the rows' columns (a label wider than its column would shift
 the rest: github's issue count, 5 wide without its icon, is OPEN then), colored in the text only:
-`FZX_COLORS[header_column]` (from `FZX_HEADER_COLUMN_COLOR`, "" by default: fzf's own `header` color shows,
-which ps and network used to override with a fixed gray) and, for the sorted column and its arrow,
-`[header_sorted]` (`FZX_SORTED_HEADER_STYLE`, default bold, and `FZX_SORTED_HEADER_COLOR`, default `#00d7ff`).
+`FZX_COLORS[header_column]` (from `FZX_HEADER_COLUMN_COLOR`, default `#007e95`; "" leaves fzf's own `header`
+color) and, for the sorted column and its arrow, `[header_sorted]` (`FZX_SORTED_HEADER_STYLE`, default
+`bold underline`, and `FZX_SORTED_HEADER_COLOR`, default `#00d7ff`).
 The arrows are `FZX_SORTED_ARROWS` ("ascending descending", default `↑ ↓`; "" for none). Under header the
 rows' `FZX_COLORS[sorted]` is 24, so they stay plain. fzf cannot change `--header-lines` while it runs, so a
 mode switch between a mode with a header row and one without restarts fzf (`fzx::mode_has_header` in

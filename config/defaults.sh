@@ -135,16 +135,16 @@ declare -gA FZX_COLORS=(
 FZX_SORTED_STYLE="${FZX_SORTED_STYLE-underdashed}"
 # the color of its underline: #rrggbb, a 256-color number, or "" for the text's own color
 FZX_SORTED_UNDERLINE_COLOR="${FZX_SORTED_UNDERLINE_COLOR-#6e6e6e}"
-# where the sort shows: rows (the sorted column in every row, as above), header (a header row naming the
-# columns, the sorted one marked; the rows plain), or both. With header or both, every module that sorts by a
-# column shows a header row in the modes that have a sort (switching between modes with and without one
-# restarts fzf, which cannot change its header lines in place)
-FZX_SORTED_SHOW="${FZX_SORTED_SHOW-rows}"
+# where the sort shows: header (a header row naming the columns, the sorted one marked; the rows plain), rows
+# (the sorted column in every row, as above, and no header rows), or both. With header or both, every module
+# that sorts by a column shows a header row in the modes that have a sort (switching between modes with and
+# without one restarts fzf, which cannot change its header lines in place)
+FZX_SORTED_SHOW="${FZX_SORTED_SHOW-header}"
 # the header row: its columns' color (#rrggbb, a 256-color number, or "" for fzf's header color), the sorted
 # column's decorations (names as above) and color, and its arrows ("ascending descending"; "" for none).
 # FZX_COLORS[header_column] and [header_sorted] (raw SGR parameters) override them
-FZX_HEADER_COLUMN_COLOR="${FZX_HEADER_COLUMN_COLOR-}"
-FZX_SORTED_HEADER_STYLE="${FZX_SORTED_HEADER_STYLE-bold}"
+FZX_HEADER_COLUMN_COLOR="${FZX_HEADER_COLUMN_COLOR-#007e95}"
+FZX_SORTED_HEADER_STYLE="${FZX_SORTED_HEADER_STYLE-bold underline}"
 FZX_SORTED_HEADER_COLOR="${FZX_SORTED_HEADER_COLOR-#00d7ff}"
 FZX_SORTED_ARROWS="${FZX_SORTED_ARROWS-↑ ↓}"
 # set by a module that sorts without a column to mark (files, todos): 0 shows no header row

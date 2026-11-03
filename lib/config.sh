@@ -81,14 +81,14 @@ fzx::_sgr_join() {
 #   FZX_COLORS[header_sorted]  its sorted column and arrow: FZX_SORTED_HEADER_STYLE and FZX_SORTED_HEADER_COLOR
 fzx::_sorted_sgr() {
   local _sgr=()
-  case "${FZX_SORTED_SHOW:-rows}" in
+  case "${FZX_SORTED_SHOW:-header}" in
     rows | header | both) ;;
     *)
-      fzx::log warn "FZX_SORTED_SHOW: not rows, header or both: $FZX_SORTED_SHOW (rows)"
-      FZX_SORTED_SHOW=rows
+      fzx::log warn "FZX_SORTED_SHOW: not header, rows or both: $FZX_SORTED_SHOW (header)"
+      FZX_SORTED_SHOW=header
       ;;
   esac
-  if [[ "${FZX_SORTED_SHOW:-rows}" == header ]]; then
+  if [[ "${FZX_SORTED_SHOW:-header}" == header ]]; then
     printf -v 'FZX_COLORS[sorted]' '%s' 24
   elif [[ -z "${FZX_COLORS[sorted]:-}" ]]; then
     fzx::_sgr_decor FZX_SORTED_STYLE "${FZX_SORTED_STYLE-underdashed}" _sgr &&
@@ -97,12 +97,12 @@ fzx::_sorted_sgr() {
   fi
   if [[ -z "${FZX_COLORS[header_column]+set}" ]]; then
     _sgr=()
-    fzx::_sgr_color FZX_HEADER_COLUMN_COLOR "${FZX_HEADER_COLUMN_COLOR:-}" 38 _sgr
+    fzx::_sgr_color FZX_HEADER_COLUMN_COLOR "${FZX_HEADER_COLUMN_COLOR-#007e95}" 38 _sgr
     fzx::_sgr_join _sgr "" "FZX_COLORS[header_column]"
   fi
   if [[ -z "${FZX_COLORS[header_sorted]:-}" ]]; then
     _sgr=()
-    fzx::_sgr_decor FZX_SORTED_HEADER_STYLE "${FZX_SORTED_HEADER_STYLE-bold}" _sgr || :
+    fzx::_sgr_decor FZX_SORTED_HEADER_STYLE "${FZX_SORTED_HEADER_STYLE-bold underline}" _sgr || :
     fzx::_sgr_color FZX_SORTED_HEADER_COLOR "${FZX_SORTED_HEADER_COLOR-#00d7ff}" 38 _sgr
     fzx::_sgr_join _sgr 1 "FZX_COLORS[header_sorted]"
   fi

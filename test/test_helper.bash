@@ -18,9 +18,10 @@ setup_fzx() {
   # the sorted column as a plain underline (\e[4m), which the module tests match; test/lib.bats covers the
   # decorations
   export FZX_SORTED_STYLE=underline FZX_SORTED_UNDERLINE_COLOR=""
-  # sort marking in the rows only (the header row's tests turn it on), whatever the environment has
-  unset FZX_SORTED_SHOW FZX_SORT_HEADER FZX_SORT_DESC FZX_HEADER_COLUMN_COLOR FZX_SORTED_HEADER_STYLE \
-    FZX_SORTED_HEADER_COLOR FZX_SORTED_ARROWS
+  # sort marking in the rows only, header cells in fzf's header color, bold without an underline (the header
+  # row's tests turn it on; test/lib.bats covers the defaults), whatever the environment has
+  export FZX_SORTED_SHOW=rows FZX_HEADER_COLUMN_COLOR="" FZX_SORTED_HEADER_STYLE=bold
+  unset FZX_SORT_HEADER FZX_SORT_DESC FZX_SORTED_HEADER_COLOR FZX_SORTED_ARROWS
   export COUNTER_FILE="$BATS_TEST_TMPDIR/counter"
   LOG="$FZX_STATE_DIR/fzx.log"
   # renderers that start Neovim or draw by the user's own config (lib/render.sh) fail, so previews go to
