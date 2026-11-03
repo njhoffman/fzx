@@ -101,6 +101,10 @@ GITHUB_JQ_CHIP='
 # their author's) of a `gh issue|pr view` file, oldest first, as {who, assoc, what, at, body, item}: assoc the
 # author's association with the repository ("" for none), what the review's verdict ("" for a comment), item
 # the comment or review itself. Shared by the preview's markdown and its header lines.
+# entries($th): the timeline, then a pull request's review threads ($th: the reviewThreads nodes of
+# github::review_threads): a section entry {type: "section", n, resolved}, then per thread by file and line a
+# {type: "thread", path, line, outdated, resolved, hunk} entry (hunk: the last FZX_GITHUB_HUNK_LINES lines of
+# the diff it comments on) and, unless it is resolved, its comments as timeline entries
 # shellcheck disable=SC2016,SC2034  # jq, not shell; used by preview.sh
 GITHUB_JQ_TIMELINE='
   def assoc: (.authorAssociation // "NONE") | if . == "NONE" or . == "" then "" else ascii_downcase | gsub("_"; " ") end;
@@ -108,7 +112,16 @@ GITHUB_JQ_TIMELINE='
     (.reviews[]? | select(.state != "PENDING" and (.state != "COMMENTED" or (.body // "") != "")) |
       {who: .author.login, assoc: assoc, at: .submittedAt,
        what: (if .state == "COMMENTED" then "reviewed" else .state | ascii_downcase | gsub("_"; " ") end), body, item: .})] |
-    sort_by(.at)[];'
+    sort_by(.at)[];
+  def threads($th; $hunk): if ($th | length) == 0 then empty else
+    {type: "section", n: ($th | length), resolved: ([$th[] | select(.isResolved)] | length)},
+    ($th | sort_by(.path, (.line // .originalLine // 0))[] |
+      {type: "thread", path, line: (.line // .originalLine), outdated: .isOutdated, resolved: .isResolved,
+       hunk: (if .isResolved then "" else (.comments.nodes[0].diffHunk // "") | split("\n") | .[-$hunk:] | join("\n") end)},
+      (if .isResolved then empty else
+        .comments.nodes[] | {who: .author.login, assoc: assoc, at: .createdAt, what: "", body, item: .} end))
+  end;
+  def entries($th; $hunk): timeline, threads($th; $hunk);'
 
 # github::issue_rows <file> <scope>: "url  issue|pr  owner/name  file  index  display" per item: the state's
 # icon in its color, the repository (a list that is not one repository's), #number, the title, the labels in

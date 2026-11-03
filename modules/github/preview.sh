@@ -128,13 +128,31 @@ github::preview_issue() {
   github::item_details "$url" "$repo" "$num" "$updated"
 }
 
+# GraphQL: a pull request's review threads with their place in the diff, state and comments (REST's
+# pulls/N/comments has neither the resolved state nor the grouping)
+# shellcheck disable=SC2016  # GraphQL variables, not shell
+GITHUB_GQL_THREADS='query($owner: String!, $name: String!, $number: Int!) {
+  repository(owner: $owner, name: $name) { pullRequest(number: $number) { reviewThreads(first: 100) { nodes {
+    path line originalLine isResolved isOutdated
+    comments(first: 50) { nodes { author { login } authorAssociation body createdAt diffHunk
+      reactionGroups { content users { totalCount } } } } } } } } }'
+
+# github::review_threads <owner/name> <number>: the reviewThreads nodes as a JSON array
+github::review_threads() {
+  command gh api graphql -f query="$GITHUB_GQL_THREADS" -f owner="${1%%/*}" -f name="${1#*/}" -F number="$2" \
+    --jq '.data.repository.pullRequest.reviewThreads.nodes'
+}
+
 # github::item_details <url> <owner/name> <number> <updated>: a pull request's branches, size, review and
 # checks, then the body and its reactions and the timeline as markdown: the comments and, for a pull request,
 # the reviews (those with a verdict or a text), oldest first, each under a heading with its author, the
-# author's association with the repository, the verdict and the date, and its reactions below. Cached by the
-# last update, so a new comment fetches them again; the markdown also by the icon style
+# author's association with the repository, the verdict and the date, and its reactions below; then a pull
+# request's review threads by file and line, each under a header line (path:line, outdated, resolved) with the
+# end of the diff it comments on and its comments (a resolved one: the header alone). Cached by the last
+# update, so a new comment fetches them again; the markdown also by the icon style, and as ".t" once the
+# threads were read (a failed read is tried again on the next preview)
 github::item_details() {
-  local url="$1" repo="$2" num="$3" updated="$4" kind fields view md heads tmp
+  local url="$1" repo="$2" num="$3" updated="$4" kind fields view md heads tmp threads=/dev/null t=""
   local d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m' y=$'\e[38;5;180m'
   local g=$'\e['"${FZX_COLORS[github_open]:-38;5;114}m" red=$'\e['"${FZX_COLORS[github_closed]:-38;5;203}m"
   local i_ok i_failed i_review n
@@ -173,16 +191,24 @@ github::item_details() {
           "  \($col)\($c | ascii_downcase | if . == "" then "pending" else . end)\($r)  \(.name // .context)")
        else empty end)' -- "$view"
   fi
-  # the body and the timeline, one markdown file per version and icon style; each timeline entry starts with
-  # a marker paragraph, replaced after rendering by a header line (github::timeline_heads)
-  md="${view%.json}.${FZX_ICONS:-nerd}.md"
-  heads="${view%.json}.heads.json"
+  if [[ "$kind" == pr ]] &&
+    threads="$(github::cached "${view%.json}.threads.json" github::review_threads "$repo" "$num" 2> /dev/null)"; then
+    t=.t
+  else
+    threads=/dev/null
+  fi
+  # the body, the timeline and the threads, one markdown file per version and icon style; each entry starts
+  # with a marker paragraph, replaced after rendering by a header line (github::timeline_heads)
+  md="${view%.json}$t.${FZX_ICONS:-nerd}.md"
+  heads="${view%.json}$t.heads.json"
   # the temporary name taken here: $BASHPID in a redirection would be the child's
   tmp="$md.$BASHPID"
-  [[ -f "$heads" ]] || { command jq "$GITHUB_JQ_TIMELINE"'[timeline | {who, assoc, what, at}]' -- "$view" > "$tmp" &&
+  local hunk="${FZX_GITHUB_HUNK_LINES:-4}"
+  [[ -f "$heads" ]] || { command jq --slurpfile th "$threads" --argjson hunk "$hunk" "$GITHUB_JQ_TIMELINE"'
+    [entries($th[0] // []; $hunk) | {type, who, assoc, what, at, path, line, outdated, resolved, n}]' -- "$view" > "$tmp" &&
     mv -f -- "$tmp" "$heads"; }
   [[ -f "$md" ]] || {
-    command jq -r --arg up "${re[thumbs_up]}" --arg down "${re[thumbs_down]}" --arg laugh "${re[laugh]}" \
+    command jq -r --slurpfile th "$threads" --argjson hunk "$hunk" --arg up "${re[thumbs_up]}" --arg down "${re[thumbs_down]}" --arg laugh "${re[laugh]}" \
       --arg hooray "${re[hooray]}" --arg confused "${re[confused]}" --arg heart "${re[heart]}" --arg rocket "${re[rocket]}" \
       --arg eyes "${re[eyes]}" "$GITHUB_JQ_TIMELINE"'
       {THUMBS_UP: $up, THUMBS_DOWN: $down, LAUGH: $laugh, HOORAY: $hooray, CONFUSED: $confused, HEART: $heart,
@@ -194,10 +220,11 @@ github::item_details() {
         join("  ");
       ((.body // "") | if . == "" then "*no description*" else . end),
       (reactions | select(. != "") | "\n" + .),
-      ([timeline] | to_entries[] | .key as $n | .value |
+      ([entries($th[0] // []; $hunk)] | to_entries[] | .key as $n | .value |
         "\nFZXCOMMENT\($n)",
+        (if (.hunk // "") != "" then "\n```diff\n" + .hunk + "\n```" else empty end),
         (if (.body // "") != "" then "\n" + .body else empty end),
-        (.item | reactions | select(. != "") | "\n" + .))' -- "$view" > "$tmp" &&
+        (if .item then .item | reactions | select(. != "") | "\n" + . else empty end))' -- "$view" > "$tmp" &&
       mv -f -- "$tmp" "$md"
   }
   printf '\n'
@@ -217,11 +244,21 @@ github::timeline_heads() {
     --arg red "$red" --arg y "$y" '
     def rule($k): [range(0; [$k, 3] | max)] | map("─") | join("");
     to_entries[] | .key as $n | .value |
+    if .type == "section" then
+      ("review threads" + (if .resolved > 0 then " (\(.n), \(.resolved) resolved)" else " (\(.n))" end)) as $t |
+      "\($n)\t\($d)── \($r)\($b)\($t)\($r)\($d) \(rule($w - ($t | length) - 4))\($r)"
+    elif .type == "thread" then
+      ("\(.path)\(if .line then ":\(.line)" else "" end)") as $p |
+      ([(if .outdated then "outdated" else empty end), (if .resolved then "resolved" else empty end)] |
+        map(" · " + .) | join("")) as $s |
+      "\($n)\t\($d)── \($r)\($y)\($p)\($r)\($d)\($s) \(rule($w - ($p | length) - ($s | length) - 4))\($r)"
+    else
     [(.who // "ghost"), (.assoc | if . == "" then "" else " (\(.))" end),
      (if .what == "" then "" else " · " + .what end), " · \(.at[0:10])"] as $t |
     ("── " + ($t | join("")) + " ") as $plain |
     (if .what == "approved" then $g elif .what == "changes requested" then $red else $y end) as $vc |
-    "\($n)\t\($d)── \($r)\($b)\($t[0])\($r)\($d)\($t[1])\($r)\($vc)\($t[2])\($r)\($d)\($t[3]) \(rule($w - ($plain | length)))\($r)"' \
+    "\($n)\t\($d)── \($r)\($b)\($t[0])\($r)\($d)\($t[1])\($r)\($vc)\($t[2])\($r)\($d)\($t[3]) \(rule($w - ($plain | length)))\($r)"
+    end' \
     -- "$heads" 2> /dev/null)"
   awk -v heads="$lines" '
     BEGIN { n = split(heads, h, "\n"); for (i = 1; i <= n; i++) { t = index(h[i], "\t"); head[substr(h[i], 1, t - 1)] = substr(h[i], t + 1) } }

@@ -35,6 +35,8 @@ FZX_GITHUB_CACHE_TTL="${FZX_GITHUB_CACHE_TTL:-1h}"
 # issue, pull request, notification and workflow run lists (and a repository's hub) (they change more often) are kept this long; an action on one
 # drops them
 FZX_GITHUB_ISSUES_TTL="${FZX_GITHUB_ISSUES_TTL:-2m}"
+# a pull request's review threads in its preview: how many lines of the diff above each thread's comments
+FZX_GITHUB_HUNK_LINES=4
 # recent searches per mode, kept in $FZX_STATE_DIR/github/history-<mode>
 FZX_GITHUB_HISTORY_MAX="${FZX_GITHUB_HISTORY_MAX:-200}"
 # clones (alt-c, `clone`, `repos --clone-missing`) over ssh: mine (your own repositories, which you push

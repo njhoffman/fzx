@@ -6,6 +6,19 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.69.0] - 2026-11-02
+
+### Added
+
+- github: a pull request's preview shows its review threads after the timeline, by file and line: a header
+  line per thread (`path:line`, outdated, resolved), the last lines of the diff it comments on
+  (`FZX_GITHUB_HUNK_LINES`, 4) and its comments with their reactions. Resolved threads show as their header
+  line alone. Read through GraphQL and cached with the pull request's last update.
+
+### Removed
+
+- TODO: the tmux marked-pane round trip moved to the tmux config's TODO.md (a tmux key, not an fzx action).
+
 ## [0.68.0] - 2026-11-02
 
 ### Added

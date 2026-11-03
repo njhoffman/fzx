@@ -24,7 +24,7 @@ if [[ "${args[0]}" == api ]]; then
   rest=() method=GET
   for ((i = 1; i < ${#args[@]}; i++)); do
     case "${args[i]}" in
-      -H | --jq) ((i++)) ;;
+      -H | --jq | -f | -F) ((i++)) ;;
       -X) method="${args[i + 1]}"; ((i++)) ;;
       -i | --paginate | --slurp) ;;
       *) rest+=("${args[i]}") ;;
@@ -68,6 +68,11 @@ case "${args[0]} ${args[1]}" in
     [[ -n "${STUB_GH_FAIL:-}" ]] && { echo "API rate limit exceeded" >&2; exit 1; }
     if [[ "${args[1]}" == repos ]]; then cat "$BATS_TEST_TMPDIR/repos.json"; else cat "$BATS_TEST_TMPDIR/code.json"; fi
     ;;
+  # a pull request's review threads (the --jq result: the nodes)
+  "api graphql")
+    printf '%s ' "$@" | tr '\n' ' ' >> "$BATS_TEST_TMPDIR/graphql.calls"; echo >> "$BATS_TEST_TMPDIR/graphql.calls"
+    [[ -n "${STUB_GH_THREADS_FAIL:-}" ]] && { echo "HTTP 502" >&2; exit 1; }
+    cat "$BATS_TEST_TMPDIR/threads.json" ;;
   "api rate_limit") echo "searches left: 29/30, code 9/10 (per minute)" ;;
   "api user") echo me ;;
   "api emojis") printf '{"cherry_blossom":"https://x/emoji/unicode/1f338.png?v8","atom":"https://x/emoji/atom.png?v8"}\n' ;;
@@ -200,6 +205,18 @@ JSON
  "headRefName":"feat/x","baseRefName":"main","changedFiles":3,"additions":10,"deletions":2,
  "reviewDecision":"APPROVED","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","conclusion":"FAILURE","status":"COMPLETED"},
  {"__typename":"StatusContext","context":"lint","state":"PENDING"}]}
+JSON
+  # review threads of pull request 40: an open one with a reply on b.sh, a resolved one on a.sh (sorted
+  # first, by file), an outdated one with no line any more
+  cat > "$BATS_TEST_TMPDIR/threads.json" << 'JSON'
+[{"path":"b.sh","line":7,"originalLine":7,"isResolved":false,"isOutdated":false,
+  "comments":{"nodes":[{"author":{"login":"erin"},"authorAssociation":"MEMBER","createdAt":"2026-01-01T01:00:00Z","body":"why here?",
+   "diffHunk":"@@ -1,5 +1,6 @@\n one\n two\n three\n-four\n+FOUR\n+five","reactionGroups":[{"content":"EYES","users":{"totalCount":1}}]},
+   {"author":{"login":"bob"},"authorAssociation":"NONE","createdAt":"2026-01-01T02:00:00Z","body":"because","diffHunk":"x","reactionGroups":[]}]}},
+ {"path":"a.sh","line":3,"originalLine":3,"isResolved":true,"isOutdated":false,
+  "comments":{"nodes":[{"author":{"login":"dan"},"createdAt":"2026-01-01T00:00:00Z","body":"hidden when resolved","diffHunk":"@@ x","reactionGroups":[]}]}},
+ {"path":"c.sh","line":null,"originalLine":12,"isResolved":false,"isOutdated":true,
+  "comments":{"nodes":[{"author":{"login":"hal"},"createdAt":"2026-01-01T03:00:00Z","body":"old spot","diffHunk":"@@ y\n+z","reactionGroups":[]}]}}]
 JSON
   # gh repo view O/R (the hub), gh run list, gh run view --json jobs
   cat > "$BATS_TEST_TMPDIR/repo.json" << 'JSON'
@@ -734,6 +751,42 @@ clone_here() {
     "$GH_DIR/preview.sh" "$FZX_CACHE_DIR/github/issues/prs-o__r-open.json"
   [[ "$output" == *rendered && "$output" != *"stdin: leak"* ]]
   [ "$(grep -c '^pr view' "$BATS_TEST_TMPDIR/gh.calls")" -eq 1 ]
+}
+
+@test "preview: a pull request's review threads by file and line after the timeline; resolved ones collapsed" {
+  clone_here
+  src prs "" > /dev/null
+  run env FZX_PREVIEW_VIEWERS=markdown=cat "$GH_DIR/preview.sh" https://github.com/o/r/pull/40 pr o/r \
+    "$FZX_CACHE_DIR/github/issues/prs-o__r-open.json" 0
+  [ "$status" -eq 0 ]
+  grep -q -- '-f owner=o -f name=r -F number=40 ' "$BATS_TEST_TMPDIR/graphql.calls"
+  # after the last timeline entry; a.sh's resolved thread is its header alone
+  [[ "$output" == *'── dan (contributor) · approved · 2026-01-03 '*'── review threads (3, 1 resolved) ─'* ]]
+  [[ "$output" == *$'── a.sh:3 · resolved ─'*$'\n\n── b.sh:7 ─'* && "$output" != *'hidden when resolved'* ]]
+  # the end of the hunk (FZX_GITHUB_HUNK_LINES, 4), then each comment under its header with its reactions
+  [[ "$output" == *$'── b.sh:7 ─'*$'\n\n```diff\n three\n-four\n+FOUR\n+five\n```\n\n── erin (member) · 2026-01-01 ─'*$'\n\nwhy here?\n\neyes 1\n\n── bob · 2026-01-01 ─'*$'\n\nbecause'* ]]
+  [[ "$output" != *'@@ -1,5'* ]]
+  # an outdated thread keeps its original line
+  [[ "$output" == *'── c.sh:12 · outdated ─'*'old spot'* && "$output" != *FZXCOMMENT* ]]
+  # cached with the view: read once
+  "$GH_DIR/preview.sh" https://github.com/o/r/pull/40 pr o/r "$FZX_CACHE_DIR/github/issues/prs-o__r-open.json" 0 > /dev/null
+  [ "$(wc -l < "$BATS_TEST_TMPDIR/graphql.calls")" -eq 1 ]
+}
+
+@test "preview: issues read no threads; a failed read shows the rest and is tried again next time" {
+  clone_here
+  src issues "" > /dev/null
+  src prs "" > /dev/null
+  "$GH_DIR/preview.sh" https://github.com/o/r/issues/12 issue o/r "$FZX_CACHE_DIR/github/issues/issues-o__r-open.json" 0 > /dev/null
+  [ ! -e "$BATS_TEST_TMPDIR/graphql.calls" ]
+  STUB_GH_THREADS_FAIL=1 run env FZX_PREVIEW_VIEWERS=markdown=cat "$GH_DIR/preview.sh" https://github.com/o/r/pull/40 pr o/r \
+    "$FZX_CACHE_DIR/github/issues/prs-o__r-open.json" 0
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'── dan (contributor) · approved'* && "$output" != *'review threads'* ]]
+  run env FZX_PREVIEW_VIEWERS=markdown=cat "$GH_DIR/preview.sh" https://github.com/o/r/pull/40 pr o/r \
+    "$FZX_CACHE_DIR/github/issues/prs-o__r-open.json" 0
+  [[ "$output" == *'review threads (3, 1 resolved)'* ]]
+  [ "$(wc -l < "$BATS_TEST_TMPDIR/graphql.calls")" -eq 2 ]
 }
 
 @test "preview in color: the state's icon and color, labels as chips, the review's icon, reactions' icons" {
