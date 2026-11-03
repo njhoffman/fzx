@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.69.0): the six steps of `docs/design.md` are done. Modules: actions, audio, capture, claude, colors, dirs,
+Status (0.70.0): the six steps of `docs/design.md` are done. Modules: actions, audio, capture, claude, colors, dirs,
 docker, files, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
@@ -79,8 +79,6 @@ Reviewed: 2026-11-02
       buffers paste (newest first, under FZX_STATE_DIR), and named snippets saved on purpose (snippetdb's
       put/get/remove/list). Open: a capture mode, or a module of its own that the zsh widgets can use
       outside tmux too. Ref: resources/fzfmenu/proto-widgets/tmux/snippetdb.
-- [ ] **docker: exec a command** (p3) [feature]: fzf-runinc: exec a typed command (not a shell) in the container,
-      output kept on screen; and docker system df as the images/volumes summary. Ref: fzf-rsc/modules/docker.
 
 ## 6. New modules
 

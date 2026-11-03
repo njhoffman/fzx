@@ -26,6 +26,10 @@ case "\$*" in
   'compose ls -a --format json') echo '[{"Name":"site","Status":"running(2)","ConfigFiles":"/srv/site/compose.yml"}]' ;;
   'exec c2 sh -c command -v zsh') exit 1 ;;
   'exec c2 sh -c command -v bash') exit 0 ;;
+  # c3: an image without a shell
+  'exec c3 sh -c :') exit 126 ;;
+  'inspect --format {{.Name}} c2') echo /web ;;
+  'inspect --format {{.Name}} c3') echo /distroless ;;
 esac
 exit 0
 STUB
@@ -81,6 +85,34 @@ act() { FZX_MODE="$1" "$DOCKER/actions.sh" "${@:2}"; }
   [ "$status" -eq 2 ]
   [[ "$output" == *'exec does not apply to images'* ]]
   [ ! -f "$CALLS" ] || ! grep -q '^exec' "$CALLS"
+}
+
+# run a docker:: function with the module's actions loaded
+docker_fn() { bash -c 'source "$FZX_REPO/lib/core.sh"; source "$1/actions.sh"; shift; "$@"' _ "$DOCKER" "$@"; }
+
+@test "cmd: through the container's sh when it has one, as words without; a header per container" {
+  run docker_fn docker::cmd_run 'ls / | head -1' c2 c3
+  [ "$status" -eq 0 ]
+  grep -qxF 'exec c2 sh -c ls / | head -1' "$CALLS"
+  grep -qxF 'exec c3 ls / | head -1' "$CALLS"
+  [[ "$(printf '%s\n' "$output" | plain)" == *'── web: ls / | head -1'*'── distroless: ls / | head -1'* ]]
+}
+
+@test "cmd history: newest last, once each, capped at FZX_DOCKER_CMD_HISTORY" {
+  docker_fn docker::cmd_remember 'ls /'
+  docker_fn docker::cmd_remember 'uname -a'
+  docker_fn docker::cmd_remember 'ls /'
+  [ "$(cat "$FZX_STATE_DIR/docker/cmd_history")" = $'uname -a\nls /' ]
+  FZX_DOCKER_CMD_HISTORY=1 docker_fn docker::cmd_remember 'id'
+  [ "$(cat "$FZX_STATE_DIR/docker/cmd_history")" = id ]
+}
+
+@test "cmd applies to containers only; df in any mode, into the pager" {
+  run act images cmd i1
+  [[ "$output" == *'cmd does not apply to images'* ]]
+  PAGER=cat run act volumes df
+  [ "$status" -eq 0 ]
+  grep -qx 'system df' "$CALLS" && grep -qx 'system df -v' "$CALLS"
 }
 
 @test "exec: the first shell the container has" {

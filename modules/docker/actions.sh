@@ -28,6 +28,54 @@ docker::exec() {
   command docker exec -it "$1" sh
 }
 
+# docker::cmd_history: where the commands typed for the cmd action are kept (newest last)
+docker::cmd_history() { printf '%s/docker/cmd_history' "$FZX_STATE_DIR"; }
+
+# docker::cmd_remember <command>: add it to the history (once, as the newest; FZX_DOCKER_CMD_HISTORY kept)
+docker::cmd_remember() {
+  local file tmp
+  file="$(docker::cmd_history)"
+  mkdir -p -- "${file%/*}"
+  tmp="$file.$BASHPID"
+  { [[ -f "$file" ]] && grep -vxF -- "$1" "$file"; printf '%s\n' "$1"; } | tail -n "${FZX_DOCKER_CMD_HISTORY:-200}" > "$tmp"
+  mv -f -- "$tmp" "$file"
+}
+
+# docker::cmd_ask <var>: read a command line on the terminal, with readline and the history (up and down)
+docker::cmd_ask() {
+  local _file _line
+  _file="$(docker::cmd_history)"
+  set -o history
+  history -c
+  [[ -f "$_file" ]] && history -r "$_file"
+  read -r -e -p $'\e[1mcommand:\e[0m ' _line < /dev/tty || return 1
+  set +o history
+  [[ -n "${_line// /}" ]] || return 1
+  docker::cmd_remember "$_line"
+  printf -v "$1" '%s' "$_line"
+}
+
+# docker::cmd_run <command> <container...>: run the command in each container, under a header naming it:
+# through the container's sh when it has one (pipes, globs, variables), else split into words and run as is
+# (images without a shell)
+docker::cmd_run() {
+  local cmd="$1" id name words rc=0 tty=()
+  shift
+  [[ -t 0 ]] && tty=(-it)
+  for id in "$@"; do
+    name="$(command docker inspect --format '{{.Name}}' "$id" 2> /dev/null)"
+    printf '\e[2m── \e[0m\e[1m%s\e[0m\e[2m: %s\e[0m\n' "${name#/}" "$cmd"
+    if command docker exec "$id" sh -c : > /dev/null 2>&1; then
+      command docker exec "${tty[@]}" "$id" sh -c "$cmd" || rc=$?
+    else
+      read -ra words <<< "$cmd"
+      command docker exec "${tty[@]}" "$id" "${words[@]}" || rc=$?
+    fi
+    (($# > 1)) && printf '\n'
+  done
+  return "$rc"
+}
+
 # docker::logs_merged <container...>: follow several containers at once, each line prefixed with its
 # container's name in its own color (docker-fzf's dla); ctrl-c stops them all
 docker::logs_merged() {
@@ -49,7 +97,7 @@ docker::logs_merged() {
 docker::action() {
   local action="${1:-}" mode="${FZX_MODE:-containers}" id rc=0
   shift
-  (($#)) || [[ "$action" == prune ]] || return 0
+  (($#)) || [[ "$action" == prune || "$action" == df ]] || return 0
   case "$action:$mode" in
     start:containers) command docker start "$@" ;;
     start:compose) for id in "$@"; do command docker compose -p "$id" up -d || rc=$?; done ;;
@@ -63,6 +111,14 @@ docker::action() {
     remove:volumes) command docker volume rm -f "$@" ;;
     remove:networks) command docker network rm "$@" ;;
     exec:containers) docker::exec "$1" ;;
+    cmd:containers)
+      local line
+      docker::cmd_ask line || return 0
+      docker::cmd_run "$line" "$@" || rc=$?
+      docker::wait
+      ;;
+    # disk use by images, containers, volumes and the build cache, then per item; any mode
+    df:*) { command docker system df && printf '\n' && command docker system df -v; } | ${PAGER:-less -R} ;;
     logs:containers)
       # ctrl-c ends the follow, not fzx
       trap : INT
@@ -116,7 +172,7 @@ docker::action() {
     prune:images) command docker image prune -f ;;
     prune:volumes) command docker volume prune -f ;;
     prune:networks) command docker network prune -f ;;
-    start:* | stop:* | restart:* | kill:* | remove:* | exec:* | logs:* | inspect:* | run:* | pull:* | prune:*)
+    start:* | stop:* | restart:* | kill:* | remove:* | exec:* | cmd:* | logs:* | inspect:* | run:* | pull:* | prune:*)
       docker::not_here "$action"
       ;;
     *)

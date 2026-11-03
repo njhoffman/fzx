@@ -6,6 +6,15 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.70.0] - 2026-11-02
+
+### Added
+
+- docker: alt-E runs a typed command in each selected container, under a header naming it, and keeps the
+  output on screen. It goes through the container's sh when it has one (pipes and globs work), else runs as
+  words. The prompt has readline editing and a history of earlier commands (up and down).
+- docker: a df action (actions menu) shows `docker system df` and its per-item `-v` listing in the pager.
+
 ## [0.69.0] - 2026-11-02
 
 ### Added
