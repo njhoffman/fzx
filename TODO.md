@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.80.0): the six steps of `docs/design.md` are done. Modules: actions, audio, bluetooth, capture, claude, colors, cron, dirs,
+Status (0.81.0): the six steps of `docs/design.md` are done. Modules: actions, audio, bluetooth, capture, claude, colors, cron, dirs,
 docker, files, firewall, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
@@ -23,7 +23,7 @@ Reviewed: 2026-11-03
       interactively, and see it in a live sample fzf launched with the new colors; save to the user config.
 - [ ] **Theme presets** (p3) [feature]: presets generated from common color schemes (the 182 base16 schemes
       in fzf-rsc/colors as a start), browsable and previewed in the theme selector.
-- [ ] **Floats follow the window** (p3) [feature]: popups are reopened on a window resize (`fzx _resized`,
+- [x] **Floats follow the window** (p3) [feature]: popups are reopened on a window resize (`fzx _resized`,
       `nav relayout`); a float keeps its first size. `tmux resize-pane -x/-y` plus a move to the new
       position (if new-pane floats can be moved) would do it without a relaunch.
 - [ ] **Summary wording** (p3) [chore]: summaries print "1 buffers", "1 recent searches", and the newer

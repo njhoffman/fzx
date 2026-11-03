@@ -212,6 +212,37 @@ kept() {
   ! grep -q set-hook "$BATS_TEST_TMPDIR/tmux.calls"
 }
 
+@test "relayout: a float is resized and moved in place for the window's new size, nothing otherwise" {
+  # the float's launch records its pane and geometry on the root and sets the resize hook
+  TMUX_PANE=%3 kept --float
+  [ -z "$(cat "$DIR/state/float_pane" 2> /dev/null)" ]
+  grep -q -- "^set-hook -w -t %3 window-resized" "$BATS_TEST_TMPDIR/tmux.calls"
+  # while it runs (the owner removes both when the pane ends): as the pane would have them
+  printf %s %9 > "$DIR/state/float_pane"
+  printf %s float > "$DIR/state/placement"
+  printf %s "center,90%,85% 200x50" > "$DIR/state/float_geometry"
+  rm "$BATS_TEST_TMPDIR/tmux.calls"
+  FZX_SESSION="$SID" run "$FZX" _cb nav relayout
+  [ -z "$output" ]
+  ! grep -q "resize-pane" "$BATS_TEST_TMPDIR/tmux.calls"
+  # a smaller window: the 0 entry of FZX_POPUP_LAYOUTS (center,100%), the pane resized and moved, no restart
+  STUB_TMUX_SIZE="100 30" FZX_SESSION="$SID" run "$FZX" _cb nav relayout
+  [ -z "$output" ]
+  grep -qx -- "resize-pane -t %9 -x 100 -y 30" "$BATS_TEST_TMPDIR/tmux.calls"
+  grep -qx -- "move-pane -t %9 -X 0 -Y 0" "$BATS_TEST_TMPDIR/tmux.calls"
+  [ "$(< "$DIR/state/float_geometry")" = "center,100% 100x30" ]
+  # an explicit spec: its own geometry
+  printf %s float:bottom,30% > "$DIR/state/placement"
+  STUB_TMUX_SIZE="100 30" FZX_SESSION="$SID" run "$FZX" _cb nav relayout
+  grep -qx -- "resize-pane -t %9 -x 100 -y 11" "$BATS_TEST_TMPDIR/tmux.calls"
+  # no float pane recorded: nothing
+  rm "$DIR/state/float_pane"
+  rm "$BATS_TEST_TMPDIR/tmux.calls"
+  STUB_TMUX_SIZE="120 30" FZX_SESSION="$SID" run "$FZX" _cb nav relayout
+  [ -z "$output" ]
+  ! grep -q "resize-pane" "$BATS_TEST_TMPDIR/tmux.calls"
+}
+
 @test "relayout: a popup restarts when the window's size or the spec changed, nothing otherwise" {
   TMUX_PANE=%3 kept --popup
   [ "$(< "$DIR/state/popup_geometry")" = "center,90%,85% 200x50" ]

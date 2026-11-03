@@ -159,7 +159,11 @@ a drag relaunches once, then posts `transform(fzx _cb nav relayout)` to the fzf 
 `state/current`). relayout compares the popup's geometry, its spec and the window's size, with the one
 its launch recorded (`state/popup_geometry`) and restarts it in place through `become()` when they differ;
 the query and position are saved as for any navigation. Explicit popup OPTS follow the window too, since
-their percentages do. Floats do not follow it yet.
+their percentages do. Floats follow it without a restart: the owner records the float's pane and the
+geometry it was made for on the root (`state/float_pane`, `state/float_geometry`) and sets the same hook,
+and relayout resizes and moves the pane (`tmux resize-pane -x W -y H`, `move-pane -X X -Y Y`, measured
+as `new-pane` measures, border included) when the geometry for the window's new size differs; fzf
+redraws on the resize.
 
 With `FZF_TMUX` set (fzf's shell integration setting, not `0`) and inside tmux, a new run without a
 placement flag starts where `FZF_TMUX_OPTS` points, read in fzf-tmux syntax: `-p[W[,H]]` (and `-w`/`-h`)

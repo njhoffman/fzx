@@ -6,6 +6,13 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.81.0] - 2026-11-03
+
+### Added
+
+- Floats follow the window as popups do: when the tmux window is resized, a float is resized and moved in
+  place for the new size (and the `FZX_POPUP_LAYOUTS` entry it now falls in), without restarting fzf.
+
 ## [0.80.0] - 2026-11-03
 
 ### Added

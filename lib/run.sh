@@ -434,8 +434,42 @@ fzx::_fzf_float() {
     printf 'fzx: bad float options: %s\n' "$spec" >&2
     return 2
   fi
+  # the float follows the window: the resize hook, and what its geometry was made for (fzx::_nav_relayout
+  # resizes and moves the pane in place when that changes); on the root, since the pane is the tree's
+  local root_dir
+  fzx::_root_dir root_dir
+  fzx::_kv_set "$root_dir/state/float_geometry" "$spec ${ww}x$wh"
+  fzx::_resize_hook_set
   # shellcheck disable=SC2086  # geo is "-x W -y H -X X -Y Y", numbers only
   fzx::_fzf_pane new-pane $geo
+  local rc=$?
+  rm -f -- "$root_dir/state/float_pane" "$root_dir/state/float_geometry"
+  return "$rc"
+}
+
+# fzx::_root_dir <var>: the session tree's root directory
+fzx::_root_dir() {
+  local _r
+  fzx::meta_get root _r || _r="$FZX_SESSION"
+  printf -v "$1" '%s' "$FZX_SESSIONS_DIR/$_r"
+}
+
+# fzx::float_follow <spec>: in a float (the root's state/float_pane), resize and move the pane for the
+# window's size now, when that differs from what it was made for; fzf redraws on the resize. Fails when
+# this tree has no float
+fzx::float_follow() {
+  local spec="$1" root_dir pane old="" ww wh geo w h x y
+  fzx::_root_dir root_dir
+  fzx::_kv_get "$root_dir/state/float_pane" pane || return 1
+  fzx::window_size ww wh || return 1
+  fzx::_kv_get "$root_dir/state/float_geometry" old || :
+  [[ "$old" == "$spec ${ww}x$wh" ]] && return 0
+  fzx::float_geometry "$spec" "$ww" "$wh" geo || return 1
+  read -r _ w _ h _ x _ y <<< "$geo"
+  fzx::log info "float follows the window: ${old:-?} -> $spec ${ww}x$wh ($geo)"
+  tmux resize-pane -t "$pane" -x "$w" -y "$h" 2>> "$FZX_LOG_FILE" &&
+    tmux move-pane -t "$pane" -X "$x" -Y "$y" 2>> "$FZX_LOG_FILE" || return 1
+  fzx::_kv_set "$root_dir/state/float_geometry" "$spec ${ww}x$wh"
 }
 
 # fzx::float_geometry <spec> <window width> <window height> <var>: new-pane's "-x W -y H -X X -Y Y" in cells
@@ -495,6 +529,11 @@ fzx::_fzf_pane() {
     return
   fi
   fzx::log info "$tmux_cmd pane $pane"
+  if [[ "$tmux_cmd" == new-pane ]]; then
+    local _rd
+    fzx::_root_dir _rd
+    fzx::_kv_set "$_rd/state/float_pane" "$pane"
+  fi
   # until the pane reports, or disappears (closed by hand)
   while [[ ! -s "$base.rc" ]] && tmux list-panes -a -F '#{pane_id}' 2> /dev/null | grep -qxF -- "$pane"; do
     sleep 0.1

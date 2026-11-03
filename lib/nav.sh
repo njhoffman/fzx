@@ -325,8 +325,8 @@ fzx::_nav_placement() {
 
 # fzx::_nav_relayout: the window was resized (fzx::resized sends this to the fzf on screen). A popup whose
 # geometry (spec and window size, fzx::popup_geometry) differs from the one it was launched with restarts
-# in place through become(), so it is opened again at the size the window now calls for; anything else
-# prints nothing.
+# in place through become(), so it is opened again at the size the window now calls for; a float's pane is
+# resized and moved instead (fzx::float_follow), fzf staying as it is; anything else prints nothing.
 fzx::_nav_relayout() {
   local p spec geo="" old=""
   fzx::require config run
@@ -335,6 +335,12 @@ fzx::_nav_relayout() {
   case "$p" in
     popup) fzx::popup_opts popup spec ;;
     popup:*) spec="${p#popup:}" ;;
+    float | float:*)
+      # a floating tmux pane can be resized and moved: no restart
+      if [[ "$p" == float ]]; then fzx::popup_opts float spec; else spec="${p#float:}"; fi
+      fzx::float_follow "$spec" && _FZX_STAT=(nav - relayout)
+      return 0
+      ;;
     *) return 0 ;;
   esac
   fzx::popup_geometry "$spec" geo || return 0
