@@ -14,6 +14,14 @@ All notable changes to fzx are recorded here. The format follows
 - Action rows take an `asks` flag: the action asks its own questions on the terminal (listed as asking
   first in f1 and the actions menu; fzx asks nothing). `fzx::confirm` reads `FZX_TTY` when set.
 
+### Changed
+
+- github: issue and pull request previews in the style of octo.nvim: the state as its icon and word in its
+  color, labels as chips in their GitHub colors, the review decision with an icon (approved, changes
+  requested, review required), reactions under the body and each comment, and the comments and a pull
+  request's reviews in one timeline, each under a heading with its author, the author's association with
+  the repository, the review's verdict and the date. Previews cached before this fetch again once.
+
 ### Fixed
 
 - github: after alt-7 (everywhere) the issues and prs header kept naming the repository; the toggle now

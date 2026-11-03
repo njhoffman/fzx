@@ -96,60 +96,112 @@ github::preview_tree() {
     if .type == "tree" then "\(.path[($p | length):])/" else "\(.path[($p | length):])  \($d)\(.size) bytes\($r)" end' -- "$file"
 }
 
-# github::preview_issue <list file> <index>: from the list, the state, title, author, labels and dates; then
-# github::item_details
+# github::preview_issue <list file> <index>: from the list, the state (its icon and word in its color), title,
+# author, labels as chips and dates; then github::item_details
 github::preview_issue() {
-  local b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
+  local b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m' nc=false
   local g=$'\e['"${FZX_COLORS[github_open]:-38;5;114}m" red=$'\e['"${FZX_COLORS[github_closed]:-38;5;203}m"
-  local m=$'\e['"${FZX_COLORS[github_merged]:-38;5;141}m"
-  local url repo num updated
-  [[ -n "${NO_COLOR+x}" ]] && b="" d="" r="" g="" red="" m=""
+  local m=$'\e['"${FZX_COLORS[github_merged]:-38;5;141}m" dr=$'\e['"${FZX_COLORS[github_draft]:-38;5;244}m"
+  local url repo num updated i_open i_closed i_pr i_merged i_prclosed i_draft
+  [[ -n "${NO_COLOR+x}" ]] && b="" d="" r="" g="" red="" m="" dr="" nc=true
   IFS=$'\t' read -r url repo num updated < <(command jq -r --argjson i "$2" '.[$i] | [.url, .repo, .number, .updatedAt] | @tsv' -- "$1")
   [[ -n "$url" ]] || return 0
-  command jq -r --argjson i "$2" --arg b "$b" --arg d "$d" --arg r "$r" --arg g "$g" --arg red "$red" --arg m "$m" '.[$i] |
-    (if .state == "MERGED" then $m + "merged" elif .state == "CLOSED" then $red + "closed" elif .draft then $d + "draft"
-     else $g + "open" end) as $s |
-    "\($b)\(.repo) #\(.number)\($r)  \($s)\($r)", "\($b)\(.title)\($r)", "",
+  fzx::require icons
+  fzx::icon issue_open i_open
+  fzx::icon issue_closed i_closed
+  fzx::icon pr_open i_pr
+  fzx::icon pr_merged i_merged
+  fzx::icon pr_closed i_prclosed
+  fzx::icon pr_draft i_draft
+  command jq -r --argjson i "$2" --argjson nc "$nc" --arg b "$b" --arg d "$d" --arg r "$r" --arg g "$g" --arg red "$red" \
+    --arg m "$m" --arg dr "$dr" --arg i_open "$i_open" --arg i_closed "$i_closed" --arg i_pr "$i_pr" --arg i_merged "$i_merged" \
+    --arg i_prclosed "$i_prclosed" --arg i_draft "$i_draft" "$GITHUB_JQ_CHIP"'
+    .[$i] |
+    (if (.url | test("/pull/")) then
+       (if .state == "MERGED" then [$i_merged, $m, "merged"] elif .state == "CLOSED" then [$i_prclosed, $red, "closed"]
+        elif .draft then [$i_draft, $dr, "draft"] else [$i_pr, $g, "open"] end)
+     else (if .state == "CLOSED" then [$i_closed, $red, "closed"] else [$i_open, $g, "open"] end) end) as $s |
+    "\($b)\(.repo) #\(.number)\($r)  \($s[1])\(if $s[0] != "" then $s[0] + " " else "" end)\($s[2])\($r)",
+    "\($b)\(.title)\($r)", "",
     "\($d)author \($r) \(.author // "ghost")", "\($d)updated\($r) \(.updatedAt[0:16] | sub("T"; " "))",
-    (if (.labels | length) > 0 then "\($d)labels \($r) \(.labels | map(.name) | join(", "))" else empty end)' -- "$1"
+    (if (.labels | length) > 0 then "\($d)labels \($r) \(.labels | map(chip) | join(" "))" else empty end)' -- "$1"
   github::item_details "$url" "$repo" "$num" "$updated"
 }
 
 # github::item_details <url> <owner/name> <number> <updated>: a pull request's branches, size, review and
-# checks, then the body and comments as markdown. Cached by the last update, so a new comment fetches them
-# again
+# checks, then the body and its reactions and the timeline as markdown: the comments and, for a pull request,
+# the reviews (those with a verdict or a text), oldest first, each under a heading with its author, the
+# author's association with the repository, the verdict and the date, and its reactions below. Cached by the
+# last update, so a new comment fetches them again; the markdown also by the icon style
 github::item_details() {
   local url="$1" repo="$2" num="$3" updated="$4" kind fields view md tmp
   local d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m' y=$'\e[38;5;180m'
   local g=$'\e['"${FZX_COLORS[github_open]:-38;5;114}m" red=$'\e['"${FZX_COLORS[github_closed]:-38;5;203}m"
+  local i_ok i_failed i_review n
+  local -A re=()
   [[ -n "${NO_COLOR+x}" ]] && d="" r="" y="" g="" red=""
-  kind=issue fields=body,comments
+  kind=issue fields=body,comments,reactionGroups
   if [[ "$url" == */pull/* ]]; then
-    kind=pr fields+=,headRefName,baseRefName,changedFiles,additions,deletions,reviewDecision,statusCheckRollup
+    kind=pr fields+=,reviews,headRefName,baseRefName,changedFiles,additions,deletions,reviewDecision,statusCheckRollup
   fi
-  view="$FZX_CACHE_DIR/github/view/${repo/\//__}-$num@${updated//[^0-9]/}.json"
+  # -2: the format with reactions and reviews (older files lack their fields)
+  view="$FZX_CACHE_DIR/github/view/${repo/\//__}-$num@${updated//[^0-9]/}-2.json"
   if ! github::cached "$view" command gh "$kind" view "$url" --json "$fields" > /dev/null 2>&1; then
     printf '\n%scannot read %s%s\n' "$d" "$url" "$r"
     return 0
   fi
+  fzx::require icons
+  fzx::icon ok i_ok
+  fzx::icon failed i_failed
+  fzx::icon review i_review
+  for n in thumbs_up thumbs_down laugh hooray confused heart rocket eyes; do
+    fzx::icon "reaction_$n" "re[$n]"
+  done
   if [[ "$kind" == pr ]]; then
-    command jq -r --arg d "$d" --arg r "$r" --arg g "$g" --arg red "$red" --arg y "$y" '
+    command jq -r --arg d "$d" --arg r "$r" --arg g "$g" --arg red "$red" --arg y "$y" \
+      --arg i_ok "$i_ok" --arg i_failed "$i_failed" --arg i_review "$i_review" '
+      def icon($i): if $i == "" then "" else $i + " " end;
       "\($d)branch \($r) \(.headRefName) -> \(.baseRefName)",
       "\($d)changes\($r) \(.changedFiles) files, \($g)+\(.additions)\($r) \($red)-\(.deletions)\($r)",
-      (if (.reviewDecision // "") != "" then "\($d)review \($r) \(.reviewDecision | ascii_downcase | gsub("_"; " "))" else empty end),
+      ((.reviewDecision // "") as $v | if $v == "" then empty else
+        (if $v == "APPROVED" then $g + icon($i_ok) elif $v == "CHANGES_REQUESTED" then $red + icon($i_failed)
+         elif $v == "REVIEW_REQUIRED" then $y + icon($i_review) else "" end) as $c |
+        "\($d)review \($r) \($c)\($v | ascii_downcase | gsub("_"; " "))\($r)" end),
       (if (.statusCheckRollup | length) > 0 then "", "\($d)checks\($r)",
         (.statusCheckRollup[] | (.conclusion // .state // .status // "") as $c |
           (if $c == "SUCCESS" then $g elif ($c | test("FAILURE|ERROR|TIMED_OUT|CANCELLED|ACTION_REQUIRED")) then $red else $y end) as $col |
           "  \($col)\($c | ascii_downcase | if . == "" then "pending" else . end)\($r)  \(.name // .context)")
        else empty end)' -- "$view"
   fi
-  # the body and the comments, one markdown file per version
-  md="${view%.json}.md"
+  # the body and the timeline, one markdown file per version and icon style
+  md="${view%.json}.${FZX_ICONS:-nerd}.md"
   # the temporary name taken here: $BASHPID in a redirection would be the child's
   tmp="$md.$BASHPID"
-  [[ -f "$md" ]] || { command jq -r '((.body // "") | if . == "" then "*no description*" else . end),
-    (.comments[]? | "\n---\n\n**\(.author.login // "ghost")** \(.createdAt[0:10])\n\n\(.body)")' -- "$view" > "$tmp" &&
-    mv -f -- "$tmp" "$md"; }
+  [[ -f "$md" ]] || {
+    command jq -r --arg up "${re[thumbs_up]}" --arg down "${re[thumbs_down]}" --arg laugh "${re[laugh]}" \
+      --arg hooray "${re[hooray]}" --arg confused "${re[confused]}" --arg heart "${re[heart]}" --arg rocket "${re[rocket]}" \
+      --arg eyes "${re[eyes]}" '
+      {THUMBS_UP: $up, THUMBS_DOWN: $down, LAUGH: $laugh, HOORAY: $hooray, CONFUSED: $confused, HEART: $heart,
+       ROCKET: $rocket, EYES: $eyes} as $icons |
+      # the reactions given, "<icon> N" each (FZX_ICONS=none: +1, -1 or the name)
+      def reactions: [(.reactionGroups // [])[] | select((.users.totalCount // 0) > 0) |
+        (if ($icons[.content] // "") != "" then $icons[.content]
+         else ({THUMBS_UP: "+1", THUMBS_DOWN: "-1"}[.content] // (.content | ascii_downcase)) end) + " \(.users.totalCount)"] |
+        join("  ");
+      def assoc: (.authorAssociation // "NONE") | if . == "NONE" or . == "" then "" else " (\(ascii_downcase | gsub("_"; " ")))" end;
+      ((.body // "") | if . == "" then "*no description*" else . end),
+      (reactions | select(. != "") | "\n" + .),
+      ([(.comments[]? | {who: .author.login, assoc: assoc, at: .createdAt, what: "", body, reactions: reactions}),
+        (.reviews[]? | select(.state != "PENDING" and (.state != "COMMENTED" or (.body // "") != "")) |
+          {who: .author.login, assoc: assoc, at: .submittedAt,
+           what: (if .state == "COMMENTED" then "reviewed" else .state | ascii_downcase | gsub("_"; " ") end),
+           body, reactions: reactions})] |
+        sort_by(.at)[] |
+        "\n---\n\n### \(.who // "ghost")\(.assoc)\(if .what != "" then " · " + .what else "" end) · \(.at[0:10])",
+        (if (.body // "") != "" then "\n" + .body else empty end),
+        (if .reactions != "" then "\n" + .reactions else empty end))' -- "$view" > "$tmp" &&
+      mv -f -- "$tmp" "$md"
+  }
   printf '\n'
   github::markdown "$md"
 }

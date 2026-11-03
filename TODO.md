@@ -84,7 +84,7 @@ Reviewed: 2026-10-28
       action; inside fzx it saves one key over alt-s on the marked pane. Ref: proto-widgets/tmux/jump-marked.
 - [ ] **docker: exec a command** (p3) [feature]: fzf-runinc: exec a typed command (not a shell) in the container,
       output kept on screen; and docker system df as the images/volumes summary. Ref: fzf-rsc/modules/docker.
-- [ ] **github: octo.nvim styling** (p3) [feature]: borrow from pwntester/octo.nvim's look: more icons
+- [x] **github: octo.nvim styling** (p3) [feature]: borrow from pwntester/octo.nvim's look: more icons
       (state, review, draft, merged), labels drawn as colored chips, nicer issue/PR rows and previews.
 
 ## 6. New modules

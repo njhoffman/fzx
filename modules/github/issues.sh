@@ -87,6 +87,16 @@ github::issues() {
 # github::issues_drop: forget every issue and pull request list (an action changed one)
 github::issues_drop() { rm -rf -- "${FZX_CACHE_DIR:?}/github/issues"; }
 
+# jq: a label as a chip, its GitHub color as the background and black or white text by its brightness;
+# "[name]" with $nc (NO_COLOR) or a color that is not six hex digits. Shared by the rows and the preview.
+# shellcheck disable=SC2016  # jq, not shell
+GITHUB_JQ_CHIP='
+  def hex: ascii_downcase | explode | map(if . >= 97 then . - 87 else . - 48 end) | .[0] * 16 + .[1];
+  def chip: if $nc or ((.color // "") | test("^[0-9a-fA-F]{6}$") | not) then "[\(.name)]"
+    else [.color[0:2], .color[2:4], .color[4:6] | hex] as $c |
+      (if ($c[0] * 299 + $c[1] * 587 + $c[2] * 114) / 1000 > 140 then "30" else "97" end) as $fg |
+      "\u001b[48;2;\($c | map(tostring) | join(";"));\($fg)m \(.name) \u001b[0m" end;'
+
 # github::issue_rows <file> <scope>: "url  issue|pr  owner/name  file  index  display" per item: the state's
 # icon in its color, the repository (a list that is not one repository's), #number, the title, the labels in
 # their GitHub colors, the author and the last activity's age; a repository's pull requests add their
@@ -113,15 +123,9 @@ github::issue_rows() {
     --arg c_open "$c_open" --arg c_closed "$c_closed" --arg c_merged "$c_merged" --arg c_draft "$c_draft" \
     --arg i_open "${i_open:-O}" --arg i_closed "${i_closed:-C}" --arg i_pr "${i_pr:-O}" --arg i_merged "${i_merged:-M}" \
     --arg i_prclosed "${i_prclosed:-C}" --arg i_draft "${i_draft:-D}" --arg i_ok "${i_ok:-approved}" \
-    --arg i_failed "${i_failed:-changes requested}" '
-    def hex: ascii_downcase | explode | map(if . >= 97 then . - 87 else . - 48 end) | .[0] * 16 + .[1];
+    --arg i_failed "${i_failed:-changes requested}" "$GITHUB_JQ_CHIP"'
     def spaces($k): [range(0; $k)] | map(" ") | join("");
     def pad($w): . + spaces([$w - length, 1] | max);
-    # a label: its GitHub color as the background, black or white text by its brightness
-    def chip: if $nc or ((.color // "") | test("^[0-9a-fA-F]{6}$") | not) then "[\(.name)]"
-      else [.color[0:2], .color[2:4], .color[4:6] | hex] as $c |
-        (if ($c[0] * 299 + $c[1] * 587 + $c[2] * 114) / 1000 > 140 then "30" else "97" end) as $fg |
-        "\u001b[48;2;\($c | map(tostring) | join(";"));\($fg)m \(.name) \u001b[0m" end;
     def age: (now - fromdateiso8601) | floor |
       if . < 3600 then "\(. / 60 | floor)m" elif . < 86400 then "\(. / 3600 | floor)h"
       elif . < 86400 * 60 then "\(. / 86400 | floor)d" elif . < 86400 * 730 then "\(. / 2592000 | floor)mo"

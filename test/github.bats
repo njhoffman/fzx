@@ -185,10 +185,19 @@ JSON
   "subject":{"type":"Discussion","title":"Ideas","url":null}}]
 JSON
   cat > "$BATS_TEST_TMPDIR/view-issue.json" << 'JSON'
-{"body":"The body","comments":[{"author":{"login":"carol"},"createdAt":"2026-01-01T10:00:00Z","body":"a comment"}]}
+{"body":"The body","reactionGroups":[{"content":"THUMBS_UP","users":{"totalCount":3}},{"content":"EYES","users":{"totalCount":0}},
+ {"content":"HEART","users":{"totalCount":1}}],
+ "comments":[{"author":{"login":"carol"},"authorAssociation":"MEMBER","createdAt":"2026-01-01T10:00:00Z","body":"a comment",
+  "reactionGroups":[{"content":"ROCKET","users":{"totalCount":2}}]},
+  {"author":null,"authorAssociation":"NONE","createdAt":"2026-01-02T10:00:00Z","body":"second","reactionGroups":[]}]}
 JSON
   cat > "$BATS_TEST_TMPDIR/view-pr.json" << 'JSON'
-{"body":"","comments":[],"headRefName":"feat/x","baseRefName":"main","changedFiles":3,"additions":10,"deletions":2,
+{"body":"","comments":[{"author":{"login":"carol"},"authorAssociation":"OWNER","createdAt":"2026-01-02T00:00:00Z","body":"ping"}],
+ "reviews":[{"author":{"login":"dan"},"authorAssociation":"CONTRIBUTOR","submittedAt":"2026-01-03T00:00:00Z","state":"APPROVED","body":""},
+  {"author":{"login":"erin"},"authorAssociation":"NONE","submittedAt":"2026-01-01T00:00:00Z","state":"CHANGES_REQUESTED","body":"fix it"},
+  {"author":{"login":"fay"},"submittedAt":"2026-01-01T12:00:00Z","state":"COMMENTED","body":""},
+  {"author":{"login":"gus"},"submittedAt":"2026-01-01T13:00:00Z","state":"PENDING","body":"draft"}],
+ "headRefName":"feat/x","baseRefName":"main","changedFiles":3,"additions":10,"deletions":2,
  "reviewDecision":"APPROVED","statusCheckRollup":[{"__typename":"CheckRun","name":"ci","conclusion":"FAILURE","status":"COMPLETED"},
  {"__typename":"StatusContext","context":"lint","state":"PENDING"}]}
 JSON
@@ -689,7 +698,7 @@ clone_here() {
   grep -qF $'\e[38;5;114m\e[0m' "$BATS_TEST_TMPDIR/out"
 }
 
-@test "preview: an issue's details, body and comments; a pull request's branches, size and checks" {
+@test "preview: an issue's details, body, reactions and comments; a pull request's branches, size, checks and reviews" {
   clone_here
   src issues "" > /dev/null
   src prs "" > /dev/null
@@ -699,12 +708,15 @@ clone_here() {
   [ "${lines[1]}" = "Crash	on start" ]
   # (lines leaves out empty ones)
   [ "${lines[2]}" = "author  alice" ]
-  [ "${lines[4]}" = "labels  bug, docs" ]
-  [[ "$output" == *$'The body\n\n---\n\n**carol** 2026-01-01\n\na comment' ]]
+  [ "${lines[4]}" = "labels  [bug] [docs]" ]
+  # reactions given (none left out), then each comment under its heading, its association and reactions
+  [[ "$output" == *$'The body\n\n+1 3  heart 1\n\n---\n\n### carol (member) · 2026-01-01\n\na comment\n\nrocket 2\n\n---\n\n### ghost · 2026-01-02\n\nsecond' ]]
   run env FZX_PREVIEW_VIEWERS=markdown=cat "$GH_DIR/preview.sh" https://github.com/o/r/pull/40 pr o/r \
     "$FZX_CACHE_DIR/github/issues/prs-o__r-open.json" 0
   [[ "$output" == *$'branch  feat/x -> main\nchanges 3 files, +10 -2\nreview  approved\n\nchecks\n  failure  ci\n  pending  lint'* ]]
-  [[ "$output" == *"*no description*" ]]
+  # reviews with a verdict or a text join the comments by date; pending ones and empty comment reviews do not
+  [[ "$output" == *$'*no description*\n\n---\n\n### erin · changes requested · 2026-01-01\n\nfix it\n\n---\n\n### carol (owner) · 2026-01-02\n\nping\n\n---\n\n### dan (contributor) · approved · 2026-01-03' ]]
+  [[ "$output" != *fay* && "$output" != *gus* ]]
   # cached by the last update: viewed once
   # glow gets no stdin (it reads one that is not a terminal, file argument or not, and a pipe never ends)
   printf '#!/usr/bin/env bash\nIFS= read -r x && echo "stdin: $x"\necho rendered\n' > "$STUBS/glow"
@@ -713,6 +725,25 @@ clone_here() {
     "$GH_DIR/preview.sh" "$FZX_CACHE_DIR/github/issues/prs-o__r-open.json"
   [[ "$output" == *rendered && "$output" != *"stdin: leak"* ]]
   [ "$(grep -c '^pr view' "$BATS_TEST_TMPDIR/gh.calls")" -eq 1 ]
+}
+
+@test "preview in color: the state's icon and color, labels as chips, the review's icon, reactions' icons" {
+  clone_here
+  src issues "" > /dev/null
+  src prs "" > /dev/null
+  load_libs icons
+  local open heart ok
+  FZX_ICONS=nerd fzx::icon issue_open open
+  FZX_ICONS=nerd fzx::icon reaction_heart heart
+  FZX_ICONS=nerd fzx::icon ok ok
+  run env -u NO_COLOR FZX_ICONS=nerd FZX_PREVIEW_VIEWERS=markdown=cat "$GH_DIR/preview.sh" https://github.com/o/r/issues/12 issue o/r \
+    "$FZX_CACHE_DIR/github/issues/issues-o__r-open.json" 0
+  [[ "${lines[0]}" == *$'\e[38;5;114m'"$open open"$'\e[0m' ]]
+  [[ "$output" == *$'\e[48;2;215;58;74;97m bug \e[0m \e[48;2;0;117;202;97m docs \e[0m'* ]]
+  [[ "$output" == *"$heart 1"* ]]
+  run env -u NO_COLOR FZX_ICONS=nerd FZX_PREVIEW_VIEWERS=markdown=cat "$GH_DIR/preview.sh" https://github.com/o/r/pull/40 pr o/r \
+    "$FZX_CACHE_DIR/github/issues/prs-o__r-open.json" 0
+  [[ "$output" == *$'review \e[0m \e[38;5;114m'"$ok approved"$'\e[0m'* ]]
 }
 
 @test "actions: checkout here or in the ghq clone, refused elsewhere; comment, close, reopen drop the lists" {
@@ -809,7 +840,7 @@ clone_here() {
   run env FZX_PREVIEW_VIEWERS=markdown=cat "$GH_DIR/preview.sh" https://github.com/o/r/pull/40 notification o/r "$f" 0
   [ "${lines[0]}" = "o/r  pull request  unread" ]
   [ "${lines[2]}" = "reason  review requested" ]
-  [[ "$output" == *"branch  feat/x -> main"*"*no description*" ]]
+  [[ "$output" == *"branch  feat/x -> main"*"*no description*"* ]]
   run env FZX_PREVIEW_VIEWERS=markdown=cat "$GH_DIR/preview.sh" https://github.com/o/r/actions notification o/r "$f" 2
   [ "${lines[0]}" = "o/r  check suite  unread" ]
   [ "${lines[-1]}" = "url     https://github.com/o/r/actions" ]
