@@ -6,6 +6,10 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- ps: PIDs are right-aligned like the other numeric columns.
+
 ## [0.64.0] - 2026-11-02
 
 ### Added

@@ -13,11 +13,26 @@ setup() {
   export NO_COLOR=1
 }
 
-@test "source: header first, then rows starting with a left-aligned pid" {
+@test "source: header first, then rows starting with a right-aligned pid" {
   run "$PS_DIR/source.sh"
   [ "$status" -eq 0 ]
-  [[ "${lines[0]}" =~ ^PID\ +PPID\ +USER ]]
-  [[ "${lines[1]}" =~ ^[0-9]+\ +[0-9]+\  ]]
+  [[ "${lines[0]}" =~ ^\ *PID\ +PPID\ +USER ]]
+  [[ "${lines[1]}" =~ ^\ *[0-9]+\ +[0-9]+\  ]]
+  # the pids end under the header's PID
+  local end i
+  end="${lines[0]%%PID*}PID"
+  end="${#end}"
+  for ((i = 1; i < ${#lines[@]}; i++)); do
+    [[ "${lines[i]:end-1:2}" =~ ^[0-9]\ $ ]]
+  done
+}
+
+@test "source: fzf reads the right-aligned pid as {1} and --accept-nth=1" {
+  command -v fzf > /dev/null || skip "fzf not installed"
+  local table
+  table="$(printf '%s\n' '  PID CMD' '    7 a' ' 1234 b')"
+  run fzf --filter=b --header-lines=1 --accept-nth=1 <<< "$table"
+  [ "$output" = 1234 ]
 }
 
 @test "source: right-aligned columns still end under their header" {
@@ -30,18 +45,19 @@ setup() {
 }
 
 @test "source: user mode (the default) shows only own processes; all mode includes pid 1" {
+  local pid1=$'\n'' *1 '
   run "$PS_DIR/source.sh"
-  [[ "$output" != *$'\n1 '* ]] || [ "$(id -u)" -eq 0 ]
+  [[ ! "$output" =~ $pid1 ]] || [ "$(id -u)" -eq 0 ]
   FZX_MODE=user run "$PS_DIR/source.sh"
-  [[ "$output" != *$'\n1 '* ]] || [ "$(id -u)" -eq 0 ]
+  [[ ! "$output" =~ $pid1 ]] || [ "$(id -u)" -eq 0 ]
   FZX_MODE=all run "$PS_DIR/source.sh"
-  [[ "$output" == *$'\n1 '* ]]
+  [[ "$output" =~ $pid1 ]]
 }
 
 @test "source: tree mode prints the process forest" {
   FZX_MODE=tree run "$PS_DIR/source.sh"
   [ "$status" -eq 0 ]
-  [[ "${lines[0]}" =~ ^PID ]]
+  [[ "${lines[0]}" =~ ^\ *PID ]]
   [[ "$output" == *'\_ '* ]]
 }
 
@@ -246,7 +262,7 @@ stub() {
   printf '%s\0' user all tree > "$FZX_SESSION_DIR/meta/modes"
   run "$FZX" _cb load
   [ "$status" -eq 0 ]
-  [[ "${lines[0]}" =~ ^PID ]]
+  [[ "${lines[0]}" =~ ^\ *PID ]]
   # the cache key carries toggles and sort: mode "user", no toggles on, sort cpu
   [ -s "$FZX_SESSION_DIR/data/user+@cpu" ]
 }
@@ -258,7 +274,7 @@ stub() {
   kill "$pid"
   [ "$status" -eq 0 ]
   [ "${#lines[@]}" -eq 1 ]
-  [[ "${lines[0]}" =~ ^PID ]]
+  [[ "${lines[0]}" =~ ^\ *PID ]]
 }
 
 @test "source: colored rows keep the plain text and its alignment; root, state, load and command parts" {

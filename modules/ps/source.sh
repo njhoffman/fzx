@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# ps source: one line per process, header first. PID is left-aligned so {1} works with any --delimiter.
+# ps source: one line per process, header first. PID is right-aligned like the other numeric columns: fzf
+# trims the padding from {1} and --accept-nth=1 under its default (whitespace) field splitting.
 # Mode from $FZX_MODE: user (default, own processes), all (every process), tree (forest).
 # $FZX_SORT: cpu (default), mem, age, pid (ignored in tree, which keeps input order).
 # $FZX_TOGGLES: "kernel" shows kernel threads (pid 2 and its children), hidden otherwise.
@@ -9,7 +10,7 @@
 # white, red); rss as K/M/G; state by kind (running green, sleeping dim, disk wait red, zombie on red,
 # stopped blue); the tty cyan; the command's name bold white after its dim directory, options blue, paths
 # light grey, kernel threads cyan, the tree's branches dim. Kernel threads (pid 2 and its children) are
-# dropped unless kernel is 1. The pid stays first and left-aligned ({1}); NO_COLOR leaves the escapes out.
+# dropped unless kernel is 1. The pid stays first ({1}); NO_COLOR leaves the escapes out.
 # The sorted column (the column number given, 0 for none) is also drawn in FZX_COLORS[sorted], its header too.
 ps::color() {
   awk -v kernel="$1" -v scol="${2:-0}" -v hl="${FZX_COLORS[sorted]:-4}" -v me="${USER:-$(id -un)}" -v nocolor="${NO_COLOR+x}" '
@@ -57,14 +58,14 @@ ps::color() {
     }
     END {
       split("PID PPID USER %CPU %MEM RSS ELAPSED STAT TT", h, " ")
-      right[2] = right[4] = right[5] = right[6] = right[7] = 1
+      right[1] = right[2] = right[4] = right[5] = right[6] = right[7] = 1
       line = ""
       for (i = 1; i <= 9; i++) if (length(h[i]) > w[i]) w[i] = length(h[i])
       for (i = 1; i <= 9; i++) line = line col(i, "1;38;5;245", h[i], right[i]) " "
       print line c("1;38;5;245", "COMMAND")
       for (r = 1; r <= n; r++) {
         u = row[r, 3]
-        line = col(1, "1;38;5;141", row[r, 1]) " " col(2, "38;5;244", row[r, 2], 1) " "
+        line = col(1, "1;38;5;141", row[r, 1], 1) " " col(2, "38;5;244", row[r, 2], 1) " "
         line = line col(3, u == "root" ? "1;38;5;203" : u == me ? "38;5;110" : "38;5;81", u) " "
         line = line col(4, load(row[r, 4]), row[r, 4], 1) " " col(5, load(row[r, 5]), row[r, 5], 1) " "
         line = line col(6, "38;5;152", row[r, 6], 1) " " col(7, "38;5;245", row[r, 7], 1) " "

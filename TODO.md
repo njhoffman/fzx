@@ -96,7 +96,7 @@ Reviewed: 2026-10-28
       (state, review, draft, merged), labels drawn as colored chips, nicer issue/PR rows and previews.
 - [ ] **top in ps** (p3) [feature]: a refreshing mode of `ps` (`every(N):reload`) rather than a module.
       Refs: system/fzf.top.zsh, fzf-scripts/fztop.
-- [ ] **ps: plain-left PIDs** (p3) [refactor]: since ~/.config/fzf/fzfrc dropped its `--delimiter`, the ps source no
+- [x] **ps: plain-left PIDs** (p3) [refactor]: since ~/.config/fzf/fzfrc dropped its `--delimiter`, the ps source no
       longer needs left-aligned PIDs for `{1}`; right-align them like the other numeric columns.
 
 ## 6. New modules
