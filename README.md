@@ -86,7 +86,7 @@ Inside any module, f1 shows every key, mode, toggle and action. The common ones:
 | recent | frecent files and directories |
 | repos | git repositories with their branch, changes, ahead/behind and open TODOs |
 | sessions | fzx's own session trees: resume kept ones, open a copy of live ones |
-| shell | commands on PATH, zsh builtins, aliases, functions and parameters |
+| shell | commands on PATH, zsh builtins, aliases, functions, parameters and completions (zsh-complete) |
 | systemd | user and system units, failed ones, timers and sockets |
 | tasks | project scripts: make, just, npm, Taskfile, cargo aliases, pdm/poe/hatch |
 | tmux | sessions, windows, panes and buffers; reference browsers for keys, options, formats and more |

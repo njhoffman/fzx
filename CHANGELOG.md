@@ -6,6 +6,15 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.90.0] - 2026-11-03
+
+### Added
+
+- shell:completions: every zsh completion binding from zsh-complete, one row per command you have (alt-4:
+  all of them) with its provider, function and file; the preview shows where it came from (upstream,
+  revision) and the completion code. The list is kept a day, since zsh-complete takes a while to make it:
+  alt-R asks again, alt-i shows `zsh-complete status` for the command, ctrl-e edits the file.
+
 ## [0.89.0] - 2026-11-03
 
 ### Added

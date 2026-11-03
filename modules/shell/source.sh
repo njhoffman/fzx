@@ -186,12 +186,87 @@ shell::params() {
       printf "%s\tparam\t%s%s%s %s%s%s %s\n", $1, (ex ? c_export : c_name), pad($1, 28), r, c_kind, pad(t, 6), r, shown }'
 }
 
+# shell::zsh_complete <var>: the zsh-complete command (FZX_SHELL_ZSH_COMPLETE, on PATH, ~/.shell's); fails
+# when there is none
+shell::zsh_complete() {
+  local _z="${FZX_SHELL_ZSH_COMPLETE:-}"
+  [[ -n "$_z" ]] || _z="$(command -v zsh-complete 2> /dev/null)" || _z="${SHELL_ROOT:-$HOME/.shell}/scripts/zsh-complete"
+  printf -v "$1" '%s' "$_z"
+  [[ -x "$_z" ]]
+}
+
+# shell::completions_file <var>: where zsh-complete's list is kept
+shell::completions_file() { printf -v "$1" '%s/shell/completions.tsv' "${FZX_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/fzx}"; }
+
+# shell::completions_refresh: ask zsh-complete for every binding (`list --tsv`: kind, command, source,
+# function, path, upstream, revision) into the cache; the old list stays when it fails
+shell::completions_refresh() {
+  local z file tmp
+  shell::zsh_complete z || { printf 'shell: zsh-complete not found (FZX_SHELL_ZSH_COMPLETE)\n' >&2; return 1; }
+  shell::completions_file file
+  mkdir -p -- "${file%/*}" || return 1
+  tmp="$file.$BASHPID"
+  if (cd ~ && NO_COLOR=1 "$z" list --tsv) > "$tmp" 2> /dev/null && head -1 "$tmp" | grep -q $'^kind\tcommand\t'; then
+    mv -f -- "$tmp" "$file"
+  else
+    rm -f -- "$tmp"
+    printf 'shell: zsh-complete list --tsv failed\n' >&2
+    return 1
+  fi
+}
+
+# shell::completions_rows: the cached list (read again once older than FZX_SHELL_COMPLETIONS_TTL), one row
+# per command: "name<TAB>provider<TAB>function<TAB>path<TAB>upstream<TAB>revision<TAB>bindings", the main
+# function the command's own (_name) when it has several
+shell::completions_rows() {
+  local file mtime
+  shell::completions_file file
+  mtime="$(stat -c %Y -- "$file" 2> /dev/null)" || mtime=0
+  if ((EPOCHSECONDS - mtime >= ${FZX_SHELL_COMPLETIONS_TTL:-86400})); then
+    shell::completions_refresh || [[ -s "$file" ]] || return 1
+  fi
+  awk -F'\t' -v OFS='\t' '
+    $1 != "active" { next }
+    {
+      if (!($2 in n)) order[++k] = $2
+      n[$2]++
+      if (!($2 in main) || $4 == "_" $2) { main[$2] = $4; prov[$2] = $3; path[$2] = $5; up[$2] = $6; rev[$2] = $7 }
+    }
+    END { for (i = 1; i <= k; i++) { c = order[i]; print c, prov[c], main[c], path[c], up[c], rev[c], n[c] } }' "$file"
+}
+
+# shell::completions: the rows, the commands you have (on PATH, aliases, functions) unless the all toggle
+# is on: name, provider (curated ones and the system's in their colors), function, file
+shell::completions() {
+  local dump="" opts=() all=0 own="${FZX_COLORS[shell_provider_own]:-38;5;114}" sys="${FZX_COLORS[shell_provider_system]:-38;5;244}"
+  local other="${FZX_COLORS[shell_provider]:-38;5;180}"
+  [[ " ${FZX_TOGGLES:-} " == *" all "* ]] && all=1
+  [[ -n "${NO_COLOR+x}" ]] && own="" sys="" other=""
+  mapfile -t opts < <(shell::colors)
+  ((all)) || shell::dump dump 2> /dev/null || dump=""
+  {
+    if ((!all)); then
+      shell::path_commands | cut -f1 | sed 's/^/H\t/'
+      [[ -n "$dump" ]] && awk -F'\t' '$1 == "alias" { print "H\t" $3 } $1 == "function" && substr($2, 1, 1) != "_" { print "H\t" $2 }' "$dump"
+    fi
+    shell::completions_rows | sed 's/^/R\t/'
+  } | awk -F'\t' "${opts[@]}" -v all="$all" -v home="$HOME" -v own="$own" -v sys="$sys" -v other="$other" "$SHELL_AWK_LIB"'
+    $1 == "H" { have[$2] = 1; next }
+    all || ($2 in have) {
+      p = $5; if (index(p, home "/") == 1) p = "~" substr(p, length(home) + 1)
+      pc = $3 ~ /^(static|generated|local|source)$/ ? own : $3 == "system" ? sys : other
+      pv = pc == "" ? pad($3, 20) : "\033[" pc "m" pad($3, 20) r
+      printf "%s\tcompletion\t%s%s%s %s%s%s%s %s%s%s\n", $2, c_name, pad($2, 28), r, pv, c_kind, pad($4, 24), r, c_dim, p, r
+    }' | LC_ALL=C sort -t $'\t' -k1,1
+}
+
 shell::source() {
   case "${FZX_MODE:-commands}" in
     commands) shell::commands ;;
     aliases) shell::aliases ;;
     functions) shell::functions ;;
     params) shell::params ;;
+    completions) shell::completions ;;
     *)
       printf 'shell: unknown mode: %s\n' "$FZX_MODE" >&2
       return 2

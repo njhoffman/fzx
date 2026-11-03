@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # shell actions on the selected names: edit (a function's file or a command's script in $EDITOR), help (the
-# tldr or man page in the pager; a builtin's zshbuiltins entry), value (copy the parameters' values)
+# tldr or man page in the pager; a builtin's zshbuiltins entry), value (copy the parameters' values);
+# completions: rescan (zsh-complete's list again) and status (zsh-complete status in the pager)
 
 # shellcheck source=./preview.sh
 source "$(dirname "${BASH_SOURCE[0]}")/preview.sh"
@@ -22,7 +23,7 @@ shell::edit_at() {
   esac
 }
 
-# shell::action <edit|help|value> <names...>
+# shell::action <edit|help|value|rescan|status> <names...>
 shell::action() {
   local action="${1:-}" name line file kind dir p value values=() _k _n _a _t
   shift
@@ -52,6 +53,22 @@ shell::action() {
         shell::_say "shell: $p is a binary"
       fi
       ;;
+    edit:completions)
+      name="$1"
+      file="$(shell::completions_rows | awk -F'\t' -v n="$name" '$1 == n { print $4; exit }')"
+      [[ -r "$file" ]] || { shell::_say "shell: no completion file for $name"; return 0; }
+      shell::edit_at "$file" "_$name"
+      ;;
+    rescan:completions)
+      printf '\e[2masking zsh-complete for every completion binding (this takes a while)...\e[0m\n'
+      shell::completions_refresh || shell::_say "shell: zsh-complete failed: the old list stays"
+      ;;
+    status:completions)
+      shell::zsh_complete p || { shell::_say "shell: zsh-complete not found"; return 0; }
+      printf '\e[2mzsh-complete status %s...\e[0m\n' "$1"
+      (cd ~ && "$p" status "$1") 2>&1 | ${PAGER:-less -R}
+      ;;
+    rescan:* | status:*) shell::_say "shell: $action is the completions mode's" ;;
     edit:*) shell::_say "shell: edit opens functions and scripts (zsh records no file for aliases)" ;;
     help:*)
       name="$1"

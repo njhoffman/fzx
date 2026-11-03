@@ -197,10 +197,11 @@ src() { FZX_MODE="$1" "$SH/source.sh"; }
   [[ "$(fzf_bind alt-3)" == *reveal* ]]
 }
 
-@test "menu: four entries; summaries from the saved dump only" {
+@test "menu: five entries; summaries from the saved dump only" {
   load_libs log config menu
+  stub_zsh_complete
   fzx::menu_entries shell "$SH"
-  [ "${FZX_ENTRY_TARGETS[*]}" = "shell shell:aliases shell:functions shell:params" ]
+  [ "${FZX_ENTRY_TARGETS[*]}" = "shell shell:aliases shell:functions shell:params shell:completions" ]
   run shell::summary shell:aliases
   [ -z "$output" ]
   dump_shell
@@ -211,6 +212,78 @@ src() { FZX_MODE="$1" "$SH/source.sh"; }
   [[ "$output" =~ ^[0-9]+\ functions,\ 1\ for\ completion$ ]]
   run shell::summary shell
   [[ "$output" == *" on PATH" ]]
+}
+
+# stub_zsh_complete: a zsh-complete whose list is the fixture (each call logged); status prints a report
+stub_zsh_complete() {
+  cat > "$STUBS/zsh-complete" << 'STUB'
+#!/usr/bin/env bash
+echo "zsh-complete $*" >> "$BATS_TEST_TMPDIR/zc.calls"
+case "$1" in
+  list) [[ -f "$BATS_TEST_TMPDIR/zc.fail" ]] && exit 1; cat "$BATS_TEST_TMPDIR/zc.tsv" ;;
+  status) echo "status of $2" ;;
+esac
+STUB
+  chmod +x "$STUBS/zsh-complete"
+  export FZX_SHELL_ZSH_COMPLETE="$STUBS/zsh-complete"
+  mkdir -p "$BATS_TEST_TMPDIR/comp"
+  printf '#compdef tool\n_arguments -s\n' > "$BATS_TEST_TMPDIR/comp/_tool"
+  {
+    printf 'kind\tcommand\tsource\tfunction\tpath\tupstream\trevision\n'
+    printf 'active\ttool\tstatic\t_tool\t%s\thttps://example.com/_tool\tabc123\n' "$BATS_TEST_TMPDIR/comp/_tool"
+    printf 'active\tlinked\tsystem\t_compadd\t/usr/share/zsh/_compadd\tunknown\tunknown\n'
+    printf 'active\tlinked\tsystem\t_linked\t/usr/share/zsh/_linked\tunknown\tunknown\n'
+    printf 'active\tnotinstalled\tzsh-more-completions\t_notinstalled\t/x/_notinstalled\tunknown\tunknown\n'
+    printf 'active\tll\tcarapace\t_sc_carapace\t/x/_sc_carapace\tunknown\tunknown\n'
+    printf 'list-summary\t5\tstandalone\n'
+  } > "$BATS_TEST_TMPDIR/zc.tsv"
+}
+
+@test "completions: one row per installed command (its own function first), all with the toggle; cached a day" {
+  stub_zsh_complete
+  dump_shell
+  run src completions
+  [ "$status" -eq 0 ]
+  # tool and linked are on PATH, ll an alias; notinstalled only with the toggle
+  [ "$(cut -f1,2 <<< "$output" | tr '\t\n' '| ')" = "linked|completion ll|completion tool|completion " ]
+  [[ "${lines[0]}" == $'linked\tcompletion\tlinked '*" system "*" _linked "*" /usr/share/zsh/_linked" ]]
+  FZX_TOGGLES=all run src completions
+  [ "${#lines[@]}" -eq 4 ] && [[ "$output" == *notinstalled* ]]
+  # one zsh-complete call: the list is kept; once older than the TTL it is asked again
+  [ "$(grep -c '^zsh-complete list --tsv' "$BATS_TEST_TMPDIR/zc.calls")" -eq 1 ]
+  touch -d '2 days ago' "$FZX_CACHE_DIR/shell/completions.tsv"
+  run src completions
+  [ "$(grep -c '^zsh-complete list --tsv' "$BATS_TEST_TMPDIR/zc.calls")" -eq 2 ]
+  # a failing zsh-complete keeps the old list
+  touch -d '2 days ago' "$FZX_CACHE_DIR/shell/completions.tsv" "$BATS_TEST_TMPDIR/zc.fail"
+  run src completions
+  [ "$(grep -c $'\tcompletion\t' <<< "$output")" -eq 3 ] && [[ "$output" == *"list --tsv failed"* ]]
+}
+
+@test "completions: preview, edit the file, rescan, status; no zsh-complete" {
+  stub_zsh_complete
+  dump_shell
+  run src completions
+  run "$SH/preview.sh" tool completion
+  [ "${lines[0]}" = tool ]
+  [[ "$output" == *"provider  static"*"function  _tool"*"upstream  https://example.com/_tool"*"revision  abc123"*"#compdef tool"* ]]
+  run "$SH/preview.sh" linked completion
+  [[ "$output" == *"function  _compadd"*"function  _linked"* ]]
+  run "$SH/preview.sh" gone completion
+  [[ "$output" == *"no completion for gone"* ]]
+  FZX_MODE=completions "$SH/actions.sh" edit tool
+  [ "$(head -1 "$BATS_TEST_TMPDIR/editor.args")" = '+/\v^\s*(function\s+)?\V_tool\v(\s*\(\))?\s*\{' ]
+  [ "$(tail -1 "$BATS_TEST_TMPDIR/editor.args")" = "$BATS_TEST_TMPDIR/comp/_tool" ]
+  FZX_MODE=completions run "$SH/actions.sh" rescan ""
+  [ "$(grep -c '^zsh-complete list --tsv' "$BATS_TEST_TMPDIR/zc.calls")" -eq 2 ]
+  PAGER=cat FZX_MODE=completions run "$SH/actions.sh" status tool
+  [[ "$output" == *"status of tool"* ]]
+  FZX_MODE=commands run "$SH/actions.sh" rescan ""
+  [[ "$output" == *"completions mode"* ]]
+  FZX_SHELL_ZSH_COMPLETE="$BATS_TEST_TMPDIR/none" run "$SH/actions.sh" rescan ""
+  rm -f "$FZX_CACHE_DIR/shell/completions.tsv"
+  FZX_SHELL_ZSH_COMPLETE="$BATS_TEST_TMPDIR/none" run src completions
+  [ "$output" = "shell: zsh-complete not found (FZX_SHELL_ZSH_COMPLETE)" ]
 }
 
 @test "fzx.zsh: the dump at the first prompt and in the widget, off with FZX_ZSH_NO_SHELL_DUMP" {

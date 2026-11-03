@@ -152,8 +152,29 @@ shell::preview_param() {
 }
 
 # shell::preview <name> <kind>
+# shell::preview_completion <command>: its bindings from zsh-complete's cached list (provider, function,
+# file, upstream and revision), then the main function's file
+shell::preview_completion() {
+  local file b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m' main="" k c src fn path up rev
+  [[ -n "${NO_COLOR+x}" ]] && b="" d="" r=""
+  shell::completions_file file
+  printf '%s%s%s\n\n' "$b" "$1" "$r"
+  while IFS=$'\t' read -r k c src fn path up rev; do
+    [[ "$k" == active && "$c" == "$1" ]] || continue
+    [[ -z "$main" || "$fn" == "_$1" ]] && main="$path"
+    printf '%sprovider%s  %s\n%sfunction%s  %s\n%sfile%s      %s\n' "$d" "$r" "$src" "$d" "$r" "$fn" "$d" "$r" "${path/#"$HOME"/\~}"
+    [[ "$up" != unknown && -n "$up" ]] && printf '%supstream%s  %s\n' "$d" "$r" "$up"
+    [[ "$rev" != unknown && -n "$rev" ]] && printf '%srevision%s  %s\n' "$d" "$r" "$rev"
+    printf '\n'
+  done < <(grep -F $'\t'"$1"$'\t' "$file" 2> /dev/null)
+  [[ -n "$main" ]] || { printf 'no completion for %s (any more): alt-R asks zsh-complete again\n' "$1"; return 0; }
+  [[ -r "$main" ]] && head -n "${FZF_PREVIEW_LINES:-60}" -- "$main" | shell::zsh_code
+  return 0
+}
+
 shell::preview() {
   case "${2:-}" in
+    completion) shell::preview_completion "$1" ;;
     command | builtin | reserved) shell::preview_command "$1" "$2" ;;
     alias | galias | salias) shell::preview_alias "$1" ;;
     function) shell::preview_function "$1" ;;
