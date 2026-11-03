@@ -52,13 +52,19 @@ github::opts() {
       FZX_OPTS+=("--header=your unread notifications, latest first${key:+ ($key: read ones too)}")
       ;;
     issues | prs)
-      # the repository's own list (the everywhere toggle aside); the toggle's key from the components table
-      local scope what=issues key=""
+      # the list's scope, and the repository the everywhere toggle leaves (its key from the components table:
+      # the toggle restarts fzf, so this header follows it)
+      local scope repo what=issues key=""
       [[ "$FZX_MODE" == prs ]] && what="pull requests"
-      FZX_TOGGLES="" github::issues_scope scope
+      github::issues_scope scope
+      FZX_TOGGLES="" github::issues_scope repo
       fzx::comp_field toggle everywhere key key 2> /dev/null || key=""
       header="$what involving you, last updated first"
-      [[ -n "$scope" ]] && header="$what of $scope, last updated first${key:+ ($key: involving you anywhere)}"
+      if [[ -n "$scope" ]]; then
+        header="$what of $scope, last updated first${key:+ ($key: involving you anywhere)}"
+      elif [[ -n "$repo" ]]; then
+        header+="${key:+ ($key: $repo only)}"
+      fi
       FZX_OPTS+=("--header=$header")
       ;;
     *)

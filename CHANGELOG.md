@@ -6,6 +6,11 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- github: after alt-7 (everywhere) the issues and prs header kept naming the repository; the toggle now
+  restarts fzf (query kept) and the header names the list's scope, with the key back to the repository.
+
 ## [0.65.0] - 2026-11-02
 
 ### Added

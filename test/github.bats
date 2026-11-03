@@ -757,6 +757,21 @@ clone_here() {
   [[ " ${FZF_ARGS[*]} " == *" --header=issues involving you, last updated first "* ]]
 }
 
+@test "under fzx: the everywhere toggle restarts fzf, so the header stops naming the repository" {
+  load_libs log session
+  clone_here
+  fzx::session_create github "$GH_DIR"
+  fzx::state_set mode prs
+  FZF_QUERY="abc" run "$FZX" _cb toggle everywhere
+  [ "$output" = "become:$FZX --resume $FZX_SESSION" ]
+  [ "$(< "$FZX_SESSION_DIR/state/toggles")" = everywhere ]
+  [ "$(< "$FZX_SESSION_DIR/state/query")" = abc ]
+  stub_fzf
+  run "$FZX" --resume "$FZX_SESSION"
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *" --header=pull requests involving you, last updated first (alt-7: o/r only) "* ]]
+}
+
 @test "menu: issues and prs summaries from the last list only" {
   load_libs log config menu
   fzx::menu_entries github "$GH_DIR"

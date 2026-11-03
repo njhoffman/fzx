@@ -93,7 +93,7 @@ Built from the reference repos in `resources/` (fzfmenu widgets, proto-widgets, 
 completers, the fzf attempt's modules, fzf-scripts) and checked against what is installed here
 (2026-10-20). "has" lists tools found on PATH, "missing" what the old code used that is not installed.
 
-- [ ] **github: header after the everywhere toggle** (p3) [bug]: the issues and prs header is set when fzf
+- [x] **github: header after the everywhere toggle** (p3) [bug]: the issues and prs header is set when fzf
       starts ("issues of o/r ..."), so after alt-7 it still names the repository while the list shows
       everything involving you. Toggles reload in place with no header hook; the fix is a toggle flag or
       change-header in the reload (lib/opts.sh).

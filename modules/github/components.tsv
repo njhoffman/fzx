@@ -18,7 +18,7 @@ toggle  sources  alt-3  repositories that are not forks (with forks: both)      
 toggle  forks    alt-4  forks only (with sources: both)                                        -
 toggle  missing  alt-5  only repositories not cloned here yet (cloned ones are marked)        -
 toggle  closed      alt-6  issues, prs: closed (and merged) ones too                            -
-toggle  everywhere  alt-7  issues, prs: the ones involving you anywhere, not the repository's   -
+toggle  everywhere  alt-7  issues, prs: the ones involving you anywhere, not the repository's   restart
 toggle  read        alt-8  notifications: read ones too                                         -
 sort    listed   -      mine: last push first; starred: most recently starred first          default
 sort    stars    -      mine, starred: most stars first                                       -
