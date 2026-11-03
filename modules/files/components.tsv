@@ -8,6 +8,7 @@ mode  grep   -  search file contents as you type  restart,nopersist
 toggle  hidden   alt-h  hidden files and directories (dotfiles)            on
 toggle  ignored  alt-i  files .gitignore and .ignore exclude                -
 toggle  follow   alt-l  follow symbolic links into directories             -
+toggle  multiline  alt-m  grep: matches may span lines (\n in the term; ripgrep only)  -
 sort  path    -  by path                                     default
 sort  recent  -  newest first (modification time)            -
 action  edit  ctrl-e  open in $EDITOR (grep: at the matching line)  foreground

@@ -109,6 +109,18 @@ rel() { (FZX_MODE="$1" "$FILES/source.sh" "$B") | cut -f1 | sed "s:^$B/::"; }
   [[ "$(fzf_bind alt-l)" == *'_cb toggle follow'* ]]
 }
 
+@test "grep: the multiline toggle matches across lines, each line its own row; without it no rows" {
+  command -v rg > /dev/null || skip "ripgrep not installed"
+  printf 'one\nfoo bar\nbaz qux\nend\n' > "$B/multi"
+  run env FZX_TOGGLES="hidden multiline" FZX_MODE=grep FZF_QUERY='bar\nbaz' "$FILES/source.sh" "$B"
+  [ "$status" -eq 0 ]
+  [ "$(cut -f1,2 <<< "$output" | sed "s:^$B/::" | tr '\t' ':')" = "multi:2
+multi:3" ]
+  # without it ripgrep refuses \n in the term, as it refuses any half-typed regex: no rows
+  run --separate-stderr env FZX_TOGGLES="hidden" FZX_MODE=grep FZF_QUERY='bar\nbaz' "$FILES/source.sh" "$B"
+  [ -z "$output" ]
+}
+
 @test "grep: ctrl-t filters the matches with fzf, the term frozen for reloads; again greps the term" {
   load_libs log session
   fzx::session_create files "$FILES" "$B"

@@ -6,6 +6,13 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.78.0] - 2026-11-03
+
+### Added
+
+- files: a multiline toggle (alt-m) for grep mode: matches may span lines (`\n` in the term, ripgrep's
+  `-U --multiline-dotall`), each line of a match its own row. Without ripgrep it does nothing.
+
 ## [0.77.3] - 2026-11-03
 
 ### Fixed

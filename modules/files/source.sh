@@ -2,7 +2,8 @@
 # files source. Lines are "absolute path<TAB>display" (files, dirs), sorted by path, or
 # "absolute path<TAB>line<TAB>display" (grep). Mode from $FZX_MODE: files (default), dirs, grep.
 # grep searches for $FZF_QUERY, which fzf exports to the reload it runs on every query change, with ripgrep,
-# else grep; while fzf filters the matches (files::transform filter) it searches the term frozen then. Toggles: hidden (on at start), ignored, follow (symbolic links listed, not entered, while off).
+# else grep; while fzf filters the matches (files::transform filter) it searches the term frozen then. Toggles: hidden (on at start), ignored, follow (symbolic links listed, not entered, while off), multiline
+# (grep: ripgrep's -U).
 # Sorts: path, recent.
 
 # files::base [DIR]: absolute base directory into FILES_BASE; a file argument means its directory
@@ -80,7 +81,8 @@ files::list() {
 
 # files::grep <pattern>: "path:line:text" for every match under FILES_BASE. ripgrep (smart case); without it
 # grep -E (case-insensitive unless the pattern has a capital, binary files skipped). The toggles apply to
-# both, except that grep has no ignore files: it searches what .gitignore excludes too. Both exit 1 when
+# both, except that grep has no ignore files: it searches what .gitignore excludes too, and cannot match
+# across lines (the multiline toggle is ripgrep's -U, each line of a match its own row). Both exit 1 when
 # nothing matches.
 files::grep() {
   local args ex
@@ -89,6 +91,7 @@ files::grep() {
     files::on hidden && args+=(--hidden)
     files::on ignored && args+=(--no-ignore)
     files::on follow && args+=(--follow)
+    files::on multiline && args+=(--multiline --multiline-dotall)
     for ex in "${FZX_FILES_EXCLUDES[@]}"; do args+=(--glob "!$ex"); done
     command rg "${args[@]}" -- "$1" "$FILES_BASE"
   else
