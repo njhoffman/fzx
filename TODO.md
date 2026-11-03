@@ -1,7 +1,7 @@
 # fzx TODO
 
-Status (0.73.0): the six steps of `docs/design.md` are done. Modules: actions, audio, bluetooth, capture, claude, colors, cron, dirs,
-docker, files, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, shell, systemd, tasks, tmux,
+Status (0.74.0): the six steps of `docs/design.md` are done. Modules: actions, audio, bluetooth, capture, claude, colors, cron, dirs,
+docker, files, firewall, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
 
@@ -109,13 +109,16 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       environment (`sudo -u USER env -i SHELL=/bin/sh HOME=... sh -c`), would cover the system's too.
 - [ ] **cron: CRON_TZ and other users' crontabs** (p3) [feature]: next runs ignore `CRON_TZ=` lines, and
       only your crontab is read; with a cached sudo, /var/spool/cron/crontabs holds every user's.
-- [ ] **firewall** (p3) [module]: ufw rules. Has: ufw (needs sudo).
+- [ ] **firewall: add rules** (p3) [feature]: rules come only from profiles (alt-a, alt-D). A prompt for a
+      free rule (`allow 8080/tcp from 192.168.1.0/24`, readline as docker's alt-E has, checked with
+      `ufw --dry-run`) would add any rule; inserting at a position (`ufw insert N`) from the focused row too.
 - [ ] **ssh** (p3) [module]: hosts from ~/.ssh/config and known_hosts, connect or scp. Refs: vendors/widgets/
       fzf-exec-ssh, system/fzscp, fzf-scripts/sshget. Has: ssh, scp, rsync. No ~/.ssh/config here.
 - [ ] **kubernetes** (p3) [module]: contexts, namespaces, pods (logs, exec, describe). Refs: kubectl_fzf.plugin.zsh,
       kubernetes/fz-k, vendors/completers/kubectl.zsh. Has: kubectl. Missing: helm.
 - [ ] **aws** (p3) [module]: EC2, ECS, EKS, RDS and CloudWatch logs. Refs: widgets/aws/*. Has: aws. Missing: vault
-      (aws-vault.zsh).
+      (aws-vault.zsh). Held back (2026-11-02): no ~/.aws or profiles on this machine, so nothing can be
+      checked live; start with a profile picker, EC2 and log groups once credentials are here.
 - [ ] **versions** (p3) [module]: asdf plugins and installed versions. Refs: system/asdf*, fzasdf-plugins. Has: asdf.
 - [ ] **llm** (p3) [module]: ollama models (list, pull, rm). Has: ollama.
 - [ ] **tasks-personal** (p3) [module]: taskwarrior tasks and calcurse appointments. Has: task, calcurse.

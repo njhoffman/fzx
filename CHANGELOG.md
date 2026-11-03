@@ -6,6 +6,16 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.74.0] - 2026-11-02
+
+### Added
+
+- firewall module (ufw): the numbered rules and the application profiles, under a header row with ufw's
+  state, default policies and logging. ufw answers only root, so the module reads it through a cached
+  sudo; without one the header says to run `sudo -v`, and the profiles still list. alt-x deletes rules,
+  alt-a and alt-D allow and deny profiles, alt-e and alt-d turn ufw on and off. Each change runs through
+  sudo in the foreground, so it can ask for the password.
+
 ## [0.73.0] - 2026-11-02
 
 ### Added

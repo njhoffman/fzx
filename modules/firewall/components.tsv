@@ -1,0 +1,11 @@
+# firewall components: kind  name  key  description  flags (see lib/components.sh)
+# A header row shows ufw's state; rules ids are rule numbers, apps ids profile names. Every change runs
+# through sudo in the foreground, so it can ask for the password (and the rules show after it).
+mode    rules    -       ufw's rules, numbered (needs a cached sudo)                  default
+mode    apps     -       application profiles, with the rule that names each (root)  -
+action  delete   alt-x   rules: delete the rules (highest number first)              foreground,confirm,reload
+action  allow    alt-a   apps: allow the profiles                                     foreground,reload
+action  deny     alt-D   apps: deny the profiles                                      foreground,reload
+action  enable   alt-e   turn ufw on (and on at boot)                                 foreground,confirm,reload
+action  disable  alt-d   turn ufw off                                                 foreground,confirm,reload
+action  copy     ctrl-y  copy the rules (apps: the profile names)                     silent,builtin
