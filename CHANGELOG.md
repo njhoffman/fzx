@@ -6,6 +6,10 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- docs: a README: what fzx is, requirements, install, use, the modules, where the docs are.
+
 ### Changed
 
 - docs: PLAN.md, the brief the project started from, moved to `docs/brief.md` as history.

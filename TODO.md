@@ -164,7 +164,7 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [x] **tasks: multi-line just docs show their last line** (p3) [bug]: `just --dump` keeps only the comment
       line right above a recipe, so a two-line comment shows its tail (`lint`: "idioms trip most checks)").
       Read the comment block from the justfile instead (modules/tasks/source.sh, tasks::scan).
-- [ ] **No README** (p3) [docs]: the repo has CLAUDE.md, PLAN.md and docs/, but nothing a new reader lands on:
+- [x] **No README** (p3) [docs]: the repo has CLAUDE.md, PLAN.md and docs/, but nothing a new reader lands on:
       what fzx is, install (`just install`, sourcing shell/fzx.zsh), the module list, where docs live.
 - [x] **PLAN.md is the original brief** (p3) [docs]: the 106-line prompt that started the project, now covered by
       docs/design.md; move it to docs/ as history (or drop it) so it is not read as the current plan.
