@@ -337,3 +337,44 @@ setup() {
   [[ "$output" == *"ps.children          ctrl-o"* ]]
   [[ "$output" == *"FZX_HISTORY              1"* ]]
 }
+
+# an editor like vim: replaces one with ONE and ends the file with a newline
+edit_stub() {
+  cat > "$BATS_TEST_TMPDIR/ed" << 'STUB'
+#!/usr/bin/env bash
+f="${@: -1}"
+case "${ED_DO:-change}" in
+  change) sed -i 's/one/ONE/' "$f"; [ -n "$(tail -c1 "$f")" ] && echo >> "$f" ;;
+  empty) : > "$f" ;;
+  blank) echo > "$f" ;;
+  fail) exit 1 ;;
+esac
+exit 0
+STUB
+  chmod +x "$BATS_TEST_TMPDIR/ed"
+  mkdir -p "$BATS_TEST_TMPDIR/t"
+  export VISUAL="$BATS_TEST_TMPDIR/ed" FZX_TTY=/dev/null TMPDIR="$BATS_TEST_TMPDIR/t"
+}
+
+@test "edit_text: the edited text; the newline the editor adds is dropped unless the input had one" {
+  fzx::require builtin
+  edit_stub
+  local out
+  fzx::edit_text out < <(printf 'one\ntwo')
+  [ "$out" = $'ONE\ntwo' ]
+  fzx::edit_text out < <(printf 'one\n\n')
+  [ "$out" = $'ONE\n\n' ]
+  [ -z "$(ls -A "$TMPDIR")" ]
+}
+
+@test "edit_text: emptied, a lone newline or a failing editor (:cq) is false with nothing" {
+  fzx::require builtin
+  edit_stub
+  local out=stale
+  ED_DO=empty run fzx::edit_text out < <(printf 'one')
+  [ "$status" -ne 0 ]
+  ED_DO=blank run fzx::edit_text out < <(printf 'one')
+  [ "$status" -ne 0 ]
+  ED_DO=fail fzx::edit_text out < <(printf 'one') || :
+  [ -z "$out" ]
+}

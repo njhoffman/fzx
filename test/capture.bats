@@ -168,6 +168,22 @@ src() { FZX_MODE="$1" "$CAP/source.sh" "${@:2}"; }
   [ "$(wc -l < "$BATS_TEST_TMPDIR/open.calls")" -eq 2 ]
 }
 
+@test "edit: the values edited in \$EDITOR, then pasted; emptied pastes nothing" {
+  printf '#!/usr/bin/env bash\n[ -n "$ED_EMPTY" ] && : > "${@: -1}" || sed -i s/one/EDITED/ "${@: -1}"\n' > "$BATS_TEST_TMPDIR/ed"
+  chmod +x "$BATS_TEST_TMPDIR/ed"
+  export VISUAL="$BATS_TEST_TMPDIR/ed" FZX_TTY=/dev/null
+  run "$CAP/actions.sh" edit --pane "$PANE" -- 'one' 'two'
+  [ "$status" -eq 0 ]
+  sleep 0.2
+  [[ "$(tmux capture-pane -p -t "$PANE")" == *'EDITED'* ]]
+  tmux send-keys -t "$PANE" C-u
+  ED_EMPTY=1 run "$CAP/actions.sh" edit --pane "$PANE" -- 'gone'
+  [ "$status" -eq 0 ]
+  sleep 0.2
+  [[ "$(tmux capture-pane -p -t "$PANE")" != *'gone'* ]]
+  [ -z "$(tmux list-buffers -F '#{buffer_name}' | grep fzx-)" ]
+}
+
 @test "preview: where the value is and the lines around it, the hit's line marked" {
   fill "for i in \$(seq 1 30); do echo row-\$i; done"
   local y
@@ -187,6 +203,7 @@ src() { FZX_MODE="$1" "$CAP/source.sh" "${@:2}"; }
   [[ "$(fzf_bind alt-.)" == *'_cb transform pane next --pane '* ]]
   [[ "$(fzf_bind alt-p)" == *'_cb action paste --pane '* ]]
   [[ "$(fzf_bind alt-o)" == *'_cb action open --pane '* ]]
+  [[ "$(fzf_bind ctrl-e)" == *'execute('*'_cb action edit --pane '* ]]
   [[ "$(fzf_bind ctrl-y)" == *'builtin copy {+1}'* || "$(fzf_bind ctrl-y)" == *'copy'*'{+1}'* ]]
   run "$FZX" -m tmux:urls
   [ "$status" -ne 0 ] || [[ "$(cat "$BATS_TEST_TMPDIR/fzf.mode" 2> /dev/null)" != urls ]]

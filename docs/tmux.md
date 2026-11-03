@@ -49,6 +49,7 @@ and `#S`/`#W`-style substitutions). Using both avoids querying the live server f
 | alt-n | Rename the first selected session/window or set its pane title |
 | alt-m | Move the first selected window or pane; prompt for the destination ID |
 | alt-p | Paste selected captured text or buffers into the invoking pane, without Enter |
+| ctrl-e | Buffers: edit the selected buffers in `$EDITOR`, then paste the result (emptied or `:cq`: nothing) |
 | alt-v | Toggle capture of only the visible viewport (also in copy mode) |
 | alt-d | Keys/options/hooks: show only changes |
 | alt-u | Keys: show unassigned keys in the selected table (prefix when all tables are selected) |
@@ -119,6 +120,6 @@ The implementation draws on these local references:
 | `resources/fzfmenu/proto-widgets/tmux/manage-window` | Move/link/swap windows |
 | `resources/fzfmenu/proto-widgets/tmux/jump-marked` | Mark selected panes |
 
-Potential follow-ups from the same references: persistent snippet/paste history, edit selection before
-pasting, command-line and quoted-string filters, IPv6 extraction, marked-pane round trips, opening URLs,
-and tmuxp/resurrect session definitions.
+Potential follow-ups from the same references: persistent snippet/paste history, command-line and
+quoted-string filters, marked-pane round trips, and tmuxp/resurrect session definitions. (Editing before
+pasting, IPv6 extraction and opening URLs landed in the capture module and buffers mode.)

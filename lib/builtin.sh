@@ -37,6 +37,29 @@ fzx::open_url() {
   return "$rc"
 }
 
+# fzx::edit_text <var>: stdin edited on the terminal in $VISUAL / $EDITOR (a shell function name falls back
+# to nvim, then vi), the result into <var>. False, <var> empty, when the editor fails (vim's :cq) or the
+# text is emptied: the caller cancels. The newline editors add at the end is dropped when stdin had none.
+# FZX_TTY (default /dev/tty): the editor's terminal, for tests.
+fzx::edit_text() {
+  local _file _nl="" _editor _rc=0
+  _file="$(mktemp "${TMPDIR:-/tmp}/fzx-edit.XXXXXX")" || return
+  command cat > "$_file"
+  [[ "$(tail -c1 -- "$_file" | wc -l)" -eq 1 ]] && _nl=1
+  read -ra _editor <<< "${VISUAL:-${EDITOR:-vi}}"
+  type -P "${_editor[0]}" > /dev/null || _editor=("$(type -P nvim || echo vi)")
+  "${_editor[@]}" -- "$_file" <> "${FZX_TTY:-/dev/tty}" >&0 || _rc=$?
+  printf -v "$1" '%s' ""
+  if ((_rc == 0)); then
+    # x keeps the trailing newlines command substitution would strip
+    printf -v "$1" '%s' "$(command cat -- "$_file"; printf x)"
+    printf -v "$1" '%s' "${!1%x}"
+    [[ -n "$_nl" ]] || printf -v "$1" '%s' "${!1%$'\n'}"
+  fi
+  rm -f -- "$_file"
+  ((_rc == 0)) && [[ -n "${!1}" ]]
+}
+
 # fzx::confirm <what> [args...]: ask on the terminal; true on y
 fzx::confirm() {
   local what="$1" ans=""

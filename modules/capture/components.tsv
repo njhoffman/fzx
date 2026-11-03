@@ -7,5 +7,6 @@ mode  hashes  -  hexadecimal hashes                     -
 mode  ips     -  IP addresses (IPv4 and IPv6)            -
 toggle  visible  alt-v  only the visible screen (copy mode's view when scrolled)  -
 action  paste  alt-p  paste into the pane fzx was opened from (bracketed, no Enter)  silent
+action  edit   ctrl-e  edit in $EDITOR, then paste into the origin pane (emptied: nothing)  foreground
 action  open   alt-o  urls: open in the browser                                     silent
 action  copy   ctrl-y  copy the selection to the clipboard                       silent,builtin

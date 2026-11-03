@@ -245,6 +245,21 @@ DATA
   [ -z "$output" ]
 }
 
+@test "tmux: buffers edit pastes the edited buffers into the origin pane through a private buffer" {
+  printf 'echo one' | tmux load-buffer -b b1 -
+  printf ' two' | tmux load-buffer -b b2 -
+  printf '#!/usr/bin/env bash\nsed -i s/one/EDITED/ "${@: -1}"\n' > "$BATS_TEST_TMPDIR/ed"
+  chmod +x "$BATS_TEST_TMPDIR/ed"
+  VISUAL="$BATS_TEST_TMPDIR/ed" FZX_TTY=/dev/null run act buffers edit --pane "$PANE" -- b1 b2
+  [ "$status" -eq 0 ]
+  sleep 0.2
+  [[ "$(tmux capture-pane -p -t "$PANE")" == *'echo EDITED two'* ]]
+  [ "$(tmux list-buffers -F '#{buffer_name}' | sort | tr '\n' ' ')" = 'b1 b2 ' ]
+  # other modes do nothing
+  VISUAL=false FZX_TTY=/dev/null run act sessions edit -- "$SECOND"
+  [ "$status" -eq 0 ]
+}
+
 @test "tmux: rename and move retain spaces and stable targets" {
   source "$TMUX_MOD/actions.sh" || :
   tmux::ask() { printf -v "$2" '%s' "$ANSWER"; }

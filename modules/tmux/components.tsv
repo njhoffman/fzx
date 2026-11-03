@@ -26,6 +26,7 @@ action  swap    -       swap two windows or panes                             fo
 action  link    -       link window into another session                      foreground,reload
 action  mark    -       mark selected pane                                    silent,reload
 action  paste   alt-p   paste the buffer into the origin pane                 silent
+action  edit    ctrl-e  buffers: edit in $EDITOR, then paste into the origin pane  foreground
 action  next-session  -  switch to the next session matching the prefix        become
 action  prev-session  -  switch to the previous session matching the prefix    become
 action  theme-main    -  apply the main theme to the selected session           foreground,reload

@@ -102,7 +102,7 @@ tmux::action() {
         tmux::object_id "$id" || { printf 'tmux: invalid %s id: %s\n' "$mode" "$id" >&2; return 2; }
       done
       ;;
-    paste) ;;
+    paste | edit) ;;
     *) printf 'tmux: unknown action: %s\n' "$action" >&2; return 2 ;;
   esac
   id="${TMUX_IDS[0]}"
@@ -190,6 +190,22 @@ tmux::action() {
         command tmux paste-buffer -p -b "$id" -t "$TMUX_TARGET_PANE" || return
       done
       ;;
+    edit)
+      # the buffers as paste would send them, edited first; emptied (or :cq) pastes nothing
+      [[ "$mode" == buffers ]] || return 0
+      [[ -n "$TMUX_TARGET_PANE" ]] || {
+        printf 'tmux: edit needs --pane %%N or an invoking tmux pane\n' >&2
+        return 2
+      }
+      fzx::require builtin
+      fzx::edit_text value < <(for id in "${TMUX_IDS[@]}"; do command tmux show-buffer -b "$id"; done) || return 0
+      target="fzx-edit-$BASHPID"
+      printf '%s' "$value" | command tmux load-buffer -b "$target" - || return
+      command tmux paste-buffer -p -d -b "$target" -t "$TMUX_TARGET_PANE" || {
+        command tmux delete-buffer -b "$target" 2> /dev/null
+        return 1
+      }
+      ;;
   esac
 }
 
@@ -206,4 +222,7 @@ tmux::transform() {
   fzx::nav goto capture:lines --pane "$pane"
 }
 
-[[ "${BASH_SOURCE[0]}" == "$0" ]] && tmux::action "$@"
+[[ "${BASH_SOURCE[0]}" == "$0" ]] && {
+  source "$(dirname "${BASH_SOURCE[0]}")/../../lib/core.sh"
+  tmux::action "$@"
+}
