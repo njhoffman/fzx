@@ -31,11 +31,13 @@ fzx::run_new() {
   fzx::_launch "$dry_run" "$mode"
   rc=$?
   # a placement change that fzf cannot make with become() (into or out of a tmux pane) ends the fzf on
-  # screen and leaves state/relaunch on the root: launch the screen the user was on again, placed anew
-  while ((!dry_run)) && [[ -f "$FZX_SESSIONS_DIR/$_FZX_ROOT_SESSION/state/relaunch" ]]; do
-    rm -f -- "$FZX_SESSIONS_DIR/$_FZX_ROOT_SESSION/state/relaunch"
-    fzx::_kv_get "$FZX_SESSIONS_DIR/$_FZX_ROOT_SESSION/state/current" current || current="$_FZX_ROOT_SESSION"
-    fzx::session_attach "$current" || fzx::session_attach "$_FZX_ROOT_SESSION"
+  # screen and leaves state/relaunch on the root: launch the screen the user was on again, placed anew.
+  # The root is this tree's, or the one it adopted (a kept tree the sessions list resumed here)
+  local relaunch_root
+  while ((!dry_run)) && fzx::_relaunch_root relaunch_root; do
+    rm -f -- "$FZX_SESSIONS_DIR/$relaunch_root/state/relaunch"
+    fzx::_kv_get "$FZX_SESSIONS_DIR/$relaunch_root/state/current" current || current="$relaunch_root"
+    fzx::session_attach "$current" || fzx::session_attach "$relaunch_root"
     fzx::log info "relaunch for a placement change"
     fzx::_launch 0 ""
     rc=$?
@@ -43,6 +45,18 @@ fzx::run_new() {
   ((dry_run)) || fzx::_stat_exit "$rc"
   _FZX_EXIT_STATED=1
   return "$rc"
+}
+
+# fzx::_relaunch_root <var>: the root with a relaunch pending: this owner's tree's, else the tree it adopted
+# (state/adopt on its root, set by the sessions list when it resumes a kept tree here); fails when none
+fzx::_relaunch_root() {
+  local _own="$FZX_SESSIONS_DIR/$_FZX_ROOT_SESSION" _a=""
+  if [[ -f "$_own/state/relaunch" ]]; then
+    printf -v "$1" '%s' "$_FZX_ROOT_SESSION"
+    return 0
+  fi
+  fzx::_kv_get "$_own/state/adopt" _a && [[ -n "$_a" && -f "$FZX_SESSIONS_DIR/$_a/state/relaunch" ]] || return 1
+  printf -v "$1" '%s' "$_a"
 }
 
 # exit row: duration of the whole run, attributed to the session the user was in when it ended
@@ -73,6 +87,10 @@ fzx::_owner_exit() {
   # only a run that got as far as its start row gets an exit row
   [[ -n "${_FZX_STARTED:-}" ]] && ((!_FZX_EXIT_STATED)) && fzx::_stat_exit "$1"
   fzx::_resize_hook_unset "$FZX_SESSIONS_DIR/$_FZX_ROOT_SESSION"
+  # an adopted tree (kept) keeps its sessions but not the hook its launches here set on this window
+  local _adopt=""
+  fzx::_kv_get "$FZX_SESSIONS_DIR/$_FZX_ROOT_SESSION/state/adopt" _adopt && [[ -n "$_adopt" ]] &&
+    fzx::_resize_hook_unset "$FZX_SESSIONS_DIR/$_adopt"
   (($2)) || { fzx::session_attach "$_FZX_ROOT_SESSION" && fzx::session_destroy; }
 }
 

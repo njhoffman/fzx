@@ -87,3 +87,47 @@ setup() {
   FZX_SESSION="$OWN" run sessions::summary sessions
   [ "$output" = "1 kept, 1 live" ]
 }
+
+@test "enter on a kept session: this list's owner adopts it (owner pid and start copied, state/adopt on the list's root)" {
+  printf '%s' "$(< "$FZX_RUNTIME_DIR/sessions/$OWN/meta/owner_pid")" > "$BATS_TEST_TMPDIR/own_pid"
+  run "$FZX" _cb transform enter "$CHILD"
+  [ "$output" = "become:$FZX --resume $CHILD" ]
+  [ "$(< "$FZX_RUNTIME_DIR/sessions/$OWN/state/adopt")" = "$KEPT" ]
+  [ "$(< "$FZX_RUNTIME_DIR/sessions/$KEPT/meta/owner_pid")" = "$(< "$BATS_TEST_TMPDIR/own_pid")" ]
+  [ "$(< "$FZX_RUNTIME_DIR/sessions/$KEPT/meta/owner_start")" = "$(< "$FZX_RUNTIME_DIR/sessions/$OWN/meta/owner_start")" ]
+  # now owned by a live process (this test's shell): another list sees it live and copies it
+  run "$SES/preview.sh" "$KEPT"
+  [[ "${lines[1]}" == "live in another terminal: enter opens a copy" ]]
+}
+
+@test "owner loop: a relaunch the adopted tree asks for launches its current screen; its own relaunch first" {
+  load_libs log session run
+  _FZX_ROOT_SESSION="$OWN"
+  ! fzx::_relaunch_root rr
+  printf '%s' "$KEPT" > "$FZX_RUNTIME_DIR/sessions/$OWN/state/adopt"
+  ! fzx::_relaunch_root rr
+  touch "$FZX_RUNTIME_DIR/sessions/$KEPT/state/relaunch"
+  fzx::_relaunch_root rr
+  [ "$rr" = "$KEPT" ]
+  touch "$FZX_RUNTIME_DIR/sessions/$OWN/state/relaunch"
+  fzx::_relaunch_root rr
+  [ "$rr" = "$OWN" ]
+}
+
+@test "owner loop end to end: the list's fzf adopts a kept tree and asks it to relaunch; the owner launches that tree's screen" {
+  # the first fzf (the list) adopts KEPT and leaves a relaunch on it, as a placement change there would
+  printf '%s' "$CHILD" > "$FZX_RUNTIME_DIR/sessions/$KEPT/state/current"
+  export KEPT
+  STUB_FZF_RUN='printf "%s\n" "$FZX_SESSION" >> "$BATS_TEST_TMPDIR/launches"
+    if [[ ! -f "$BATS_TEST_TMPDIR/adopted" ]]; then touch "$BATS_TEST_TMPDIR/adopted"
+      root=$(cat "$FZX_SESSION_DIR/meta/root" 2>/dev/null || echo "$FZX_SESSION")
+      printf %s "$KEPT" > "$FZX_RUNTIME_DIR/sessions/$root/state/adopt"
+      touch "$FZX_RUNTIME_DIR/sessions/$KEPT/state/relaunch"; fi' \
+    run "$FZX" -m sessions
+  [ "$status" -eq 0 ]
+  [ "$(wc -l < "$BATS_TEST_TMPDIR/launches")" -eq 2 ]
+  [ "$(sed -n 2p "$BATS_TEST_TMPDIR/launches")" = "$CHILD" ]
+  [ ! -f "$FZX_RUNTIME_DIR/sessions/$KEPT/state/relaunch" ]
+  # the list's own tree is cleaned up, the adopted one kept
+  [ -d "$FZX_RUNTIME_DIR/sessions/$KEPT/meta" ]
+}

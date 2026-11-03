@@ -53,6 +53,15 @@ sessions::transform() {
   if [[ "$st" == kept ]]; then
     fzx::state_set query "${FZF_QUERY:-}"
     fzx::state_set pos "${FZF_POS:-1}"
+    # this list's owner adopts the tree: it relaunches the tree's screens on a placement change into or out
+    # of a pane (lib/run.sh), and as the tree's owner while it runs here other terminals see it live (they
+    # open a copy); once the owner exits the tree is kept again, its owner gone
+    local own_root="$FZX_SESSION" f
+    fzx::meta_get root own_root || :
+    for f in owner_pid owner_start; do
+      cp -- "$FZX_SESSIONS_DIR/$own_root/meta/$f" "$FZX_SESSIONS_DIR/$root/meta/$f" 2> /dev/null || :
+    done
+    fzx::_kv_set "$FZX_SESSIONS_DIR/$own_root/state/adopt" "$root"
     fzx::log info "sessions: resume $sid"
     _FZX_STAT=(nav - "resume:$sid")
     fzx::_nav_become "$sid"

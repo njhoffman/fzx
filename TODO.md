@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.81.0): the six steps of `docs/design.md` are done. Modules: actions, audio, bluetooth, capture, claude, colors, cron, dirs,
+Status (0.82.0): the six steps of `docs/design.md` are done. Modules: actions, audio, bluetooth, capture, claude, colors, cron, dirs,
 docker, files, firewall, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
@@ -52,7 +52,7 @@ Reviewed: 2026-11-03
       on or off; `files:grep` and `packages:search` still restart because they also switch the
       `change:reload` binding. Letting the hook add `rebind(change)` / `unbind(change)` (or a list of raw
       actions) would switch them in place too; ps:top and ps:tree stay restarts (sorting, the refresh loop).
-- [ ] **sessions: resumed trees in a pane** (p3) [feature]: a kept tree resumed from the sessions list runs
+- [x] **sessions: resumed trees in a pane** (p3) [feature]: a kept tree resumed from the sessions list runs
       under the list's owner, not its own, so a placement change into or out of a split or float (which needs
       the tree's owner to relaunch) only works in the list's own placement. Handing the tree to the list's
       owner (it relaunches `state/current` of the resumed root) would let it move like any other.

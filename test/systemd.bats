@@ -34,7 +34,7 @@ stub_systemctl() {
     *--user*list-units*) printf "u1.service loaded active running One\nu2.service loaded inactive dead Two\nghost.service not-found inactive dead ghost\n" ;;
     *--user*list-unit-files*) printf "u1.service enabled enabled\nu3.service disabled enabled\nu4.service static -\nt@.service disabled enabled\nu5.service masked enabled\n" ;;
     *list-unit-files*) ;;
-    *--user*list-timers*) printf "[{\"next\":%s000000,\"left\":1,\"last\":%s000000,\"passed\":1,\"unit\":\"tick.timer\",\"activates\":\"tick.service\"},{\"next\":null,\"left\":null,\"last\":null,\"passed\":null,\"unit\":\"idle.timer\",\"activates\":\"idle.service\"}]\n" "$(($(date +%s) + 5400))" "$(($(date +%s) - 300))" ;;
+    *--user*list-timers*) printf "[{\"next\":%s000000,\"left\":1,\"last\":%s000000,\"passed\":1,\"unit\":\"tick.timer\",\"activates\":\"tick.service\"},{\"next\":null,\"left\":null,\"last\":null,\"passed\":null,\"unit\":\"idle.timer\",\"activates\":\"idle.service\"}]\n" "$(($(date +%s) + 5400))" "$(($(date +%s) - 330))" ;; # mid-minute: a slow source reads now seconds earlier
     *list-timers*) printf "[{\"next\":%s000000,\"left\":1,\"last\":null,\"passed\":null,\"unit\":\"apt.timer\",\"activates\":\"apt.service\"}]\n" "$(($(date +%s) + 90000))" ;;
     *--user*list-sockets*) printf "[{\"listen\":\"/run/a\",\"unit\":\"a.socket\",\"activates\":\"a.service\"},{\"listen\":\"/run/a2\",\"unit\":\"a.socket\",\"activates\":\"a.service\"},{\"listen\":\"/run/b\",\"unit\":\"b.socket\",\"activates\":null}]\n" ;;
     *list-sockets*) printf "[]\n" ;;

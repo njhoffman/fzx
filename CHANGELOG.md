@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.82.0] - 2026-11-03
+
+### Added
+
+- sessions: a kept session resumed from the list can move into or out of a split or float (ctrl-^) like any
+  other: the list's process adopts it and relaunches it there. While it is open, other terminals see it as
+  live and open a copy instead of resuming the same session; once you leave, it is kept again.
+
 ## [0.81.0] - 2026-11-03
 
 ### Added
