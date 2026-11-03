@@ -51,6 +51,7 @@ Inside any module, f1 shows every key, mode, toggle and action. The common ones:
 | alt-1 .. alt-8 | the module's toggles, in table order |
 | f11 / f12 | previous / next sort order |
 | ctrl-^ | next placement: inline, split, popup, float |
+| alt-^ | a popup or the plain terminal, nothing else |
 
 ## Modules
 

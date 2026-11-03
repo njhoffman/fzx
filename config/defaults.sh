@@ -17,6 +17,8 @@ declare -gA FZX_KEYS=(
   [back]=alt-left
   [escape]=esc
   [popout]="ctrl-^"
+  # between a popup and the plain terminal only (alt-shift-6: terminals send ESC ^)
+  [popup_toggle]="alt-^"
   [help]=f1
   [debug]=f2
   [actions]="ctrl-\\"

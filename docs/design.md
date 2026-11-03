@@ -127,6 +127,7 @@ follow the query (`files:grep`), so a later launch must not start with the last 
 | Back | `alt-left` | `transform(fzx _cb nav back)`: `become` the parent; `bell` at the root |
 | Escape | `esc` (`FZX_KEYS[escape]`) | `transform(fzx _cb nav escape)`: `become` the parent; `abort` at the root. Ctrl-C keeps fzf's abort behavior. Standalone modules keep fzf's Escape behavior. |
 | Placement | `ctrl-^` | `transform(fzx _cb nav placement next)`: the next `FZX_PLACEMENTS` entry that can run here into the root's `state/placement`, save query/pos; inline/popup: `become(fzx --resume <sid>)`; into or out of a tmux pane (split, float): `state/relaunch` + `abort`, and the owner relaunches; `bell` when there is nowhere to go |
+| Popup or inline | `alt-^` (`FZX_KEYS[popup_toggle]`) | `transform(fzx _cb nav placement popup-toggle)`: from a popup to inline, from anywhere else (inline, a split, a float) to the first popup entry of `FZX_PLACEMENTS` (none: a plain popup), as the placement key moves; `bell` where no popup can run. Terminals send ESC ^ for alt-shift-6 |
 
 **Placement** belongs to the session tree (`state/placement` on the root): `inline`, `popup[:OPTS]`,
 `split:DIR[,SIZE]` (DIR up/down/left/right) or `float[:OPTS]`. `fzx -m ps --popup[=OPTS]`,
@@ -423,7 +424,7 @@ resolved config: the callback loads the layers just before the first module func
 | Setting | Default | Meaning |
 |---|---|---|
 | `FZX_FZF_OPTS` | `--ansi --with-shell='bash -c'` | base fzf options for every module |
-| `FZX_KEYS` | core: `reload_hard` ctrl-r, `reload_soft` alt-r, `mode_next` alt-0, `mode_prev` alt-9, `back` alt-left, `escape` esc, `popout` ctrl-^, `actions` ctrl-\\ | module navigation keys are `<module>.<name>` (`ps.children`, `files.into`), set in the module's `config.sh`; action keys are in the action rows of `components.tsv` |
+| `FZX_KEYS` | core: `reload_hard` ctrl-r, `reload_soft` alt-r, `mode_next` alt-0, `mode_prev` alt-9, `back` alt-left, `escape` esc, `popout` ctrl-^, `popup_toggle` alt-^, `actions` ctrl-\\ | module navigation keys are `<module>.<name>` (`ps.children`, `files.into`), set in the module's `config.sh`; action keys are in the action rows of `components.tsv` |
 | `FZX_TOGGLE_DIGIT_KEYS` | `1` | toggles also flip with alt-1 .. alt-8 in table order; `0` turns it off |
 | `FZX_RESERVED_KEYS` | ctrl-f ctrl-b ctrl-u ctrl-w ctrl-g alt-g ctrl-p ctrl-n up down alt-b alt-f scroll-up scroll-down | keys modules may not bind (the user's scrolling and query editing); `fzx::bind` skips a module binding on one and logs a warning. fzx's own keys are not checked. Modules may still take keys the user binds elsewhere (ctrl-e edit replaces the user's `become(nvim)` with a per-module editor action) |
 | `FZX_COLORS` | `mode_active`, `mode_inactive`, `menu_target`, `menu_summary`, `menu_group`, `dim`, `sorted` | SGR parameters for what fzx draws itself (`sorted`: added to the column a list is sorted by) |

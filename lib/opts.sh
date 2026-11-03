@@ -323,6 +323,8 @@ fzx::opts_build() {
     fzx::bind "${FZX_KEYS[back]}" "transform:$(fzx::cb nav back)" "back to the previous screen"
     fzx::bind "${FZX_KEYS[escape]}" "transform:$(fzx::cb nav escape)" "back to the previous screen; quit at the root"
     fzx::bind "${FZX_KEYS[popout]}" "transform:$(fzx::cb nav placement next)" "next placement: ${FZX_PLACEMENTS[*]}"
+    [[ -n "${FZX_KEYS[popup_toggle]:-}" ]] &&
+      fzx::bind "${FZX_KEYS[popup_toggle]}" "transform:$(fzx::cb nav placement popup-toggle)" "popup or the plain terminal"
     if ((${#FZX_MODES[@]} > 1)); then
       fzx::bind "${FZX_KEYS[mode_next]}" "transform:$(fzx::cb mode next)" "next mode"
       fzx::bind "${FZX_KEYS[mode_prev]}" "transform:$(fzx::cb mode prev)" "previous mode"

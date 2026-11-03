@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.74.0): the six steps of `docs/design.md` are done. Modules: actions, audio, bluetooth, capture, claude, colors, cron, dirs,
+Status (0.75.0): the six steps of `docs/design.md` are done. Modules: actions, audio, bluetooth, capture, claude, colors, cron, dirs,
 docker, files, firewall, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
@@ -40,9 +40,6 @@ Reviewed: 2026-11-02
       or plain backspace for it, and binding those would stop backspace deleting query characters.
 - [ ] **All keys list** (p3) [feature]: a mode of the keybindings module listing fzf's `--keys` names (every
       key fzf knows), marking the bound ones with their action.
-- [ ] **alt-^ flips popup and inline** (p3) [feature]: a second placement key that switches only between the
-      popup and the plain terminal, skipping split and float (ctrl-^, `FZX_KEYS[popout]`, keeps the full cycle).
-      Check what the terminal sends for alt-shift-6 and that fzf accepts `alt-^`.
 
 ## 4. Core features
 

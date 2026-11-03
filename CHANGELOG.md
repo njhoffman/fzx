@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.75.0] - 2026-11-02
+
+### Added
+
+- alt-^ (`FZX_KEYS[popup_toggle]`) moves between a popup and the plain terminal only: from a popup back
+  inline, from anywhere else (inline, a split, a float) into the first popup of `FZX_PLACEMENTS`. ctrl-^
+  keeps the whole cycle. An empty `FZX_KEYS[popup_toggle]` leaves the key unbound.
+
 ## [0.74.0] - 2026-11-02
 
 ### Added

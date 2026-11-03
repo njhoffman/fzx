@@ -171,7 +171,7 @@ fzx::nav_sort() {
   fzx::_nav_apply sort "$sort"
 }
 
-# fzx::nav <resume | restart | back | escape | placement [next|prev|P] | goto <module[:mode]> [module args...] | entry <module>#<n>>
+# fzx::nav <resume | restart | back | escape | placement [next|prev|popup-toggle|P] | goto <module[:mode]> [module args...] | entry <module>#<n>>
 # Saves the query, cursor position and a hand-hidden preview of the current session, then prints become()
 # into the target.
 fzx::nav() {
@@ -233,8 +233,9 @@ fzx::_nav_back() {
   fi
 }
 
-# fzx::_nav_placement [next|prev|PLACEMENT]: move the session tree to the next placement of FZX_PLACEMENTS
-# that can run here. Between inline and popup the current screen restarts through become() (every launch
+# fzx::_nav_placement [next|prev|popup-toggle|PLACEMENT]: move the session tree to the next placement of
+# FZX_PLACEMENTS that can run here; popup-toggle goes from a popup to inline and from anywhere else to the
+# first popup entry of FZX_PLACEMENTS (else a plain popup). Between inline and popup the current screen restarts through become() (every launch
 # asks for the popup again). Into or out of a split pane fzf cannot move by itself: the fzf on screen
 # aborts with state/relaunch on the root, and the owner launches the screen again in the new placement.
 fzx::_nav_placement() {
@@ -254,6 +255,16 @@ fzx::_nav_placement() {
   case "$target" in
     next) ((n)) && next="${avail[(idx + 1) % n]}" ;;
     prev) ((n)) && next="${avail[(idx - 1 + n) % n]}" ;;
+    popup-toggle)
+      if [[ "$current" == popup || "$current" == popup:* ]]; then
+        next=inline
+      else
+        for p in "${avail[@]}"; do
+          [[ "$p" == popup || "$p" == popup:* ]] && { next="$p"; break; }
+        done
+        [[ -z "$next" ]] && fzx::placement_ok popup && next=popup
+      fi
+      ;;
     *) fzx::placement_ok "$target" && next="$target" ;;
   esac
   if [[ -z "$next" || "$next" == "$current" ]]; then

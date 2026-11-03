@@ -90,6 +90,41 @@ kept() {
   [ "$output" = bell ]
 }
 
+@test "popup-toggle: a popup and inline only; from a split the popup; the first popup entry; nowhere: bell" {
+  echo 'FZX_PLACEMENTS=(inline split:down,40% popup:center,70% float)' > "$FZX_CONFIG_DIR/config.sh"
+  kept
+  # inline -> the popup entry, through become()
+  FZX_SESSION="$SID" run "$FZX" _cb nav placement popup-toggle
+  [ "$output" = "become:$FZX --resume $SID" ]
+  [ "$(< "$DIR/state/placement")" = popup:center,70% ]
+  # and back to inline, never through split or float
+  FZX_SESSION="$SID" run "$FZX" _cb nav placement popup-toggle
+  [ "$output" = "become:$FZX --resume $SID" ]
+  [ ! -f "$DIR/state/placement" ]
+  # out of a split pane into the popup: the owner relaunches
+  echo split:down,40% > "$DIR/state/placement"
+  FZX_SESSION="$SID" run "$FZX" _cb nav placement popup-toggle
+  [ "$output" = abort ]
+  [ "$(< "$DIR/state/placement")" = popup:center,70% ]
+  [ -f "$DIR/state/relaunch" ]
+  rm "$DIR/state/relaunch" "$DIR/state/placement"
+  # no popup entry: a plain popup; outside tmux and Zellij: nowhere to go
+  echo 'FZX_PLACEMENTS=(inline split:down,40%)' > "$FZX_CONFIG_DIR/config.sh"
+  FZX_SESSION="$SID" run "$FZX" _cb nav placement popup-toggle
+  [ "$(< "$DIR/state/placement")" = popup ]
+  rm "$DIR/state/placement"
+  TMUX="" FZX_SESSION="$SID" run "$FZX" _cb nav placement popup-toggle
+  [ "$output" = bell ]
+}
+
+@test "popup-toggle: alt-^ binds it under fzx, an empty FZX_KEYS entry leaves it unbound" {
+  run "$FZX" -m counter
+  [ "$(fzf_bind 'alt-^')" = "alt-^:transform:$FZX _cb nav placement popup-toggle" ]
+  echo 'FZX_KEYS[popup_toggle]=""' > "$FZX_CONFIG_DIR/config.sh"
+  run "$FZX" -m counter
+  ! fzf_bind 'alt-^'
+}
+
 @test "--split and --popup set the starting placement" {
   kept --split
   [ "$(< "$DIR/state/placement")" = split:down,40% ]
