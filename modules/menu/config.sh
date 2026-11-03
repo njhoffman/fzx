@@ -15,3 +15,6 @@ FZX_MENU_GROUPS=(files shell development system terminal other)
 # how use is weighed: a use counts half after FZX_MENU_HALF_LIFE_DAYS, nothing after FZX_MENU_STATS_DAYS
 FZX_MENU_HALF_LIFE_DAYS=7
 FZX_MENU_STATS_DAYS=90
+
+# --freeze-left (config/defaults.sh): the icon and the entry stay
+FZX_FREEZE_COL=26

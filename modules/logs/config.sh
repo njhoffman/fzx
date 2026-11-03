@@ -55,3 +55,7 @@ FZX_POPUP_LAYOUTS=("0:center,100%" "140:center,95%,90%" "220:center,90%,85%")
 
 # the menu group this module is listed under (menu mode groups)
 FZX_MENU_GROUP=system
+
+# --freeze-left (config/defaults.sh): files: the age, the marks and the name stay
+declare -gA FZX_FREEZE_COLS
+FZX_FREEZE_COLS[files]=38

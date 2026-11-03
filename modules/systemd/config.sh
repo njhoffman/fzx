@@ -19,3 +19,8 @@ FZX_POPUP_LAYOUTS=("0:center,100%" "140:center,95%,90%" "220:center,90%,85%")
 
 # the menu group this module is listed under (menu mode groups)
 FZX_MENU_GROUP=system
+
+# --freeze-left (config/defaults.sh): timers, sockets: the manager and the unit stay
+declare -gA FZX_FREEZE_COLS
+FZX_FREEZE_COLS[timers]=gap2
+FZX_FREEZE_COLS[sockets]=gap2

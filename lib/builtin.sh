@@ -79,7 +79,18 @@ fzx::builtin() {
   local name="${1:-}"
   shift
   case "$name" in
-    copy | copy-line)
+    copy-line)
+      (($#)) || return 0
+      # the line as the source wrote it: a display split for --freeze-left whole again
+      local _k=""
+      [[ -n "${FZX_SESSION_DIR:-}" ]] && fzx::_kv_get "$FZX_SESSION_DIR/meta/freeze" _k 2> /dev/null
+      if [[ -n "$_k" ]]; then
+        printf '%s\n' "$@" | awk -F'\t' -v OFS='\t' -v k="$_k" '{ last = $NF; NF--; if (last != "") $k = $k " " last; print }' | fzx::clip
+      else
+        printf '%s\n' "$@" | fzx::clip
+      fi
+      ;;
+    copy)
       (($#)) || return 0
       printf '%s\n' "$@" | fzx::clip
       ;;

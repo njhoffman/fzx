@@ -317,6 +317,15 @@ once. A sort row flagged `desc` orders its column's values from the largest (mos
 date); the header row's arrow points down for it (`FZX_SORT_DESC`). The footer shows modes, toggles and the sort
 key, active ones highlighted (`FZX_COLORS[toggle_on|toggle_off|sort]`).
 
+`--freeze-left` (`FZX_FREEZE_LEFT`, 1 by default, 0 for none; a module's own option wins) counts fields of the
+displayed text, and a row's display is one field, so on its own it would do nothing. `fzx::_freeze_opts`
+therefore, under a session and without `--read0`, turns `--with-nth=K` into `--with-nth=K,-1` (and `--nth=1`
+into `--nth=1,2`), adds `--tabstop=1` and records K in `meta/freeze`; `fzx::freeze_rows`, between the source and
+fzf or the cache, then cuts field K at the space `FZX_FREEZE_COLS[mode]` or `FZX_FREEZE_COL` names (`gap`,
+`gap2`, `word`, a column, `none`) and appends what follows as a new last field. The tab takes the replaced
+space's column, so nothing shifts, and every field a binding reads keeps its number. The display is whole again
+for what needs it: copy-line rejoins it and tmux's preview takes `{-1}`. The cache key gets `~K`.
+
 A toggle row's description may be scoped by mode too (`params: exported ones only`; `fzx::comp_toggle_names`): it shows in
 the footer only in the modes it names, its key does nothing elsewhere (fzf keeps its bindings across modes,
 so it stays bound; `ignore`), and it stays out of those modes' cache key, so turning it on elsewhere

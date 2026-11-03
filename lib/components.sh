@@ -242,6 +242,10 @@ fzx::data_key() {
   fi
   [[ -n "$FZX_SORT" ]] && _key+="@$FZX_SORT"
   [[ "${FZX_SORT_HEADER:-0}" == 1 ]] && _key+="#header"
+  # rows split for --freeze-left differ from ones cached before it
+  local _f=""
+  [[ -n "${FZX_SESSION_DIR:-}" ]] && fzx::_kv_get "$FZX_SESSION_DIR/meta/freeze" _f 2> /dev/null
+  [[ -n "$_f" ]] && _key+="~$_f"
   printf -v "$1" '%s' "$_key"
 }
 

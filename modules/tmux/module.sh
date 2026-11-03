@@ -17,7 +17,7 @@ tmux::opts() {
   args+="--"
   FZX_OPTS+=(
     --delimiter=$'\t' --with-nth=2 --accept-nth=1 --tiebreak=index --multi
-    --preview "$(fzx::cb preview "$args" '{1}' '{2}' '{3}')"
+    --preview "$(fzx::cb preview "$args" '{1}' '{2}' '{3}' '{-1}')"
     '--preview-window=right,60%,nohidden'
   )
   FZX_ACTION_ARGS="$args {+1}"

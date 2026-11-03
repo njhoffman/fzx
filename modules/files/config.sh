@@ -51,3 +51,6 @@ FZX_MENU_GROUP=files
 
 # sorts without a column to mark: no header row under FZX_SORTED_SHOW=header or both
 FZX_SORTED_COLUMNS=0
+
+# --freeze-left (config/defaults.sh): the icon (or a grep row's path and line) stays; --keep-right keeps the name at the end of the path
+FZX_FREEZE_COL=word

@@ -74,3 +74,9 @@ FZX_PREVIEW_LAYOUTS=("0:down,55%,border-top" "140:right,55%")
 
 # the menu group this module is listed under (menu mode groups)
 FZX_MENU_GROUP=development
+
+# --freeze-left (config/defaults.sh): repository lists: the icons and the name stay
+declare -gA FZX_FREEZE_COLS
+FZX_FREEZE_COLS[repos]=43
+FZX_FREEZE_COLS[mine]=43
+FZX_FREEZE_COLS[starred]=43

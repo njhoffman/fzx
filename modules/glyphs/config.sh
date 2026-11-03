@@ -31,3 +31,6 @@ FZX_PREVIEW_LAYOUTS=("0:down,45%,border-top" "100:right,45%")
 
 # the menu group this module is listed under (menu mode groups)
 FZX_MENU_GROUP=terminal
+
+# --freeze-left (config/defaults.sh): the glyph and its name stay
+FZX_FREEZE_COL=gap2

@@ -25,3 +25,7 @@ FZX_PREVIEW_LAYOUTS=("0:down,45%,border-top" "110:right,50%")
 
 # the menu group this module is listed under (menu mode groups)
 FZX_MENU_GROUP=files
+
+# --freeze-left (config/defaults.sh): all: the icon stays; --keep-right keeps the name at the end of the path
+declare -gA FZX_FREEZE_COLS
+FZX_FREEZE_COLS[all]=word

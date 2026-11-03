@@ -14,6 +14,7 @@ recent::opts() {
   FZX_OPTS+=(
     --delimiter=$'\t'
     --with-nth=2
+    --keep-right
     --accept-nth=1
     --scheme=path
     # after --scheme, which brings its own tiebreak: equal matches keep the frecency order

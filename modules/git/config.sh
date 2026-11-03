@@ -35,3 +35,11 @@ FZX_POPUP_LAYOUTS=("0:center,100%" "140:center,95%,90%" "220:center,90%,85%")
 
 # the menu group this module is listed under (menu mode groups)
 FZX_MENU_GROUP=development
+
+# --freeze-left (config/defaults.sh): the status, hash or stash name stays (the other modes: their first column)
+declare -gA FZX_FREEZE_COLS
+FZX_FREEZE_COLS[status]=word
+FZX_FREEZE_COLS[log]=word
+FZX_FREEZE_COLS[stash]=word
+FZX_FREEZE_COLS[reflog]=word
+FZX_FREEZE_COLS[commit]=word

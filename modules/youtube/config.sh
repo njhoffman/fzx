@@ -41,3 +41,6 @@ FZX_PREVIEW_LAYOUTS=("0:down,45%,border-top" "150:right,45%")
 
 # the menu group this module is listed under (menu mode groups)
 FZX_MENU_GROUP=other
+
+# --freeze-left (config/defaults.sh): the duration and the title stay
+FZX_FREEZE_COL=gap2

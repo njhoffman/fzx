@@ -466,7 +466,15 @@ wait_log() {
   run fzf_bind alt-enter
   [[ "$output" == 'alt-enter:become('*"_cb action run --pane $PANE -- {3})" ]]
   run fzf_flag --preview
-  [[ "$output" == *"--pane $PANE -- {1} {2} {3}" ]]
+  [[ "$output" == *"--pane $PANE -- {1} {2} {3} {-1}" ]]
+}
+
+@test "tmux: the preview shows a session's whole display when --freeze-left split it" {
+  run env FZX_MODE=sessions "$TMUX_MOD/preview.sh" --pane "$PANE" -- '$0' first '{}' '1 windows  detached  1s'
+  [ "${lines[0]}" = "first 1 windows  detached  1s" ]
+  # not split: the last field is the metadata
+  run env FZX_MODE=sessions "$TMUX_MOD/preview.sh" --pane "$PANE" -- '$0' 'first  1 windows' '{}' '{}'
+  [ "${lines[0]}" = "first  1 windows" ]
 }
 
 @test "tmux: the menu counts each reference mode's rows; nothing without a server" {

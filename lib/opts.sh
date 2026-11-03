@@ -333,6 +333,30 @@ fzx::session_title() {
   fzx::title_paint "$1" "${_parts[@]}"
 }
 
+# fzx::_freeze_opts: --freeze-left, unless the module sets it. Where the display is a single field of
+# --with-nth (id<TAB>display), the source's rows get it split (fzx::freeze_rows, recorded in meta/freeze):
+# --with-nth=K,-1 shows the frozen part and the rest; --tabstop=1 makes the tab between them take the place of
+# the space it replaced. Nothing moves in fields the bindings read. Multi-line items (--read0) and sessionless
+# runs, whose rows do not pass through the callbacks, keep their fields.
+fzx::_freeze_opts() {
+  local _n="${FZX_FREEZE_LEFT:-1}" _i _at=-1 _k=""
+  fzx::in_session && fzx::meta_set freeze ""
+  [[ "$_n" != 0 ]] || return 0
+  [[ " ${FZX_OPTS[*]} " == *" --freeze-left="* ]] || FZX_OPTS+=("--freeze-left=$_n")
+  fzx::in_session && [[ "${FZX_READ0:-0}" != 1 ]] || return 0
+  for ((_i = 0; _i < ${#FZX_OPTS[@]}; _i++)); do
+    [[ "${FZX_OPTS[_i]}" =~ ^--with-nth=([0-9]+)(,[0-9,]+)?$ ]] && _at="$_i" _k="${BASH_REMATCH[1]}"
+  done
+  ((_at >= 0)) || return 0
+  FZX_OPTS[_at]="--with-nth=$_k,-1${FZX_OPTS[_at]#--with-nth=$_k}"
+  [[ " ${FZX_OPTS[*]} " == *" --tabstop="* ]] || FZX_OPTS+=(--tabstop=1)
+  # a search limited to the display (the menu's) covers both parts of it
+  for ((_i = 0; _i < ${#FZX_OPTS[@]}; _i++)); do
+    [[ "${FZX_OPTS[_i]}" == --nth=1 ]] && FZX_OPTS[_i]=--nth=1,2
+  done
+  fzx::meta_set freeze "$_k"
+}
+
 fzx::opts_build() {
   local module="$1" label query pos
   FZX_OPTS=("${FZX_FZF_OPTS[@]}")
@@ -432,6 +456,7 @@ fzx::opts_build() {
   # count them by NUL (meta/read0)
   [[ "${FZX_READ0:-0}" == 1 ]] && FZX_OPTS+=(--read0 --highlight-line)
   fzx::in_session && fzx::meta_set read0 "${FZX_READ0:-0}"
+  fzx::_freeze_opts
   fzx::require actions
   fzx::actions_bind "$module"
   fzx::_component_place

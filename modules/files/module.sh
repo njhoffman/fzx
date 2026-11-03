@@ -57,6 +57,7 @@ files::opts() {
   else
     FZX_OPTS+=(
       --with-nth=2
+      --keep-right
       --accept-nth=1
       --scheme=path
       --preview "$(fzx::cb preview '{1}')"

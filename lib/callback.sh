@@ -212,6 +212,51 @@ fzx::_cb_persistent_load() {
   cat -- "$2"
 }
 
+# fzx::freeze_rows: the source's rows, the display field (meta/freeze) cut where FZX_FREEZE_COL[S] says into
+# what stays and the rest, which goes last on the row so that no other field moves. The space at the cut goes:
+# the tab between them takes its column. Colors do not count as columns.
+fzx::freeze_rows() {
+  local _k="" _spec
+  fzx::meta_get freeze _k 2> /dev/null || :
+  [[ -n "$_k" ]] || { command cat; return; }
+  _spec="${FZX_FREEZE_COLS[$FZX_MODE]:-${FZX_FREEZE_COL:-gap}}"
+  LC_ALL=C.UTF-8 awk -F'\t' -v OFS='\t' -v k="$_k" -v spec="$_spec" '
+    # the column of the space to replace in the plain text, 0 for none
+    function target(p,  tail, j) {
+      # a gap: its last space, so the frozen part keeps its padding and rows stay aligned while scrolled
+      if (spec == "gap") return match(p, /[^ ]  +/) ? RSTART + RLENGTH - 1 : 0
+      if (spec == "gap2") {
+        if (!match(p, /[^ ]  +/)) return 0
+        j = RSTART + RLENGTH - 1; tail = substr(p, j + 1)
+        return match(tail, /[^ ]  +/) ? j + RSTART + RLENGTH - 1 : 0
+      }
+      if (spec == "word") return match(p, /[^ ] /) ? RSTART + 1 : 0
+      if (spec ~ /^[0-9]+$/) {
+        tail = substr(p, spec + 1); j = index(tail, " ")
+        return j ? spec + j : 0
+      }
+      return 0
+    }
+    # where column t of the plain text is in the raw text
+    function raw(s, t,  pos, seen, gap) {
+      pos = 1; seen = 0
+      while (match(substr(s, pos), /\033\[[0-9;:]*[A-Za-z]/)) {
+        gap = RSTART - 1
+        if (seen + gap >= t) break
+        seen += gap; pos += gap + RLENGTH
+      }
+      return pos + t - seen - 1
+    }
+    {
+      for (i = NF + 1; i <= k; i++) $i = ""
+      s = $k; p = s; gsub(/\033\[[0-9;:]*[A-Za-z]/, "", p)
+      rest = ""
+      if ((t = target(p))) { o = raw(s, t); $k = substr(s, 1, o - 1); rest = substr(s, o + 1) }
+      print $0, rest
+      fflush()
+    }'
+}
+
 # fzx::_cb_source <miss|reload>: run the module source, streaming to fzf while writing the cache;
 # the cache is only replaced on success
 fzx::_cb_source() {
@@ -224,7 +269,7 @@ fzx::_cb_source() {
   if [[ "$persist" == none ]]; then
     # output streams straight to fzf (fd 3); tee hands a copy to wc for the stats row's line count
     local count="$FZX_SESSION_DIR/count.$BASHPID"
-    { "$FZX_MODULE::source" "${FZX_ARGS[@]}" 2>> "$FZX_LOG_FILE" | tee /dev/fd/3 | fzx::_cb_count > "$count"; } 3>&1
+    { "$FZX_MODULE::source" "${FZX_ARGS[@]}" 2>> "$FZX_LOG_FILE" | fzx::freeze_rows | tee /dev/fd/3 | fzx::_cb_count > "$count"; } 3>&1
     rc="${PIPESTATUS[0]}"
     lines=-
     [[ -s "$count" ]] && read -r lines < "$count"
@@ -237,7 +282,7 @@ fzx::_cb_source() {
   fzx::data_key view
   fzx::data_path data "$view"
   tmp="$data.$BASHPID"
-  "$FZX_MODULE::source" "${FZX_ARGS[@]}" 2>> "$FZX_LOG_FILE" | tee -- "$tmp"
+  "$FZX_MODULE::source" "${FZX_ARGS[@]}" 2>> "$FZX_LOG_FILE" | fzx::freeze_rows | tee -- "$tmp"
   rc="${PIPESTATUS[0]}"
   if ((rc != 0)); then
     rm -f -- "$tmp"

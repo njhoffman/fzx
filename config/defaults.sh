@@ -151,6 +151,16 @@ FZX_SORTED_ARROWS="${FZX_SORTED_ARROWS-↑ ↓}"
 # set by a module that sorts without a column to mark (files, todos): 0 shows no header row
 FZX_SORTED_COLUMNS=1
 
+# fields fzf keeps on screen at the left of a row while the rest scrolls to a match (--freeze-left); 0 for none.
+# A row's display is one tab-separated field, so fzx splits it where the frozen part ends and puts the rest in a
+# new last field (no field a binding reads moves). Where it ends, per module or per mode:
+#   gap   the first run of two or more spaces (the default)   gap2  the second such run
+#   word  the first space                                     N     the first space from column N on
+#   none  nowhere
+FZX_FREEZE_LEFT="${FZX_FREEZE_LEFT-1}"
+FZX_FREEZE_COL=gap
+declare -gA FZX_FREEZE_COLS=()
+
 # the border title, the path of screens ("menu:list > glyphs:nerd"): the color of where you came from and of
 # the screen you are on (#rrggbb, a 256-color number, or "" for fzf's label color). The current one is also
 # bold. FZX_COLORS[title] and [title_current] (raw SGR parameters) override them

@@ -6,6 +6,19 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.97.0] - 2026-11-03
+
+### Added
+
+- `--freeze-left=1` by default in every module (`FZX_FREEZE_LEFT`; 0 for none): the name column stays on
+  screen while a long row scrolls to a match. fzx splits each row's display where the frozen part ends
+  (`FZX_FREEZE_COL`, `FZX_FREEZE_COLS[mode]`: `gap`, `gap2`, `word`, a column or `none`), with the rest as a
+  new last field, so no field a binding reads moves. The menu freezes the icon and entry, files the icon.
+
+### Changed
+
+- files, dirs and recent keep the right end of a long path in view (`--keep-right`), so the name shows.
+
 ## [0.96.0] - 2026-11-03
 
 ### Changed
