@@ -33,6 +33,8 @@ FZX_SHELL_SECRETS="${FZX_SHELL_SECRETS:-TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|
 
 FZX_COLORS[shell_name]='1;38;5;117'
 FZX_COLORS[shell_kind]='38;5;180'
+# the type icon before a parameter's name
+FZX_COLORS[shell_param_icon]='38;5;66'
 FZX_COLORS[shell_value]='38;5;250'
 FZX_COLORS[shell_export]='1;38;5;75'
 FZX_COLORS[shell_masked]='38;5;203'

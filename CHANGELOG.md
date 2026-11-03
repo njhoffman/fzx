@@ -6,6 +6,16 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.96.0] - 2026-11-03
+
+### Changed
+
+- shell:params shows a parameter's type as an icon before its name (`FZX_COLORS[shell_param_icon]`; the word
+  with icons off), instead of a column after it.
+- The shell:params preview lists the type, the attributes in words (exported, tied, special, readonly, hidden,
+  unique, ...), what a tied parameter is tied to, the size and where the value came from, then the value as a
+  zsh assignment, highlighted.
+
 ## [0.95.0] - 2026-11-03
 
 ### Changed

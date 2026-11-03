@@ -98,6 +98,7 @@ shell::path_commands() {
 shell::colors() {
   local -A c=(
     [name]="${FZX_COLORS[shell_name]:-1;38;5;117}" [kind]="${FZX_COLORS[shell_kind]:-38;5;180}"
+    [picon]="${FZX_COLORS[shell_param_icon]:-38;5;66}"
     [value]="${FZX_COLORS[shell_value]:-38;5;250}" [dim]="${FZX_COLORS[dim]:-38;5;244}"
     [export]="${FZX_COLORS[shell_export]:-38;5;75}" [masked]="${FZX_COLORS[shell_masked]:-38;5;203}"
   )
@@ -177,13 +178,18 @@ shell::params() {
   local opts=() only=0
   [[ " ${FZX_TOGGLES:-} " == *" exported "* ]] && only=1
   mapfile -t opts < <(shell::colors)
+  fzx::require icons
+  fzx::icon_vars param_array param_assoc param_int param_float param_scalar
   # environment values are raw (marked by \001), the dump's quoted as zsh reads them back
-  shell::param_rows | awk -F'\t' "${opts[@]}" -v only="$only" "$SHELL_AWK_LIB"'
+  # the type as an icon before the name (no icons: the word, after it)
+  shell::param_rows | awk -F'\t' "${opts[@]}" "${FZX_ICON_VARS[@]}" -v only="$only" "$SHELL_AWK_LIB"'
     only && $2 !~ /export/ { next }
     { t = $2; ex = t ~ /export/; sub(/-.*/, "", t); if (t == "association") t = "assoc"; if (t == "integer") t = "int"
+      i = t == "array" ? icon_param_array : t == "assoc" ? icon_param_assoc : t == "int" ? icon_param_int : t == "float" ? icon_param_float : icon_param_scalar
       v = $3; if (substr(v, 1, 1) == "\001") v = substr(v, 2); else v = unq(v)
       shown = $4 == 1 ? c_masked "(masked)" r : c_value cut(v) r
-      printf "%s\tparam\t%s%s%s %s%s%s %s\n", $1, (ex ? c_export : c_name), pad($1, 28), r, c_kind, pad(t, 6), r, shown }'
+      printf "%s\tparam\t%s%s%s%s%s%s\n", $1, (i != "" ? c_picon i r " " : ""), (ex ? c_export : c_name), pad($1, 28), r,
+        (i != "" ? "" : " " c_kind pad(t, 6) r " "), shown }'
 }
 
 # shell::zsh_complete <var>: the zsh-complete command (FZX_SHELL_ZSH_COMPLETE, on PATH, ~/.shell's); fails

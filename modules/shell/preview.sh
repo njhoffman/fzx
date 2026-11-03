@@ -128,27 +128,90 @@ shell::lines() {
   if [[ "$1" == *PATH ]]; then tr ':' '\n'; else cat; fi
 }
 
+# shell::param_flags <type>: a parameter's ${(t)} words as the attributes they mean, comma-separated (its
+# kind, the first word, left out)
+shell::param_flags() {
+  local -a words out=()
+  local w
+  IFS=- read -ra words <<< "$1"
+  for w in "${words[@]:1}"; do
+    case "$w" in
+      export) out+=(exported) ;;
+      special) out+=("special (zsh's own)") ;;
+      hide | hideval) [[ " ${out[*]} " == *" hidden "* ]] || out+=(hidden) ;;
+      left | right_blanks | right_zeros) out+=("padded ($w)") ;;
+      lower) out+=(lowercased) ;;
+      upper) out+=(uppercased) ;;
+      tag) out+=(tagged) ;;
+      *) out+=("$w") ;;
+    esac
+  done
+  local IFS=,
+  w="${out[*]}"
+  printf '%s' "${w//,/, }"
+}
+
+# shell::param_code <name> <base type> <value quoted as zsh reads it>: the assignment that gives the value,
+# one element to a line, a *PATH one directory to a line: what the preview highlights as zsh
+shell::param_code() {
+  command zsh -f -c '
+    n=$1; t=$2
+    if [[ $t == association ]]; then
+      typeset -A v; eval "v=$3"; print -r -- "$n=("
+      for k in ${(ko)v}; do print -r -- "  [${(q+)k}]=${(q+)v[$k]}"; done
+      print -r -- ")"
+    elif [[ $t == array ]]; then
+      eval "v=$3"; print -r -- "$n=("
+      for e in "${v[@]}"; do print -r -- "  ${(q+)e}"; done
+      print -r -- ")"
+    else
+      eval "v=$3"
+      if [[ $n == *PATH && $v == *:* ]]; then
+        p=("${(@s/:/)v}"); print -r -- "$n=${(q+)p[1]}:\\"
+        for ((i = 2; i < $#p; i++)); do print -r -- "${(q+)p[i]}:\\"; done
+        print -r -- "${(q+)p[-1]}"
+      else
+        print -r -- "$n=${(q+)v}"
+      fi
+    fi' _ "$1" "$2" "$3"
+}
+
 shell::preview_param() {
-  local name="$1" b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m' type value hidden base _n
+  local name="$1" b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m' type value hidden base _n flags
+  local rows row size="" other from=dump
   [[ -n "${NO_COLOR+x}" ]] && b="" d="" r=""
-  shell::split "$(shell::param_rows | awk -F'\t' -v n="$name" '$1 == n { print; exit }')" _n type value hidden
+  rows="$(shell::param_rows)"
+  row="$(awk -F'\t' -v n="$name" '$1 == n { print; exit }' <<< "$rows")"
+  shell::split "$row" _n type value hidden
   [[ -n "$type" ]] || return 0
-  printf '%s%s%s  %s%s%s\n\n' "$b" "$name" "$r" "$d" "${type//-/ }" "$r"
+  base="${type%%-*}"
+  flags="$(shell::param_flags "$type")"
+  printf '%s%s%s\n\n' "$b" "$name" "$r"
+  printf '%stype%s      %s\n' "$d" "$r" "$base"
+  [[ -n "$flags" ]] && printf '%sflags%s     %s\n' "$d" "$r" "$flags"
+  # a tied pair differs by case (PATH and path)
+  if [[ "-$type-" == *-tied-* ]]; then
+    other="$(awk -F'\t' -v n="$name" 'tolower($1) == tolower(n) && $1 != n { print $1; exit }' <<< "$rows")"
+    [[ -n "$other" ]] && printf '%stied to%s   %s\n' "$d" "$r" "$other"
+  fi
   if [[ "$hidden" == 1 ]]; then
-    printf '%smasked: the name matches FZX_SHELL_SECRETS; the reveal toggle shows exported values%s\n' "$d" "$r"
+    printf '\n%smasked: the name matches FZX_SHELL_SECRETS; the reveal toggle shows exported values%s\n' "$d" "$r"
     return 0
   fi
-  base="${type%%-*}"
+  # the environment's values are raw, with tabs, newlines and backslashes escaped; the dump's quoted for zsh
   if [[ "$value" == $'\001'* ]]; then
-    # from the environment: raw, with tabs, newlines and backslashes escaped
-    value="${value#$'\001'}"
-    printf '%b' "$value" | shell::lines "$name"
-    printf '\n'
-  elif [[ "$base" == array || "$base" == association ]]; then
-    shell::unquote "$value" "$base" | cat -n
-  else
-    shell::unquote "$value" | shell::lines "$name"
+    from=environment
+    printf -v value '%b' "${value#$'\001'}"
+    value="$(printf '%s' "$value" | command zsh -f -c 'print -r -- ${(q+)"$(</dev/stdin)"}' 2> /dev/null || printf '%s' "$value")"
   fi
+  case "$base" in
+    array) size="$(command zsh -f -c 'eval "v=$1"; print $#v' _ "$value" 2> /dev/null) elements" ;;
+    association) size="$(command zsh -f -c 'typeset -A v; eval "v=$1"; print $#v' _ "$value" 2> /dev/null) keys" ;;
+    *) size="$(command zsh -f -c 'eval "v=$1"; print $#v' _ "$value" 2> /dev/null) characters" ;;
+  esac
+  printf '%ssize%s      %s\n' "$d" "$r" "$size"
+  printf '%sfrom%s      %s\n\n' "$d" "$r" "$from"
+  shell::param_code "$name" "$base" "$value" | shell::zsh_code
 }
 
 # shell::preview <name> <kind>

@@ -111,8 +111,12 @@ src() { FZX_MODE="$1" "$SH/source.sh"; }
   ! tr '\0' '\n' < "$FZX_SESSION_DIR/data/env" | grep -q '^FZX_\(SESSION\|MODE\|STATE_DIR\)='
   unset ENV_ONLY
   run src params
+  # the type: an icon before the name, or with icons off the word after it
+  [[ "$output" == *$'arr\tparam\t'*' arr '*"( a 'b c' '' )"* && "$output" != *$'arr\tparam\t'*'array '* ]]
+  FZX_ICONS=none run src params
   [[ "$output" == *$'arr\tparam\tarr'*"array "*"( a 'b c' '' )"* ]]
-  [[ "$output" == *$'s\tparam\ts'*"\$'x\\ty\\nz'"* ]]
+  run src params
+  [[ "$output" == *$'s\tparam\t'*"\$'x\\ty\\nz'"* ]]
   # exported: the environment's value; one the dump lacks is listed; a dump-only secret stays masked
   [[ "$output" == *$'DUMPONLY_EXPORT\tparam\t'*"newer"* ]]
   [[ "$output" == *$'ENV_ONLY\tparam\t'*'line1\nline2'* ]]
@@ -136,6 +140,20 @@ src() { FZX_MODE="$1" "$SH/source.sh"; }
   grep -q $'^second\talias' <<< "$output"
 }
 
+@test "preview: a parameter's attributes in words; a tied one names its partner" {
+  source "$SH/preview.sh" || :
+  [ "$(shell::param_flags scalar)" = "" ]
+  [ "$(shell::param_flags array-tied-export-special)" = "tied, exported, special (zsh's own)" ]
+  [ "$(shell::param_flags association-readonly-hide-hideval)" = "readonly, hidden" ]
+  [ "$(shell::param_flags integer-left-unique-lower)" = "padded (left), unique, lowercased" ]
+  [ "$(shell::param_code path array "( /a '/b c' )")" = $'path=(\n  /a\n  \'/b c\'\n)' ]
+  [ "$(shell::param_code N scalar "$'a\\tb'")" = "N=\$'a\\tb'" ]
+  [ "$(shell::param_code MY_PATH scalar /a:/b:/c)" = $'MY_PATH=/a:\\\n/b:\\\n/c' ]
+  shell::param_rows() { printf 'PATH\tscalar-tied-export\t/a:/b\t0\npath\tarray-tied\t( /a /b )\t0\n'; }
+  run shell::preview_param path
+  [[ "$output" == *"tied to   PATH"* && "$output" == *"flags     tied"* ]]
+}
+
 @test "preview: commands (locations, whatis, tldr), aliases, functions, parameters" {
   dump_shell
   run "$SH/preview.sh" tool command
@@ -156,17 +174,19 @@ src() { FZX_MODE="$1" "$SH/source.sh"; }
   run "$SH/preview.sh" lazyfn function
   [[ "${lines[0]}" == *"/fn/lazyfn  (autoload, not loaded yet)" && "${lines[1]}" = "echo lazy" ]]
   FZX_MODE=params run "$SH/preview.sh" hh param
-  [ "${lines[0]}" = "hh  association" ]
-  [[ "${lines[1]}" == *"1"$'\t'"k -> v w" && "${lines[2]}" == *"2"$'\t'"z -> 1" ]]
+  [ "${lines[0]}" = hh ] && [ "${lines[1]}" = "type      association" ]
+  [[ "$output" == *"size      2 keys"* && "$output" == *"from      dump"* ]]
+  [[ "$output" == *$'hh=(\n  [k]=\'v w\'\n  [z]=1\n)'* ]]
   FZX_MODE=params run "$SH/preview.sh" arr param
-  [[ "${lines[2]}" == *"2"$'\t'"b c" ]]
+  [[ "$output" == *"size      3 elements"* && "$output" == *$'arr=(\n  a\n  \'b c\'\n  \'\'\n)'* ]]
   FZX_MODE=params run "$SH/preview.sh" s param
-  [ "${lines[1]}" = $'x\ty' ] && [ "${lines[2]}" = z ]
+  [[ "$output" == *"size      5 characters"* && "$output" == *"s=\$'x\\ty\\nz'"* ]]
   FZX_MODE=params run "$SH/preview.sh" MY_TOKEN param
-  [[ "${lines[1]}" == "masked: "* ]]
+  [[ "$output" == *"flags     exported"* && "$output" == *"masked: "* ]]
   export DEMO_PATH=/a:/b
   FZX_MODE=params run "$SH/preview.sh" DEMO_PATH param
-  [ "${lines[1]}" = /a ] && [ "${lines[2]}" = /b ]
+  [[ "$output" == *"flags     exported"* && "$output" == *"from      environment"* ]]
+  [[ "$output" == *$'DEMO_PATH=/a:\\\n/b'* ]]
 }
 
 @test "actions: edit a function at its definition, a script; help through tldr; copy values, not masked ones" {
