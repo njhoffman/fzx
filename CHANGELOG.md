@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.89.0] - 2026-11-03
+
+### Added
+
+- todos: the all mode also lists the TODO.md files your dotbare repository tracks (~/.config/tmux,
+  ~/.config/i3 ...) and those of git repositories directly under ~ such as ~/.shell, which ghq does not
+  know (`FZX_TODOS_DOTBARE_DIR`, `FZX_TODOS_HOME_REPOS`). ctrl-r rescans, as before.
+
 ## [0.88.0] - 2026-11-03
 
 ### Added

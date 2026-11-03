@@ -39,6 +39,8 @@ EOF
   printf '#!/usr/bin/env bash\n[[ "$1" == list ]] && printf "%%s\\n" "%s" "%s"\n' "$P" "$Q" > "$BATS_TEST_TMPDIR/bin/ghq"
   chmod +x "$BATS_TEST_TMPDIR/bin/ghq"
   export PATH="$BATS_TEST_TMPDIR/bin:$PATH"
+  # the machine's dotbare repository and repositories under ~ stay out
+  export FZX_TODOS_DOTBARE_DIR="" FZX_TODOS_HOME_REPOS=0
 }
 
 plain() { sed 's/\x1b\[[0-9;:]*m//g'; }
@@ -69,6 +71,25 @@ lines_of() { (cd "$1" && FZX_MODE="${2:-here}" "$TODOS/source.sh") | cut -f3; }
   [ "${#lines[@]}" -eq 6 ]
   [[ "$output" == *'other/TODO.md:3 ☐  (P1) [bug] Other repo item'* ]]
   [[ "$output" == *'proj/TODO.md:8 ☐  (P1) [bug] Urgent bug'* ]]
+}
+
+@test "all: the TODO.md files dotbare tracks and those of git repositories directly under ~" {
+  local H="$BATS_TEST_TMPDIR/home"
+  mkdir -p "$H/.config/tmux" "$H/.config/untracked" "$H/.shell/.git" "$H/notes/.git" "$H/plain"
+  printf '## A\n\n- [ ] **Tmux item.** (p2) [feature] x\n' > "$H/.config/tmux/TODO.md"
+  printf '## A\n\n- [ ] **Untracked item.** (p2) [feature] x\n' > "$H/.config/untracked/TODO.md"
+  printf '## A\n\n- [ ] **Shell item.** (p1) [bug] x\n' > "$H/.shell/TODO.md"
+  printf '## A\n\n- [ ] **Plain item.** (p1) [bug] x\n' > "$H/plain/TODO.md"
+  git --git-dir="$H/.cfg" init -q
+  git --git-dir="$H/.cfg" --work-tree="$H" -C "$H" add .config/tmux/TODO.md
+  HOME="$H" FZX_TODOS_DOTBARE_DIR="$H/.cfg" FZX_TODOS_DOTBARE_TREE="$H" FZX_TODOS_HOME_REPOS=1 run lines_of "$BATS_TEST_TMPDIR" all
+  [[ "$output" == *'tmux/TODO.md:3 ☐  (P2) [feature] Tmux item'* ]]
+  [[ "$output" == *'.shell/TODO.md:3 ☐  (P1) [bug] Shell item'* ]]
+  # neither untracked config directories nor plain directories under ~
+  [[ "$output" != *Untracked* && "$output" != *Plain* ]]
+  [ "${#lines[@]}" -eq 8 ]
+  HOME="$H" FZX_TODOS_DOTBARE_DIR="" FZX_TODOS_HOME_REPOS=0 run lines_of "$BATS_TEST_TMPDIR" all
+  [ "${#lines[@]}" -eq 6 ]
 }
 
 @test "display: box, priority, category, section up to its colon, overdue in red" {

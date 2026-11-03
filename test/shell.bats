@@ -215,6 +215,9 @@ src() { FZX_MODE="$1" "$SH/source.sh"; }
 
 @test "fzx.zsh: the dump at the first prompt and in the widget, off with FZX_ZSH_NO_SHELL_DUMP" {
   zsh -f -i -c "source '$ZSH_INT'; alias widgetalias=x; _fzx_shell_first_prompt; sleep 1" 2> /dev/null
+  # the dump runs in the background: up to 10s on a loaded machine
+  local i
+  for ((i = 0; i < 50; i++)); do grep -qs $'^alias\tregular\twidgetalias' "$FZX_STATE_DIR/shell/dump.tsv" && break; sleep 0.2; done
   grep -q $'^alias\tregular\twidgetalias' "$FZX_STATE_DIR/shell/dump.tsv"
   rm -f "$FZX_STATE_DIR/shell/dump.tsv"
   FZX_ZSH_NO_SHELL_DUMP=1 zsh -f -i -c "source '$ZSH_INT'; _fzx_shell_first_prompt; sleep 1" 2> /dev/null

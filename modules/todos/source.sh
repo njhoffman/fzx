@@ -5,7 +5,8 @@
 # the title is still on that line), line the printable "TODO.md:LINE ☐  (Pn) [category] Title" and title
 # the plain title.
 # Modes: here (the nearest TODO.md in this format, up to the repository's top), all (the TODO.md
-# at the top of every repository under ghq and FZX_TODOS_ROOTS, plus FZX_TODOS_FILES). Toggle done: completed
+# at the top of every repository under ghq, under FZX_TODOS_ROOTS and directly under ~, the ones the
+# dotbare repository tracks, plus FZX_TODOS_FILES). Toggle done: completed
 # items too. Sort: urgency (open first, overdue, priority, due date, file order) or file (file order).
 
 # todos::fits <file>: a TODO.md in this format (a "## " heading and at least one checkbox item)
@@ -27,6 +28,28 @@ todos::here() {
   done
 }
 
+# todos::dotbare: the TODO.md files the dotbare repository tracks (FZX_TODOS_DOTBARE_DIR, its work tree
+# FZX_TODOS_DOTBARE_TREE: config directories such as ~/.config/tmux), as paths
+todos::dotbare() {
+  local dir="${FZX_TODOS_DOTBARE_DIR-${DOTBARE_DIR:-$HOME/.cfg}}" tree="${FZX_TODOS_DOTBARE_TREE:-${DOTBARE_TREE:-$HOME}}"
+  [[ -n "$dir" && -d "$dir" ]] || return 0
+  command git --git-dir="$dir" --work-tree="$tree" -C "$tree" ls-files -- 'TODO.md' ':(glob)**/TODO.md' 2> /dev/null |
+    while IFS= read -r f; do printf '%s/%s\n' "$tree" "$f"; done
+}
+
+# todos::home_repos: the top-level TODO.md of git repositories directly under ~ (~/.shell, ~/notes),
+# with FZX_TODOS_HOME_REPOS=1
+todos::home_repos() {
+  local d
+  [[ "${FZX_TODOS_HOME_REPOS:-1}" == 1 ]] || return 0
+  for d in "$HOME"/*/ "$HOME"/.*/; do
+    d="${d%/}"
+    [[ "${d##*/}" == . || "${d##*/}" == .. ]] && continue
+    [[ -e "$d/.git" && -f "$d/TODO.md" ]] && printf '%s\n' "$d/TODO.md"
+  done
+  return 0
+}
+
 # todos::files: every TODO.md the mode covers, resolved and deduplicated
 todos::files() {
   local root dir
@@ -40,6 +63,8 @@ todos::files() {
         for root in "${FZX_TODOS_ROOTS[@]}"; do
           [[ -d "$root" ]] && find -L "$root" -mindepth 2 -maxdepth 4 -name TODO.md -path '*/TODO.md' 2> /dev/null
         done
+        todos::dotbare
+        todos::home_repos
         printf '%s\n' "${FZX_TODOS_FILES[@]}"
       } | xargs -r -d '\n' realpath -e -- 2> /dev/null | awk '!seen[$0]++'
       ;;

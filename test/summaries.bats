@@ -69,7 +69,7 @@ STUB
   mkdir -p "$BATS_TEST_TMPDIR/other"
   printf '%s\n' '## 1. More' '' '- [ ] **Four.** (p1) [bug] x' > "$BATS_TEST_TMPDIR/other/TODO.md"
   mkdir -p "$FZX_CONFIG_DIR"
-  printf 'FZX_TODOS_ROOTS=()\nFZX_TODOS_FILES=(%q %q)\n' "$BATS_TEST_TMPDIR/repo/TODO.md" "$BATS_TEST_TMPDIR/other/TODO.md" \
+  printf 'FZX_TODOS_ROOTS=()\nFZX_TODOS_DOTBARE_DIR=""\nFZX_TODOS_HOME_REPOS=0\nFZX_TODOS_FILES=(%q %q)\n' "$BATS_TEST_TMPDIR/repo/TODO.md" "$BATS_TEST_TMPDIR/other/TODO.md" \
     > "$FZX_CONFIG_DIR/config.sh"
   run summary todos todos:all
   [ "$output" = "4 open in 2 files, 2 urgent, 1 overdue" ]

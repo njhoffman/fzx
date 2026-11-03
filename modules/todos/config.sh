@@ -14,6 +14,14 @@ FZX_COLORS[todos_icon]="38;5;114"
 FZX_TODOS_ROOTS=()
 FZX_TODOS_FILES=()
 
+# the all mode also reads the TODO.md files the dotbare repository tracks (~/.config/tmux/TODO.md ...):
+# its git directory ("" leaves them out; default $DOTBARE_DIR, else ~/.cfg) and work tree ($DOTBARE_TREE,
+# else ~)
+FZX_TODOS_DOTBARE_DIR="${FZX_TODOS_DOTBARE_DIR-${DOTBARE_DIR:-$HOME/.cfg}}"
+FZX_TODOS_DOTBARE_TREE="${FZX_TODOS_DOTBARE_TREE:-${DOTBARE_TREE:-$HOME}}"
+# and the top-level TODO.md of git repositories directly under ~ (~/.shell); 0 leaves them out
+FZX_TODOS_HOME_REPOS="${FZX_TODOS_HOME_REPOS:-1}"
+
 # the files change under you (Claude Code, other editors): read them on every open
 FZX_PERSIST=none
 
