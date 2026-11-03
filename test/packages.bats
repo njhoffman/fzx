@@ -80,7 +80,7 @@ stub_apt() {
   run "$MODS/packages/components.tsv"
   [[ "$output" == *$'mode\tcargo'* ]]
   # cargo can search crates.io: the search mode, its toggle, and install there; the name sort leaves it out
-  [[ "$output" == *$'mode\tsearch\t-\t'*$'\trestart,nopersist'* && "$output" == *$'toggle\tcrates\t-\tsearch: crates.io (cargo)\ton'* ]]
+  [[ "$output" == *$'mode\tsearch\t-\t'*$'\tnopersist'* && "$output" == *$'toggle\tcrates\t-\tsearch: crates.io (cargo)\ton'* ]]
   [[ "$output" == *$'action\tinstall\talt-i\tavailable, search: install'* ]]
   [[ "$output" == *$'sort\tname\t-\tapt, available, upgradable, snap, cargo, gem: by name'* ]]
   # the catalogs when there is something to list
@@ -595,4 +595,22 @@ stub_registries() {
   [[ " ${FZF_ARGS[*]} " == *" --disabled "* ]]
   [[ " ${FZF_ARGS[*]} " == *" change:reload:sleep 0.3; $FZX _cb source "* ]]
   [[ " ${FZF_ARGS[*]} " == *" --header=type to search; "* ]]
+}
+
+@test "packages: search switches in place: search off and the change reload rebound going in, the other way out" {
+  load_libs log session
+  fzx::session_create packages "$FZX_REPO/modules/packages"
+  printf 'apt\0search\0' > "$FZX_SESSION_DIR/meta/modes"
+  fzx::state_set mode apt
+  run "$FZX" _cb mode search
+  [ "$status" -eq 0 ]
+  [[ "$output" != become:* ]]
+  [[ "$output" == *"+disable-search+rebind(change)+change-header(type to search; "* ]]
+  run "$FZX" _cb mode apt
+  [[ "$output" == *"+enable-search+unbind(change)+change-header("* && "$output" != *"type to search"* ]]
+  # every mode under fzx binds the search's reload; outside search it starts unbound
+  stub_fzf
+  run "$FZX" -m packages:apt --dry-run
+  [[ "$output" == *"change:reload:sleep 0.3; "*"_cb source"* && "$output" == *"start:+unbind(change)"* ]]
+  [[ "$output" != *"--disabled"* ]]
 }

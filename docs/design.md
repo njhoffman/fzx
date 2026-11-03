@@ -286,8 +286,12 @@ Options a running fzf can change need no restart: a module whose modes or toggle
 header or in whether fzf filters (`--disabled`) defines `<module>::refresh` in its module.sh. After an
 in-place mode, toggle or sort change, `fzx::_nav_refresh` sources module.sh (`fzx::module_main` returns when
 sourced) and calls it with the new `FZX_MODE`, `FZX_TOGGLES`, `FZX_SORT` and the session's `FZX_ARGS`; it
-sets `FZX_REFRESH_HEADER` (the new header; unset leaves it) and `FZX_REFRESH_SEARCH` (`on` or `off`:
-`enable-search` / `disable-search`; empty leaves it). In the footer position the header goes out as
+sets `FZX_REFRESH_HEADER` (the new header; unset leaves it), `FZX_REFRESH_SEARCH` (`on` or `off`:
+`enable-search` / `disable-search`; empty leaves it) and `FZX_REFRESH_CHANGE` (`on` or `off`: `rebind(change)` /
+`unbind(change)`, for a mode that reloads as you type: the module binds change at launch in every mode, with
+`start:+unbind(change)` where it does not apply; empty leaves it). packages uses it for search. Options fzf
+cannot change while it runs (`--with-nth`, `--accept-nth`, sorting) still need the `restart` flag: files:grep,
+ps:top, ps:tree. In the footer position the header goes out as
 `change-header`, in the header position into `meta/header`, which the header callback draws under the
 component line. A failing hook is logged and the refresh goes on without it. github builds its header in
 `github::header` for both the launch and the hook, so no github mode or toggle restarts fzf.

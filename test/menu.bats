@@ -343,7 +343,9 @@ collected() {
   stat_row 0 source "miss"
   run fzx::menu_scores
   [ "$status" -eq 0 ]
-  [ "$(printf '%s\n' "${lines[@]}" | sort | tr '\t' ' ')" = "$(printf 'files 1.500000\ngit:log 1.000000')" ]
+  # rounded to 3 decimals: the rows are stamped "now minus N days" a moment before the scores are taken,
+  # and under the parallel suite that moment can show in the sixth decimal (0.999999)
+  [ "$(printf '%s\n' "${lines[@]}" | sort | awk -F '\t' '{ printf "%s %.3f\n", $1, $2 }')" = "$(printf 'files 1.500\ngit:log 1.000')" ]
   rm "$FZX_STATS_FILE"
   run fzx::menu_scores
   [ -z "$output" ]

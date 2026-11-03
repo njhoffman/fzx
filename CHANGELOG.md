@@ -6,6 +6,17 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.83.0] - 2026-11-03
+
+### Added
+
+- The module refresh hook can turn the reload-as-you-type binding on or off (`FZX_REFRESH_CHANGE`).
+
+### Changed
+
+- packages: switching to or from the registry search happens in place instead of restarting fzf; typing
+  searches the registries there and filters the list elsewhere, and the header follows.
+
 ## [0.82.0] - 2026-11-03
 
 ### Added

@@ -40,7 +40,7 @@ for m in snap snap-available flatpak flatpak-available pipx cargo pnpm gem; do
 done
 registries="$(packages::search_registries)"
 [[ -n "$registries" ]] &&
-  row mode search - 'search crates.io, npm and rubygems.org as you type (and PyPI by exact name)' 'restart,nopersist'
+  row mode search - 'search crates.io, npm and rubygems.org as you type (and PyPI by exact name)' 'nopersist'
 
 ((apt)) && row toggle manual alt-m 'apt: only packages installed by hand, not as dependencies' -
 packages::has flatpak && row toggle runtimes - 'flatpak: runtimes and extensions too' -

@@ -78,8 +78,10 @@ fzx::_nav_refresh() {
 # fzx::_nav_module_refresh <var>: the module's <module>::refresh hook (in its module.sh, which callbacks
 # do not load otherwise; sourcing it is safe: fzx::module_main returns when sourced), run with the new
 # mode, toggles, sort and the session's arguments. It sets FZX_REFRESH_HEADER (the module's header for the
-# new view; unset leaves it) and FZX_REFRESH_SEARCH (on or off: fzf's search, for modules whose modes
-# differ in --disabled; empty leaves it). Into var: "+"-prefixed fzf actions, or nothing
+# new view; unset leaves it), FZX_REFRESH_SEARCH (on or off: fzf's search, for modules whose modes differ
+# in --disabled; empty leaves it) and FZX_REFRESH_CHANGE (on or off: rebind or unbind the change event,
+# for a mode that reloads as you type; the module binds change at launch, unbound where it does not
+# apply; empty leaves it). Into var: "+"-prefixed fzf actions, or nothing
 fzx::_nav_module_refresh() {
   local _fn="${FZX_MODULE}::refresh" _act="" _h
   printf -v "$1" '%s' ""
@@ -90,12 +92,16 @@ fzx::_nav_module_refresh() {
     declare -F "$_fn" > /dev/null || return 0
   fi
   unset FZX_REFRESH_HEADER
-  FZX_REFRESH_SEARCH=""
+  FZX_REFRESH_SEARCH="" FZX_REFRESH_CHANGE=""
   fzx::session_args
   "$_fn" || { fzx::log warn "$_fn failed"; return 0; }
   case "$FZX_REFRESH_SEARCH" in
     on) _act+="+enable-search" ;;
     off) _act+="+disable-search" ;;
+  esac
+  case "$FZX_REFRESH_CHANGE" in
+    on) _act+="+rebind(change)" ;;
+    off) _act+="+unbind(change)" ;;
   esac
   if [[ -n "${FZX_REFRESH_HEADER+set}" ]]; then
     if [[ "${FZX_HEADER_POSITION:-footer}" == header ]]; then

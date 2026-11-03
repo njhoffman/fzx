@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.82.0): the six steps of `docs/design.md` are done. Modules: actions, audio, bluetooth, capture, claude, colors, cron, dirs,
+Status (0.83.0): the six steps of `docs/design.md` are done. Modules: actions, audio, bluetooth, capture, claude, colors, cron, dirs,
 docker, files, firewall, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
@@ -48,10 +48,10 @@ Reviewed: 2026-11-03
       key that puts the rg/fd arguments into the query, enter applies them; show the current arguments in
       the preview's top line or a label. Prior art: resources/ (older setups). Grep mode's switch between
       grepping and fzf filtering (ctrl-t) shipped in 0.40.0; fd and ripgrep are already the tools used.
-- [ ] **Refresh hook: bindings too** (p3) [refactor]: `<module>::refresh` (0.77.0) sets the header and search
-      on or off; `files:grep` and `packages:search` still restart because they also switch the
-      `change:reload` binding. Letting the hook add `rebind(change)` / `unbind(change)` (or a list of raw
-      actions) would switch them in place too; ps:top and ps:tree stay restarts (sorting, the refresh loop).
+- [x] **Refresh hook: bindings too** (p3) [refactor]: `FZX_REFRESH_CHANGE` (0.83.0) rebinds or unbinds the
+      change event, so `packages:search` switches in place. `files:grep` stays a restart: its rows have a
+      line field the other modes lack, and fzf 0.74 cannot change `--with-nth` or `--accept-nth` while it
+      runs; ps:top and ps:tree stay restarts too (the refresh loop, sorting).
 - [x] **sessions: resumed trees in a pane** (p3) [feature]: a kept tree resumed from the sessions list runs
       under the list's owner, not its own, so a placement change into or out of a split or float (which needs
       the tree's owner to relaunch) only works in the list's own placement. Handing the tree to the list's
@@ -138,7 +138,8 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 
 - [ ] **Timing-sensitive tests under load** (p3) [test]: test/menu.bats "menu_scores: launches by module ..."
       stamps rows "now minus N days" and compares the decayed scores to six decimals; under the parallel suite
-      a second's delay gives 0.999999 (seen 2026-11-01, passes alone): compare rounded to 3 decimals. The same
+      a second's delay gives 0.999999 (seen 2026-11-01, passes alone): compared rounded to 3 decimals since
+      0.83.0. The same
       class hit test/modules.bats's applicability test (the 2s FZX_APPLICABLE_TIMEOUT, fixed in 0.77.1 with a
       longer one), and menu.bats's "modules are listed at once" (0.79.0: a 6s timeout); look for other tests that
       run the menu's summary or applicable timeouts and raise theirs.
