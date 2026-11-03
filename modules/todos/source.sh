@@ -13,12 +13,12 @@ todos::fits() {
   [[ -r "$1" ]] && awk '/^## / { h = 1 } /^- \[[ xX]\] / { i = 1 } END { exit !(h && i) }' "$1"
 }
 
-# todos::here: the nearest TODO.md in this format from the current directory up to the repository's top
-# (outside a repository, the current directory only), as todo-status picks it
+# todos::here [dir]: the nearest TODO.md in this format from <dir> (default: the current directory) up to
+# the repository's top (outside a repository, that directory only), as todo-status picks it
 todos::here() {
   local dir top
-  dir="$(pwd -P)"
-  top="$(git rev-parse --show-toplevel 2> /dev/null)" || top="$dir"
+  dir="$(cd -- "${1:-.}" 2> /dev/null && pwd -P)" || return 1
+  top="$(git -C "$dir" rev-parse --show-toplevel 2> /dev/null)" || top="$dir"
   while :; do
     todos::fits "$dir/TODO.md" && { printf '%s\n' "$dir/TODO.md"; return; }
     [[ "$dir" == "$top" || "$dir" == / ]] && return 1
@@ -31,7 +31,7 @@ todos::here() {
 todos::files() {
   local root dir
   case "${FZX_MODE:-here}" in
-    here) todos::here ;;
+    here) todos::here "${TODOS_DIR:-}" ;;
     all)
       {
         command -v ghq > /dev/null && command ghq list -p 2> /dev/null | while IFS= read -r dir; do
@@ -103,8 +103,22 @@ todos::label() {
   printf '%s/%s' "${top##*/}" "${1#"$top"/}"
 }
 
+# todos::args <module args...>: TODOS_DIR from --dir DIR (the here mode's directory: the claude module's
+# drill-down); --paste PANE and the query words are the opts hook's
+todos::args() {
+  TODOS_DIR=""
+  while (($#)); do
+    case "$1" in
+      --dir) TODOS_DIR="${2:-}"; shift ;;
+      --paste) shift ;;
+    esac
+    shift
+  done
+}
+
 todos::source() {
   local file label
+  todos::args "$@"
   todos::files | while IFS= read -r file; do
     label="$(todos::label "$file")"
     todos::parse "$file" | awk -v file="$file" -v label="$label" '{ print file "\t" label "\t" $0 }'

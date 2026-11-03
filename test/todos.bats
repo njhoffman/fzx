@@ -145,6 +145,24 @@ lines_of() { (cd "$1" && FZX_MODE="${2:-here}" "$TODOS/source.sh") | cut -f3; }
   [ "$output" = 'TODO.md:3 ☐  (P1) [bug] Up' ]
 }
 
+@test "here with --dir: the nearest TODO.md from that directory, wherever fzx runs; --paste and words ignored" {
+  mkdir -p "$P/sub/deep" "$BATS_TEST_TMPDIR/elsewhere"
+  printf '## Sub\n\n- [ ] **Sub item.** (p1) [bug] x\n' > "$P/sub/TODO.md"
+  run bash -c "cd '$BATS_TEST_TMPDIR/elsewhere' && FZX_MODE=here '$TODOS/source.sh' --paste %1 --dir '$P/sub/deep' word | cut -f3"
+  [ "$output" = 'TODO.md:3 ☐  (P1) [bug] Sub item' ]
+  # a directory that does not exist lists nothing
+  run bash -c "FZX_MODE=here '$TODOS/source.sh' --dir '$BATS_TEST_TMPDIR/nope'"
+  [ -z "$output" ]
+}
+
+@test "under fzx: --dir is not part of the query" {
+  stub_fzf
+  run "$FZX" -m todos -- --dir "$P" word
+  [ "$status" -eq 0 ]
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *" --query=word "* ]]
+}
+
 @test "paste: the lines go to a tmux buffer, the server pastes them into the pane a moment later" {
   printf '#!/usr/bin/env bash\n{ printf "%%s|" "$@"; echo; if [[ "$1" == load-buffer ]]; then command cat; fi; } >> "%s/tmux.calls"\n' \
     "$BATS_TEST_TMPDIR" > "$BATS_TEST_TMPDIR/bin/tmux"

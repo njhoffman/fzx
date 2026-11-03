@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # todos: open items of TODO.md files (todo-status's format) with priority, category, due date and the
-# item's card in the preview; todo-fzf's picker. `fzx -m todos[:all] [--paste PANE] [QUERY...]`.
+# item's card in the preview; todo-fzf's picker. `fzx -m todos[:all] [--dir DIR] [--paste PANE] [QUERY...]`.
 # Enter prints "TODO.md:LINE ☐  (Pn) [category] Title" per selected item; with --paste PANE it pastes
 # those lines into that tmux pane instead (bracketed: nothing is submitted).
 
@@ -16,6 +16,8 @@ todos::opts() {
   for ((i = 0; i < ${#FZX_ARGS[@]}; i++)); do
     if [[ "${FZX_ARGS[i]}" == --paste ]]; then
       pane="${FZX_ARGS[i + 1]:-}"
+      ((i++))
+    elif [[ "${FZX_ARGS[i]}" == --dir ]]; then
       ((i++))
     else
       query+=("${FZX_ARGS[i]}")

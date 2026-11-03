@@ -12,6 +12,7 @@ FZX_COLORS[claude_icon]="38;5;173"
 
 FZX_KEYS[claude.git]=alt-l   # the git module on the project
 FZX_KEYS[claude.files]=alt-d # the files module on the project
+FZX_KEYS[claude.todos]=alt-t # the todos module on the project's TODO.md
 
 # the command the claude and resume actions run (resume adds --continue)
 FZX_CLAUDE_CMD=claude

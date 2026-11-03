@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.68.0] - 2026-11-02
+
+### Added
+
+- claude: alt-t opens the project's TODO.md items in the todos module (alt-left comes back).
+- todos: `--dir DIR` makes the here mode read the nearest TODO.md from that directory instead of the
+  current one (`fzx -m todos -- --dir ~/project`).
+
 ## [0.67.0] - 2026-11-02
 
 ### Added

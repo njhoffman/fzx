@@ -165,5 +165,6 @@ claude_fn() {
   [ "$status" -eq 0 ]
   fzf_binds start | grep -qxF "start:+bg-transform:$FZX _cb transform refresh"
   [ "$(fzf_bind alt-l)" = "alt-l:transform:$FZX _cb nav goto git {1}" ]
+  [ "$(fzf_bind alt-t)" = "alt-t:transform:$FZX _cb nav goto todos --dir {1}" ]
   [ "$(fzf_bind ctrl-o)" = "ctrl-o:execute($FZX _cb action claude {+1})" ]
 }

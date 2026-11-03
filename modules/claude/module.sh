@@ -21,6 +21,7 @@ claude::opts() {
   )
   if fzx::in_session; then
     fzx::bind "${FZX_KEYS[claude.git]}" "transform:$(fzx::cb nav goto git '{1}')" "the git module on the project"
+    fzx::bind "${FZX_KEYS[claude.todos]}" "transform:$(fzx::cb nav goto todos --dir '{1}')" "the project's TODO.md items"
     fzx::bind "${FZX_KEYS[claude.files]}" "transform:$(fzx::cb nav goto files '{1}')" "browse the project's files"
     # the scan runs after the list shows, and reloads it when anything changed
     FZX_OPTS+=(--bind "start:+bg-transform:$(fzx::cb transform refresh)")
