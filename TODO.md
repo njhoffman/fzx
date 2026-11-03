@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.63.0): the six steps of `docs/design.md` are done. Modules: actions, audio, capture, colors, dirs,
+Status (0.64.0): the six steps of `docs/design.md` are done. Modules: actions, audio, capture, colors, dirs,
 docker, files, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
@@ -80,9 +80,13 @@ Reviewed: 2026-10-28
       (the user has this in one of their scripts; get its path to reuse the colors and thresholds).
 - [ ] **dirs: bookmark from the list** (p3) [feature]: add and remove bookmarks with keys (fzf-marks' mark/unmark),
       kept in a file under FZX_STATE_DIR instead of only FZX_DIRS_BOOKMARKS in config. Ref: fzf-marks.plugin.zsh.
-- [ ] **tmux follow-ups** (p3) [feature]: Codex's list in docs/tmux.md: snippet history (snippetdb), edit the text
-      before pasting, open URLs from the urls mode (tmux-url), IPv6 extraction, marked-pane round trips, and
-      running a binding from the keys list (run-binding; today rows are never executed, by design).
+- [ ] **snippets and paste history** (p3) [feature]: both kinds: an automatic history of what capture and tmux
+      buffers paste (newest first, under FZX_STATE_DIR), and named snippets saved on purpose (snippetdb's
+      put/get/remove/list). Open: a capture mode, or a module of its own that the zsh widgets can use
+      outside tmux too. Ref: resources/fzfmenu/proto-widgets/tmux/snippetdb.
+- [ ] **tmux: marked-pane round trip** (p3) [feature]: go to `{marked}` and back across sessions, remembering
+      the way back in a server option (jump-marked). Probably better as a tmux key binding than an fzx
+      action; inside fzx it saves one key over alt-s on the marked pane. Ref: proto-widgets/tmux/jump-marked.
 - [ ] **docker: exec a command** (p3) [feature]: fzf-runinc: exec a typed command (not a shell) in the container,
       output kept on screen; and docker system df as the images/volumes summary. Ref: fzf-rsc/modules/docker.
 - [ ] **youtube follow-ups** (p3) [feature]: thumbnails in the preview; after a result is chosen, list its
