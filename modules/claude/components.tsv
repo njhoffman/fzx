@@ -1,0 +1,11 @@
+# kind  name  key  description  flags
+mode    all     -  every project: yours with a CLAUDE.md, and where Claude has run   default
+mode    own     -  your projects with a CLAUDE.md                                    -
+mode    active  -  uncommitted, unpushed, or a session in FZX_CLAUDE_ACTIVE_DAYS days  -
+sort    recent  -  last session, newest first                                        default
+sort    name    -  by name                                                           -
+action  claude  ctrl-o  start Claude Code there (in tmux: a new window per project)  foreground
+action  resume  alt-o   continue the last session there (claude --continue)          foreground
+action  edit    ctrl-e  open the project in $EDITOR                                  foreground
+action  card    alt-i   the full claude-projects card (tests, changelog) in $PAGER   foreground
+action  rescan  -       scan the projects again now                                  foreground,reload

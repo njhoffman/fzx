@@ -56,7 +56,14 @@ zsh_run() {
   [ "${lines[2]}" = '"^[d" fzx-dirs-widget' ]
   run zsh -f -i -c "FZX_ZSH_NO_BIND=1 source '$ZSH_INT'; bindkey -M viins '^[f'; zle -l | grep -c '^fzx-'" 2> /dev/null
   [[ "${lines[0]}" != *fzx-files-widget* ]]
-  [ "${lines[1]}" = 10 ]
+  [ "${lines[1]}" = 11 ]
+}
+
+@test "claude widget: unbound by default, cds into the project the claude module prints" {
+  run zsh_run 'zle -l | grep -c "^fzx-claude-widget"'
+  [ "$output" = 1 ]
+  run zsh_run 'fzx-cd-widget-run() { print -r -- "args: $*"; }; fzx-claude-widget'
+  [ "$output" = "args: -m claude" ]
 }
 
 @test "menu-popup: unbound by default, bound when given a key; runs fzx --popup" {

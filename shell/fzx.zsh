@@ -23,6 +23,7 @@ typeset -gA FZX_ZSH_KEYS
 : ${FZX_ZSH_HISTORY_MODE:=global} # the history widget's first mode: global, host, directory or session
 : ${FZX_ZSH_KEYS[repos]=$'\er'} # cd into a git repository (repos module)
 : ${FZX_ZSH_KEYS[shell]=$'\es'} # insert a command, alias, function or parameter name (shell module)
+: ${FZX_ZSH_KEYS[claude]=}       # cd into a Claude Code project (claude module); unbound by default
 
 # keybindings: the shell's bindings for the keybindings module (fzx-keys-dump-file, from the module's
 # dump.zsh), written at the first prompt (once the startup files have bound everything) and again, in the
@@ -140,6 +141,7 @@ fzx-cd-widget-run() {
 fzx-dirs-widget() { fzx-cd-widget-run -m files:dirs; }
 fzx-jump-widget() { fzx-cd-widget-run jump; }
 fzx-repos-widget() { fzx-cd-widget-run -m repos; }
+fzx-claude-widget() { fzx-cd-widget-run -m claude; }
 fzx-shell-widget() {
   [[ "${FZX_ZSH_NO_SHELL_DUMP:-0}" == 1 ]] || fzx-shell-dump-file 2> /dev/null
   fzx-insert -m shell
@@ -247,12 +249,12 @@ fi
 
 () {
   local name
-  for name in files dirs jump git ps menu menu-popup history repos shell; do
+  for name in files dirs jump git ps menu menu-popup history repos claude shell; do
     zle -N "fzx-$name-widget"
   done
   [[ "${FZX_ZSH_NO_BIND:-0}" == 1 ]] && return
   local map
-  for name in files dirs jump git ps menu menu-popup history repos shell; do
+  for name in files dirs jump git ps menu menu-popup history repos claude shell; do
     [[ -n "${FZX_ZSH_KEYS[$name]}" ]] || continue
     for map in emacs viins vicmd; do
       bindkey -M "$map" "${FZX_ZSH_KEYS[$name]}" "fzx-$name-widget"

@@ -58,6 +58,7 @@ Inside any module, f1 shows every key, mode, toggle and action. The common ones:
 |---|---|
 | actions | the actions menu of the screen it was opened from |
 | audio | outputs, inputs, playing streams and media players |
+| claude | Claude Code projects: git state, version, open TODOs and sessions; start or resume Claude there |
 | capture | URLs, paths, words, hashes, IPs or lines out of a tmux pane |
 | colors | the 256-color palette, the terminal's 16 colors, X11 names and fzx's own colors |
 | dirs | directories under ~, and bookmarks |

@@ -6,6 +6,20 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.67.0] - 2026-11-02
+
+### Added
+
+- claude: a module for Claude Code projects, over `claude-projects --tsv` from ~/.shell: your projects with
+  a CLAUDE.md and every directory Claude has run in, with kind (git, dotbare, plain), version, branch,
+  changes, ahead/behind, open TODO items and P1s, the last session and the session count. Modes all, own
+  and active (`FZX_CLAUDE_ACTIVE_DAYS`); sort by last session or name. The scan is cached and refreshed in
+  the background (`FZX_CLAUDE_TTL`). Enter prints the path; ctrl-o starts Claude Code there (in tmux, a
+  window per project named after it), alt-o continues the last session, alt-i shows the full
+  `claude-projects show` card, alt-l and alt-d open the git and files modules on it. The preview shows git
+  state, the top TODO items and the newest sessions' titles and prompts.
+- zsh: `fzx-claude-widget` cds into a Claude Code project (unbound by default, `FZX_ZSH_KEYS[claude]`).
+
 ## [0.66.1] - 2026-11-02
 
 ### Added
