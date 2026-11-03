@@ -6,6 +6,15 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.76.0] - 2026-11-02
+
+### Added
+
+- sessions module: every other fzx session tree with its screens, newest first, marked kept (`--keep`,
+  its terminal gone) or live (open in another terminal). Enter resumes a kept session in this terminal and
+  opens a live one as a copy (same module, mode, arguments, query, toggles and sort; back returns to the
+  list), so two terminals never share one session. alt-x deletes kept trees.
+
 ## [0.75.0] - 2026-11-02
 
 ### Added

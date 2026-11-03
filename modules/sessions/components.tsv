@@ -1,0 +1,5 @@
+# sessions components: kind  name  key  description  flags (see lib/components.sh)
+# Rows are "sid<TAB>sid<TAB>display": every session tree but this one, each root followed by its screens.
+# Enter resumes a kept tree whose owner is gone, and opens a copy of any other (live in another terminal).
+action  delete  alt-x   delete the selected sessions' trees (kept ones whose owner is gone)  foreground,confirm,reload
+action  copy    ctrl-y  copy the session ids                                                silent,builtin

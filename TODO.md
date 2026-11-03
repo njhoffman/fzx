@@ -1,7 +1,7 @@
 # fzx TODO
 
-Status (0.75.0): the six steps of `docs/design.md` are done. Modules: actions, audio, bluetooth, capture, claude, colors, cron, dirs,
-docker, files, firewall, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, shell, systemd, tasks, tmux,
+Status (0.76.0): the six steps of `docs/design.md` are done. Modules: actions, audio, bluetooth, capture, claude, colors, cron, dirs,
+docker, files, firewall, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
 
@@ -52,8 +52,10 @@ Reviewed: 2026-11-02
       (github's issues, prs, notifications, mine, starred and the everywhere toggle). An optional
       `<module>::header` called from `fzx::_nav_refresh` (writing meta/header, emitting change-header or
       transform-header, as `files::_header` does by hand) would let them switch in place without the flicker.
-- [ ] **Sessions module** (p3) [module]: a picker over `fzx debug ls` that resumes a kept or running session from
-      another terminal.
+- [ ] **sessions: resumed trees in a pane** (p3) [feature]: a kept tree resumed from the sessions list runs
+      under the list's owner, not its own, so a placement change into or out of a split or float (which needs
+      the tree's owner to relaunch) only works in the list's own placement. Handing the tree to the list's
+      owner (it relaunches `state/current` of the resumed root) would let it move like any other.
 - [ ] **Piping** (p3) [feature]: when stdin is not a tty and no module is given, match each manifest's `detect`
       against the first lines and pick the module (design.md, "Piping").
 - [ ] **Completion integration** (p3) [feature]: `**<TAB>` completion (`_fzf_complete_<cmd>`) backed by fzx
