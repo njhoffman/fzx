@@ -6,6 +6,8 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.66.1] - 2026-11-02
+
 ### Added
 
 - docs: a README: what fzx is, requirements, install, use, the modules, where the docs are.

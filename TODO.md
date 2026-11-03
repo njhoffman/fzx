@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.66.0): the six steps of `docs/design.md` are done. Modules: actions, audio, capture, colors, dirs,
+Status (0.66.1): the six steps of `docs/design.md` are done. Modules: actions, audio, capture, colors, dirs,
 docker, files, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
@@ -148,26 +148,10 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [ ] **`files` alt-up** (p3) [bug]: each parent directory becomes a new child session instead of reusing an
       existing ancestor in the tree; harmless (cleaned on exit) but deep trees and long labels.
 - [ ] **Stats prune** (p3) [bug] can drop rows appended while the file is being rewritten.
-- [x] **`fzx stats` needs `strftime` in awk** (p3) [bug] (gawk, or mawk 1.3.4+).
 - [ ] **nvcat is slow for previews** (p3) [perf]: about 300-1200ms per focus change (it starts Neovim), for
       markdown and every filetype `nvcat-dispatch` claims (any *.conf, systemd units, ...); files over
       FZX_PREVIEW_NVCAT_MAX_LINES already go to bat. Cache its output under $FZX_CACHE_DIR keyed by path,
       mtime and width (lib/render.sh, fzx::_render_nvcat), or keep one Neovim running.
-- [x] **Actions menu marks run as default under `tasks --paste`** (p3) [bug]: with `--paste` enter pastes
-      (the module binds it, lib/actions.sh skips the default's enter), but the actions menu still draws ⏎ on
-      `run` since it reads the flags from `meta/components`. Record the override in the session (a meta key)
-      and drop the mark (modules/actions/source.sh).
-- [x] **github: comment headings look like the body's** (p3) [bug]: the preview's timeline puts each comment
-      under a `###` heading, so a body or comment using `###` itself reads like a new comment. Draw the
-      comment headers some other way that the markdown renderer still styles (a blockquote line, or a level
-      the bodies rarely use), or demote the bodies' headings (modules/github/preview.sh, github::item_details).
-- [x] **tasks: multi-line just docs show their last line** (p3) [bug]: `just --dump` keeps only the comment
-      line right above a recipe, so a two-line comment shows its tail (`lint`: "idioms trip most checks)").
-      Read the comment block from the justfile instead (modules/tasks/source.sh, tasks::scan).
-- [x] **No README** (p3) [docs]: the repo has CLAUDE.md, PLAN.md and docs/, but nothing a new reader lands on:
-      what fzx is, install (`just install`, sourcing shell/fzx.zsh), the module list, where docs live.
-- [x] **PLAN.md is the original brief** (p3) [docs]: the 106-line prompt that started the project, now covered by
-      docs/design.md; move it to docs/ as history (or drop it) so it is not read as the current plan.
 
 ## 8. Outside this repo
 
