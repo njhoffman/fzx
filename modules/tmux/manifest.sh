@@ -35,6 +35,14 @@ tmux::summary() {
       ;;
     tmux:buffers) printf '%s buffers\n' "$(command tmux list-buffers -F x | wc -l)" ;;
     tmux:keys) command tmux list-keys | tmux::summary_keys ;;
+    tmux:commands | tmux:options | tmux:variables | tmux:styles | tmux:formats | tmux:status | tmux:hooks)
+      # the mode's own list, as its rows count them
+      local mode="${1#tmux:}" word
+      # shellcheck source=./source.sh
+      source "$(dirname "${BASH_SOURCE[0]}")/source.sh" || :
+      case "$mode" in status) word=samples ;; *) word="$mode" ;; esac
+      printf '%s %s\n' "$(FZX_MODE="$mode" tmux::source 2> /dev/null | wc -l)" "$word"
+      ;;
     *) return 0 ;;
   esac
 }

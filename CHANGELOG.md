@@ -6,6 +6,20 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.94.0] - 2026-11-03
+
+### Added
+
+- Menu status for the entries that had none: every glyphs and colors entry, tmux's commands, options,
+  variables, styles, formats, status and hooks, cron's default entry and systemd's failed units.
+
+### Changed
+
+- packages:available and packages:upgradable read apt's lists for their status when the cache is missing, and
+  so fill the cache the modes open from, instead of staying blank until the mode was opened once.
+- network:services starts a browse behind the menu when one is due, showing "browsing the network" until its
+  count arrives at the next listing. The count leaves out records without a port, as the list does.
+
 ## [0.93.0] - 2026-11-03
 
 ### Added

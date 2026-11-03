@@ -469,6 +469,20 @@ wait_log() {
   [[ "$output" == *"--pane $PANE -- {1} {2} {3}" ]]
 }
 
+@test "tmux: the menu counts each reference mode's rows; nothing without a server" {
+  source "$TMUX_MOD/manifest.sh"
+  local mode word n
+  for mode in commands options variables styles formats status hooks; do
+    word="$mode"
+    [[ "$mode" == status ]] && word=samples
+    n="$(FZX_MODE="$mode" "$TMUX_MOD/source.sh" | wc -l)"
+    [ "$n" -gt 0 ] || [ "$mode" = hooks ]
+    [ "$(tmux::summary "tmux:$mode")" = "$n $word" ]
+  done
+  tmux kill-server
+  [ "$(tmux::summary tmux:options)" = "no server running" ]
+}
+
 @test "tmux: hooks list only set hooks unless the empty toggle is on" {
   tmux set-hook -g after-new-window 'display-message hook-test'
   run src hooks

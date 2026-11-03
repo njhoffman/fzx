@@ -397,9 +397,11 @@ EOF
   [ "$status" -ne 0 ]
   [ "$(packages::summary packages)" = "3 installed" ]
   [ "$(packages::summary packages:snap)" = "1 installed" ]
-  [ -z "$(packages::summary packages:available)" ]
-  FZX_MODE=available "$MODS/packages/source.sh" > /dev/null
+  # available and upgradable read apt's lists themselves, into the cache the modes use
   [ "$(packages::summary packages:available)" = "3 packages" ]
+  [ -s "$FZX_CACHE_DIR/packages/available" ]
+  [[ "$(packages::summary packages:upgradable)" == *" upgradable" ]]
+  [ -f "$FZX_CACHE_DIR/packages/upgradable" ]
 }
 
 # stub_flatpak: a system remote "hub" with appstream data for two applications, one of them installed

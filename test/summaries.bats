@@ -50,9 +50,9 @@ STUB
   [ "$output" = "1 buffers" ]
   run summary tmux tmux:keys
   [[ "$output" =~ ^[0-9]+\ bindings\ in\ [0-9]+\ tables$ ]]
-  # the reference entries describe tmux itself, not the server
+  # the reference entries count their rows
   run summary tmux tmux:options
-  [ -z "$output" ]
+  [[ "$output" =~ ^[0-9]+\ options$ ]]
 }
 
 @test "todos: open, urgent and overdue items here, and across every file in all" {

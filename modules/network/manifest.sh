@@ -21,6 +21,28 @@ network::applicable() {
   esac
 }
 
+# network::summary_services: the last browse's count. A browse takes longer than a summary may, so one due
+# (none yet, or past FZX_NETWORK_SERVICES_TTL) runs detached and its result shows at the next listing: the
+# cache file's time is in network::summary_key
+network::summary_services() {
+  local file="$FZX_CACHE_DIR/network/services" ttl
+  fzx::parse_duration "${FZX_NETWORK_SERVICES_TTL:-10m}" ttl || ttl=600
+  if [[ ! -f "$file" ]] || ((EPOCHSECONDS - $(stat -c %Y -- "$file") >= ttl)); then
+    # shellcheck source=./source.sh
+    source "$(dirname "${BASH_SOURCE[0]}")/source.sh" || :
+    (network::services_cache file) < /dev/null > /dev/null 2>&1 &
+    disown
+  fi
+  if [[ -f "$file" ]]; then
+    printf '%s services\n' "$(awk -F'\t' '$5 != 0 { n++ } END { print n + 0 }' "$file")"
+  else
+    printf 'browsing the network\n'
+  fi
+}
+
+# network::summary_key: a new browse makes a new summary at once
+network::summary_key() { stat -c %Y -- "$FZX_CACHE_DIR/network/services" 2> /dev/null || :; }
+
 network::summary() {
   local n
   case "$1" in
@@ -39,8 +61,7 @@ network::summary() {
         awk -F: '{ n++ } $1 == "*" && !on { on = $3; s = $2 } END { if (on != "") printf "on %s (%s%%), %d in range\n", on, s, n; else printf "not connected, %d in range\n", n }'
       ;;
     network:services)
-      # from the last browse only: a browse takes seconds
-      [[ -s "$FZX_CACHE_DIR/network/services" ]] && printf '%s services\n' "$(wc -l < "$FZX_CACHE_DIR/network/services")"
+      network::summary_services
       ;;
   esac
 }

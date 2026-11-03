@@ -246,7 +246,7 @@ stub_systemctl() {
   [ "$(systemd::summary systemd)" = "2 running, 1 failed" ]
   [ "$(systemd::summary systemd:timers)" = "2 system, 1 user" ]
   [ "$(systemd::summary systemd:sockets)" = "1 system, 0 user" ]
-  [ -z "$(systemd::summary systemd:failed)" ]
+  [[ "$(systemd::summary systemd:failed)" =~ ^[0-9]+\ system,\ [0-9]+\ user$ ]]
   stub_cmd systemctl 'case "$*" in *--user*--failed*) echo "f.service loaded failed failed F" ;; esac'
   systemd::applicable systemd:failed
 }

@@ -98,3 +98,12 @@ src() { FZX_MODE="$1" "$COLORS/source.sh" | sed 's/\x1b\[[0-9;:]*m//g'; }
   FZF_PREVIEW_COLUMNS=12 FZX_MODE=names run "$COLORS/preview.sh" SteelBlue '#4682b4' '38;2;70;130;180'
   [[ "$output" != *"true color"* ]]
 }
+
+@test "menu: each entry's count" {
+  load_libs log config
+  fzx::config_load "$BATS_TEST_DIRNAME/../modules/colors" colors
+  source "$BATS_TEST_DIRNAME/../modules/colors/manifest.sh"
+  [ "$(colors::summary colors)" = "256 colors" ]
+  [ "$(colors::summary colors:16)" = "16 colors, 8 and bright" ]
+  [[ "$(colors::summary colors:fzx)" =~ ^[0-9]+\ colors$ ]]
+}

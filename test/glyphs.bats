@@ -175,6 +175,18 @@ src() { FZX_MODE="$1" "$GLYPHS/source.sh" "${@:2}"; }
   [[ "$(fzf_bind alt-e)" == *'_cb notify escape {+2}'* ]]
 }
 
+@test "menu: each entry's count" {
+  source "$BATS_TEST_DIRNAME/../modules/glyphs/manifest.sh"
+  load_libs log config
+  local mode word n
+  for mode in unicode blocks emoji; do
+    case "$mode" in unicode) word=characters ;; *) word="$mode" ;; esac
+    n="$(FZX_MODE="$mode" "$BATS_TEST_DIRNAME/../modules/glyphs/source.sh" | wc -l)"
+    [ "$(glyphs::summary "glyphs:$mode")" = "$n $word" ]
+  done
+  [[ "$(glyphs::summary glyphs)" == *" glyphs" ]]
+}
+
 @test "menu: the Unicode entries only where the Unicode data is" {
   source "$GLYPHS/manifest.sh"
   glyphs::applicable glyphs

@@ -209,10 +209,15 @@ act() { FZX_MODE="$1" "$NET/actions.sh" "${@:2}"; }
   [ "$(network::summary network:interfaces)" = "1 up: wlan0 192.168.1.5/24" ]
   [ "$(network::summary network:routes)" = "default via 192.168.1.1 dev wlan0" ]
   [ "$(network::summary network:wifi)" = "on home (80%), 2 in range" ]
-  # services: only from a browse already made
-  [ -z "$(network::summary network:services)" ]
-  FZX_MODE=services "$NET/source.sh" > /dev/null
-  [ "$(network::summary network:services)" = "3 services" ]
+  # services: a browse takes too long for a summary: one starts behind it, and shows next time
+  local before
+  before="$(network::summary_key)"
+  [ -z "$before" ]
+  [ "$(network::summary network:services)" = "browsing the network" ]
+  local i
+  for ((i = 0; i < 50; i++)); do [[ -f "$FZX_CACHE_DIR/network/services" ]] && break; sleep 0.1; done
+  [ "$(network::summary network:services)" = "2 services" ]  # (a record without a port is not listed)
+  [ -n "$(network::summary_key)" ]
   FZX_NETWORK_AVAHI_SOCKET="$BATS_TEST_TMPDIR/none" run network::applicable network:services
   [ "$status" -eq 1 ]
 }

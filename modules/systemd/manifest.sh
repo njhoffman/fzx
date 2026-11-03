@@ -21,7 +21,12 @@ systemd::summary() {
   local manager=user n f
   [[ "$1" == systemd:system ]] && manager=system
   case "$1" in
-    systemd:failed) return 0 ;; # the entry only shows when something failed
+    systemd:failed)
+      n="$(SYSTEMD_COLORS=0 systemctl --system list-units --state=failed --no-legend --plain --no-pager | wc -l)"
+      f="$(SYSTEMD_COLORS=0 systemctl --user list-units --state=failed --no-legend --plain --no-pager | wc -l)"
+      printf '%s system, %s user\n' "${n// /}" "${f// /}"
+      return 0
+      ;;
     systemd:timers)
       n="$(SYSTEMD_COLORS=0 systemctl --system list-timers --no-legend --plain --no-pager | wc -l)"
       f="$(SYSTEMD_COLORS=0 systemctl --user list-timers --no-legend --plain --no-pager | wc -l)"

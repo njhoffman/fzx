@@ -26,14 +26,21 @@ packages::applicable() {
 
 # packages::summary <target>: counts from what is read fast (dpkg, the module's caches, the managers' files)
 packages::summary() {
-  local n cache="$FZX_CACHE_DIR/packages"
+  local n
   case "$1" in
     packages)
       n="$(command dpkg-query -W -f '${db:Status-Abbrev}\t${Package}\n' 2> /dev/null | grep -c '^.i')"
       printf '%s installed\n' "$n"
       ;;
-    packages:available) [[ -s "$cache/available" ]] && printf '%s packages\n' "$(wc -l < "$cache/available")" ;;
-    packages:upgradable) [[ -f "$cache/upgradable" ]] && printf '%s upgradable (last read)\n' "$(wc -l < "$cache/upgradable")" ;;
+    # apt's lists: read once and kept until they change, so opening the mode is quicker for it too
+    packages:available)
+      n="$(packages::_cached available "$(packages::_stamp "$(packages::_apt_lists)")" packages::_available_raw | wc -l)"
+      printf '%s packages\n' "$n"
+      ;;
+    packages:upgradable)
+      n="$(packages::_cached upgradable "$(packages::_stamp "$(packages::_apt_lists)" "$(packages::_dpkg_status)")" packages::_upgradable_raw | wc -l)"
+      printf '%s upgradable\n' "$n"
+      ;;
     packages:snap | packages:flatpak | packages:pipx | packages:cargo | packages:pnpm | packages:gem)
       n="$(FZX_MODE="${1#packages:}" packages::source 2> /dev/null | wc -l)"
       printf '%s installed\n' "$n"

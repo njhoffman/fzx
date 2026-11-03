@@ -16,3 +16,16 @@ glyphs::applicable() {
     *) command -v jq > /dev/null ;;
   esac
 }
+
+# glyphs::summary <target>: how many the mode lists
+glyphs::summary() {
+  local mode=nerd word=glyphs
+  # shellcheck source=./source.sh
+  source "$(dirname "${BASH_SOURCE[0]}")/source.sh" || :
+  case "$1" in
+    glyphs:unicode) mode=unicode word=characters ;;
+    glyphs:blocks) mode=blocks word=blocks ;;
+    glyphs:emoji) mode=emoji word=emoji ;;
+  esac
+  printf '%s %s\n' "$(FZX_MODE="$mode" glyphs::source 2> /dev/null | wc -l)" "$word"
+}

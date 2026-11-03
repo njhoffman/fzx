@@ -18,6 +18,11 @@ cron::applicable() {
 cron::summary() {
   local n
   case "$1" in
+    cron)
+      # shellcheck source=./source.sh
+      source "$(dirname "${BASH_SOURCE[0]}")/source.sh" || :
+      printf '%s entries\n' "$(FZX_MODE=all cron::entries 2> /dev/null | wc -l)"
+      ;;
     cron:user)
       n="$(command crontab -l 2> /dev/null | grep -cEv '^[[:space:]]*(#|$|[A-Za-z_][A-Za-z0-9_]*[[:space:]]*=)')" || :
       if command crontab -l > /dev/null 2>&1; then printf '%s entries\n' "${n:-0}"; else echo "no crontab"; fi
