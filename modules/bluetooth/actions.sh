@@ -24,7 +24,7 @@ bluetooth::_field() {
 
 # bluetooth::action <action> <address...>
 bluetooth::action() {
-  local action="${1:-}" id rc=0 info secs="${FZX_BLUETOOTH_SCAN_SECONDS:-5}"
+  local action="${1:-}" id rc=0 info
   shift
   # the header row's id, should it come along
   local ids=()
@@ -57,11 +57,6 @@ bluetooth::action() {
     remove)
       for id in "${ids[@]}"; do command bluetoothctl remove "$id" || rc=$?; done
       ((rc)) && bluetooth::wait
-      ;;
-    scan)
-      [[ "${FZX_MODE:-paired}" == all ]] || { printf 'bluetooth: scan lists its finds in the all mode\n' >&2; return 2; }
-      printf 'scanning for %ss...\n' "$secs"
-      command bluetoothctl --timeout "$secs" scan on || { rc=$?; bluetooth::wait; }
       ;;
     power)
       info="$(command bluetoothctl show 2>&1)" || { printf '%s\n' "${info%%$'\n'*}" >&2; return 1; }

@@ -147,12 +147,106 @@ power off" ]
   [ "$output" = "Device 00:11:22:33:44:55 not available" ]
 }
 
-@test "scan: the all mode only, for FZX_BLUETOOTH_SCAN_SECONDS" {
-  FZX_MODE=paired run "$BT/actions.sh" scan
-  [ "$status" -eq 2 ]
-  FZX_MODE=all FZX_BLUETOOTH_SCAN_SECONDS=2 run "$BT/actions.sh" scan
+# a scanner a failed test leaves behind
+teardown() {
+  local p="${FZX_SESSION_DIR:-$BATS_TEST_TMPDIR/sess}/bluetooth-scan.pid"
+  [[ -s "$p" ]] && kill "$(cat "$p")" 2> /dev/null
+  [[ -s "$BATS_TEST_TMPDIR/bt.scan.pid" ]] && kill "$(cat "$BATS_TEST_TMPDIR/bt.scan.pid")" 2> /dev/null
+  return 0
+}
+
+# scan_setup: the scan's stubs: bluetoothctl's scan prints a find and waits (its pid in bt.scan.pid), curl
+# answers for fzf's socket while $BATS_TEST_TMPDIR/alive exists and logs what is posted; a session dir
+scan_setup() {
+  cat > "$STUBS/bluetoothctl" << 'STUB'
+#!/usr/bin/env bash
+echo "$*" >> "$BATS_TEST_TMPDIR/bt.calls"
+if [[ "$*" == *"scan on"* ]]; then
+  echo $$ > "$BATS_TEST_TMPDIR/bt.scan.pid"
+  printf 'Discovery started\n[\e[0;92mNEW\e[0m] Device 11:22:33:44:55:66 Speaker\n'
+  exec sleep 30
+fi
+STUB
+  cat > "$STUBS/curl" << 'STUB'
+#!/usr/bin/env bash
+[[ -f "$BATS_TEST_TMPDIR/alive" ]] || exit 7
+for ((i = 1; i <= $#; i++)); do
+  [[ "${!i}" == --data-binary ]] && { j=$((i + 1)); echo "${!j}" >> "$BATS_TEST_TMPDIR/posts"; }
+done
+exit 0
+STUB
+  chmod +x "$STUBS"/*
+  touch "$BATS_TEST_TMPDIR/alive"
+  export FZX_SESSION_DIR="$BATS_TEST_TMPDIR/sess" FZF_SOCK="$BATS_TEST_TMPDIR/fzf.sock"
+  mkdir -p "$FZX_SESSION_DIR"
+  source "$BT/source.sh" || :
+  # the reload action, as fzx would build it
+  fzx::require() { :; }
+  fzx::cb() { echo "fzx _cb source"; }
+  fzx::reload_action() { printf -v "$2" 'reload(%s)' "$1"; }
+}
+
+# wait_for <command...>: up to 5s for it to succeed
+wait_for() {
+  local i
+  for ((i = 0; i < 50; i++)); do "$@" && return 0; sleep 0.1; done
+  return 1
+}
+
+scanning() { [[ -s "$FZX_SESSION_DIR/bluetooth-scan.pid" ]] && kill -0 "$(cat "$FZX_SESSION_DIR/bluetooth-scan.pid")" 2> /dev/null; }
+bt_alive() { [[ -s "$BATS_TEST_TMPDIR/bt.scan.pid" ]] && kill -0 "$(cat "$BATS_TEST_TMPDIR/bt.scan.pid")" 2> /dev/null; }
+
+@test "objects: when busctl cannot write JSON (number-keyed dictionaries), its text form is turned into the same" {
+  cat > "$STUBS/busctl" << 'STUB'
+#!/usr/bin/env bash
+if [[ "$1" == --json=short ]]; then echo "Failed to create new json object: Invalid argument" >&2; exit 1; fi
+cat "$BATS_TEST_TMPDIR/objects.txt"
+STUB
+  chmod +x "$STUBS/busctl"
+  printf '%s\n' 'a{oa{sa{sv}}} 3 "/org/bluez" 1 "org.bluez.AgentManager1" 0 "/org/bluez/hci0" 1 "org.bluez.Adapter1" 3 "Address" s "DC:21:5C:DF:0A:1F" "Alias" s "charon" "Powered" b true "/org/bluez/hci0/dev_AA" 1 "org.bluez.Device1" 8 "Address" s "AA:00:00:00:00:09" "Alias" s "Lamp \"1\"\ttab" "Paired" b false "Connected" b false "RSSI" n -64 "UUIDs" as 2 "a" "b" "ManufacturerData" a{qv} 2 34818 ay 3 236 0 1 76 ay 0 "ServiceData" a{sv} 1 "x" (ii) 1 2' > "$BATS_TEST_TMPDIR/objects.txt"
+  source "$BT/source.sh" || :
+  run bluetooth::objects
   [ "$status" -eq 0 ]
-  grep -qx -- '--timeout 2 scan on' "$BATS_TEST_TMPDIR/bt.calls"
+  [ "$(jq -c '.data[0]["/org/bluez/hci0/dev_AA"]["org.bluez.Device1"] | [.Alias.data, .RSSI.data, .UUIDs.data, .ManufacturerData.data["34818"].data, .ManufacturerData.data["76"].data, .ServiceData.data.x.data]' <<< "$output")" = '["Lamp \"1\"\ttab",-64,["a","b"],[236,0,1],[],[1,2]]' ]
+  FZX_MODE=all run "$BT/source.sh"
+  [ "${lines[0]}" = $'-\t-\tcharon  powered on  DC:21:5C:DF:0A:1F' ]
+  [[ "${lines[1]}" == $'AA:00:00:00:00:09\tLamp "1" tab\t'*"-64 dBm"* ]]
+}
+
+@test "scan: the toggle in the all mode keeps a scan running and reloads on a find; off or another mode stops it" {
+  scan_setup
+  FZX_MODE=all FZX_TOGGLES=scan bluetooth::scan_control
+  scanning
+  wait_for grep -qx 'reload(fzx _cb source)' "$BATS_TEST_TMPDIR/posts"
+  wait_for bt_alive
+  grep -q -- '--timeout 60 scan on' "$BATS_TEST_TMPDIR/bt.calls"
+  # a second load while it runs starts no other
+  FZX_MODE=all FZX_TOGGLES=scan bluetooth::scan_control
+  [ "$(grep -c 'scan on' "$BATS_TEST_TMPDIR/bt.calls")" -eq 1 ]
+  # toggled off: the scanner and its bluetoothctl end
+  FZX_MODE=all FZX_TOGGLES="" bluetooth::scan_control
+  [ ! -e "$FZX_SESSION_DIR/bluetooth-scan.pid" ]
+  wait_for eval '! bt_alive'
+  # another mode stops it too
+  FZX_MODE=all FZX_TOGGLES=scan bluetooth::scan_control
+  scanning
+  FZX_MODE=paired FZX_TOGGLES=scan bluetooth::scan_control
+  ! scanning
+}
+
+@test "scan: it ends by itself when fzf's socket stops answering; nothing outside a session or without the socket" {
+  scan_setup
+  FZX_MODE=all FZX_TOGGLES=scan bluetooth::scan_control
+  scanning
+  wait_for bt_alive
+  rm "$BATS_TEST_TMPDIR/alive"
+  wait_for eval '! scanning'
+  wait_for eval '! bt_alive'
+  touch "$BATS_TEST_TMPDIR/alive"
+  FZF_SOCK="" FZX_MODE=all FZX_TOGGLES=scan bluetooth::scan_control
+  ! scanning
+  FZX_SESSION_DIR="" FZX_MODE=all FZX_TOGGLES=scan bluetooth::scan_control
+  ! scanning
 }
 
 @test "under fzx: the header row, addresses accepted, action keys and their flags" {

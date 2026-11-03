@@ -6,6 +6,25 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.88.0] - 2026-11-03
+
+### Added
+
+- bluetooth: alt-s in the all mode is now a toggle that keeps a scan running, so devices show up in the
+  list as they are found; it stops when you turn it off, leave the mode or close fzx.
+
+### Fixed
+
+- bluetooth: once a scan had found devices with manufacturer data (common for lamps, sensors and speakers),
+  the list showed "no bluetooth controller", since busctl cannot write that data as JSON. Its text form is
+  read instead.
+- bluetooth: a device name with a tab in it no longer breaks the list's columns.
+
+### Removed
+
+- bluetooth: the blocking scan action and `FZX_BLUETOOTH_SCAN_SECONDS` (the scan toggle replaces them;
+  `FZX_BLUETOOTH_SCAN_RUN` sets how long each scan client runs before the next starts).
+
 ## [0.87.0] - 2026-11-03
 
 ### Added

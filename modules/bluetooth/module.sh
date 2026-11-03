@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # bluetooth: paired devices (connected first) and every device bluez knows. `fzx -m bluetooth[:all]`.
-# alt-c connects, alt-d disconnects, alt-p pairs, alt-t trusts, alt-x removes, alt-s scans (all), alt-P
-# powers the controller. Enter prints the addresses.
+# alt-c connects, alt-d disconnects, alt-p pairs, alt-t trusts, alt-x removes, alt-s keeps a scan running
+# (all), alt-P powers the controller. Enter prints the addresses.
 
 FZX_MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../lib/core.sh

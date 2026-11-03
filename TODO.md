@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.87.0): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, bluetooth, browser, capture, claude, colors, cron, dirs,
+Status (0.88.0): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, bluetooth, browser, capture, claude, colors, cron, dirs,
 docker, files, firewall, fonts, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
 add what you find, and tick items off (`- [x]`) as they land, never delete them; once every item of a section
@@ -110,7 +110,7 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       fingerprint, export armored, edit trust, delete (confirm). Ref: fzfmenu list.md "pgp". Has: gpg.
 - [x] **fonts** (p3) [module]: fc-list families with a sample preview. Has: fc-list.
 - [ ] **displays** (p3) [module]: xrandr outputs and modes. Has: xrandr.
-- [ ] **bluetooth: background scan** (p3) [feature]: the scan action blocks for `FZX_BLUETOOTH_SCAN_SECONDS`
+- [x] **bluetooth: background scan** (p3) [feature]: the scan action blocks for `FZX_BLUETOOTH_SCAN_SECONDS`
       and lists its finds after. A scan kept running while the all mode shows (`bluetoothctl scan on` in the
       background, a reload as `InterfacesAdded` arrives through `busctl monitor`, stopped when fzf leaves the
       mode or exits) would show devices as they appear.

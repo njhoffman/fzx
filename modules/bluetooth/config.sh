@@ -16,8 +16,9 @@ FZX_COLORS[bluetooth_icon_all]="38;5;110"
 FZX_COLORS[bluetooth_connected]="38;5;114"
 FZX_COLORS[bluetooth_off]="38;5;203"
 
-# how long the scan action looks for devices (seconds)
-FZX_BLUETOOTH_SCAN_SECONDS="${FZX_BLUETOOTH_SCAN_SECONDS:-5}"
+# the scan toggle runs one `bluetoothctl scan on` this many seconds, then starts the next (a scanner killed
+# hard leaves discovery on this long at most)
+FZX_BLUETOOTH_SCAN_RUN="${FZX_BLUETOOTH_SCAN_RUN:-60}"
 # a battery at or below this percent is drawn in bluetooth_off (preview)
 FZX_BLUETOOTH_BATTERY_LOW="${FZX_BLUETOOTH_BATTERY_LOW:-20}"
 

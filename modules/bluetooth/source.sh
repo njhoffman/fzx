@@ -2,12 +2,105 @@
 # bluetooth source: a header row (the controller: name, power, discovering), then "address<TAB>name<TAB>
 # display" per device. Every object comes from one D-Bus call to bluez (busctl GetManagedObjects, ~20ms;
 # `bluetoothctl info` per device takes ~80ms each). Mode from $FZX_MODE: paired (default: paired or bonded
-# devices), all (every device bluez knows, the ones a scan found included). Connected devices first, then
+# devices), all (every device bluez knows, the ones a scan found included; $FZX_TOGGLES scan keeps a scan
+# running meanwhile, bluetooth::scan_control). Connected devices first, then
 # paired ones, then the rest by signal; by name within each.
 
-# bluetooth::objects: bluez's object tree as busctl JSON ({"type": "a{oa{sa{sv}}}", "data": [{...}]})
+# bluetooth::objects: bluez's object tree as busctl JSON ({"type": "a{oa{sa{sv}}}", "data": [{...}]}).
+# busctl cannot write JSON for a dictionary with number keys, which devices a scan finds often carry
+# (ManufacturerData is a{qv}): then its text form is read and turned into the same JSON
 bluetooth::objects() {
-  command busctl --json=short call org.bluez / org.freedesktop.DBus.ObjectManager GetManagedObjects
+  local out
+  if out="$(command busctl --json=short call org.bluez / org.freedesktop.DBus.ObjectManager GetManagedObjects 2> /dev/null)"; then
+    printf '%s\n' "$out"
+    return 0
+  fi
+  command busctl call org.bluez / org.freedesktop.DBus.ObjectManager GetManagedObjects | bluetooth::text_json
+}
+
+# bluetooth::text_json: busctl's text form of a reply ("SIG value...", strings quoted and C-escaped,
+# arrays as a count and their items, variants as their signature and value) as busctl's JSON; dictionary
+# keys become strings
+bluetooth::text_json() {
+  awk '
+    BEGIN { RS = "\001" }
+    # tokens: words, and quoted strings kept with their quotes
+    {
+      n = 0; s = $0; L = length(s); i = 1
+      while (i <= L) {
+        c = substr(s, i, 1)
+        if (c == " " || c == "\n" || c == "\t") { i++; continue }
+        if (c == "\"") {
+          j = i + 1
+          while (j <= L) { d = substr(s, j, 1); if (d == "\\") { j += 2; continue } if (d == "\"") break; j++ }
+          tok[++n] = substr(s, i, j - i + 1); i = j + 1; continue
+        }
+        j = i
+        while (j <= L && index(" \n\t", substr(s, j, 1)) == 0) j++
+        tok[++n] = substr(s, i, j - i); i = j
+      }
+    }
+    function next_tok() { return tok[++p] }
+    # tlen(t, i): the length of the complete type at position i of signature t
+    function tlen(t, i,   c, depth, j) {
+      c = substr(t, i, 1)
+      if (c == "a") return 1 + tlen(t, i + 1)
+      if (c == "(" || c == "{") {
+        depth = 0
+        for (j = i; j <= length(t); j++) {
+          c = substr(t, j, 1)
+          if (c == "(" || c == "{") depth++
+          else if (c == ")" || c == "}") { depth--; if (depth == 0) return j - i + 1 }
+        }
+      }
+      return 1
+    }
+    # jstr(quoted): a C-escaped busctl string as a JSON string
+    function jstr(q,   s, out, k, c, d) {
+      s = substr(q, 2, length(q) - 2); out = ""
+      for (k = 1; k <= length(s); k++) {
+        c = substr(s, k, 1)
+        if (c == "\\") {
+          d = substr(s, k + 1, 1); k++
+          if (d == "x") { out = out "\\u00" substr(s, k + 1, 2); k += 2 }
+          else if (d == "a") out = out "\\u0007"
+          else if (d == "v") out = out "\\u000b"
+          else if (d == "\047") out = out "\047"
+          else out = out "\\" d
+        } else if (c == "\t") out = out "\\t"
+        else out = out c
+      }
+      return "\"" out "\""
+    }
+    function value(t,   c, n, k, out, elem, inner, kt, vt, i, sig, kk) {
+      c = substr(t, 1, 1)
+      if (c == "v") { sig = next_tok(); return "{\"type\":\"" sig "\",\"data\":" value(sig) "}" }
+      if (c == "a") {
+        elem = substr(t, 2); n = next_tok() + 0
+        if (substr(elem, 1, 1) == "{") {
+          inner = substr(elem, 2, length(elem) - 2)
+          kt = substr(inner, 1, tlen(inner, 1)); vt = substr(inner, length(kt) + 1)
+          out = "{"
+          for (i = 0; i < n; i++) { kk = value(kt); if (kk !~ /^"/) kk = "\"" kk "\""; out = out (i ? "," : "") kk ":" value(vt) }
+          return out "}"
+        }
+        out = "["
+        for (i = 0; i < n; i++) out = out (i ? "," : "") value(elem)
+        return out "]"
+      }
+      if (c == "(") {
+        inner = substr(t, 2, length(t) - 2); out = "["; i = 1; k = 0
+        while (i <= length(inner)) { n = tlen(inner, i); out = out (k++ ? "," : "") value(substr(inner, i, n)); i += n }
+        return out "]"
+      }
+      if (c == "s" || c == "o" || c == "g") return jstr(next_tok())
+      return next_tok()
+    }
+    END {
+      if (n == 0) exit 1
+      p = 0; sig = next_tok()
+      printf "{\"type\":\"%s\",\"data\":[%s]}\n", sig, value(sig)
+    }'
 }
 
 # shellcheck disable=SC2016  # jq, not shell
@@ -17,7 +110,7 @@ BLUETOOTH_JQ='def v($k): .[$k].data;
   def pad($w): if length > $w then .[0:$w - 1] + "…" else . + ([range(0; $w - length)] | map(" ") | join("")) end;
   def devices: .data[0] | to_entries | map(select(.value["org.bluez.Device1"]) |
     .value as $o | $o["org.bluez.Device1"] |
-    {address: v("Address"), name: ((v("Alias") // v("Name") // v("Address")) | sub("\\s+$"; "")),
+    {address: v("Address"), name: ((v("Alias") // v("Name") // v("Address")) | sub("\\s+$"; "") | gsub("[\\t\\n\\r]"; " ")),
      icon: (v("Icon") // ""), paired: (v("Paired") == true or v("Bonded") == true), connected: (v("Connected") == true),
      trusted: (v("Trusted") == true), blocked: (v("Blocked") == true), rssi: v("RSSI"),
      battery: ($o["org.bluez.Battery1"] // {} | v("Percentage"))});
@@ -74,6 +167,33 @@ bluetooth::list() {
   '
 }
 
+# bluetooth::scan_control: start the background scanner (scan.sh) when the all mode shows with the scan
+# toggle on, stop it otherwise; it runs on every load, so leaving the mode or turning the toggle off ends
+# it. Under fzx only: it needs the session and fzf's socket to reload through
+bluetooth::scan_control() {
+  [[ -n "${FZX_SESSION_DIR:-}" && -d "${FZX_SESSION_DIR:-}" ]] || return 0
+  local pidf="$FZX_SESSION_DIR/bluetooth-scan.pid" pid="" want=0 i act src
+  [[ "${FZX_MODE:-paired}" == all && " ${FZX_TOGGLES:-} " == *" scan "* && -n "${FZF_SOCK:-}" ]] && want=1
+  [[ -f "$pidf" ]] && read -r pid < "$pidf"
+  [[ -n "$pid" ]] && ! kill -0 "$pid" 2> /dev/null && { rm -f -- "$pidf"; pid=""; }
+  if ((want)) && [[ -z "$pid" ]]; then
+    fzx::require opts
+    src="$(fzx::cb source)" || return 0
+    fzx::reload_action "$src" act
+    # detached, with none of the source's descriptors: fzf waits for the list to end
+    command setsid -f "$BASH" "$(dirname "${BASH_SOURCE[0]}")/scan.sh" "$FZF_SOCK" "$pidf" "$act" \
+      > /dev/null 2>&1 < /dev/null 3>&- 4>&- 5>&- 6>&- 7>&- 8>&- 9>&-
+    # its own pid file: wait for it, so the next load sees it running
+    for ((i = 0; i < 20; i++)); do [[ -s "$pidf" ]] && break; sleep 0.05; done
+  elif ((!want)) && [[ -n "$pid" ]]; then
+    kill "$pid" 2> /dev/null
+    # discovery ends with its client: wait, so the header this load draws says so
+    for ((i = 0; i < 20; i++)); do kill -0 "$pid" 2> /dev/null || break; sleep 0.05; done
+    rm -f -- "$pidf"
+  fi
+  return 0
+}
+
 bluetooth::source() {
   case "${FZX_MODE:-paired}" in
     paired | all) ;;
@@ -83,6 +203,7 @@ bluetooth::source() {
       ;;
   esac
   command -v busctl > /dev/null || { printf 'bluetooth: needs busctl (systemd)\n' >&2; return 2; }
+  bluetooth::scan_control
   local json
   # no bluez on the bus: the header row says so
   json="$(bluetooth::objects 2> /dev/null)" || json='{"data":[{}]}'
