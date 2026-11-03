@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.78.0): the six steps of `docs/design.md` are done. Modules: actions, audio, bluetooth, capture, claude, colors, cron, dirs,
+Status (0.79.0): the six steps of `docs/design.md` are done. Modules: actions, audio, bluetooth, capture, claude, colors, cron, dirs,
 docker, files, firewall, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
@@ -77,8 +77,6 @@ Reviewed: 2026-11-03
 - [ ] **git: grep, reset and clean** (p3) [feature]: a `git grep` mode (as files:grep, over the index or a
       commit), reset to the selected commit (soft, mixed; hard only with FZX_GIT_DESTRUCTIVE=1) and clean
       of untracked files with a dry-run preview. Refs: fzfmenu/proto-widgets/git/fzg-grep, fzg-reset, fzg-clean.
-- [ ] **files: locate mode** (p3) [feature]: plocate's database (`plocate -i`, as you type like grep) for
-      paths outside the base directory, in milliseconds where fd would walk. Has: plocate. Ref: zaw's locate.
 - [ ] **dirs: bookmark from the list** (p3) [feature]: add and remove bookmarks with keys (fzf-marks' mark/unmark),
       kept in a file under FZX_STATE_DIR instead of only FZX_DIRS_BOOKMARKS in config. Ref: fzf-marks.plugin.zsh.
 - [ ] **snippets and paste history** (p3) [feature]: both kinds: an automatic history of what capture and tmux
@@ -144,7 +142,8 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       stamps rows "now minus N days" and compares the decayed scores to six decimals; under the parallel suite
       a second's delay gives 0.999999 (seen 2026-11-01, passes alone): compare rounded to 3 decimals. The same
       class hit test/modules.bats's applicability test (the 2s FZX_APPLICABLE_TIMEOUT, fixed in 0.77.1 with a
-      longer one); look for other tests that run the menu's summary or applicable timeouts and raise theirs.
+      longer one), and menu.bats's "modules are listed at once" (0.79.0: a 6s timeout); look for other tests that
+      run the menu's summary or applicable timeouts and raise theirs.
 - [ ] **firewall: header with nothing added** (p3) [bug]: with ufw off the header says "rules added, not in
       effect" even when `ufw show added` lists none; say it only when there are some.
 - [ ] **Zellij popups untested** (p3) [test]: popups are only checked on tmux; zellij is not installed here.

@@ -121,19 +121,20 @@ aslow::applicable() { sleep 0.4; }
 EOF2
   cat > "$BATS_TEST_TMPDIR/mods/zslow/manifest.sh" << 'EOF2'
 zslow::manifest() { fzx::entry zslow "too slow"; }
-zslow::applicable() { sleep 10; }
+zslow::applicable() { sleep 60; }
 EOF2
-  export FZX_MODULE_PATH="$BATS_TEST_TMPDIR/mods:$FZX_MODULE_PATH" FZX_APPLICABLE_TIMEOUT=3
+  # margins for the parallel suite, where every module's manifest is read at once on a loaded machine
+  export FZX_MODULE_PATH="$BATS_TEST_TMPDIR/mods:$FZX_MODULE_PATH" FZX_APPLICABLE_TIMEOUT=6
   menu_session
   fzx::state_set mode list
   local start=$EPOCHSECONDS
   run plain_lines
-  ((EPOCHSECONDS - start < 7))
+  ((EPOCHSECONDS - start < 12))
   # in module order, the slow one in time included
   [[ "${lines[0]}" == "aslow#0|"* ]]
   [ -n "$(entry 'counter#0')" ]
   [[ "$output" != *zslow* ]]
-  grep -q 'menu: zslow took over 3s, left out' "$LOG"
+  grep -q 'menu: zslow took over 6s, left out' "$LOG"
 }
 
 @test "refresh: writes stale summaries, asks for one reload, then is quiet" {

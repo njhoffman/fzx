@@ -1,14 +1,25 @@
 #!/usr/bin/env bash
-# files components, computed: the trash action only when trash-put or gio is installed (see lib/components.sh
+# files components, computed: the locate mode and its toggle only with plocate or locate, the trash action only
+# when trash-put or gio is installed (see lib/components.sh
 # for the table format)
 cat << 'ROWS'
 mode  files  -  files under the directory         default
 mode  dirs   -  directories under the directory   -
 mode  grep   -  search file contents as you type  restart,nopersist
+ROWS
+if command -v plocate > /dev/null || command -v locate > /dev/null; then
+  printf 'mode\tlocate\t-\tpaths the locate database has under the directory, as you type\trestart,nopersist\n'
+fi
+cat << 'ROWS'
 toggle  hidden   alt-h  hidden files and directories (dotfiles)            on
 toggle  ignored  alt-i  files .gitignore and .ignore exclude                -
 toggle  follow   alt-l  follow symbolic links into directories             -
 toggle  multiline  alt-m  grep: matches may span lines (\n in the term; ripgrep only)  -
+ROWS
+if command -v plocate > /dev/null || command -v locate > /dev/null; then
+  printf 'toggle\teverywhere\talt-e\tlocate: every path the database has, not only those under the directory\t-\n'
+fi
+cat << 'ROWS'
 sort  path    -  by path                                     default
 sort  recent  -  newest first (modification time)            -
 action  edit  ctrl-e  open in $EDITOR (grep: at the matching line)  foreground

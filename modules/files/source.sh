@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # files source. Lines are "absolute path<TAB>display" (files, dirs), sorted by path, or
-# "absolute path<TAB>line<TAB>display" (grep). Mode from $FZX_MODE: files (default), dirs, grep.
+# "absolute path<TAB>line<TAB>display" (grep). Mode from $FZX_MODE: files (default), dirs, grep, locate
+# (plocate or locate, as you type: "absolute path<TAB>display").
 # grep searches for $FZF_QUERY, which fzf exports to the reload it runs on every query change, with ripgrep,
 # else grep; while fzf filters the matches (files::transform filter) it searches the term frozen then. Toggles: hidden (on at start), ignored, follow (symbolic links listed, not entered, while off), multiline
 # (grep: ripgrep's -U).
@@ -118,6 +119,53 @@ files::grep_term() {
   printf -v "$1" '%s' "$_term"
 }
 
+# files::locate_db <var>: the database plocate (else locate) reads; fails without either tool
+files::locate_db() {
+  local _db
+  if command -v plocate > /dev/null; then _db="${FZX_FILES_LOCATE_DB:-/var/lib/plocate/plocate.db}"
+  elif command -v locate > /dev/null; then _db="${FZX_FILES_LOCATE_DB:-/var/lib/mlocate/mlocate.db}"
+  else return 1; fi
+  printf -v "$1" '%s' "$_db"
+}
+
+# files::_age <path> <var>: how long ago the file changed: "40m", "3h", "2d" (nothing when it cannot be read)
+files::_age() {
+  local _m _s
+  _m="$(stat -c %Y -- "$1" 2> /dev/null)" || return 0
+  _s=$((EPOCHSECONDS - _m))
+  if ((_s < 3600)); then printf -v "$2" '%sm' $((_s / 60))
+  elif ((_s < 86400)); then printf -v "$2" '%sh' $((_s / 3600))
+  else printf -v "$2" '%sd' $((_s / 86400)); fi
+}
+
+# files::locate <words>: paths the locate database has that contain every word (any case), under FILES_BASE
+# unless the everywhere toggle is on; hidden ones (a dot-named part, below the base) only with the hidden
+# toggle, FZX_FILES_EXCLUDES never; paths gone since the database was built left out; at most
+# FZX_FILES_LOCATE_LIMIT (2000), in sort order. The base goes to locate as one more word, so it only reads
+# the paths that hold it, and the prefix is checked after
+files::locate() {
+  local tool=locate words=() every="" hidden="" ex
+  command -v plocate > /dev/null && tool=plocate
+  read -ra words <<< "$1"
+  ((${#words[@]})) || return 0
+  files::on everywhere && every=1
+  files::on hidden && hidden=1
+  [[ -n "$every" ]] || words+=("$FILES_BASE/")
+  command "$tool" -i -- "${words[@]}" 2> /dev/null |
+    awk -v base="$FILES_BASE/" -v every="$every" -v hidden="$hidden" -v excl="${FZX_FILES_EXCLUDES[*]}" '
+      BEGIN { n = split(excl, e, " "); for (i = 1; i <= n; i++) ex[e[i]] = 1 }
+      {
+        if (every == "") { if (substr($0, 1, length(base)) != base) next; rel = substr($0, length(base) + 1) }
+        else rel = substr($0, 2)
+        k = split(rel, part, "/")
+        for (i = 1; i <= k; i++) { if (part[i] in ex) next; if (hidden == "" && substr(part[i], 1, 1) == ".") next }
+        print
+      }' |
+    command xargs -r -d '\n' stat -c %n -- 2> /dev/null |
+    head -n "${FZX_FILES_LOCATE_LIMIT:-2000}" | files::sort
+  return 0
+}
+
 # files::source [DIR]
 files::source() {
   local mode="${FZX_MODE:-files}" dim=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" rst=$'\e[0m'
@@ -141,6 +189,18 @@ files::source() {
             n = split(rel, parts, "/"); dir = substr(rel, 1, length(rel) - length(parts[n]))
             printf "%s\t%s%s%s%s\n", path, dim, dir, rst, parts[n] }'
       return "${PIPESTATUS[0]}"
+      ;;
+    locate)
+      [[ -n "${FZF_QUERY:-}" ]] || return 0
+      files::locate "$FZF_QUERY" |
+        awk -v base="$FILES_BASE/" -v home="$HOME/" -v dim="$dim" -v rst="$rst" '
+          { path = $0
+            if (substr(path, 1, length(base)) == base) rel = substr(path, length(base) + 1)
+            else if (substr(path, 1, length(home)) == home) rel = "~/" substr(path, length(home) + 1)
+            else rel = path
+            n = split(rel, parts, "/"); dir = substr(rel, 1, length(rel) - length(parts[n]))
+            printf "%s\t%s%s%s%s\n", path, dim, dir, rst, parts[n] }'
+      return 0
       ;;
     grep)
       local query="${FZF_QUERY:-}" rc

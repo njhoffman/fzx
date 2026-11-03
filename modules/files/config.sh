@@ -11,10 +11,12 @@ FZX_ICON="󰈢"
 declare -gA FZX_ICON_MODES
 FZX_ICON_MODES[dirs]="󰉋"
 FZX_ICON_MODES[grep]="󰍉"
+FZX_ICON_MODES[locate]="󰡦"
 # the icon's color in the menu
 FZX_COLORS[files_icon]="38;5;75"
 FZX_COLORS[files_icon_dirs]="38;5;116"
 FZX_COLORS[files_icon_grep]="38;5;170"
+FZX_COLORS[files_icon_locate]="38;5;180"
 
 FZX_KEYS[files.into]=ctrl-o  # browse the directory under the cursor (a file's own directory)
 FZX_KEYS[files.up]=alt-up    # browse the parent directory
@@ -30,6 +32,11 @@ FZX_FILES_EXCLUDES=(.git .ruff_cache .mypy_cache .pytest_cache __pycache__ .hypo
 # image previews through chafa: symbols works everywhere (tmux popups included); sixels or kitty draw real
 # pixels where the terminal (and tmux's allow-passthrough) supports them
 FZX_FILES_IMAGE_FORMAT=symbols
+
+# locate mode: the most paths it lists, and the database whose age the header shows (empty: plocate's, else
+# mlocate's)
+FZX_FILES_LOCATE_LIMIT="${FZX_FILES_LOCATE_LIMIT:-2000}"
+FZX_FILES_LOCATE_DB="${FZX_FILES_LOCATE_DB:-}"
 
 # the list needs about 50 columns and code about 80: the preview moves to the right from 130 columns
 FZX_PREVIEW_LAYOUTS=("0:down,40%,border-top" "130:right,55%")

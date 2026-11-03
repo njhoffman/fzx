@@ -130,8 +130,11 @@ setup() {
   local pid=$!
   run "$PS_DIR/actions.sh" term "$pid"
   [ "$status" -eq 0 ]
-  run wait "$pid"
-  [ "$status" -eq 143 ]
+  # in this shell, not through run's subshell: the sleep is this shell's child, and under the parallel
+  # suite the subshell's wait sometimes has no record of it
+  local rc=0
+  wait "$pid" || rc=$?
+  [ "$rc" -eq 143 ]
 }
 
 # stub <name> <body>: an executable on PATH recording its args in $BATS_TEST_TMPDIR/calls

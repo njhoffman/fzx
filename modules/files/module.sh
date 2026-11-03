@@ -35,6 +35,13 @@ files::opts() {
       --scheme=path
       --preview "$(fzx::cb preview '{1}')"
     )
+    if [[ "$FZX_MODE" == locate ]]; then
+      # the query is locate's words: the database answers, fzf does not filter
+      local db="" age=""
+      files::locate_db db && files::_age "$db" age
+      FZX_OPTS+=(--disabled --bind "change:reload:sleep 0.1; $(fzx::cb source)"
+        "--header=${FILES_BASE/#$HOME/\~}  locate${age:+ (database $age old: updatedb refreshes it)}")
+    fi
   fi
   if [[ "$FZX_MODE" == grep ]] && fzx::in_session; then
     # grep starts grepping: a filter left on by an earlier visit to the mode is dropped

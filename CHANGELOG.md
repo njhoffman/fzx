@@ -6,6 +6,15 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.79.0] - 2026-11-03
+
+### Added
+
+- files: a locate mode, when plocate (or locate) is installed: as you type, the paths its database has
+  that hold every word of the query, under the directory, or anywhere with the everywhere toggle (alt-e).
+  Hidden and excluded paths follow the files mode's rules, paths deleted since the last `updatedb` are left
+  out, and the header says how old the database is.
+
 ## [0.78.0] - 2026-11-03
 
 ### Added

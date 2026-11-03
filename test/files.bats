@@ -121,6 +121,54 @@ multi:3" ]
   [ -z "$output" ]
 }
 
+@test "locate: plocate's paths under the directory, every word; hidden, excluded and gone ones left out; everywhere" {
+  mkdir -p "$BATS_TEST_TMPDIR/stub"
+  # plocate: its words logged, the database a fixed list (the gone path is in it but not on disk)
+  cat > "$BATS_TEST_TMPDIR/stub/plocate" << STUB
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$BATS_TEST_TMPDIR/plocate.calls"
+printf '%s\n' "$B/a/x" "$B/.hid/z" "$B/.ruff_cache/c" "$B/gone" "$B/top" "$BATS_TEST_TMPDIR/elsewhere/deep/far" "$B-sibling/x"
+STUB
+  chmod +x "$BATS_TEST_TMPDIR/stub/plocate"
+  export PATH="$BATS_TEST_TMPDIR/stub:$PATH"
+  run env FZX_TOGGLES="" FZX_MODE=locate FZF_QUERY="x  far" "$FILES/source.sh" "$B"
+  [ "$status" -eq 0 ]
+  [ "$(cut -f1 <<< "$output" | sed "s:^$B/::" | tr '\n' ' ')" = "a/x top " ]
+  # every word, then the base, case-insensitive
+  [ "$(< "$BATS_TEST_TMPDIR/plocate.calls")" = "-i -- x far $B/" ]
+  run env FZX_TOGGLES="hidden" FZX_MODE=locate FZF_QUERY=x "$FILES/source.sh" "$B"
+  [ "$(cut -f1 <<< "$output" | sed "s:^$B/::" | tr '\n' ' ')" = ".hid/z a/x top " ]
+  # everywhere: outside the base too (a home path shown under ~ when it is one)
+  run env FZX_TOGGLES="everywhere" FZX_MODE=locate FZF_QUERY=x "$FILES/source.sh" "$B"
+  [[ "$(cut -f1 <<< "$output" | tr '\n' ' ')" == *"$BATS_TEST_TMPDIR/elsewhere/deep/far "* ]]
+  [[ "$(tail -1 "$BATS_TEST_TMPDIR/plocate.calls")" == "-i -- x" ]]
+  # no query: nothing asked
+  run env FZX_MODE=locate FZF_QUERY="" "$FILES/source.sh" "$B"
+  [ -z "$output" ]
+  FZX_FILES_LOCATE_LIMIT=1 run env FZX_TOGGLES="" FZX_MODE=locate FZF_QUERY=x "$FILES/source.sh" "$B"
+  [ "${#lines[@]}" -eq 1 ]
+}
+
+@test "locate: listed only with plocate or locate; typing asks the database; the header says how old it is" {
+  mkdir -p "$BATS_TEST_TMPDIR/stub"
+  printf '#!/bin/sh\n' > "$BATS_TEST_TMPDIR/stub/plocate"
+  chmod +x "$BATS_TEST_TMPDIR/stub/plocate"
+  touch -d '-3 hours' "$BATS_TEST_TMPDIR/db"
+  PATH="$BATS_TEST_TMPDIR/stub:$PATH" FZX_FILES_LOCATE_DB="$BATS_TEST_TMPDIR/db" run "$FZX" -m files:locate --dry-run "$B"
+  [[ "$output" == *"--disabled"* && "$output" == *"change:reload:sleep 0.1; "*"_cb source"* ]]
+  [[ "$output" == *"locate (database 3h old: updatedb refreshes it)"* ]]
+  # the menu: listed where locate is; the summary is the database's age
+  load_libs log config menu
+  PATH="$BATS_TEST_TMPDIR/stub:$PATH" fzx::menu_entries files "$FILES"
+  PATH="$BATS_TEST_TMPDIR/stub:$PATH" files::applicable files:locate
+  [ "$(PATH="$BATS_TEST_TMPDIR/stub:$PATH" FZX_FILES_LOCATE_DB="$BATS_TEST_TMPDIR/db" files::summary files:locate)" = "database 3h old" ]
+  # a PATH with cat alone (/bin is /usr/bin on merged systems)
+  mkdir -p "$BATS_TEST_TMPDIR/onlycat"
+  ln -s "$(command -v cat)" "$BATS_TEST_TMPDIR/onlycat/cat"
+  run env PATH="$BATS_TEST_TMPDIR/onlycat" "$BASH" "$FILES/components.tsv"
+  [[ "$output" == *"mode  grep"* && "$output" != *locate* && "$output" != *everywhere* ]]
+}
+
 @test "grep: ctrl-t filters the matches with fzf, the term frozen for reloads; again greps the term" {
   load_libs log session
   fzx::session_create files "$FILES" "$B"
