@@ -8,6 +8,11 @@ All notable changes to fzx are recorded here. The format follows
 
 ### Added
 
+- logs: the preview follows the log while its row has focus (`FZX_LOGS_PREVIEW_FOLLOW=0` for a snapshot).
+- logs: files and container logs are colored by `FZX_LOGS_COLORIZER` (ccze -A by default; grcat works too),
+  in the preview and when following; journals keep systemd's colors. A unit's preview pins the top of its
+  `systemctl status` above the journal (`FZX_LOGS_STATUS_LINES`, 8); entering or leaving units mode
+  restarts fzf.
 - ps: top mode, every process reloaded every `FZX_PS_TOP_INTERVAL` seconds (2 by default); the cursor and
   the selection stay on their pids as the rows reorder.
 

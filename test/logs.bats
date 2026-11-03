@@ -64,13 +64,15 @@ CFG
 @test "logs: preview and follow use the right tool per kind" {
   stub_cmd journalctl 'echo journal'
   stub_cmd docker 'echo docker'
+  stub_cmd systemctl ':'
+  export FZX_LOGS_PREVIEW_FOLLOW=0
   printf 'l1\nl2\n' > "$BATS_TEST_TMPDIR/x.log"
   run "$MODS/logs/preview.sh" file "$BATS_TEST_TMPDIR/x.log"
   [[ "$(printf '%s' "$output" | plain)" == *l2* ]]
   run "$MODS/logs/preview.sh" unit-system foo.service
   run "$MODS/logs/preview.sh" docker abc
   run "$MODS/logs/actions.sh" follow unit-user bar.service
-  [ "$(cut -d' ' -f2- "$BATS_TEST_TMPDIR/calls" | tr '\n' '|')" = "--system -u foo.service -n 200 --no-pager|logs --tail 200 abc|--user -u bar.service -n 200 --no-pager -f|" ]
+  [ "$(grep -v /systemctl "$BATS_TEST_TMPDIR/calls" | cut -d' ' -f2- | tr '\n' '|')" = "--system -u foo.service -n 200 --no-pager|logs --tail 200 abc|--user -u bar.service -n 200 --no-pager -f|" ]
   run "$MODS/logs/preview.sh" bogus x
   [ "$status" -eq 2 ]
 }
@@ -145,4 +147,75 @@ CFG
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " == *" --with-nth=3 "* && " ${FZF_ARGS[*]} " == *" --tiebreak=index "* ]]
   [[ " ${FZF_ARGS[*]} " == *"follow,nowrap"* ]]
+}
+
+@test "logs: the preview follows the log by default: tail -F, journalctl -f, docker logs -f" {
+  stub_cmd tail ':'
+  stub_cmd journalctl ':'
+  stub_cmd docker ':'
+  stub_cmd systemctl ':'
+  run "$MODS/logs/preview.sh" file /var/log/x.log
+  run "$MODS/logs/preview.sh" unit-user a.service
+  run "$MODS/logs/preview.sh" docker abc
+  [ "$(grep -v /systemctl "$BATS_TEST_TMPDIR/calls" | cut -d' ' -f2- | tr '\n' '|')" = "-n 200 -F -- /var/log/x.log|--user -u a.service -n 200 --no-pager -f|logs --tail 200 -f abc|" ]
+}
+
+@test "logs: files and containers go through the colorizer, journals do not; none or NO_COLOR: plain" {
+  stub_cmd ccze 'sed "s/^/CZ:/"'
+  stub_cmd journalctl 'echo journal'
+  stub_cmd docker 'echo docker'
+  stub_cmd systemctl ':'
+  export FZX_LOGS_PREVIEW_FOLLOW=0
+  printf 'l1\n' > "$BATS_TEST_TMPDIR/x.log"
+  run "$MODS/logs/preview.sh" file "$BATS_TEST_TMPDIR/x.log"
+  [ "$output" = "CZ:l1" ]
+  run "$MODS/logs/preview.sh" docker abc
+  [ "$output" = "CZ:docker" ]
+  run "$MODS/logs/preview.sh" unit-system foo.service
+  [[ "$output" == *journal && "$output" != *CZ:* ]]
+  grep -q '/ccze -A$' "$BATS_TEST_TMPDIR/calls"
+  # following, the colorizer still applies (the action, and the preview by default)
+  stub_cmd tail 'echo followed'
+  run "$MODS/logs/actions.sh" follow file /var/log/x.log
+  [ "$output" = "CZ:followed" ]
+  NO_COLOR=1 run "$MODS/logs/preview.sh" docker abc
+  [ "$output" = docker ]
+  # an empty array: none
+  run bash -c "FZX_LOGS_COLORIZER=(); source '$MODS/logs/preview.sh'; logs::preview docker abc"
+  [ "$output" = docker ]
+  # a colorizer that is not installed: plain
+  run bash -c "FZX_LOGS_COLORIZER=(no-such-colorizer); source '$MODS/logs/preview.sh'; logs::preview docker abc"
+  [ "$output" = docker ]
+}
+
+@test "logs: a unit's preview pins the top of its status, without the process tree, above the journal" {
+  stub_cmd systemctl 'printf "%s\n" "● a.service - A" "     Loaded: loaded" " Invocation: 123" "     Active: active" "     CGroup: /a" "             ├─1 /bin/a" "             └─2 /bin/b"'
+  stub_cmd journalctl 'echo journal'
+  export FZX_LOGS_PREVIEW_FOLLOW=0 FZF_PREVIEW_COLUMNS=10
+  run "$MODS/logs/preview.sh" unit-user a.service
+  [ "$status" -eq 0 ]
+  # 8 status lines (padded), the rule, then the journal
+  [ "${#lines[@]}" -eq 6 ] # run drops the padding's empty lines from lines[]
+  [ "$(printf '%s\n' "$output" | wc -l)" -eq 10 ]
+  [ "${lines[0]}" = "● a.service - A" ] && [ "${lines[2]}" = "     Active: active" ] && [ "${lines[3]}" = "     CGroup: /a" ]
+  [ "$(printf '%s' "${lines[4]}" | plain)" = "──────────" ]
+  [ "${lines[5]}" = journal ]
+  grep -q 'systemctl --user status a.service --no-pager -n 0' "$BATS_TEST_TMPDIR/calls"
+  FZX_LOGS_STATUS_LINES=2 run "$MODS/logs/preview.sh" unit-user a.service
+  [ "${#lines[@]}" -eq 4 ] && [ "${lines[1]}" = "     Loaded: loaded" ] && [ "${lines[3]}" = journal ]
+}
+
+@test "logs: units pins the status lines in the preview and restarts fzf; files do not pin" {
+  stub_fzf
+  run "$FZX" -m logs:units
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *"--preview-window=down,60%,follow,nowrap,nohidden,~9 "* ]]
+  run "$FZX" -m logs
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *"--preview-window=down,60%,follow,nowrap,nohidden "* ]]
+  load_libs log session
+  fzx::session_create logs "$MODS/logs"
+  printf '%s\0' files units docker > "$FZX_SESSION_DIR/meta/modes"
+  run "$FZX" _cb mode next
+  [ "$output" = "become:$FZX --resume $FZX_SESSION -m :units" ]
 }

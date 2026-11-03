@@ -31,6 +31,16 @@ FZX_LOGS_GLOBS=(
 # lines shown in the preview and before following
 FZX_LOGS_LINES=200
 
+# the preview follows the log while the row has focus (0: a snapshot)
+FZX_LOGS_PREVIEW_FOLLOW=1
+
+# files and container logs pass through this, line by line; () shows them plain (files: bat's log
+# highlighting). ccze -A, or grcat with one of grc's configs: (grcat conf.log)
+FZX_LOGS_COLORIZER=(ccze -A)
+
+# lines of `systemctl status` pinned above a unit's journal
+FZX_LOGS_STATUS_LINES=8
+
 # log lines are long in the list and the preview alike: the preview stays below at every width
 FZX_PREVIEW_LAYOUTS=("0:down,60%,border-top")
 # wide content: a larger popup than the default

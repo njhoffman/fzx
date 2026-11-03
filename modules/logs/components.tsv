@@ -1,6 +1,6 @@
 # logs components: kind  name  key  description  flags (see lib/components.sh)
 mode  files   -  log files, newest first                  default
-mode  units   -  journals of running and failed services  -
+mode  units   -  journals of running and failed services  restart
 mode  docker  -  docker container logs                    -
 sort  recent  -  files: newest first   default
 sort  size    -  files: largest first  -

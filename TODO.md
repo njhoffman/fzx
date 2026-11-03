@@ -73,7 +73,7 @@ Reviewed: 2026-10-28
       (`rg -U --multiline-dotall`) that reloads.
 - [ ] **git: remote branch delete** (p3) [feature]: drop on a remote-tracking branch pushes the delete
       (`git push REMOTE --delete BRANCH`); left out of 0.18.0 as an outward action.
-- [ ] **logs: colored previews** (p3) [feature]: ccze -A or grcat (conf.tail) over log files and journals (both
+- [x] **logs: colored previews** (p3) [feature]: ccze -A or grcat (conf.tail) over log files and journals (both
       installed here), and a unit's `systemctl status` above its journal in the units preview; the preview
       window in follow mode. Refs: widgets/system/logs/logs.preview.sh, logs.fzf.sh.
 - [ ] **logs: age dots** (p3) [feature]: a colored dot per log entry showing how recently it was modified

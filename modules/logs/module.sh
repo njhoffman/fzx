@@ -10,13 +10,16 @@ source "$FZX_MODULE_DIR/source.sh"
 
 # shellcheck disable=SC2034  # FZX_ACTION_ARGS*: read by lib/actions.sh
 logs::opts() {
+  # units: the status above the journal stays in view (its lines and the rule) while the journal follows
+  local pin=""
+  [[ "$FZX_MODE" == units ]] && pin=",~$((${FZX_LOGS_STATUS_LINES:-8} + 1))"
   FZX_OPTS+=(
     --delimiter=$'\t'
     --with-nth=3
     --accept-nth=2
     --tiebreak=index
     --preview "$(fzx::cb preview '{1}' '{2}')"
-    "--preview-window=down,60%,follow,nowrap,nohidden"
+    "--preview-window=down,60%,follow,nowrap,nohidden${pin}"
   )
   # actions get the kind and the target; copy the targets (what enter prints)
   FZX_ACTION_ARGS='{1} {2}'

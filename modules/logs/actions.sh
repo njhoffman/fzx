@@ -9,7 +9,7 @@ logs::action() {
   case "${1:-}" in
     follow)
       trap : INT
-      logs::show "${2:-}" "${3:-}" 1
+      logs::view "${2:-}" "${3:-}" 1
       return 0
       ;;
     *)
