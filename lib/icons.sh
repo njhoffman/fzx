@@ -76,6 +76,17 @@ declare -gA FZX_ICONS_NERD=(
   [action_become]="" # actions menu: replaces fzf (prints a value)
   [action_confirm]="" # actions menu: asks first
   [action_reload]="" # actions menu: reloads the list afterwards
+  [bt_mouse]="󰍽" # bluetooth: a mouse
+  [bt_keyboard]="󰌌" # bluetooth: a keyboard
+  [bt_headset]="󰋎" # bluetooth: a headset
+  [bt_headphones]="󰋋" # bluetooth: headphones
+  [bt_speaker]="󰓃" # bluetooth: a speaker (audio-card)
+  [bt_phone]="󰄜" # bluetooth: a phone
+  [bt_computer]="󰌢" # bluetooth: a computer
+  [bt_gamepad]="󰊗" # bluetooth: a game controller
+  [bt_display]="󰍹" # bluetooth: a display
+  [bt_device]="󰂯" # bluetooth: any other device
+  [battery]="󰁹" # a battery level
 )
 
 declare -gA FZX_ICONS_UNICODE=(
@@ -150,6 +161,17 @@ declare -gA FZX_ICONS_UNICODE=(
   [action_become]="⇥"
   [action_confirm]="?"
   [action_reload]="↻"
+  [bt_mouse]="⌖"
+  [bt_keyboard]="⌨"
+  [bt_headset]="☊"
+  [bt_headphones]="☊"
+  [bt_speaker]="♪"
+  [bt_phone]="☏"
+  [bt_computer]="⌘"
+  [bt_gamepad]="✜"
+  [bt_display]="▭"
+  [bt_device]="ᛒ"
+  [battery]="▮"
 )
 
 # fzx::icon <name> [var]: the icon, empty for an unknown name or FZX_ICONS=none; into var when given

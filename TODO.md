@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.71.0): the six steps of `docs/design.md` are done. Modules: actions, audio, capture, claude, colors, dirs,
+Status (0.72.0): the six steps of `docs/design.md` are done. Modules: actions, audio, bluetooth, capture, claude, colors, dirs,
 docker, files, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
@@ -100,7 +100,10 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [ ] **i3** (p3) [module]: windows and workspaces (focus, move), scratchpads. Refs: list.md "i3". Has: i3-msg.
 - [ ] **fonts** (p3) [module]: fc-list families with a sample preview. Has: fc-list.
 - [ ] **displays** (p3) [module]: xrandr outputs and modes. Has: xrandr.
-- [ ] **bluetooth** (p3) [module]: devices (connect, disconnect, pair). Has: bluetoothctl.
+- [ ] **bluetooth: background scan** (p3) [feature]: the scan action blocks for `FZX_BLUETOOTH_SCAN_SECONDS`
+      and lists its finds after. A scan kept running while the all mode shows (`bluetoothctl scan on` in the
+      background, a reload as `InterfacesAdded` arrives through `busctl monitor`, stopped when fzf leaves the
+      mode or exits) would show devices as they appear.
 - [ ] **cron** (p3) [module]: crontab entries with their next run (systemd timers: the systemd module's timers mode).
       Has: crontab, systemctl.
 - [ ] **firewall** (p3) [module]: ufw rules. Has: ufw (needs sudo).

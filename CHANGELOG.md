@@ -6,6 +6,16 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.72.0] - 2026-11-02
+
+### Added
+
+- bluetooth module: paired devices (connected first) and every device bluez knows, under a header row with
+  the controller's power. Rows show the device's kind, state, trust, battery and address. alt-c connects,
+  alt-d disconnects, alt-p pairs (then trusts and connects), alt-t flips trust, alt-x removes, alt-s scans
+  (the all mode) and alt-P powers the controller on or off. The preview shows `bluetoothctl info` with the
+  services by name.
+
 ## [0.71.0] - 2026-11-02
 
 ### Added
