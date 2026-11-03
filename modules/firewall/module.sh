@@ -19,7 +19,7 @@ firewall::opts() {
     --header-lines=1
     --tiebreak=index
     --preview "$(fzx::cb preview '{1}')"
-    "--preview-window=right,40%,wrap,nohidden"
+    "--preview-window=right,40%,nohidden"
   )
   FZX_ACTION_ARGS_FOR['copy']='{+2}'
 }

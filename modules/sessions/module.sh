@@ -16,7 +16,7 @@ sessions::opts() {
     --accept-nth=1
     --no-sort
     --preview "$(fzx::cb preview '{1}')"
-    "--preview-window=right,45%,wrap,nohidden"
+    "--preview-window=right,45%,nohidden"
   )
   if fzx::in_session; then
     fzx::bind enter "transform:$(fzx::cb transform enter '{1}')" \

@@ -18,7 +18,7 @@ network::opts() {
     --header-lines=1
     --tiebreak=index
     --preview "$(fzx::cb preview '{1}')"
-    "--preview-window=down,45%,wrap,nohidden"
+    "--preview-window=down,45%,nohidden"
   )
   FZX_ACTION_ARGS_FOR['copy']='{+2}'
   if fzx::in_session && [[ "$FZX_MODE" != files ]]; then

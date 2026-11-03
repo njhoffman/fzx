@@ -19,7 +19,7 @@ youtube::opts() {
       --tiebreak=index
       "--header=enter downloads; a video and an audio format selected together are merged"
       --preview "$(fzx::cb preview '{1}' '{2}' '{3}' '{4}' '{5}' '{6}')"
-      "--preview-window=right,45%,wrap,nohidden"
+      "--preview-window=right,45%,nohidden"
     )
     # shellcheck disable=SC2034  # read by lib/actions.sh
     FZX_ACTION_ARGS_FOR['download']='{1} {+2}'
@@ -34,7 +34,7 @@ youtube::opts() {
     --tiebreak=index
     "--header=type a search, enter runs it"
     --preview "$(fzx::cb preview '{1}' '{2}' '{3}' '{4}' '{5}' '{6}')"
-    "--preview-window=right,45%,wrap,nohidden"
+    "--preview-window=right,45%,nohidden"
   )
   if fzx::in_session; then
     fzx::bind enter "transform:$(fzx::cb transform enter '{1}' '{2}')" \

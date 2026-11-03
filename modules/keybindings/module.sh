@@ -16,7 +16,7 @@ keybindings::opts() {
     --accept-nth=1
     --multi
     --preview "$(fzx::cb preview '{1}' '{2}' '{3}')"
-    "--preview-window=right,50%,wrap,nohidden"
+    "--preview-window=right,50%,nohidden"
   )
 }
 

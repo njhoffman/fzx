@@ -25,7 +25,7 @@ capture::opts() {
   FZX_OPTS+=(
     --delimiter=$'\t' --with-nth=2 --accept-nth=1 --tiebreak=index --multi
     --preview "$(fzx::cb preview "$cb_args" '{1}' '{3}')"
-    '--preview-window=right,50%,wrap,nohidden'
+    '--preview-window=right,50%,nohidden'
     "--header=$header"
   )
   FZX_ACTION_ARGS="$cb_args {+1}"

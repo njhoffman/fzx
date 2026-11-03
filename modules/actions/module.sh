@@ -16,7 +16,7 @@ actions::opts() {
     --accept-nth=1
     --tiebreak=index
     --preview "$(fzx::cb preview '{1}')"
-    "--preview-window=down,40%,wrap,nohidden"
+    "--preview-window=down,40%,nohidden"
   )
   fzx::in_session && fzx::bind enter "transform:$(fzx::cb transform run '{1}')" "run the action, then go back"
 }

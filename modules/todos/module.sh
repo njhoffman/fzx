@@ -30,7 +30,7 @@ todos::opts() {
     --multi
     --tiebreak=index
     --preview "$(fzx::cb preview '{1}')"
-    "--preview-window=down,40%,wrap,nohidden"
+    "--preview-window=down,40%,nohidden"
   )
   # the rest of the args seed the search ("p1" filters by priority, "bug" by category)
   ((${#query[@]})) && FZX_OPTS+=("--query=${query[*]}")

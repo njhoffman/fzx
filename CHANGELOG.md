@@ -6,6 +6,15 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.84.0] - 2026-11-03
+
+### Changed
+
+- Previews no longer wrap long lines: no module asks for wrapping any more, so your fzf setting applies (off
+  by default) and your `toggle-preview-wrap` key turns it on.
+- alt-w is reserved for that toggle (`FZX_RESERVED_KEYS`): github's "open the search on github.com" and
+  repos' "open the remote in the browser" moved from alt-w to alt-W.
+
 ## [0.83.1] - 2026-11-03
 
 ### Changed

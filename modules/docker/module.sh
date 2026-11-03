@@ -15,7 +15,7 @@ docker::opts() {
     --accept-nth=1
     --tiebreak=index
     --preview "$(fzx::cb preview '{1}')"
-    "--preview-window=down,55%,wrap,nohidden"
+    "--preview-window=down,55%,nohidden"
   )
 }
 

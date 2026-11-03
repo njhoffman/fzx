@@ -31,7 +31,7 @@ action  edit      ctrl-e  code, tree: open the file in $EDITOR (a read-only copy
 action  star      alt-s   repos, code, mine: star the repositories; starred: unstar them          foreground,reload
 action  fork      alt-F   fork the repository to your account (no clone)                         foreground,confirm
 action  settings  alt-e   open the repository's settings page in the browser                     silent
-action  web       alt-w   repos, code: open the search on github.com                             silent
+action  web       alt-W   repos, code: open the search on github.com                             silent
 action  copy      ctrl-y  copy the urls                                                          silent,builtin
 action  checkout  alt-k   issues, prs: check the pull request out (an issue: a branch for it) in the repository here or its ghq clone  foreground
 action  comment   alt-m   issues, prs: comment (in $EDITOR)                                      foreground,reload

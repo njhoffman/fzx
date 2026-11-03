@@ -18,7 +18,7 @@ menu::opts() {
     --accept-nth=1
     --no-multi
     --preview "$(fzx::cb preview '{1}')"
-    "--preview-window=right,40%,wrap"
+    "--preview-window=right,40%"
   )
   # grouped, the first row is a header: start on the entry under it, unless a saved place is restored
   local _pos="" _query=""

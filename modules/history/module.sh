@@ -17,7 +17,7 @@ history::opts() {
     --tabstop=1
     --scheme=history
     --preview "$(fzx::cb preview '{1}')"
-    "--preview-window=down,40%,wrap,nohidden"
+    "--preview-window=down,40%,nohidden"
   )
   # a command over several lines is an item over several lines (lib: --read0, items counted by NUL)
   # shellcheck disable=SC2034  # read by lib/opts.sh

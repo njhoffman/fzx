@@ -82,7 +82,7 @@ github::opts() {
     --tiebreak=index
     --multi
     --preview "$(fzx::cb preview '{1}' '{2}' '{3}' '{4}' '{5}')"
-    "--preview-window=right,55%,wrap,nohidden"
+    "--preview-window=right,55%,nohidden"
   )
   FZX_ACTION_ARGS="$a {+1}"
   github::header header

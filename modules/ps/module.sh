@@ -13,7 +13,7 @@ ps::opts() {
     --header-lines=1
     --accept-nth=1
     --preview "$(fzx::cb preview '{1}')"
-    "--preview-window=down,40%,wrap,nohidden"
+    "--preview-window=down,40%,nohidden"
   )
   # the forest only reads correctly in input order
   [[ "$FZX_MODE" == tree ]] && FZX_OPTS+=(--no-sort)

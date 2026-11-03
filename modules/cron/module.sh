@@ -17,7 +17,7 @@ cron::opts() {
     --accept-nth=2
     --tiebreak=index
     --preview "$(fzx::cb preview '{1}')"
-    "--preview-window=down,50%,wrap,nohidden"
+    "--preview-window=down,50%,nohidden"
   )
   FZX_ACTION_ARGS_FOR['copy']='{+2}'
 }

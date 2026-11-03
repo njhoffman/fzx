@@ -19,7 +19,7 @@ shell::opts() {
     # a match at the name's start, then the list's order
     "--tiebreak=begin,index"
     --preview "$(fzx::cb preview '{1}' '{2}')"
-    "--preview-window=right,55%,wrap,nohidden"
+    "--preview-window=right,55%,nohidden"
   )
   # the environment fzx started with, once per session: later callbacks run under fzf, which adds its own
   if [[ -n "${FZX_SESSION_DIR:-}" && ! -f "$FZX_SESSION_DIR/data/env" ]]; then

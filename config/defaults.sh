@@ -32,10 +32,10 @@ FZX_TOGGLE_DIGIT_KEYS=1
 # short (^X, M-left) or glyph (⌃X, ⌥←; needs a font with the symbols). Binds and FZX_KEYS keep fzf's names.
 FZX_KEY_STYLE=full
 
-# keys modules may not take: scrolling and query editing in the user's fzf options. A module binding on one
-# of these is skipped with a warning in the log (fzx's own keys are not checked); drop a key from the list
-# to let modules have it
-FZX_RESERVED_KEYS=(ctrl-f ctrl-b ctrl-u ctrl-w ctrl-g alt-g ctrl-p ctrl-n up down alt-b alt-f scroll-up scroll-down)
+# keys modules may not take: scrolling, query editing and the preview wrap toggle (alt-w) in the user's fzf
+# options. A module binding on one of these is skipped with a warning in the log (fzx's own keys are not
+# checked); drop a key from the list to let modules have it
+FZX_RESERVED_KEYS=(ctrl-f ctrl-b ctrl-u ctrl-w ctrl-g alt-g ctrl-p ctrl-n up down alt-b alt-f alt-w scroll-up scroll-down)
 
 # size and position of a plain popup (fzf's --popup on tmux/Zellij) and float (a floating tmux pane, tmux
 # new-pane) by the width of the whole tmux window (not the calling pane: they cover its splits), else the

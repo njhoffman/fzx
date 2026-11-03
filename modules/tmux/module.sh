@@ -18,7 +18,7 @@ tmux::opts() {
   FZX_OPTS+=(
     --delimiter=$'\t' --with-nth=2 --accept-nth=1 --tiebreak=index --multi
     --preview "$(fzx::cb preview "$args" '{1}' '{2}' '{3}')"
-    '--preview-window=right,60%,wrap,nohidden'
+    '--preview-window=right,60%,nohidden'
   )
   FZX_ACTION_ARGS="$args {+1}"
   # run reads the key row's metadata (table, key, command), the row under the cursor

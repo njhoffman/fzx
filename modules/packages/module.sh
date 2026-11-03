@@ -18,7 +18,7 @@ packages::opts() {
     --with-nth=3
     --accept-nth=2
     --preview "$(fzx::cb preview '{1}')"
-    "--preview-window=down,50%,wrap,nohidden"
+    "--preview-window=down,50%,nohidden"
   )
   # copy the package names, not the manager:name ids
   FZX_ACTION_ARGS_FOR['copy']='{+2}'
