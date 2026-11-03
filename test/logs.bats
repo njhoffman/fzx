@@ -42,7 +42,7 @@ CFG
   FZX_ICONS=unicode run "$MODS/logs/source.sh"
   [ "${#lines[@]}" -eq 3 ]
   [ "$(printf '%s\n' "${lines[@]}" | cut -f1,2 | tr '\t\n' ' |')" = "file $BATS_TEST_TMPDIR/logs/new.log|file $BATS_TEST_TMPDIR/named.txt|file $BATS_TEST_TMPDIR/logs/old.log|" ]
-  [[ "$(printf '%s' "${lines[2]}" | plain)" == *"  2d  ▤ old "* ]]
+  [[ "$(printf '%s' "${lines[2]}" | plain)" == *"  2d  ● ▤ old "* ]]
 }
 
 @test "logs: units mode lists running and failed services of both managers" {
@@ -218,4 +218,23 @@ CFG
   printf '%s\0' files units docker > "$FZX_SESSION_DIR/meta/modes"
   run "$FZX" _cb mode next
   [ "$output" = "become:$FZX --resume $FZX_SESSION -m :units" ]
+}
+
+@test "logs: a dot before each file in its age's color; FZX_LOGS_AGE_DOT empty leaves it out" {
+  mkdir -p "$FZX_CONFIG_DIR/modules/logs" "$BATS_TEST_TMPDIR/logs"
+  local f
+  for f in new hour day old; do echo x > "$BATS_TEST_TMPDIR/logs/$f.log"; done
+  touch -d '5 minutes ago' "$BATS_TEST_TMPDIR/logs/hour.log"
+  touch -d '3 hours ago' "$BATS_TEST_TMPDIR/logs/day.log"
+  touch -d '3 days ago' "$BATS_TEST_TMPDIR/logs/old.log"
+  printf 'FZX_LOGS_FILES=()\nFZX_LOGS_GLOBS=("%s/logs/*.log")\n' "$BATS_TEST_TMPDIR" > "$FZX_CONFIG_DIR/modules/logs/config.sh"
+  run "$MODS/logs/source.sh"
+  [ "$status" -eq 0 ]
+  [[ "${lines[0]}" == *new.log* && "${lines[0]}" == *$'\e[38;5;46m●\e[0m '* ]]
+  [[ "${lines[1]}" == *hour.log* && "${lines[1]}" == *$'\e[38;5;34m●\e[0m '* ]]
+  [[ "${lines[2]}" == *day.log* && "${lines[2]}" == *$'\e[38;5;28m●\e[0m '* ]]
+  [[ "${lines[3]}" == *old.log* && "${lines[3]}" == *$'\e[38;5;240m●\e[0m '* ]]
+  echo 'FZX_LOGS_AGE_DOT=""' >> "$FZX_CONFIG_DIR/modules/logs/config.sh"
+  run "$MODS/logs/source.sh"
+  [[ "${lines[0]}" == *new.log* && "${lines[0]}" != *●* ]]
 }

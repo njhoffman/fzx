@@ -4,19 +4,26 @@
 # $FZX_SORT (files): recent (newest first, default), size (largest first) or name; the sorted column is
 # drawn in FZX_COLORS[sorted] as well.
 
-# logs::age <seconds> [SGR]: short age, right-aligned in 4 columns, with a color that fades from bright to
-# dim (and the SGR given, for the sorted column)
+# logs::age_color <seconds> <var>: the age's color, fading from bright to dim (under a minute, an hour, a
+# day, older)
+logs::age_color() {
+  local _s="$1" _c
+  if ((_s < 60)); then _c="38;5;46"
+  elif ((_s < 3600)); then _c="38;5;34"
+  elif ((_s < 86400)); then _c="38;5;28"
+  else _c="38;5;240"; fi
+  printf -v "$2" '%s' "$_c"
+}
+
+# logs::age <seconds> [SGR]: short age, right-aligned in 4 columns, in its color (and the SGR given, for
+# the sorted column)
 logs::age() {
   local s="$1" clr text
-  if ((s < 60)); then
-    clr="38;5;46" text="${s}s"
-  elif ((s < 3600)); then
-    clr="38;5;34" text="$((s / 60))m"
-  elif ((s < 86400)); then
-    clr="38;5;28" text="$((s / 3600))h"
-  else
-    clr="38;5;240" text="$((s / 86400))d"
-  fi
+  logs::age_color "$s" clr
+  if ((s < 60)); then text="${s}s"
+  elif ((s < 3600)); then text="$((s / 60))m"
+  elif ((s < 86400)); then text="$((s / 3600))h"
+  else text="$((s / 86400))d"; fi
   printf '%*s\e[%s%sm%s\e[0m' "$((4 - ${#text}))" "" "$clr" "${2:+;$2}" "$text"
 }
 
@@ -31,6 +38,7 @@ logs::size() {
 
 logs::source_files() {
   local name path mtime size glob icon key sort="${FZX_SORT:-recent}" hl="${FZX_COLORS[sorted]:-4}" h shown
+  local dot="${FZX_LOGS_AGE_DOT-●}" dclr age
   local -A seen=() files=()
   fzx::require icons
   fzx::icon file icon
@@ -60,9 +68,11 @@ logs::source_files() {
     [[ "$sort" == name ]] && shown=$'\e['"${hl}m$name"$'\e[0m'"${shown:${#name}}"
     h="$(logs::size "$size")"
     printf -v h '%*s%s' "$((5 - ${#h}))" "" $'\e[38;5;152'"$([[ "$sort" == size ]] && printf ';%s' "$hl")m$h"$'\e[0m'
-    printf '%s\tfile\t%s\t%s  %s%s %s \e[38;5;244m%s\e[0m\n' "$key" "$path" \
-      "$(logs::age $((EPOCHSECONDS - mtime)) "$([[ "$sort" == recent ]] && printf %s "$hl")")" \
-      "${icon:+$'\e[38;5;110m'$icon$'\e[0m' }" "$shown" "$h" "${path/#$HOME/\~}"
+    age=$((EPOCHSECONDS - mtime))
+    logs::age_color "$age" dclr
+    printf '%s\tfile\t%s\t%s  %s%s%s %s \e[38;5;244m%s\e[0m\n' "$key" "$path" \
+      "$(logs::age "$age" "$([[ "$sort" == recent ]] && printf %s "$hl")")" \
+      "${dot:+$'\e['"${dclr}m$dot"$'\e[0m' }" "${icon:+$'\e[38;5;110m'$icon$'\e[0m' }" "$shown" "$h" "${path/#$HOME/\~}"
   done | sort -s -t $'\t' -k1,1 | cut -f2-
 }
 

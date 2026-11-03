@@ -8,6 +8,7 @@ All notable changes to fzx are recorded here. The format follows
 
 ### Added
 
+- logs: a dot before each file in the color of its age (`FZX_LOGS_AGE_DOT`; "" leaves it out).
 - logs: the preview follows the log while its row has focus (`FZX_LOGS_PREVIEW_FOLLOW=0` for a snapshot).
 - logs: files and container logs are colored by `FZX_LOGS_COLORIZER` (ccze -A by default; grcat works too),
   in the preview and when following; journals keep systemd's colors. A unit's preview pins the top of its

@@ -28,6 +28,10 @@ FZX_LOGS_GLOBS=(
   "/tmp/*.log"
 )
 
+# a dot before each file, in its age's color (green under a minute, darker under an hour and a day, grey
+# older); "" leaves it out
+FZX_LOGS_AGE_DOT="●"
+
 # lines shown in the preview and before following
 FZX_LOGS_LINES=200
 

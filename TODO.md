@@ -76,7 +76,7 @@ Reviewed: 2026-10-28
 - [x] **logs: colored previews** (p3) [feature]: ccze -A or grcat (conf.tail) over log files and journals (both
       installed here), and a unit's `systemctl status` above its journal in the units preview; the preview
       window in follow mode. Refs: widgets/system/logs/logs.preview.sh, logs.fzf.sh.
-- [ ] **logs: age dots** (p3) [feature]: a colored dot per log entry showing how recently it was modified
+- [x] **logs: age dots** (p3) [feature]: a colored dot per log entry showing how recently it was modified
       (the user has this in one of their scripts; get its path to reuse the colors and thresholds).
 - [ ] **dirs: bookmark from the list** (p3) [feature]: add and remove bookmarks with keys (fzf-marks' mark/unmark),
       kept in a file under FZX_STATE_DIR instead of only FZX_DIRS_BOOKMARKS in config. Ref: fzf-marks.plugin.zsh.
