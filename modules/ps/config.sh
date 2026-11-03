@@ -13,6 +13,9 @@ FZX_COLORS[ps_icon]="38;5;167"
 FZX_KEYS[ps.children]=ctrl-o # open the children of the process under the cursor
 FZX_KEYS[ps.files]=alt-o     # the open files of the process under the cursor (the network module's files)
 
+# seconds between refreshes in top mode (fractions work: 0.5)
+FZX_PS_TOP_INTERVAL=2
+
 # command lines are what the list is read for and the details are short: the preview stays below (the
 # list keeps the whole width) until 220 columns
 FZX_PREVIEW_LAYOUTS=("0:down,40%,border-top" "220:right,35%")

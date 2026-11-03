@@ -6,6 +6,11 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- ps: top mode, every process reloaded every `FZX_PS_TOP_INTERVAL` seconds (2 by default); the cursor and
+  the selection stay on their pids as the rows reorder.
+
 ### Changed
 
 - ps: PIDs are right-aligned like the other numeric columns.

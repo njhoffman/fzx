@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # ps source: one line per process, header first. PID is right-aligned like the other numeric columns: fzf
 # trims the padding from {1} and --accept-nth=1 under its default (whitespace) field splitting.
-# Mode from $FZX_MODE: user (default, own processes), all (every process), tree (forest).
+# Mode from $FZX_MODE: user (default, own processes), all (every process), top (every process; module.sh
+# reloads it every FZX_PS_TOP_INTERVAL seconds), tree (forest).
 # $FZX_SORT: cpu (default), mem, age, pid (ignored in tree, which keeps input order).
 # $FZX_TOGGLES: "kernel" shows kernel threads (pid 2 and its children), hidden otherwise.
 
@@ -109,7 +110,7 @@ ps::source() {
 
   case "$mode" in
     user) scope=(--user="${USER:-$(id -un)}") ;;
-    all) scope=(-e) ;;
+    all | top) scope=(-e) ;;
     tree) scope=(-e) sort=(--forest) scol=0 ;;
     *)
       printf 'ps: unknown mode: %s\n' "$mode" >&2

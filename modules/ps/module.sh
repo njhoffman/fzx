@@ -17,6 +17,11 @@ ps::opts() {
   )
   # the forest only reads correctly in input order
   [[ "$FZX_MODE" == tree ]] && FZX_OPTS+=(--no-sort)
+  # top: rerun the source on a timer; reload-sync keeps the old rows until the new ones are in (no flicker),
+  # and --track with --id-nth keeps the cursor and the selection on the same pids as the rows reorder
+  if [[ "$FZX_MODE" == top ]]; then
+    FZX_OPTS+=(--track --id-nth=1 --bind "every(${FZX_PS_TOP_INTERVAL:-2}):reload-sync($(fzx::cb source))")
+  fi
   if fzx::in_session; then
     fzx::bind "${FZX_KEYS[ps.children]}" "transform:$(fzx::cb nav goto ps --ppid '{1}')" \
       "open the children of the process under the cursor"

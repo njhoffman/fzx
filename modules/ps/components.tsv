@@ -1,12 +1,13 @@
 # ps components: kind  name  key  description  flags (see lib/components.sh)
-mode  user  -  your processes, busiest first            default
-mode  all   -  all processes, busiest first             -
-mode  tree  -  process tree (input order: sorting off)  restart
+mode  user  -  your processes, busiest first                default
+mode  all   -  all processes, busiest first                 -
+mode  top   -  all processes, refreshed every few seconds   restart
+mode  tree  -  process tree (input order: sorting off)      restart
 toggle  kernel  alt-k  show kernel threads                      -
-sort    cpu     -      user, all: busiest first                 default
-sort    mem     -      user, all: most memory first             -
-sort    age     -      user, all: newest first                  -
-sort    pid     -      user, all: by pid                        -
+sort    cpu     -      user, all, top: busiest first                 default
+sort    mem     -      user, all, top: most memory first             -
+sort    age     -      user, all, top: newest first                  -
+sort    pid     -      user, all, top: by pid                        -
 action  term          ctrl-x  send SIGTERM to the selected processes (not yours: sudo -n)   notify,reload
 action  kill          -       send SIGKILL to the selected processes (not yours: sudo -n)   silent,reload,confirm
 action  sudo-term     -       send SIGTERM through sudo (asks for the password)              foreground,reload

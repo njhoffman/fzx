@@ -94,7 +94,7 @@ Reviewed: 2026-10-28
       (`yt-dlp -x --audio-format mp3`) already covers the audio case.
 - [ ] **github: octo.nvim styling** (p3) [feature]: borrow from pwntester/octo.nvim's look: more icons
       (state, review, draft, merged), labels drawn as colored chips, nicer issue/PR rows and previews.
-- [ ] **top in ps** (p3) [feature]: a refreshing mode of `ps` (`every(N):reload`) rather than a module.
+- [x] **top in ps** (p3) [feature]: a refreshing mode of `ps` (`every(N):reload`) rather than a module.
       Refs: system/fzf.top.zsh, fzf-scripts/fztop.
 - [x] **ps: plain-left PIDs** (p3) [refactor]: since ~/.config/fzf/fzfrc dropped its `--delimiter`, the ps source no
       longer needs left-aligned PIDs for `{1}`; right-align them like the other numeric columns.

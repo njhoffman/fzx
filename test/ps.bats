@@ -256,6 +256,29 @@ stub() {
   [ "$output" = "become:$FZX --resume $FZX_SESSION -m :tree" ]
 }
 
+@test "under fzx: top mode reloads on a timer and tracks pids; other modes do not" {
+  stub_fzf
+  run "$FZX" -m ps:top
+  [ "$status" -eq 0 ]
+  [ "$(fzf_bind 'every(2)')" = "every(2):reload-sync($FZX _cb source)" ]
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *" --track --id-nth=1 "* ]]
+  mkdir -p "$FZX_CONFIG_DIR/modules/ps"
+  echo 'FZX_PS_TOP_INTERVAL=0.5' > "$FZX_CONFIG_DIR/modules/ps/config.sh"
+  run "$FZX" -m ps:top
+  [ "$(fzf_bind 'every(0.5)')" = "every(0.5):reload-sync($FZX _cb source)" ]
+  run "$FZX" -m ps:all
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " != *" --track "* && " ${FZF_ARGS[*]} " != *"every("* ]]
+}
+
+@test "source: top mode lists every process like all" {
+  local pid1=$'\n'' *1 '
+  FZX_MODE=top run "$PS_DIR/source.sh"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ $pid1 ]]
+}
+
 @test "under fzx: load callback produces ps output and caches it" {
   load_libs log session
   fzx::session_create ps "$PS_DIR"
