@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.72.0): the six steps of `docs/design.md` are done. Modules: actions, audio, bluetooth, capture, claude, colors, dirs,
+Status (0.73.0): the six steps of `docs/design.md` are done. Modules: actions, audio, bluetooth, capture, claude, colors, cron, dirs,
 docker, files, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md, so ticked items are removed
 here once they are released. Keep this file current: tick items off, add what you find.
@@ -104,8 +104,11 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       and lists its finds after. A scan kept running while the all mode shows (`bluetoothctl scan on` in the
       background, a reload as `InterfacesAdded` arrives through `busctl monitor`, stopped when fzf leaves the
       mode or exits) would show devices as they appear.
-- [ ] **cron** (p3) [module]: crontab entries with their next run (systemd timers: the systemd module's timers mode).
-      Has: crontab, systemctl.
+- [ ] **cron: system entries through sudo** (p3) [feature]: disable and run-now act on your crontab only.
+      Commenting a line of /etc/cron.d out through `sudo sed`, and running an entry as its user with cron's
+      environment (`sudo -u USER env -i SHELL=/bin/sh HOME=... sh -c`), would cover the system's too.
+- [ ] **cron: CRON_TZ and other users' crontabs** (p3) [feature]: next runs ignore `CRON_TZ=` lines, and
+      only your crontab is read; with a cached sudo, /var/spool/cron/crontabs holds every user's.
 - [ ] **firewall** (p3) [module]: ufw rules. Has: ufw (needs sudo).
 - [ ] **ssh** (p3) [module]: hosts from ~/.ssh/config and known_hosts, connect or scp. Refs: vendors/widgets/
       fzf-exec-ssh, system/fzscp, fzf-scripts/sshget. Has: ssh, scp, rsync. No ~/.ssh/config here.

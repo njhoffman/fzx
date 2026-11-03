@@ -6,6 +6,17 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.73.0] - 2026-11-02
+
+### Added
+
+- cron module: your crontab and the system's (/etc/crontab, /etc/cron.d, anacron's jobs) with each
+  entry's next run, soonest first, and a scripts mode for cron.daily and the other run-parts
+  directories. Next runs come from `systemd-analyze calendar`, with cron's rule that a restricted day of
+  month or day of week is enough. The preview lists the next five runs. ctrl-e edits (sudoedit at the
+  line for system files), alt-d comments an entry of your crontab out or back in, and alt-enter runs one
+  now.
+
 ## [0.72.0] - 2026-11-02
 
 ### Added
