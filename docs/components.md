@@ -6,7 +6,7 @@ function. All of it is built (`docs/design.md`): tables, toggles and sort, heade
 icon, event tracing, the keys page, placements with splits, prettypath. The
 `popout` built-in action was dropped: the placement key (ctrl-space then, ctrl-^ now) already does it, and the placement cycle replaces it.
 
-PLAN.md (2026-10-20) asks for fzfmenu's reusable pieces in fzx: modes, toggles, actions (with an actions
+The original brief (`docs/brief.md`, 2026-10-20) asks for fzfmenu's reusable pieces in fzx: modes, toggles, actions (with an actions
 menu and a default action), sort keys, header components with styles, per-module prompt icons with a
 loading state, a placement toggle that includes tmux split panes, event tracing, and a help screen that
 lists all of it. Modes exist today (`<module>::modes`, `FZX_MODES`); everything else is new. This page
@@ -20,7 +20,7 @@ declarations, or the header style `none`, a module still works as it does now.
 ## 1. How a module declares its components
 
 fzfmenu used one bash array per thing (`FZF_MODES`, `FZF_MODES_KEYS`, `FZF_MODES_HIDE_KEYS`,
-`FZF_TOGGLES`, `FZF_ACTIONS`, `FZF_ACTION_DESCRIPTIONS`, ...), which PLAN.md wants to move away from.
+`FZF_TOGGLES`, `FZF_ACTIONS`, `FZF_ACTION_DESCRIPTIONS`, ...), which the brief wants to move away from.
 
 | Option | Shape | Overriding | Cost |
 |---|---|---|---|
@@ -28,7 +28,7 @@ fzfmenu used one bash array per thing (`FZF_MODES`, `FZF_MODES_KEYS`, `FZF_MODES
 | B. A table per module (recommended) | `components.tsv` in the module dir, one row per component: `kind name key description flags` | a user file with the same name in `~/.config/fzx/modules/<m>/` replaces rows by `kind`+`name`; `key -` unbinds, flag `off` removes | one small parser in lib/; callbacks read it without loading config |
 | C. Hook functions | `<m>::components` prints the same rows | users redefine the function | overriding means copying the whole function |
 
-Recommendation B, with one addition from PLAN.md ("`FZF_MODES=modes.sh`"): if `components.tsv` is
+Recommendation B, with one addition from the brief ("`FZF_MODES=modes.sh`"): if `components.tsv` is
 executable it is run and its output read as the table, so a module can compute rows (dirs offers only
 the modes whose tool is installed). The table replaces `<module>::modes`.
 
@@ -119,7 +119,7 @@ tracing is off by default.
 
 First the glyph bug (TODO). Then `FZX_PRETTY=1` makes files and dirs build their display column with
 prettypath (icon + colors); ids stay plain paths, so output does not change. For plain fzf with nothing
-piped in, PLAN.md wants the same listing: proposal, a `fzf` shell function in `shell/fzx.zsh` that, when
+piped in, the brief wants the same listing: proposal, a `fzf` shell function in `shell/fzx.zsh` that, when
 stdin is a terminal and no options are given, runs `fzx -m files` instead, and otherwise calls the real
 fzf. An alternative is `FZF_DEFAULT_COMMAND`, but that cannot also set the `--with-nth`/`--accept-nth`
 the formatted lines need without affecting every other fzf call.

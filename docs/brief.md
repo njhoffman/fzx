@@ -1,3 +1,8 @@
+# The original brief (2026-10-20)
+
+The prompt that started fzx, kept as history: what it asked for, in its own words. It is not the current
+plan: `docs/design.md` is the design, `TODO.md` the roadmap, `CHANGELOG.md` what has shipped.
+
 - fzx: fzf-manager and wrapper
   - i have tried multiple times to do this project, but keep restarting it because I can't figure out how to structure
     it and the general flow of the program

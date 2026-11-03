@@ -6,6 +6,10 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- docs: PLAN.md, the brief the project started from, moved to `docs/brief.md` as history.
+
 ### Fixed
 
 - github: comment and review headers in issue and pull request previews are lines of their own (a rule
