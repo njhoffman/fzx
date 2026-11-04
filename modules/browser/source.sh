@@ -2,7 +2,8 @@
 # browser source: history or bookmarks of every Chromium-family and Firefox profile, as rows
 #   src  url  display  title  extra  date  epoch  label
 # src is "chrome:Default" or "firefox:abcd.default" (browser name, then the profile directory); extra is the
-# visit count (history) or the folder (bookmarks). Mode from $FZX_MODE: history (default) or bookmarks.
+# visit count (history), the folder (bookmarks) or the window (tabs). Mode from $FZX_MODE: history (default),
+# bookmarks or tabs (tabs.py: what is open, from the session files the browsers keep).
 # $FZX_TOGGLES: chrome and firefox pick the browsers (both when unset). $FZX_SORT: history by recent
 # (default) or visits. Databases are copied first: a running browser keeps them locked.
 
@@ -135,7 +136,7 @@ browser::rows() {
     function pad(t, w) { return length(t) > w ? substr(t, 1, w - 1) "…" : sprintf("%-" w "s", t) }
     {
       col = ($1 ~ /^firefox:/) ? f : c
-      mid = mode == "bookmarks" ? pad($4, 24) : pad($5, 16)
+      mid = mode == "bookmarks" ? pad($4, 24) : mode == "tabs" ? pad($4, 10) : pad($5, 16)
       disp = col pad($7, lw) r "  " d mid r "  " pad($2, 60) "  " d $3 r
       print $1, $3, disp, $2, $4, $5, $6, $7
     }'
@@ -146,12 +147,13 @@ browser::source() {
   case "$mode" in
     history) fn=browser::_history ;;
     bookmarks) fn=browser::_bookmarks ;;
+    tabs) fn="" ;;
     *)
       printf 'browser: unknown mode: %s\n' "$mode" >&2
       return 2
       ;;
   esac
-  command -v sqlite3 > /dev/null || [[ "$mode" == bookmarks ]] || { printf 'browser: needs sqlite3\n' >&2; return 1; }
+  command -v sqlite3 > /dev/null || [[ "$mode" != history ]] || { printf 'browser: needs sqlite3\n' >&2; return 1; }
   profiles="$(browser::profiles)"
   # the profile column as wide as the widest label, at most 30
   while IFS=$'\t' read -r src label dir; do
@@ -162,6 +164,11 @@ browser::source() {
   fzx::require header
   fzx::header_print 2 "$([[ "$sort" == recent ]] && echo VISITED)" \
     PROFILE "$lw" 0 "" 0 0 VISITED 16 0 "" 0 0 TITLE 60 0 "" 0 0 URL 0 0
+  if [[ "$mode" == tabs ]]; then
+    command -v python3 > /dev/null || { printf 'browser: open tabs need python3\n' >&2; return 1; }
+    python3 "$(dirname "${BASH_SOURCE[0]}")/tabs.py" <<< "$profiles" | browser::rows "$lw"
+    return "${PIPESTATUS[0]}"
+  fi
   while IFS=$'\t' read -r src label dir; do
     [[ -n "$src" ]] && "$fn" "$src" "$label" "$dir"
   done <<< "$profiles" | {

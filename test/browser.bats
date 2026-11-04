@@ -120,6 +120,93 @@ calls_settle() {
   [ "$(printf '%s\n' "${lines[0]}" | cut -f6)" = 2025-12-12 ] && [ "$(printf "%s\n" "${lines[1]}" | cut -f6,7)" = $'\t0' ]
 }
 
+# fixture_tabs: Firefox's recovery file (an LZ4 block of literals, as a compressor may write it) and Chrome's
+# session log: a window with two tabs (one on its second page), one closed, one in a closed window, a bad command
+fixture_tabs() {
+  python3 -I - "$FF/abcd.default" "$CH/Default" << 'EOF2'
+import json, os, struct, sys
+ff, ch = sys.argv[1:3]
+state = {"windows": [
+    {"tabs": [{"index": 2, "entries": [{"url": "https://old.example/", "title": "Old"}, {"url": "https://fox.example/tab", "title": "Fox\ttab"}]}, {"index": 1, "entries": []}]},
+    {"tabs": [{"index": 1, "entries": [{"url": "https://two.example/", "title": "Second window"}]}]},
+]}
+text = json.dumps(state).encode()
+# one sequence of literals: token 15, then the length past 15 in 255s
+rest = len(text) - 15
+block = bytes([0xF0]) + b"\xff" * (rest // 255) + bytes([rest % 255]) + text
+os.makedirs(ff + "/sessionstore-backups", exist_ok=True)
+open(ff + "/sessionstore-backups/recovery.jsonlz4", "wb").write(b"mozLz40\0" + struct.pack("<I", len(text)) + block)
+def string(b, wide=False):
+    size = len(b) // 2 if wide else len(b)
+    return struct.pack("<i", size) + b + b"\0" * (-len(b) % 4)
+def nav(tab, index, url, title):
+    body = struct.pack("<ii", tab, index) + string(url.encode()) + string(title.encode("utf-16-le"), wide=True)
+    return bytes([6]) + struct.pack("<i", len(body)) + body
+def ints(cmd, *values):
+    return bytes([cmd]) + struct.pack("<" + "i" * len(values), *values)
+commands = [
+    ints(0, 1, 10), ints(2, 10, 1), nav(10, 0, "https://chrome.example/second", "Second tab"),
+    ints(0, 1, 11), ints(2, 11, 0), nav(11, 0, "https://chrome.example/before", "Before"),
+    nav(11, 1, "https://chrome.example/first", "First tab"), ints(7, 11, 1),
+    ints(0, 1, 12), nav(12, 0, "https://closed.example/", "Closed tab"), ints(16, 12, 0, 0),
+    ints(0, 2, 13), nav(13, 0, "https://gone.example/", "Closed window"), ints(17, 2, 0, 0),
+    bytes([6]) + b"junk",
+]
+os.makedirs(ch + "/Sessions", exist_ok=True)
+with open(ch + "/Sessions/Session_1", "wb") as f:
+    f.write(b"SNSS" + struct.pack("<i", 3))
+    for c in commands:
+        f.write(struct.pack("<H", len(c)) + c)
+EOF2
+}
+
+@test "tabs: Firefox's and Chrome's open tabs by window, on the page each shows; closed ones left out" {
+  fixture_tabs
+  FZX_TOGGLES=firefox run src tabs
+  [ "$(printf '%s\n' "${lines[@]}" | cut -f1,2,4,5 | tr '\t\n' '| ')" = "firefox:abcd.default|https://fox.example/tab|Fox tab|window 1 firefox:abcd.default|https://two.example/|Second window|window 2 " ]
+  [[ "${lines[0]}" == *$'\tfirefox default  window 1    Fox tab '* ]]
+  FZX_TOGGLES=chrome run src tabs
+  [[ "$output" != *closed.example* && "$output" != *gone.example* && "$output" != *before* ]]
+  [ "$(printf '%s\n' "${lines[@]}" | grep 'chrome:Default' | cut -f2,4 | tr '\t\n' '| ')" = "https://chrome.example/first|First tab https://chrome.example/second|Second tab " ]
+  # after the browser closes: its last session
+  mv "$FF/abcd.default/sessionstore-backups/recovery.jsonlz4" "$FF/abcd.default/sessionstore.jsonlz4"
+  FZX_TOGGLES=firefox run src tabs
+  [[ "$output" == *fox.example* ]]
+  # a profile with no session file lists nothing
+  [[ "$output" != *wxyz* ]]
+}
+
+@test "tabs: a file that cannot be read says so in a row without a URL, and the other profiles still list" {
+  fixture_tabs
+  printf 'something else' > "$CH/Default/Sessions/Session_2"
+  touch -d tomorrow "$CH/Default/Sessions/Session_2"
+  printf 'mozLz40\0\377\377\377\377\360' > "$FF/abcd.default/sessionstore-backups/recovery.jsonlz4"
+  run src tabs
+  [ "$status" -eq 0 ]
+  [[ "$output" == *$'chrome:Default\t\t'*"cannot read its open tabs: not an SNSS file"* ]]
+  [[ "$output" == *$'firefox:abcd.default\t\t'*"cannot read its open tabs"* ]]
+  # the new tab has no URL to open, its preview the reason
+  FZX_MODE=tabs run "$BR/preview.sh" chrome:Default "" "cannot read its open tabs: not an SNSS file" "" "" "chrome Me"
+  [ "$output" = "cannot read its open tabs: not an SNSS file" ]
+  # a session of a changed format: no navigation commands understood
+  python3 -I -c 'import struct,sys; open(sys.argv[1],"wb").write(b"SNSS"+struct.pack("<i",9)+struct.pack("<H",3)+bytes([99,1,2]))' "$CH/Default/Sessions/Session_2"
+  touch -d tomorrow "$CH/Default/Sessions/Session_2"
+  FZX_TOGGLES=chrome run src tabs
+  [[ "$output" == *"the session format may have changed"* ]]
+}
+
+@test "tabs: the preview names the window; the menu counts them; session cache only" {
+  fixture_tabs
+  FZX_MODE=tabs run "$BR/preview.sh" chrome:Default https://a.example/x "A tab" "window 3" "" "chrome Me"
+  [[ "$output" == *"window   3"* && "$output" != *visits* ]]
+  load_libs log config menu
+  fzx::menu_entries browser "$BR"
+  browser::applicable browser:tabs
+  [[ "$(browser::summary browser:tabs)" =~ ^[0-9]+\ open$ ]]
+  [ "$(browser::summary browser:tabs)" != "0 open" ]
+  grep -q '^mode *tabs .*nopersist' "$BR/components.tsv"
+}
+
 @test "preview: title, host and path, profile, then visits or folder" {
   FZX_MODE=history run "$BR/preview.sh" chrome:Default "https://a.example/x/y?q=1" "Alpha" 3 "2025-12-31 23:59" "chrome Me"
   [ "${lines[0]}" = Alpha ] && [ "${lines[1]}" = "https://a.example/x/y?q=1" ]

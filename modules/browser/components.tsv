@@ -3,6 +3,7 @@
 # they came from and closes, ctrl-o opens them and stays.
 mode    history    -       history, newest first across profiles                        default
 mode    bookmarks  -       bookmarks, by folder                                         -
+mode    tabs       -       open tabs, by window (enter opens the URL as a new tab)      nopersist
 toggle  chrome     -       Chrome, Chromium, Brave and Vivaldi profiles                 on
 toggle  firefox    -       Firefox profiles                                             on
 sort    recent     -       history: last visited first                                  default,desc

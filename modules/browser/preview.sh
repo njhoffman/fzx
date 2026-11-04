@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # browser preview, from the row's fields: the title, the URL split into host and path, the browser and
-# profile, and the visits and last visit (history) or the folder and date added (bookmarks)
+# profile, and the visits and last visit (history), the folder and date added (bookmarks) or the window (tabs)
 
 # browser::preview <src> <url> <title> <extra> <date> <label>
 browser::preview() {
@@ -9,7 +9,8 @@ browser::preview() {
   c=$'\e['"${FZX_COLORS[browser_chrome]:-38;5;75}m"
   [[ "$src" == firefox:* ]] && c=$'\e['"${FZX_COLORS[browser_firefox]:-38;5;209}m"
   [[ -n "${NO_COLOR+x}" ]] && b="" d="" r="" c=""
-  [[ -n "$url" ]] || return 0
+  # a profile whose tabs could not be read: its row says why
+  [[ -n "$url" ]] || { [[ -n "$title" ]] && printf '%s\n' "$title"; return 0; }
   printf '%s%s%s\n\n' "$b" "${title:-(no title)}" "$r"
   printf '%s\n' "$url"
   # scheme://host/path: the host on its own line
@@ -22,6 +23,8 @@ browser::preview() {
   if [[ "${FZX_MODE:-history}" == bookmarks ]]; then
     printf '%sfolder%s   %s\n' "$d" "$r" "${extra:-(top)}"
     [[ -n "$date" ]] && printf '%sadded%s    %s\n' "$d" "$r" "$date"
+  elif [[ "${FZX_MODE:-history}" == tabs ]]; then
+    printf '%swindow%s   %s\n' "$d" "$r" "${extra#window }"
   else
     printf '%svisits%s   %s\n' "$d" "$r" "$extra"
     printf '%slast%s     %s\n' "$d" "$r" "$date"

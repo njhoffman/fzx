@@ -6,6 +6,15 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.103.0] - 2026-11-03
+
+### Added
+
+- browser:tabs lists what is open in Firefox and the Chromium family, by window, read from the session files they
+  keep on disk: no debug port, no dependency beyond python3. Enter opens the URL as a new tab, since nothing
+  outside the browser can switch to a tab. Chrome's format is undocumented: if a browser update changes it, that
+  profile shows a row saying so.
+
 ## [0.102.0] - 2026-11-03
 
 ### Added
