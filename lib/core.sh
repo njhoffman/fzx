@@ -27,6 +27,18 @@ fzx::require() {
   done
 }
 
+# fzx::tty_read <read options...>: read, with its prompt and readline's echo on the terminal. Both go to stderr, which
+# fzx sends to the log for an action, so a read that prompts by itself shows nothing and logs what is typed. Real
+# errors stay on stderr. Without a terminal it is a plain read, from whatever stdin the caller gave it
+# shellcheck disable=SC2162  # the callers pass -r
+fzx::tty_read() {
+  if { : > /dev/tty; } 2> /dev/null; then
+    read "$@" 2> /dev/tty
+  else
+    read "$@"
+  fi
+}
+
 # fzx::split_keys <keys> <array var>: a comma list of keys into the array; a comma right after a
 # modifier's dash, or alone, is the comma key itself (alt-, and alt-.,ctrl-x are two keys each)
 fzx::split_keys() {

@@ -18,7 +18,7 @@ fzx::ask() {
   set -o history
   history -c
   [[ -f "$_file" ]] && history -r "$_file"
-  read -r -e -p $'\e[1m'"$_prompt"$'\e[0m ' _line < /dev/tty || { set +o history; return 1; }
+  fzx::tty_read -r -e -p $'\e[1m'"$_prompt"$'\e[0m ' _line < /dev/tty || { set +o history; return 1; }
   set +o history
   [[ -n "${_line// /}" ]] || return 1
   fzx::ask_remember "$_file" "$_line" "${4:-200}"

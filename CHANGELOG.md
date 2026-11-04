@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.107.1] - 2026-11-03
+
+### Fixed
+
+- Prompts inside fzx now show, and what you type at them stays out of `fzx.log`: docker's typed commands and run
+  options, firewall rules, dirs bookmarks, music's playlist name and tag edits, task arguments and git's questions
+  drew their prompt and echoed typing into the log instead of on screen. Errors still go to the log.
+
 ## [0.107.0] - 2026-11-03
 
 ### Added

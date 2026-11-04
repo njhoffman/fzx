@@ -328,3 +328,34 @@ menu_open() {
   [ "$status" -eq 2 ]
   [[ "$output" == *"only runs as a child"* ]]
 }
+
+# prompt_on_terminal <code>: run it on a real terminal with stderr sent where fzx sends an action's, typing a line
+prompt_on_terminal() {
+  command -v script > /dev/null || skip "no script command"
+  LOG="$BATS_TEST_TMPDIR/action.log"
+  : > "$LOG"
+  cat > "$BATS_TEST_TMPDIR/prompted.sh" << SCRIPT
+source "$FZX_REPO/lib/core.sh"
+$1
+SCRIPT
+  run bash -c "printf 'TYPEDTEXT\n' | timeout 8 script -qec \"bash '$BATS_TEST_TMPDIR/prompted.sh' 2>> '$LOG'\" /dev/null"
+}
+
+@test "a prompt under fzx: it and what is typed reach the terminal and stay out of the log" {
+  prompt_on_terminal 'fzx::require ask; fzx::ask "'"$BATS_TEST_TMPDIR"'/hist" PROMPTTEXT answer; echo "got=$answer"; echo a-real-error >&2'
+  [[ "$output" == *PROMPTTEXT* && "$output" == *TYPEDTEXT* && "$output" == *got=TYPEDTEXT* ]]
+  run cat "$LOG"
+  [[ "$output" != *PROMPTTEXT* && "$output" != *TYPEDTEXT* ]]
+  # real errors still go to the log
+  [[ "$output" == *a-real-error* ]]
+}
+
+@test "every prompt goes through fzx::tty_read: a bare read -p would draw into the log" {
+  run bash -c "cd '$FZX_REPO' && grep -rnE '(^|[ ;(])read [^|]*-[a-zA-Z]*p[ \"\$]' lib modules bin | grep -vE 'tmux display-message|playerctl|command ps|lib/debug.sh'"
+  [ "$status" -eq 1 ]
+}
+
+@test "fzx::tty_read without a terminal still reads, for scripts and tests" {
+  run bash -c "source '$FZX_REPO/lib/core.sh'; printf 'hello there\n' | setsid bash -c 'source \"$FZX_REPO/lib/core.sh\"; fzx::tty_read -r -p \"no terminal: \" v; echo \"got=\$v\"'"
+  [[ "$output" == *'got=hello there'* ]]
+}

@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.107.0): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
+Status (0.107.1): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
 docker, files, firewall, fonts, git, github, glyphs, history, kdeconnect, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
 add what you find, and tick items off (`- [x]`) as they land, never delete them; once every item of a section
@@ -169,11 +169,9 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [ ] **design.md: broken table under Reloading and navigation** (p3) [docs]: docs/design.md:119-122 has two
       header rows, a stale two-column one above the three-column one, so the table renders wrongly. Delete lines
       119-120.
-- [ ] **Prompts typed under fzx go to the log** (p2) [bug]: lib/callback.sh:23 sends every action's stderr to the log,
-      and `read -e -p` draws its prompt and echoes typing on stderr, so the prompt does not show and what is typed
-      lands in fzx.log. Seen in kdeconnect (fixed there with stderr on the terminal; a stand-in confirmed the rest).
-      Likely the same: lib/ask.sh (docker cmd, firewall rules), docker run, dirs bookmark, music save and edit,
-      tasks args. Fix centrally: foreground actions keep stderr on the terminal, and log only what is not a prompt.
+- [x] **Prompts typed under fzx go to the log** (p2) [bug]: lib/callback.sh:23 sends every action's stderr to the log,
+      and `read -e -p` draws its prompt and echoes typing on stderr. Every prompt now goes through `fzx::tty_read`
+      (lib/core.sh), a test refuses a bare one, and real errors still reach the log.
 - [ ] **Timing-sensitive tests under load** (p3) [test]: test/menu.bats "menu_scores: launches by module ..."
       stamps rows "now minus N days" and compares the decayed scores to six decimals; under the parallel suite
       a second's delay gives 0.999999 (seen 2026-11-01, passes alone): compared rounded to 3 decimals since

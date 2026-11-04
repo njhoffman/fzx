@@ -20,7 +20,7 @@ git::ask() {
   if [[ -p /dev/stdin || -f /dev/stdin ]]; then
     IFS= read -r "$2" || :
   elif { exec {fd}< /dev/tty; } 2> /dev/null; then
-    IFS= read -r -p "$1" -u "$fd" "$2" || :
+    IFS= fzx::tty_read -r -p "$1" -u "$fd" "$2" || :
     exec {fd}<&-
   else
     printf -v "$2" ''

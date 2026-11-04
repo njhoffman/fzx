@@ -56,9 +56,8 @@ kdeconnect::_report() {
   return "$1"
 }
 
-# kdeconnect::_on_terminal: stderr to the terminal for the rest of this process. fzx sends an action's stderr to its
-# log, and readline draws its prompt and echoes what is typed on stderr: without this the prompt would not show, the
-# errors would not either, and a message being typed would go into the log
+# kdeconnect::_on_terminal: stderr to the terminal for the rest of this process: fzx sends an action's stderr to its
+# log, where the reason a device refused what was just typed would not be seen
 kdeconnect::_on_terminal() { if [[ -t 1 ]]; then exec 2>&1; fi; }
 
 # kdeconnect::_share_target <text> <var>: a URL as it is, a local path made absolute; false when it does not exist
@@ -80,9 +79,9 @@ kdeconnect::_sms() {
   kdeconnect::_ready "$1" sms || return
   name="$(kdeconnect::get "$1" name | sed -E 's/^s "(.*)"$/\1/')"
   {
-    read -r -e -p $'\e[1mSMS to:\e[0m ' number || return 0
+    fzx::tty_read -r -e -p $'\e[1mSMS to:\e[0m ' number || return 0
     [[ -n "$number" ]] || return 0
-    read -r -e -p $'\e[1mmessage:\e[0m ' message || return 0
+    fzx::tty_read -r -e -p $'\e[1mmessage:\e[0m ' message || return 0
     [[ -n "$message" ]] || return 0
   } < "${FZX_KDECONNECT_TTY:-/dev/tty}"
   number="${number//[ ()-]/}"
@@ -117,7 +116,7 @@ kdeconnect::action() {
     share:devices)
       local target
       kdeconnect::_on_terminal
-      read -r -e -p $'\e[1mfile or URL:\e[0m ' line < "${FZX_KDECONNECT_TTY:-/dev/tty}" || return 0
+      fzx::tty_read -r -e -p $'\e[1mfile or URL:\e[0m ' line < "${FZX_KDECONNECT_TTY:-/dev/tty}" || return 0
       [[ -n "$line" ]] || return 0
       if kdeconnect::_share_target "$line" target; then
         kdeconnect::_each share "${ids[@]}" -- "--share=$target" || rc=$?
@@ -128,7 +127,7 @@ kdeconnect::action() {
       ;;
     text:devices | keys:devices)
       kdeconnect::_on_terminal
-      read -r -e -p $'\e[1mtext:\e[0m ' line < "${FZX_KDECONNECT_TTY:-/dev/tty}" || return 0
+      fzx::tty_read -r -e -p $'\e[1mtext:\e[0m ' line < "${FZX_KDECONNECT_TTY:-/dev/tty}" || return 0
       [[ -n "$line" ]] || return 0
       if [[ "$action" == text ]]; then
         kdeconnect::_each share "${ids[@]}" -- "--share-text=$line" || rc=$?

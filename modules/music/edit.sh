@@ -48,7 +48,7 @@ music::edit_write() {
 # music::ask <var> <prompt> <default>: a line read on the terminal, with readline and the default to edit
 music::ask() {
   local -n _answer="$1"
-  read -r -e -p "$2" -i "$3" _answer < /dev/tty
+  fzx::tty_read -r -e -p "$2" -i "$3" _answer < /dev/tty
 }
 
 # music::rate <files...>: ask for a rating (0 to 5 in half steps, the first song's as the default) and

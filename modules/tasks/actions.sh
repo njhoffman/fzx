@@ -140,7 +140,7 @@ tasks::action() {
   case "$action" in
     run) tasks::_run "${1:-}" ;;
     args)
-      read -r -e -p "$(printf '\e[1m%s\e[0m args: ' "${1##*|}")" args < /dev/tty || return 0
+      fzx::tty_read -r -e -p "$(printf '\e[1m%s\e[0m args: ' "${1##*|}")" args < /dev/tty || return 0
       tasks::_run "${1:-}" "$args"
       ;;
     pick)

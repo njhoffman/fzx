@@ -133,8 +133,8 @@ docker::action() {
       local opts cmd
       # runc's prompts: the run options (this directory mounted at /work by default), then the command
       # (empty: the first shell the image has)
-      read -r -e -p $'\e[1mdocker run options:\e[0m ' -i "-it --rm -v $PWD:/work -w /work" opts < /dev/tty || return 0
-      read -r -e -p $'\e[1mcommand (empty: a shell):\e[0m ' cmd < /dev/tty || return 0
+      fzx::tty_read -r -e -p $'\e[1mdocker run options:\e[0m ' -i "-it --rm -v $PWD:/work -w /work" opts < /dev/tty || return 0
+      fzx::tty_read -r -e -p $'\e[1mcommand (empty: a shell):\e[0m ' cmd < /dev/tty || return 0
       read -ra opts <<< "$opts"
       if [[ -n "$cmd" ]]; then
         command docker run "${opts[@]}" "$1" sh -c "$cmd" || docker::wait

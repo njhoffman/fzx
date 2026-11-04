@@ -216,7 +216,8 @@ Each script defines namespaced functions and ends with a guard so it is both imp
 
 Callbacks source these scripts inside a function, so module scripts must declare globals with
 `declare -g` (plain `declare -A` would be local to the loader). Stderr from `source` and `action` goes to the
-log; stderr from `preview` shows in the preview window.
+log; stderr from `preview` shows in the preview window. A prompt therefore goes through `fzx::tty_read`: `read -p` and
+readline's echo write to stderr, so a bare one shows nothing and puts what is typed in the log.
 
 Functions that return through a variable name (`fzx::session_label label`) prefix their locals with `_`,
 because bash's dynamic scoping would otherwise let a same-named local swallow the result.
@@ -693,8 +694,7 @@ for what goes to a device. The menu asks with `busctl status`, which does not st
 Notifications use `FZX_PERSIST=none` and their previews read the bus again, so their text stays off disk and a dismissed
 one says so. Text from a device passes through a filter for escape sequences and control characters. Actions check
 the device is connected and has the plugin (`loadedPlugins`) first, since the CLI's own failures say little. Typed
-text uses plain `read` with stderr on the terminal (readline echoes on stderr, which fzx sends to the log) and not
-`lib/ask.sh`, whose history would keep messages, and reaches the CLI as `--opt=VALUE`, so a
+text uses `fzx::tty_read` and not `lib/ask.sh`, whose history would keep messages, and reaches the CLI as `--opt=VALUE`, so a
 leading dash is not an option. An SMS goes through `fzx::confirm` showing the number and the message.
 `todos` parses the TODO.md format itself (todo-status's rules: bold lead as the title, `(pN)` with p2 the
 default, the first known `[category]`, extended by a `Categories:` line, `(due YYYY-MM-DD)`, continuation

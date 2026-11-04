@@ -76,7 +76,7 @@ music::action() {
       ;;
     clear) command mpc -q clear ;;
     save)
-      read -r -e -p "save the queue as playlist: " name || return 0
+      fzx::tty_read -r -e -p "save the queue as playlist: " name || return 0
       [[ -n "$name" ]] || return 0
       command mpc -q save "$name"
       ;;

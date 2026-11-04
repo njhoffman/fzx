@@ -25,7 +25,7 @@ dirs::mark() {
   local path="$1" name file
   [[ -d "$path" ]] || { printf 'dirs: not a directory: %s\n' "$path" >&2; return 1; }
   name="${path##*/}"
-  read -r -e -i "$name" -p $'\e[1mbookmark '"${path/#$HOME/\~}"$' as\e[0m ' name < "${FZX_TTY:-/dev/tty}" || return 0
+  fzx::tty_read -r -e -i "$name" -p $'\e[1mbookmark '"${path/#$HOME/\~}"$' as\e[0m ' name < "${FZX_TTY:-/dev/tty}" || return 0
   name="${name//$'\t'/ }"
   [[ -n "${name// /}" ]] || return 0
   file="$(dirs::bookmarks_file)"
