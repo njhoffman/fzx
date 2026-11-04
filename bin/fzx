@@ -6,37 +6,84 @@ set -o pipefail
 # shellcheck source=../lib/core.sh
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib/core.sh"
 
+# fzx::usage: the help, from one table: "#" a line of its own, "@" a section, the rest what to type<TAB>what it
+# does. Each section's descriptions start in one column. Colored on a terminal, unless NO_COLOR is set. Fitted to
+# $COLUMNS, else to the terminal: descriptions wrap inside their column, and an entry wider than the column it
+# may have (45% of the width) gets a line of its own. Written to a file or a pipe without COLUMNS nothing wraps
 fzx::usage() {
-  cat << 'EOF'
-usage: fzx                        open the menu of modules
-       fzx -m|--mode <module[:mode]> [--popup[=OPTS]|--float[=OPTS]|--split[=DIR,SIZE]] [--query=Q] [--dry-run] [--keep] [--] [module args...]
-       fzx --resume[=SID] [-m :mode] [--dry-run]
-       fzx gc [--all]
-       fzx stats [--since 90s|5m|2h|7d] [--module NAME] [--raw]
-       fzx config [-m MODULE]
-       fzx jump [--pick] [--] [WORDS...]   the directory g / gg cd into (shell/fzx.zsh)
-       fzx keys [KEY...]          keys in use (KEYs as fzx's, your fzf binds, fzf's defaults) and free keys
-       fzx builtin copy|copy-line|view|confirm [ARGS...]
-       fzx preview PATH[:LINE] [LINE]  a file rendered by its type (plain fzf: ~/.shell/scripts/fzf-preview)
-       fzx debug ls | tail [SID] | attach [SID] | state [SID] [N] | send ACTION [SID]
-       fzx completion zsh          print the zsh completion (#compdef fzx; modules and modes are looked up
-                                   as you complete): fzx completion zsh > "${fpath[1]}/_fzx"
-
-  -m, --mode MODULE[:MODE]
-                     run MODULE (searched in $FZX_MODULE_PATH), optionally in MODE
-      --resume[=SID] restart the interface for an existing session, reusing its cached data
-                     (SID defaults to $FZX_SESSION)
-      --popup[=OPTS] start in a tmux/Zellij popup (fzf --popup syntax, default from FZX_POPUP_LAYOUTS)
-      --float[=OPTS] start in a floating tmux pane (tmux new-pane; --popup syntax, default from FZX_POPUP_LAYOUTS)
-      --split[=DIR,SIZE]
-                     start in a tmux split pane (DIR up|down|left|right, default down,40%)
-      --query=QUERY  start with QUERY typed in
-      --dry-run      print the resolved fzf command instead of running it
-      --keep         keep the session directory after exit (until `fzx gc --all`)
-  -h, --help         show this help
-  -V, --version      print the version
-
-Arguments fzx does not recognise are passed to the module.
+  local title="" head="" cmd="" meta="" var="" rst="" cols="${COLUMNS:-}" size
+  if [[ -t 1 ]]; then
+    if [[ -z "$cols" ]] && size="$(stty size <&1 2> /dev/null)"; then cols="${size#* }"; fi
+    if [[ -z "${NO_COLOR:-}" ]]; then
+      title=$'\e[1m' head=$'\e[1;38;5;39m' cmd=$'\e[38;5;79m' meta=$'\e[38;5;110m' var=$'\e[38;5;117m' rst=$'\e[0m'
+    fi
+  fi
+  [[ "$cols" =~ ^[0-9]+$ ]] || cols=0
+  awk -F'\t' -v cols="$cols" -v title="$title" -v head="$head" -v cmd="$cmd" -v meta="$meta" -v var="$var" -v rst="$rst" '
+    # paint(left): what to fill in (MODULE, SID, a word in capitals) stands out from what to type
+    function paint(left) { if (rst != "") gsub(/[A-Z][A-Z_]+/, meta "&" cmd, left); return cmd left rst }
+    function paint_text(text) { if (rst != "") gsub(/\$?FZX_[A-Z_]+/, var "&" rst, text); return text }
+    # wrap(text, room): its words into lines[], at most room wide; a word wider than that stays whole
+    function wrap(text, room,  w, nw, i, line) {
+      nw = split(text, w, " "); nlines = 0; line = ""
+      for (i = 1; i <= nw; i++) {
+        if (line != "" && room > 0 && length(line) + 1 + length(w[i]) > room) { lines[++nlines] = line; line = w[i] }
+        else line = (line == "" ? w[i] : line " " w[i])
+      }
+      lines[++nlines] = line
+    }
+    function flush(  i, j, col, room, indent, cap) {
+      col = width; room = 0
+      if (cols > 0) {
+        cap = int(cols * 0.45)
+        if (cap < 16) cap = 16
+        if (col > cap) col = cap
+        room = cols - col - 4
+        if (room < 20) room = 20
+      }
+      indent = sprintf("%" (col + 4) "s", "")
+      for (i = 1; i <= n; i++) {
+        wrap(d[i], room)
+        if (length(l[i]) > col) printf "  %s\n%s%s\n", paint(l[i]), indent, paint_text(lines[1])
+        else printf "  %s  %s\n", paint(sprintf("%-" col "s", l[i])), paint_text(lines[1])
+        for (j = 2; j <= nlines; j++) printf "%s%s\n", indent, paint_text(lines[j])
+      }
+      n = 0; width = 0
+    }
+    $1 == "#" { print title $2 rst; next }
+    $1 == "@" { flush(); printf "\n%s%s%s\n", head, $2, rst; next }
+    { n++; l[n] = $1; d[n] = $2; if (length($1) > width) width = length($1) }
+    END { flush() }' << 'EOF'
+#	usage: fzx [-m MODULE[:MODE]] [OPTIONS] [--] [ARGS...]
+@	Run
+fzx	open the menu of modules
+fzx -m MODULE[:MODE] [OPTIONS] [--] [ARGS...]	run a module; ARGS fzx does not recognise are passed to it
+fzx --resume[=SID] [-m :MODE] [--dry-run]	restart the interface for an existing session, reusing its cached data
+@	Commands
+fzx gc [--all]	remove dead sessions; --all: kept ones too
+fzx stats [--since 90s|5m|2h|7d] [--module NAME] [--raw]	usage statistics
+fzx config [-m MODULE]	the resolved config layers, keys, colors and settings
+fzx jump [--pick] [--] [WORDS...]	the directory g / gg cd into (shell/fzx.zsh)
+fzx keys [KEY...]	keys in use (KEYs as fzx's, your fzf binds, fzf's defaults) and free keys
+fzx builtin copy|copy-line|view|confirm [ARGS...]	run a built-in action
+fzx preview PATH[:LINE] [LINE]	a file rendered by its type (plain fzf: ~/.shell/scripts/fzf-preview)
+fzx debug ls	sessions, their module:mode, parent and owner
+fzx debug tail [SID]	follow the log: callbacks, their durations and the fzf actions they return
+fzx debug attach [SID]	inspect and drive the fzf on screen
+fzx debug state [SID] [N]	a session's state
+fzx debug send ACTION [SID]	send an action to the fzf on screen
+fzx completion zsh	print the zsh completion: fzx completion zsh > "${fpath[1]}/_fzx"
+@	Options
+-m, --mode MODULE[:MODE]	run MODULE (searched in $FZX_MODULE_PATH), optionally in MODE
+    --resume[=SID]	restart a session (SID defaults to $FZX_SESSION)
+    --popup[=OPTS]	start in a tmux/Zellij popup (fzf --popup syntax, default from FZX_POPUP_LAYOUTS)
+    --float[=OPTS]	start in a floating tmux pane (tmux new-pane; --popup syntax, default from FZX_POPUP_LAYOUTS)
+    --split[=DIR,SIZE]	start in a tmux split pane (DIR up|down|left|right, default down,40%)
+    --query=QUERY	start with QUERY typed in
+    --dry-run	print the resolved fzf command instead of running it
+    --keep	keep the session directory after exit (until fzx gc --all)
+-h, --help	show this help
+-V, --version	print the version
 EOF
 }
 

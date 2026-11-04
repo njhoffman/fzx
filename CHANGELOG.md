@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.105.1] - 2026-11-03
+
+### Changed
+
+- `fzx --help` is easier to read: sections in cool colors on a terminal (`NO_COLOR` turns them off), what to fill in
+  marked, each section's descriptions in one column and every `fzx debug` subcommand on its own row. It fits the
+  terminal, or `$COLUMNS`: descriptions wrap inside their column, and an entry too wide for it gets a line of its own.
+
 ## [0.105.0] - 2026-11-03
 
 ### Added

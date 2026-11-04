@@ -14,6 +14,50 @@ setup() {
   [[ "$output" == *"usage: fzx"* ]]
 }
 
+@test "--help: piped it is plain, every entry on one line, each section's descriptions in one column" {
+  run env -u COLUMNS "$FZX" --help
+  [[ "$output" != *$'\e'* ]]
+  [[ "$output" == *'Run'*'Commands'*'Options'* ]]
+  run bash -c "env -u COLUMNS '$FZX' --help | grep -c '^ \{10,\}'"
+  [ "$output" = 0 ]
+  # for each section, how many different columns its descriptions start in
+  run bash -c "env -u COLUMNS '$FZX' --help | awk '/^[A-Z]/ { s = \$0; next } /^  / { match(\$0, /[^ ]  +[^ ]/); c[s \" \" RSTART + RLENGTH] = 1 } END { for (k in c) { split(k, p, \" \"); n[p[1]]++ } for (k in n) print k, n[k] }' | sort | paste -sd ,"
+  [ "$output" = "Commands 1,Options 1,Run 1" ]
+  local key
+  for key in gc stats config jump keys builtin preview 'debug tail' 'debug send' completion '--popup' '--float' '--split' '--keep' '--version' FZX_MODULE_PATH; do
+    "$FZX" --help | grep -qF -- "$key"
+  done
+}
+
+@test "--help: fitted to COLUMNS, nothing past it, descriptions never in the first column" {
+  local w
+  for w in 60 80 120; do
+    run bash -c "COLUMNS=$w '$FZX' --help | awk -v w=$w 'length(\$0) > w' | wc -l"
+    [ "$output" = 0 ]
+    # in a section, every line that is not an entry starts where that section's descriptions do
+    run bash -c "COLUMNS=$w '$FZX' --help | awk '
+      /^[A-Z]/ { col = 0; next }
+      /^  (fzx|-|    -)/ { if (match(\$0, /[^ ]  +[^ ]/)) { c = RSTART + RLENGTH - 1; if (col && c != col) print \"entry\", \$0; col = c } next }
+      /^ / { match(\$0, /[^ ]/); if (col && RSTART != col) print \"wrapped\", \$0; if (!col) col = RSTART }'"
+    [ -z "$output" ]
+  done
+  # wide enough: as piped
+  run bash -c "diff <(COLUMNS=300 '$FZX' --help) <(env -u COLUMNS '$FZX' --help)"
+  [ "$status" -eq 0 ]
+  # too wide for the column: the entry alone, its description below
+  run bash -c "COLUMNS=80 '$FZX' --help | grep -A1 -F 'fzx stats'"
+  [[ "${lines[0]}" == *'[--raw]' && "${lines[1]}" == *'usage statistics' ]]
+}
+
+@test "--help: cool colors on a terminal, not with NO_COLOR" {
+  command -v script > /dev/null || skip "no script command"
+  run script -qec "'$FZX' --help" /dev/null < /dev/null
+  [[ "$output" == *$'\e[1;38;5;39mCommands'* && "$output" == *$'\e[38;5;110mMODULE'* && "$output" == *$'\e[38;5;79m'* ]]
+  [[ "$output" != *'38;5;114m'* && "$output" != *'38;5;180m'* ]]
+  run script -qec "env NO_COLOR=1 '$FZX' --help" /dev/null < /dev/null
+  [[ "$output" != *$'\e['* ]]
+}
+
 @test "--version and -V print the VERSION file" {
   run "$FZX" --version
   [ "$status" -eq 0 ]
