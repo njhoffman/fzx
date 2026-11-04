@@ -1,0 +1,21 @@
+# kdeconnect components: kind  name  key  description  flags (see lib/components.sh)
+# Ids: a device's id; DEVICE/NOTIFICATION and DEVICE/COMMAND in the other modes.
+mode    devices        -       paired and nearby devices, connected first                 default
+mode    notifications  -       the notifications on the connected devices                 -
+mode    commands       -       the commands the connected devices offer to run            -
+sort    state          -       devices: connected first                                   default
+sort    name           -       devices: by name                                           -
+action  ping       alt-p   devices: send a ping                                           notify
+action  ring       alt-i   devices: ring it, to find it                                   notify
+action  clipboard  alt-v   devices: send this computer's clipboard                        notify
+action  share      alt-s   devices: share a file or URL (asked for)                       foreground
+action  text       alt-t   devices: share some text (asked for)                           foreground
+action  keys       alt-k   devices: send keystrokes to what is focused there (asked for)  foreground
+action  sms        alt-m   devices: send an SMS (number and message asked for, then confirmed)  asks
+action  lock       alt-l   devices: lock it                                               confirm
+action  unlock     alt-u   devices: unlock it                                             confirm
+action  pair       alt-P   devices: ask to pair (accept on the device)                    notify,reload
+action  unpair     alt-x   devices: unpair (pairing again takes the device)               confirm,reload
+action  refresh    alt-c   look for devices on the network again                          notify,reload
+action  dismiss    alt-d   notifications: dismiss                                         notify,reload
+action  run        alt-e   commands: run it on the device                                 confirm

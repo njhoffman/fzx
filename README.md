@@ -79,6 +79,7 @@ Inside any module, f1 shows every key, mode, toggle and action. The common ones:
 | github | repository and code search, your repositories and stars, issues, pull requests, runs, notifications |
 | glyphs | Nerd Font glyphs, Unicode characters and blocks, emoji |
 | history | zsh-histdb commands |
+| kdeconnect | KDE Connect devices and their battery: ping, ring, share, SMS, lock; their notifications and commands |
 | keybindings | zsh and tmux key bindings, and fzf's own |
 | logs | log files, systemd journals and docker container logs |
 | man | man pages and tldr pages |

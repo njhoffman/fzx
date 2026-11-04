@@ -1,7 +1,7 @@
 # fzx TODO
 
-Status (0.106.0): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
-docker, files, firewall, fonts, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
+Status (0.107.0): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
+docker, files, firewall, fonts, git, github, glyphs, history, kdeconnect, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
 add what you find, and tick items off (`- [x]`) as they land, never delete them; once every item of a section
 is ticked, the section moves to `## Completed` at the end as a `### <heading> (completed YYYY-MM-DD)` block
@@ -150,6 +150,13 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       callback. EKS node group names too: the test cluster had none, so only "no node groups" ran for real.
 - [x] **aws: log group preview is slow** (p3) [perf]: two CLI calls per focus change, about 2.5s, most of it the
       CLI's own startup (modules/aws/preview.sh). Answers are kept in the session for FZX_AWS_PREVIEW_TTL seconds.
+- [x] **kdeconnect** (p3) [module]: `fzx -m kdeconnect[:notifications|:commands]`: devices with their battery,
+      notifications, remote commands; ping, ring, share, text, clipboard, keys, SMS, lock, pair.
+- [ ] **kdeconnect: actions unchecked on a real device** (p3) [test]: ping, shared text and the lists ran against a
+      Galaxy Z Fold7 (2026-11-03). Only stubbed: ring, clipboard, share of a file, keys, sending an SMS, dismiss, pair
+      and unpair, which reach the phone or a person. Lock, unlock and commands need a device with lockdevice and
+      remotecommands (a desktop's KDE Connect): this phone has neither, and the commands' format is from memory of
+      kdeconnect-cli's source.
 - [ ] **llm** (p3) [module]: ollama models (list, pull, rm). Has: ollama.
 - [ ] **tasks-personal** (p3) [module]: taskwarrior tasks and calcurse appointments. Has: task, calcurse.
 - [ ] **web search** (p3) [module]: DuckDuckGo, GitHub, Stack Overflow queries opening in the browser.
@@ -162,6 +169,11 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [ ] **design.md: broken table under Reloading and navigation** (p3) [docs]: docs/design.md:119-122 has two
       header rows, a stale two-column one above the three-column one, so the table renders wrongly. Delete lines
       119-120.
+- [ ] **Prompts typed under fzx go to the log** (p2) [bug]: lib/callback.sh:23 sends every action's stderr to the log,
+      and `read -e -p` draws its prompt and echoes typing on stderr, so the prompt does not show and what is typed
+      lands in fzx.log. Seen in kdeconnect (fixed there with stderr on the terminal; a stand-in confirmed the rest).
+      Likely the same: lib/ask.sh (docker cmd, firewall rules), docker run, dirs bookmark, music save and edit,
+      tasks args. Fix centrally: foreground actions keep stderr on the terminal, and log only what is not a prompt.
 - [ ] **Timing-sensitive tests under load** (p3) [test]: test/menu.bats "menu_scores: launches by module ..."
       stamps rows "now minus N days" and compares the decayed scores to six decimals; under the parallel suite
       a second's delay gives 0.999999 (seen 2026-11-01, passes alone): compared rounded to 3 decimals since

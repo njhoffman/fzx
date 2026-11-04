@@ -6,6 +6,17 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.107.0] - 2026-11-03
+
+### Added
+
+- kdeconnect module: `fzx -m kdeconnect` lists KDE Connect devices, connected first, with their battery; the preview
+  adds the certificate's fingerprint and plugins. Ping, ring, send the clipboard, share a file, URL or text, send
+  keystrokes, send an SMS (shown and confirmed first), lock and unlock (confirmed), pair and unpair, and look for
+  devices again. `fzx -m kdeconnect:notifications` lists the notifications on connected devices, read fresh and kept
+  nowhere, and dismisses them; `fzx -m kdeconnect:commands` runs the commands a device offers. A device that is away,
+  or lacks the plugin an action needs, is named. What you type for an SMS, text or keys goes in no history file.
+
 ## [0.106.0] - 2026-11-03
 
 ### Added
