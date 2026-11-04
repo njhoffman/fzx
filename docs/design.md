@@ -503,7 +503,8 @@ resolved config: the callback loads the layers just before the first module func
 **Yanking.** ctrl-y and alt-y are global in the user's fzfrc (the first field, the whole line). Modules refine
 them, and both report in the footer rather than by fzfrc's notify-send: the built-in `copy` is ctrl-y everywhere
 (`{+1}`; a module's `copy` row or `FZX_ACTION_ARGS_FOR[copy]` says what it means by the row, a URL, a family
-name), and the built-in `copy-line` is alt-y everywhere, copying the display as it shows rather than fzf's `{}`, which holds
+name: docker's and tmux's rows carry a field of their own for it, since their ids are hashes and `$N`), and the
+built-in `copy-line` is alt-y everywhere, copying the display as it shows rather than fzf's `{}`, which holds
 the hidden fields. Other copies a module offers use alt-Y.
 
 **Wrapping keys.** `FZX_KEYS[wrap]` (ctrl-w) toggles word wrap in the list and `[preview_wrap]` (alt-w) the
@@ -804,7 +805,7 @@ are left out) and navigation (`nav goto:<target>`) adds `0.5^(age / FZX_MENU_HAL
 target, over the last `FZX_MENU_STATS_DAYS` (90). The `FZX_MENU_RECENT` (5) highest come first under a
 "recent" header, then every other entry under its module's `FZX_MENU_GROUP` (no group: `other`), the
 groups in `FZX_MENU_GROUPS` order and any others by name, each most used first and otherwise in module
-order. A line is `id<TAB>display<TAB>header`, shown with `--with-nth=2,3` and searched with `--nth=1`,
+order. A line is `id<TAB>display<TAB>header<TAB>target` (ctrl-y copies the target), shown with `--with-nth=2,3` and searched with `--nth=1`,
 so a header (id `@<group>`, `FZX_COLORS[menu_group]`) shows but never matches a query: typing hides them.
 fzf has no unselectable rows, so the grouped menu starts on the second row (`result-final:pos(2)` unless
 a saved position or query is restored), enter on a header returns `down`, and its preview is empty.

@@ -5,8 +5,8 @@ source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
 tmux::preview() {
   tmux::args "$@" || return
   local id="${TMUX_IDS[0]:-}" display="${TMUX_IDS[1]:-}" metadata="${TMUX_IDS[2]:-}" pane
-  # a display split for --freeze-left: the rest is the last field, after the metadata
-  [[ -n "${TMUX_IDS[3]:-}" && "${TMUX_IDS[3]}" != "{"* ]] && display+=" ${TMUX_IDS[3]}"
+  # a display split for --freeze-left: the rest is the field after the name ctrl-y copies
+  [[ -n "${TMUX_IDS[3]:-}" ]] && display+=" ${TMUX_IDS[3]}"
   [[ -n "$id" ]] || return 0
   case "${FZX_MODE:-sessions}" in
     sessions | windows | panes)

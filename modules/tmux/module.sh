@@ -17,12 +17,14 @@ tmux::opts() {
   args+="--"
   FZX_OPTS+=(
     --delimiter=$'\t' --with-nth=2 --accept-nth=1 --tiebreak=index --multi
-    --preview "$(fzx::cb preview "$args" '{1}' '{2}' '{3}' '{-1}')"
+    --preview "$(fzx::cb preview "$args" '{1}' '{2}' '{3}' '{5}')"
     '--preview-window=right,60%,nohidden'
   )
   FZX_ACTION_ARGS="$args {+1}"
   # run reads the key row's metadata (table, key, command), the row under the cursor
   FZX_ACTION_ARGS_FOR['run']="$args {3}"
+  # a session's name or a window's target, not its $N or @N
+  FZX_ACTION_ARGS_FOR['copy']='{+4}'
   if fzx::in_session; then
     fzx::bind "${FZX_KEYS[tmux.capture]}" "transform:$(fzx::cb transform capture "$args" '{1}')" 'open capture from this session, window or pane'
   fi

@@ -178,9 +178,18 @@ def syntax(value):
     return result + clean(value)[end:]
 
 
-def row(identifier, display, metadata=None):
-    # The first column is always plain, and metadata stays hidden from fzf's display/search.
-    print(f"{identifier}\t{display}\t{json.dumps(metadata or {}, ensure_ascii=False)}")
+def row(identifier, display, metadata=None, name=None):
+    # The first column is always plain, and metadata stays hidden from fzf's display/search. The last is
+    # what ctrl-y copies: what a person would call the row (a session's name, not its $N), else the id.
+    meta = json.dumps(metadata or {}, ensure_ascii=False)
+    print(f"{identifier}\t{display}\t{meta}\t{clean(identifier if name is None else name)}")
+
+
+def row_name(display):
+    """A session's name, or the session:window[.pane] target of a window or pane."""
+    first = display.partition("  ")[0]
+    target = re.match(r"(.*?:\d+(?:\.\d+)?)(?: |$)", first)
+    return target[1] if target else first
 
 
 def key_rows(raw):
@@ -774,12 +783,12 @@ def activity_rows(args, rows):
     widths = [len(label) + (arrow if i == marked else 0) for i, label in enumerate(labels)]
     for _, *cells in rows:
         widths = [max(w, len(c)) for w, c in zip(widths, cells)]
-    row("", "  ".join(header_cell(label, widths[i] if i < 2 else 0, i == marked) for i, label in enumerate(labels)))
+    row("", "  ".join(header_cell(label, widths[i] if i < 2 else 0, i == marked) for i, label in enumerate(labels)), name="")
     for identifier, first, rest, age in rows:
         pad = " " * max(widths[0] - len(first), 0)
         decorated = mark(args.sorted == "name") + paint(first, "name") + pad + "  " + paint(rest.ljust(widths[1]), "dim")
         decorated = decorated.replace("attached", paint("attached", "value"))
-        row(identifier, decorated + "  " + mark(args.sorted == "recent") + paint(age, "dim"))
+        row(identifier, decorated + "  " + mark(args.sorted == "recent") + paint(age, "dim"), name=row_name(first))
 
 
 def mark(on):
@@ -817,7 +826,7 @@ def stream(args):
         else:
             pane, _, text = display.partition("  ")
             decorated = paint(pane.ljust(6), "scope") + " " + paint(text, "value")
-        row(identifier, decorated)
+        row(identifier, decorated, name=row_name(display) if args.mode in HEADER_LABELS else None)
     if header:
         activity_rows(args, rows)
 

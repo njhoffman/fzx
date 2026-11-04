@@ -76,7 +76,7 @@ act() { FZX_MODE="$1" "$TMUX_MOD/actions.sh" "${@:2}"; }
 @test "tmux: a header row (FZX_SORTED_SHOW=header) over aligned sessions, the sorted column marked, the rows plain" {
   tmux rename-session -t '$0' a-long-session-name
   FZX_SORTED_SHOW=header FZX_SORT_HEADER=1 FZX_SORT=name FZX_SORTED_ARROWS='^ v' run src sessions
-  [[ "${lines[0]}" == $'\tSESSION^'*'DETAILS'*'ACTIVITY'$'\t{}' ]]
+  [[ "${lines[0]}" == $'\tSESSION^'*'DETAILS'*'ACTIVITY'$'\t{}\t' ]]
   grep -q $'^\t\e\[1;38;2;0;215;255mSESSION^\e\[0m' "$BATS_TEST_TMPDIR/src.out"
   ! grep -q $'\e\[4m' "$BATS_TEST_TMPDIR/src.out"
   # the details start under DETAILS on every row
@@ -88,7 +88,7 @@ act() { FZX_MODE="$1" "$TMUX_MOD/actions.sh" "${@:2}"; }
   done
   # order: nothing marked
   FZX_SORTED_SHOW=header FZX_SORT_HEADER=1 FZX_SORT=order run src windows
-  [[ "${lines[0]}" == $'\tWINDOW '*DETAILS*'ACTIVITY'$'\t{}' ]]
+  [[ "${lines[0]}" == $'\tWINDOW '*DETAILS*'ACTIVITY'$'\t{}\t' ]]
   ! grep -q '38;2;0;215;255' "$BATS_TEST_TMPDIR/src.out"
 }
 
@@ -111,7 +111,7 @@ act() { FZX_MODE="$1" "$TMUX_MOD/actions.sh" "${@:2}"; }
   local mode line id display metadata
   for mode in sessions commands variables keys; do
     FZX_MODE="$mode" "$TMUX_MOD/source.sh" > "$BATS_TEST_TMPDIR/color.out"
-    IFS=$'\t' read -r id display metadata < "$BATS_TEST_TMPDIR/color.out"
+    IFS=$'\t' read -r id display metadata _ < "$BATS_TEST_TMPDIR/color.out"
     [[ "$id" != *$'\e'* ]]
     [[ "$display" == *$'\e['* ]]
     jq -e 'type == "object"' <<< "$metadata" > /dev/null
@@ -127,7 +127,7 @@ act() { FZX_MODE="$1" "$TMUX_MOD/actions.sh" "${@:2}"; }
   [[ "$output" != *'[root]'* ]]
   local line id display metadata
   line="$(printf '%s\n' "$output" | rg 'Custom test note')"
-  IFS=$'\t' read -r id display metadata <<< "$line"
+  IFS=$'\t' read -r id display metadata _ <<< "$line"
   [ "$(jq -r .key <<< "$metadata")" = F12 ]
   FZX_MODE=keys run "$TMUX_MOD/preview.sh" -- "$id" "$display" "$metadata"
   [ "$status" -eq 0 ]
@@ -149,7 +149,7 @@ act() { FZX_MODE="$1" "$TMUX_MOD/actions.sh" "${@:2}"; }
   [[ "$output" == *'status-left'*'local-value'* && "$output" != *'@test-user'* ]]
   local line id display metadata
   line="$(printf '%s\n' "$output" | rg '^status-left\b')"
-  IFS=$'\t' read -r id display metadata <<< "$line"
+  IFS=$'\t' read -r id display metadata _ <<< "$line"
   [ "$(jq -r .inherited <<< "$metadata")" = global-value ]
   FZX_MODE=options run "$TMUX_MOD/preview.sh" -- "$id" "$display" "$metadata"
   [ "$status" -eq 0 ]
@@ -166,7 +166,7 @@ act() { FZX_MODE="$1" "$TMUX_MOD/actions.sh" "${@:2}"; }
   [[ "$(cat "$BATS_TEST_TMPDIR/styles")" == *$'\e[38;2;171;205;239m'* && "$(cat "$BATS_TEST_TMPDIR/styles")" == *$'\e[48;5;17m'* ]]
   FZX_MODE=formats "$TMUX_MOD/source.sh" --pane "$PANE" --option-scope session > "$BATS_TEST_TMPDIR/formats"
   local id display metadata
-  IFS=$'\t' read -r id display metadata < "$BATS_TEST_TMPDIR/formats"
+  IFS=$'\t' read -r id display metadata _ < "$BATS_TEST_TMPDIR/formats"
   [ "$id" = status-left ]
   [[ "$(jq -r .rendered <<< "$metadata")" == *first* ]]
   [[ "$display" == *$'\e[38;2;255;0;0m'* ]]
@@ -182,7 +182,7 @@ act() { FZX_MODE="$1" "$TMUX_MOD/actions.sh" "${@:2}"; }
   [[ "$output" == *'#{buffer_name}'* ]]
   local line id display metadata
   line="$(printf '%s\n' "$output" | rg '^#\{pane_id\}')"
-  IFS=$'\t' read -r id display metadata <<< "$line"
+  IFS=$'\t' read -r id display metadata _ <<< "$line"
   FZX_MODE=variables run "$TMUX_MOD/preview.sh" -- "$id" "$display" "$metadata"
   [ "$status" -eq 0 ]
   [[ "$output" == *'CURRENT VALUE'*"$PANE"* && "$output" == *'Unique pane ID'* ]]
@@ -466,14 +466,32 @@ wait_log() {
   run fzf_bind alt-enter
   [[ "$output" == 'alt-enter:become('*"_cb action run --pane $PANE -- {3})" ]]
   run fzf_flag --preview
-  [[ "$output" == *"--pane $PANE -- {1} {2} {3} {-1}" ]]
+  [[ "$output" == *"--pane $PANE -- {1} {2} {3} {5}" ]]
+}
+
+@test "tmux: ctrl-y copies a session's name and a window's or pane's target, not its \$N; other modes their id" {
+  tmux rename-session -t '$0' 'name with spaces'
+  run src sessions
+  [[ "$output" == *$'\t{}\tname with spaces'* ]]
+  run src windows
+  [[ "$output" == *$'\t{}\tname with spaces:0'* ]]
+  run src panes
+  [[ "$output" == *$'\t{}\tname with spaces:0.0'* ]]
+  FZX_SORTED_SHOW=header FZX_SORT_HEADER=1 FZX_SORT=name run src windows
+  [[ "${lines[0]}" == *$'\t{}\t' && "$output" == *$'\t{}\tname with spaces:0'* ]]
+  run src commands
+  [[ "${lines[0]}" =~ ^([^$'\t']+)$'\t'.*$'\t'.*$'\t'([^$'\t']+)$ ]]
+  [ "${BASH_REMATCH[1]}" = "${BASH_REMATCH[2]}" ]
+  stub_fzf
+  TMUX_PANE="$PANE" run "$FZX" -m tmux
+  [[ "$(fzf_bind ctrl-y)" == *"_cb notify copy {+4}"* ]]
 }
 
 @test "tmux: the preview shows a session's whole display when --freeze-left split it" {
   run env FZX_MODE=sessions "$TMUX_MOD/preview.sh" --pane "$PANE" -- '$0' first '{}' '1 windows  detached  1s'
   [ "${lines[0]}" = "first 1 windows  detached  1s" ]
-  # not split: the last field is the metadata
-  run env FZX_MODE=sessions "$TMUX_MOD/preview.sh" --pane "$PANE" -- '$0' 'first  1 windows' '{}' '{}'
+  # not split: nothing there
+  run env FZX_MODE=sessions "$TMUX_MOD/preview.sh" --pane "$PANE" -- '$0' 'first  1 windows' '{}' ''
   [ "${lines[0]}" = "first  1 windows" ]
 }
 
@@ -511,7 +529,7 @@ wait_log() {
 @test "tmux: command reference has no wrapped signature or hyphenation breaks" {
   local line id display metadata
   line="$(src commands | rg '^split-window\t')"
-  IFS=$'\t' read -r id display metadata <<< "$line"
+  IFS=$'\t' read -r id display metadata _ <<< "$line"
   FZX_MODE=commands run "$TMUX_MOD/preview.sh" -- "$id" "$display" "$metadata"
   [ "$status" -eq 0 ]
   local reference="${output#*REFERENCE}"

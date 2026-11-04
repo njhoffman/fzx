@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# docker source: "id<TAB>display" per mode. containers (running first, state colored; toggle running: only
+# docker source: "id<TAB>display<TAB>name" per mode, the name being what ctrl-y copies. containers (running first, state colored; toggle running: only
 # running ones), images (dangling ones dim), volumes (unused ones dim), networks, compose (projects).
 # The id is what docker commands take: container/image/network ID, volume name, compose project name.
 # $FZX_SORT: containers by state (running first, default) or name; images by created (newest first,
@@ -34,7 +34,7 @@ docker::source() {
             if (i == "") i = "●"
             # state: running ones first, docker order (newest first) within each group; name: by name
             key = sort == "name" ? tolower($3) : ($2 == "running" ? 0 : 1)
-            printf "%s\t%s\t%s%s%s %s %-34s %s %s%s%s\n", key, $1, c, i, rst, cell(name, $3, 28, sort == "name"), $4, cell(c, $5, 24, sort == "state"), dim, $6, rst }' |
+            printf "%s\t%s\t%s%s%s %s %-34s %s %s%s%s\t%s\n", key, $1, c, i, rst, cell(name, $3, 28, sort == "name"), $4, cell(c, $5, 24, sort == "state"), dim, $6, rst, $3 }' |
         LC_ALL=C sort -s -t $'\t' -k1,1 | cut -f2-
       ;;
     images)
@@ -54,8 +54,8 @@ docker::source() {
             # created: docker order (newest first); size: largest first; name: by repository and tag
             key = sort == "size" ? sprintf("%016d", 1e15 - bytes($5)) : sort == "name" ? (ref == "<none>" ? "~" : tolower(ref)) : sprintf("%08d", NR)
             c = index(dangling, " " $1 " ") ? dim : name
-            printf "%s\t%s\t%s %s%-14s%s %s %s\n", key, $1, cell(c, ref, 48, sort == "name"), dim, $1, rst,
-              cell(dim, $4, 16, sort == "created"), cell(c == dim ? dim : "", $5, 0, sort == "size") }' |
+            printf "%s\t%s\t%s %s%-14s%s %s %s\t%s\n", key, $1, cell(c, ref, 48, sort == "name"), dim, $1, rst,
+              cell(dim, $4, 16, sort == "created"), cell(c == dim ? dim : "", $5, 0, sort == "size"), (ref == "<none>" ? $1 : ref) }' |
         LC_ALL=C sort -s -t $'\t' -k1,1 | cut -f2-
       ;;
     volumes)
@@ -65,12 +65,12 @@ docker::source() {
         awk -F'\t' -v dim="$dim" -v rst="$rst" -v name="$name" -v unused="$unused" '
           { u = index(unused, " " $1 " ") ? "unused" : "in use"
             shown = length($1) > 44 ? substr($1, 1, 12) "…" substr($1, length($1) - 30) : $1
-            printf "%s\t%s%-44s%s %-8s %s%-7s %s%s\n", $1, (u == "unused" ? dim : name), shown, rst, $2, dim, u, $3, rst }'
+            printf "%s\t%s%-44s%s %-8s %s%-7s %s%s\t%s\n", $1, (u == "unused" ? dim : name), shown, rst, $2, dim, u, $3, rst, $1 }'
       ;;
     networks)
       command docker network ls --format '{{.ID}}\t{{.Name}}\t{{.Driver}}\t{{.Scope}}' |
         awk -F'\t' -v dim="$dim" -v rst="$rst" -v name="$name" '
-          { printf "%s\t%s%-32s%s %-10s %s%-6s %s%s\n", $1, name, $2, rst, $3, dim, $4, $1, rst }'
+          { printf "%s\t%s%-32s%s %-10s %s%-6s %s%s\t%s\n", $1, name, $2, rst, $3, dim, $4, $1, rst, $2 }'
       ;;
     compose)
       docker compose version > /dev/null 2>&1 || { printf 'docker: docker compose is not installed\n' >&2; return 2; }
@@ -95,7 +95,7 @@ except ValueError:
 for p in projects:
     project, status, files = p.get("Name", ""), p.get("Status", ""), p.get("ConfigFiles", "")
     color = run if status.startswith("running") else stop
-    print(f"{project}\t{name}{project:<28}{rst} {color}{status:<20}{rst} {dim}{files}{rst}")
+    print(f"{project}\t{name}{project:<28}{rst} {color}{status:<20}{rst} {dim}{files}{rst}\t{project}")
 ' "$@"
 }
 

@@ -44,7 +44,7 @@ act() { FZX_MODE="$1" "$DOCKER/actions.sh" "${@:2}"; }
 @test "containers: running first, every state, the running toggle asks docker for running ones only" {
   run src containers
   [ "$status" -eq 0 ]
-  [[ "${lines[0]}" == c2$'\t'*web*nginx:1*'Up 3 hours'*'0.0.0.0:80->80/tcp' ]]
+  [[ "${lines[0]}" == c2$'\t'*web*nginx:1*'Up 3 hours'*'0.0.0.0:80->80/tcp'$'\t'web ]]
   [[ "${lines[1]}" == c1$'\t'*old-job* ]]
   FZX_TOGGLES=running run src containers
   [ "${#lines[@]}" -eq 1 ]
@@ -64,7 +64,7 @@ act() { FZX_MODE="$1" "$DOCKER/actions.sh" "${@:2}"; }
   [[ "$output" == n1$'\t'*bridge*local* ]]
   run src compose
   [ "$status" -eq 0 ]
-  [[ "$output" == site$'\t'*'running(2)'*'/srv/site/compose.yml' ]]
+  [[ "$output" == site$'\t'*'running(2)'*'/srv/site/compose.yml'$'\t'site ]]
 }
 
 @test "actions map to the mode's docker command" {
@@ -174,6 +174,25 @@ STUB
   # no header row without FZX_SORT_HEADER
   run env FZX_SORTED_SHOW=header FZX_SORT=size FZX_MODE=images "$DOCKER/source.sh"
   [[ "${lines[0]}" == i1$'\t'* ]]
+}
+
+@test "ctrl-y copies the name: a container's, an image's reference, a network's; the id stays first for the commands" {
+  run bash -c "FZX_MODE=containers '$DOCKER/source.sh' | cut -f1,3 | sort"
+  [ "$output" = $'c1\told-job\nc2\tweb' ]
+  run bash -c "FZX_MODE=images '$DOCKER/source.sh' | cut -f1,3"
+  # untagged: its id is all it has
+  [ "$output" = $'i1\tnginx:1\ni2\ti2' ]
+  run bash -c "FZX_MODE=networks '$DOCKER/source.sh' | cut -f1,3"
+  [ "$output" = $'n1\tbridge' ]
+  run bash -c "FZX_MODE=volumes '$DOCKER/source.sh' | cut -f3"
+  [ "${lines[0]}" = data ]
+  run bash -c "FZX_MODE=compose '$DOCKER/source.sh' | cut -f3"
+  [ "$output" = site ]
+  stub_fzf
+  run "$FZX" -m docker
+  [[ "$(fzf_bind ctrl-y)" == *"_cb notify copy {+3}"* ]]
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *" --accept-nth=1 "* ]]
 }
 
 @test "menu: the daemon is asked once for all the module's entries; compose needs the compose plugin" {

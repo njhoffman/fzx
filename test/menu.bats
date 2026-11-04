@@ -25,7 +25,7 @@ fixture_modules() {
 
 # menu entry lines without colors, as "id|display" (group headers and the empty header field left out)
 plain_lines() {
-  "$FZX" _cb source | sed 's/\x1b\[[0-9;:]*m//g; /^@/d; s/\t[^\t]*$//; s/\t/|/'
+  "$FZX" _cb source | sed 's/\x1b\[[0-9;:]*m//g; /^@/d; s/\t[^\t]*\t[^\t]*$//; s/\t/|/'
 }
 
 # entry <id>: the plain line of one entry (real modules list alongside the fixtures, in name order)
@@ -353,7 +353,7 @@ collected() {
 
 @test "arrange list: module order, an empty header field" {
   run fzx::_menu_arrange list < <(collected a#0:a:x b#0:b:y)
-  [ "$output" = "$(printf 'a#0\tshow a#0\t\nb#0\tshow b#0\t')" ]
+  [ "$output" = "$(printf 'a#0\tshow a#0\t\ta\nb#0\tshow b#0\t\tb')" ]
 }
 
 @test "arrange groups: recent on top, then groups in FZX_MENU_GROUPS order, others by name, most used first" {
@@ -369,7 +369,7 @@ collected() {
   ids="$(printf '%s\n' "${lines[@]}" | cut -f1 | tr '\n' ' ')"
   [ "$ids" = "@recent c#0 @sys d#0 @dev a#1 a#0 @aa b#1 @zz b#0 " ]
   [[ "${lines[0]}" == $'@recent\t\t'*"── recent"* ]]
-  [[ "${lines[1]}" == $'c#0\tshow c#0\t' ]]
+  [[ "${lines[1]}" == $'c#0\tshow c#0\t\t'* ]]
 }
 
 @test "arrange groups: no recent header without use; FZX_MENU_RECENT=0 shows none; no group means other" {
@@ -513,7 +513,16 @@ EOF2
   done
   [ -z "$missing" ] || { printf 'not through the footer:%s\n' "$missing"; return 1; }
   run "$FZX"
-  [[ "$(fzf_bind ctrl-y)" == "ctrl-y:transform($FZX _cb notify copy {+2})"* ]]
+  [[ "$(fzf_bind ctrl-y)" == "ctrl-y:transform($FZX _cb notify copy {+4})"* ]]
+}
+
+@test "ctrl-y in the menu copies the entry's target: both modes carry it, a group header none" {
+  load_libs log config menu
+  run fzx::_menu_arrange list < <(printf 'ps#1\tthe row\tps:all\tsystem\n')
+  [ "$output" = $'ps#1\tthe row\t\tps:all' ]
+  FZX_MENU_RECENT=0 run fzx::_menu_arrange groups < <(printf 'ps#1\tthe row\tps:all\tsystem\n')
+  [ "${lines[1]}" = $'ps#1\tthe row\t\tps:all' ]
+  [[ "${lines[0]}" == "@system"$'\t\t'* ]]
 }
 
 @test "the menu's yanks go to the clipboard and say so, though its action rows are off" {

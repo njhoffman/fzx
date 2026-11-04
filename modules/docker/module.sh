@@ -17,6 +17,9 @@ docker::opts() {
     --preview "$(fzx::cb preview '{1}')"
     "--preview-window=down,55%,nohidden"
   )
+  # ctrl-y: the name, not the id the docker commands take
+  # shellcheck disable=SC2034  # read by lib/actions.sh
+  FZX_ACTION_ARGS_FOR['copy']='{+3}'
 }
 
 fzx::module_main "$@"

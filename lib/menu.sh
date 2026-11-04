@@ -93,7 +93,7 @@ fzx::_summary_fresh() {
   ((EPOCHSECONDS - mtime < ${FZX_SUMMARY_TTL:-300}))
 }
 
-# print the menu: "id<TAB>display<TAB>header" per line, arranged by fzx::_menu_arrange for FZX_MODE.
+# print the menu: "id<TAB>display<TAB>header<TAB>target" per line (the target is what ctrl-y copies), arranged by fzx::_menu_arrange for FZX_MODE.
 fzx::menu_lines() {
   fzx::_menu_collect | fzx::_menu_arrange "${FZX_MODE:-list}"
 }
@@ -210,7 +210,7 @@ fzx::menu_scores() {
 # by name), each most used first and otherwise in module order. Headers have the id "@<group>".
 fzx::_menu_arrange() {
   if [[ "$1" == list ]]; then
-    awk -F'\t' '{ printf "%s\t%s\t\n", $1, $2 }'
+    awk -F'\t' '{ printf "%s\t%s\t\t%s\n", $1, $2, $3 }'
     return 0
   fi
   local scores
@@ -221,7 +221,7 @@ fzx::_menu_arrange() {
       ns = split(ENVIRON["_FZX_MENU_SCORES"], sl, "\n")
       for (i = 1; i <= ns; i++) { split(sl[i], kv, "\t"); if (kv[1] != "") score[kv[1]] = kv[2] + 0 }
     }
-    { n++; id[n] = $1; disp[n] = $2; grp[n] = ($4 == "" ? "other" : $4); sc[n] = score[$3] + 0 }
+    { n++; id[n] = $1; disp[n] = $2; tgt[n] = $3; grp[n] = ($4 == "" ? "other" : $4); sc[n] = score[$3] + 0 }
     # indices sorted by score, highest first; equal scores keep their order (insertion sort, stable)
     function ranked(list, cnt,    i, j, t) {
       for (i = 2; i <= cnt; i++) {
@@ -239,7 +239,7 @@ fzx::_menu_arrange() {
       for (i = 1; i <= n && shown < recent; i++) {
         if (sc[all[i]] <= 0) break
         if (!shown) header("recent")
-        printf "%s\t%s\t\n", id[all[i]], disp[all[i]]
+        printf "%s\t%s\t\t%s\n", id[all[i]], disp[all[i]], tgt[all[i]]
         taken[all[i]] = 1
         shown++
       }
@@ -257,7 +257,7 @@ fzx::_menu_arrange() {
         if (!cnt) continue
         ranked(members, cnt)
         header(go[g])
-        for (i = 1; i <= cnt; i++) printf "%s\t%s\t\n", id[members[i]], disp[members[i]]
+        for (i = 1; i <= cnt; i++) printf "%s\t%s\t\t%s\n", id[members[i]], disp[members[i]], tgt[members[i]]
       }
     }
   '

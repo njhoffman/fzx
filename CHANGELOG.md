@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.99.2] - 2026-11-03
+
+### Changed
+
+- ctrl-y copies what a row is called instead of an internal id: a docker container's or network's name and an
+  image's reference, a tmux session's name and a window's or pane's target (`main:1.0`), and the menu entry's
+  target (`ps:all`) rather than its icon and label.
+
 ## [0.99.1] - 2026-11-03
 
 ### Fixed
