@@ -12,7 +12,8 @@ FZX_COLORS[dirs_icon]="38;5;116"
 
 FZX_KEYS[dirs.files]=ctrl-o  # browse the directory in the files module
 
-# named directories for the bookmarks mode (name -> path); the mode is offered when this is not empty
+# named directories for the bookmarks mode (name -> path), besides the ones alt-m keeps in
+# $FZX_STATE_DIR/dirs/bookmarks, where a name both have takes that path
 declare -gA FZX_DIRS_BOOKMARKS=()
 
 # the all mode, every directory under ~ (what g falls back to): how deep fd goes and what it skips.

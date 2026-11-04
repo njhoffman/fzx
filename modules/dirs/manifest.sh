@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # dirs menu entries
 
+# shellcheck source=./source.sh
+source "$(dirname "${BASH_SOURCE[0]}")/source.sh" || :
+
 dirs::manifest() {
   fzx::entry dirs "Every directory under ~ (fd)"
   fzx::entry dirs:bookmarks "Named directories"
@@ -8,7 +11,7 @@ dirs::manifest() {
 
 dirs::applicable() {
   case "$1" in
-    dirs:bookmarks) ((${#FZX_DIRS_BOOKMARKS[@]})) ;;
+    dirs:bookmarks) [[ -n "$(dirs::bookmarks)" ]] ;;
     *) command -v fd > /dev/null || command -v fdfind > /dev/null ;;
   esac
 }
@@ -16,5 +19,5 @@ dirs::applicable() {
 # no summary for the fd walk of ~: it can take longer than the summary timeout
 dirs::summary() {
   [[ "$1" == dirs:bookmarks ]] || return 0
-  printf '%s bookmarks\n' "${#FZX_DIRS_BOOKMARKS[@]}"
+  printf '%s bookmarks\n' "$(dirs::bookmarks | wc -l)"
 }

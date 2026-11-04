@@ -39,12 +39,66 @@ bookmarks() {
   header_aligned 1 "${lines[0]}" PATH "${lines[1]}" /
 }
 
-@test "modes: all is the default, bookmarks only when configured; frecent modes are gone" {
+@test "marking: alt-m names a directory, alt-x removes it; the file wins over config, whose own stay" {
+  local tty="$BATS_TEST_TMPDIR/tty" file="$FZX_STATE_DIR/dirs/bookmarks"
+  export FZX_TTY="$tty" FZX_MODE=bookmarks
+  bookmarks
+  # the answer typed over the default name; a blank one marks nothing
+  printf 'work\n' > "$tty"
+  run "$DIRS/actions.sh" mark "$T/beta/deep"
+  [ "$status" -eq 0 ]
+  [ "$(< "$file")" = "work"$'\t'"$T/beta/deep" ]
+  run bash -c "'$DIRS/source.sh' | cut -f1"
+  [ "$output" = "$T/alpha"$'\n'"$T/beta"$'\n'"$T/beta/deep" ]
+  # the same name moves it, and overrides config's
+  printf 'work\n' > "$tty"
+  "$DIRS/actions.sh" mark "$T/alpha" > /dev/null
+  [ "$(< "$file")" = "work"$'\t'"$T/alpha" ]
+  printf 'a\n' > "$tty"
+  "$DIRS/actions.sh" mark "$T/beta/deep" > /dev/null
+  run bash -c "'$DIRS/source.sh' | cut -f1 | grep -c '^$T/beta/deep\$'"
+  [ "$output" = 1 ]
+  # unmark: the file's go, by directory; config's stay and say so; a not-a-directory is refused
+  run "$DIRS/actions.sh" unmark "$T/beta/deep"
+  [ "$status" -eq 0 ]
+  [ "$(< "$file")" = "work"$'\t'"$T/alpha" ]
+  # alpha is config's too: the file's goes, config's stays and says so
+  run "$DIRS/actions.sh" unmark "$T/alpha"
+  [ "$status" -eq 1 ]
+  [ ! -s "$file" ]
+  [[ "$output" == *"a is in FZX_DIRS_BOOKMARKS"* ]]
+  run "$DIRS/actions.sh" mark "$T/gone"
+  [ "$status" -eq 1 ]
+}
+
+@test "marking: a marked directory shows in the menu; the session's old list is dropped" {
+  local tty="$BATS_TEST_TMPDIR/tty"
+  export FZX_TTY="$tty"
+  load_libs log config menu
+  fzx::menu_entries dirs "$DIRS"
+  run dirs::applicable dirs:bookmarks
+  [ "$status" -eq 1 ]
+  printf 'here\n' > "$tty"
+  "$DIRS/actions.sh" mark "$T/alpha" > /dev/null
+  dirs::applicable dirs:bookmarks
+  [ "$(dirs::summary dirs:bookmarks)" = "1 bookmarks" ]
+  local s="$BATS_TEST_TMPDIR/s"
+  mkdir -p "$s/data"
+  : > "$s/data/bookmarks@name"
+  : > "$s/data/all"
+  printf 'x\n' > "$tty"
+  FZX_SESSION_DIR="$s" "$DIRS/actions.sh" mark "$T/beta" > /dev/null
+  [ ! -f "$s/data/bookmarks@name" ] && [ -f "$s/data/all" ]
+}
+
+@test "modes: all is the default, bookmarks always there; frecent modes are gone" {
   stub_fzf
   run "$FZX" -m dirs
   [ "$(< "$BATS_TEST_TMPDIR/fzf.mode")" = all ]
   read_fzf_args
-  [[ " ${FZF_ARGS[*]} " != *bookmarks* && " ${FZF_ARGS[*]} " != *frecent* ]]
+  [[ " ${FZF_ARGS[*]} " == *bookmarks* && " ${FZF_ARGS[*]} " != *frecent* ]]
+  [[ "$(fzf_bind alt-m)" == *"_cb action mark {+1}"* ]]
+  [[ "$(fzf_bind alt-x)" == *"unmark {+1}"* ]]
   bookmarks
   run "$FZX" -m dirs:bookmarks
   [ "$(< "$BATS_TEST_TMPDIR/fzf.mode")" = bookmarks ]

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # dirs source. Lines are "absolute path<TAB>display".
-# Mode from $FZX_MODE: all (every directory under ~, by fd), bookmarks (FZX_DIRS_BOOKMARKS, by name).
+# Mode from $FZX_MODE: all (every directory under ~, by fd), bookmarks (the ones marked with alt-m, in
+# $FZX_STATE_DIR/dirs/bookmarks, and FZX_DIRS_BOOKMARKS from config; by name).
 # Frecent and recently visited directories are modes of the recent module. Module args are query words:
 # they become the fzf query (all) or filter the bookmark names and paths (bookmarks).
 
@@ -61,16 +62,33 @@ dirs::format() {
     done
 }
 
+# dirs::bookmarks_file: where alt-m keeps them, "name<TAB>path" per line
+dirs::bookmarks_file() { printf '%s/dirs/bookmarks' "$FZX_STATE_DIR"; }
+
+# dirs::bookmarks: "name<TAB>path" of config's and the file's, by name; the file's win a name both have, and
+# ~ is expanded
+dirs::bookmarks() {
+  local name path file
+  local -A all=()
+  for name in "${!FZX_DIRS_BOOKMARKS[@]}"; do all[$name]="${FZX_DIRS_BOOKMARKS[$name]}"; done
+  file="$(dirs::bookmarks_file)"
+  if [[ -f "$file" ]]; then
+    while IFS=$'\t' read -r name path; do
+      [[ -n "$name" && -n "$path" ]] && all[$name]="$path"
+    done < "$file"
+  fi
+  for name in "${!all[@]}"; do
+    printf '%s\t%s\n' "$name" "${all[$name]/#\~/$HOME}"
+  done
+}
+
 # dirs::source [query words...]
 dirs::source() {
-  local name
   case "${FZX_MODE:-all}" in
     # already "path<TAB>display", and too long for dirs::format's existence check
     all) dirs::all ;;
     bookmarks)
-      for name in "${!FZX_DIRS_BOOKMARKS[@]}"; do
-        printf '%s\t%s\n' "$name" "${FZX_DIRS_BOOKMARKS[$name]/#\~/$HOME}"
-      done | sort -t $'\t' -k"$([[ "${FZX_SORT:-name}" == path ]] && echo 2 || echo 1)" | awk -F'\t' -v words="$*" 'BEGIN { n = split(tolower(words), w, " ") }
+      dirs::bookmarks | sort -t $'\t' -k"$([[ "${FZX_SORT:-name}" == path ]] && echo 2 || echo 1)" | awk -F'\t' -v words="$*" 'BEGIN { n = split(tolower(words), w, " ") }
         { s = tolower($0); for (i = 1; i <= n; i++) if (!index(s, w[i])) next; print }' | dirs::format
       ;;
     *)

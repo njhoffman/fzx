@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# dirs components, computed: all when fd is installed, bookmarks when configured (see lib/components.sh
+# dirs components, computed: all when fd is installed, bookmarks always, as alt-m adds them from all (see lib/components.sh
 # for the table format). Frecent directories are modes of the recent module.
 dir="$(dirname "$(readlink -f "$0")")"
 source "${FZX_ROOT:-$dir/../..}/lib/core.sh"
@@ -8,9 +8,9 @@ fzx::config_load "$dir" dirs
 # shellcheck source=./source.sh
 source "$dir/source.sh"
 dirs::has_fd && printf 'mode\tall\t-\tevery directory under ~ (fd)\tdefault\n'
-if ((${#FZX_DIRS_BOOKMARKS[@]})); then
-  printf 'mode\tbookmarks\t-\tnamed directories (FZX_DIRS_BOOKMARKS)\t-\n'
-  printf 'sort\tname\t-\tbookmarks: by name\tdefault\n'
-  printf 'sort\tpath\t-\tbookmarks: by path\t-\n'
-fi
+printf 'mode\tbookmarks\t-\tnamed directories (alt-m, FZX_DIRS_BOOKMARKS)\t-\n'
+printf 'sort\tname\t-\tbookmarks: by name\tdefault\n'
+printf 'sort\tpath\t-\tbookmarks: by path\t-\n'
+printf 'action\tmark\talt-m\tbookmark the directories (asks each a name)\tforeground,reload\n'
+printf 'action\tunmark\talt-x\tbookmarks: remove the bookmarks (not the directories)\tnotify,reload\n'
 exit 0

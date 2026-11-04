@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.101.0] - 2026-11-03
+
+### Added
+
+- dirs: alt-m bookmarks the selected directories, asking each a name, and alt-x removes bookmarks. They live in
+  `$FZX_STATE_DIR/dirs/bookmarks`, alongside `FZX_DIRS_BOOKMARKS` from config, and the bookmarks mode is always
+  offered.
+
 ## [0.100.0] - 2026-11-03
 
 ### Added
