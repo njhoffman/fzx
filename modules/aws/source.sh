@@ -4,24 +4,52 @@
 #   ec2   (toggle running; sort state or name): state name type public-ip private-ip zone launched image vpc
 #         subnet key groups tags
 #   logs  (sort name or size): bytes retention created class
-#   ecs, eks, rds: services.sh
+#   ecs, eks, rds: services.sh; volumes, vpcs, subnets, sgs, db-subnets, cache, cache-subnets, profiles: resources.sh
 # A list that cannot be read, or has nothing in it, is a row with an empty id and the whole message as its
 # name. A failed read returns 1, so it is not cached. The CLI's "None" marks a value AWS did not send.
 
 # shellcheck source=./services.sh
 source "$(dirname "${BASH_SOURCE[0]}")/services.sh"
+# shellcheck source=./resources.sh
+source "$(dirname "${BASH_SOURCE[0]}")/resources.sh"
 
-# aws::cli <args...>: the AWS CLI with no pager, bounded waits (FZX_AWS_TIMEOUT, FZX_AWS_ATTEMPTS)
+# aws::_selected: AWS_SEL_KIND (profile, vault; empty: what the CLI resolves unaided) and AWS_SEL_NAME, from
+# what the profiles mode saved in $FZX_STATE_DIR/aws/profile; read once per process
+aws::_selected() {
+  [[ -z "${AWS_SEL_READ:-}" ]] || return 0
+  AWS_SEL_READ=1 AWS_SEL_KIND="" AWS_SEL_NAME=""
+  local file="${FZX_STATE_DIR:-}/aws/profile"
+  [[ -r "$file" ]] && read -r AWS_SEL_KIND AWS_SEL_NAME < "$file"
+  return 0
+}
+
+# aws::cli <args...>: the AWS CLI with no pager, bounded waits (FZX_AWS_TIMEOUT, FZX_AWS_ATTEMPTS) and the
+# profile chosen in the profiles mode. --profile wins over AWS_ACCESS_KEY_ID in the environment, which
+# AWS_PROFILE does not; aws-vault exec sets those variables itself
 aws::cli() {
-  AWS_PAGER="" AWS_MAX_ATTEMPTS="${FZX_AWS_ATTEMPTS:-2}" command aws \
-    --cli-connect-timeout "${FZX_AWS_TIMEOUT:-10}" --cli-read-timeout "${FZX_AWS_TIMEOUT:-10}" "$@"
+  local run=(command aws) flags=(--cli-connect-timeout "${FZX_AWS_TIMEOUT:-10}" --cli-read-timeout "${FZX_AWS_TIMEOUT:-10}")
+  aws::_selected
+  case "$AWS_SEL_KIND" in
+    profile) flags+=(--profile "$AWS_SEL_NAME") ;;
+    vault) run=(env -u AWS_VAULT aws-vault exec "$AWS_SEL_NAME" -- aws) ;;
+  esac
+  AWS_PAGER="" AWS_MAX_ATTEMPTS="${FZX_AWS_ATTEMPTS:-2}" "${run[@]}" "${flags[@]}" "$@"
 }
 
 # aws::region: the Region the CLI uses (empty: none configured)
 aws::region() {
   local r="${AWS_REGION:-${AWS_DEFAULT_REGION:-}}"
+  aws::_selected
+  [[ -n "$r" || -z "$AWS_SEL_NAME" ]] || r="$(aws::_config_region "$AWS_SEL_NAME")"
   [[ -n "$r" ]] || r="$(command aws configure get region 2> /dev/null)"
   printf '%s' "$r"
+}
+
+# aws::clean: stdin without what would move the cursor or clear the screen: console output and log events are
+# text from elsewhere (a boot's firmware clears the screen). Colors stay, as do tabs and newlines; carriage returns
+# and the other control characters go
+aws::clean() {
+  LC_ALL=C sed -E $'s/\x1b\\[[0-9;:=?<>]*[A-Za-ln-z]//g; s/\x1b\\][^\x07\x1b]*(\x07|\x1b\\\\)//g; s/\x1b[^[]//g' | LC_ALL=C tr -d '\000-\010\013-\032\034-\037\177'
 }
 
 # aws::color <name> <default SGR>: an escape sequence from FZX_COLORS
@@ -56,6 +84,8 @@ aws::source() {
     ecs) aws::_source_ecs ;;
     eks) aws::_source_eks ;;
     rds) aws::_source_rds ;;
+    profiles) aws::_source_profiles ;;
+    volumes | vpcs | subnets | sgs | db-subnets | cache | cache-subnets) aws::_source_table "$FZX_MODE" ;;
     *)
       printf 'aws: unknown mode: %s\n' "$FZX_MODE" >&2
       return 2

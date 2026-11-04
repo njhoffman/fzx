@@ -59,6 +59,18 @@ case "\$*" in
     printf 'alpha\tavailable\tmysql\t8.0\tdb.t3.small\tus-east-2b\talpha.rds\t3306\tTrue\t50\tgp3\tFalse\tTrue\tt1\taurora-1\tvpc-1\n'
     printf 'new\tcreating\tpostgres\tNone\tdb.t3.micro\tNone\tNone\tNone\tFalse\tNone\tNone\tFalse\tTrue\tNone\tNone\tNone\n' ;;
   *'rds describe-db-instances'*) echo '{"DBInstances":[]}' ;;
+  *'configure list-profiles'*) printf 'default\nwork\n' ;;
+  *'sts get-caller-identity'*) echo 'arn:aws:iam::1:user/me' ;;
+  *'ec2 describe-volumes'*'--query Volumes[].VolumeId'*) printf 'vol-1\tvol-2\n' ;;
+  *'ec2 describe-volumes'*'--query'*)
+    [[ -n "\${STUB_AWS_EMPTY:-}" ]] && exit 0
+    printf 'vol-2\tNone\tavailable\t1\tgp3\tus-east-2a\tFalse\t3000\tt0\tNone\tNone\nvol-1\troot\tin-use\t8\tgp3\tus-east-2b\tTrue\t3000\tt1\ti-web\tsnap-1\n' ;;
+  *'ec2 describe-security-groups'*'--query'*) printf 'sg-1\tweb\tvpc-1\tthe web tier\ttcp/443/443\t-1/null/null\n' ;;
+  *'ec2 describe-vpcs'*'--query'*) printf 'vpc-1\tNone\tavailable\t172.31.0.0/16\tTrue\tdopt-1\tdefault\n' ;;
+  *'ec2 describe-subnets'*'--query'*) printf 'subnet-1\tNone\tavailable\tvpc-1\t172.31.0.0/20\tus-east-2a\t4091\tTrue\tTrue\n' ;;
+  *'rds describe-db-subnet-groups'*'--query'*) printf 'dbs\tdbs\tComplete\tvpc-1\tthe db subnets\ta, b\n' ;;
+  *'elasticache describe-cache-clusters'*'--query'*) printf 'c1\tc1\tavailable\tredis\t7.1\tcache.t4g.micro\t1\tus-east-2a\tNone\tt0\tcs\n' ;;
+  *'elasticache describe-cache-subnet-groups'*'--query'*) printf 'cs\tcs\tvpc-1\tthe cache subnets\ta, b\n' ;;
 esac
 exit 0
 STUB
@@ -116,7 +128,7 @@ act() { FZX_MODE="$1" "$AWSM/actions.sh" "${@:2}"; }
 }
 
 @test "logs: one day of retention and one group read as singular" {
-  sed -i "s|^case \"\\\$\*\" in|[[ \"\$*\" == *logGroupName,* ]] \&\& { printf '/one\\\\t5\\\\t1\\\\t1767225600000\\\\tSTANDARD\\\\n'; exit 0; }\n[[ \"\$*\" == *storedBytes* ]] \&\& { echo 5; exit 0; }\n\&|" "$BATS_TEST_TMPDIR/bin/aws"
+  sed -i "s|^case \"\\\$\*\" in|[[ \"\$*\" == *logGroupName,* ]] \&\& { printf '/one\\\\t5\\\\t1\\\\t1767225600000\\\\tSTANDARD\\\\n'; exit 0; }\n[[ \"\$*\" == *storedBytes* ]] \&\& { echo 5; exit 0; }\n&|" "$BATS_TEST_TMPDIR/bin/aws"
   run src logs
   [[ "$output" == *'1 day'$'\t'* ]]
   load_libs log config menu
@@ -214,6 +226,21 @@ act() { FZX_MODE="$1" "$AWSM/actions.sh" "${@:2}"; }
   grep -q -- '--log-stream-name=stream-1 --no-start-from-head --limit 40' "$CALLS"
 }
 
+@test "text from elsewhere: colors stay, what moves the cursor or clears the screen goes" {
+  run bash -c "source '$AWSM/source.sh'; printf 'a\\e[2J\\e[01;01H\\e[=3hb\\e[31mred\\e[0m\\ttab\\r\\e]0;title\\a\\ec\\ndone\\n' | aws::clean"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = $'ab\e[31mred\e[0m\ttab' ]
+  [ "${lines[1]}" = done ]
+}
+
+@test "console output and log events reach the screen clean" {
+  sed -i "s|^case \"\\\$\*\" in|[[ \"\$*\" == *get-console-output* ]] \&\& { printf 'boot\\\\033[2Jok\\\\n'; exit 0; }\n[[ \"\$*\" == *get-log-events* ]] \&\& { printf '1767225600000\\\\tev\\\\033[2Jent\\\\n'; exit 0; }\n&|" "$BATS_TEST_TMPDIR/bin/aws"
+  run act ec2 logs i-web
+  [[ "$output" == *bootok* && "$output" != *$'\e[2J'* ]]
+  FZX_MODE=logs run "$AWSM/preview.sh" /app/api /app/api $'1\x1f1\x1f1767225600000\x1fSTANDARD'
+  [[ "$output" == *event* && "$output" != *$'\e[2J'* ]]
+}
+
 @test "logs preview: a group with no streams says so" {
   run prev logs /app/idle /app/idle $'0\x1f30\x1f1767225600000\x1fSTANDARD'
   [[ "$output" == *'no events'* && "$output" == *'30 days'* ]]
@@ -266,12 +293,191 @@ act() { FZX_MODE="$1" "$AWSM/actions.sh" "${@:2}"; }
   [ ! -s "$CALLS" ]
 }
 
-@test "read-only: no action row or CLI call in the module changes a resource" {
-  run grep -E '^action' "$AWSM/components.tsv"
-  [ "${#lines[@]}" -eq 3 ]
-  # every aws subcommand the module runs reads
-  run bash -c "cat '$AWSM'/*.sh | grep -oE '(ec2|logs|ecs|eks|rds) [a-z]+(-[a-z-]+)?' | grep -E ' (run|start|stop|terminate|reboot|create|delete|put|modify|update|tag|untag)\b'"
+@test "every row of the table parses, in every mode" {
+  local m
+  for m in ec2 logs ecs eks rds cache profiles volumes vpcs subnets sgs db-subnets cache-subnets; do
+    run bash -c "'$FZX' -m aws:$m --dry-run 2>&1 > /dev/null"
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+  done
+}
+
+@test "only EC2's start, stop and reboot change anything, each confirmed; nothing terminates or deletes" {
+  run bash -c "grep -E '^action' '$AWSM/components.tsv' | grep -E 'confirm' | awk '{ print \$2 }' | sort | paste -sd ' '"
+  [ "$output" = "reboot start stop" ]
+  # no other CLI call in the module writes
+  run bash -c "cat '$AWSM'/*.sh | grep -oE '(ec2|logs|ecs|eks|rds|elasticache|iam|sts) [a-z]+(-[a-z-]+)?' | grep -E ' (run|start|stop|terminate|reboot|create|delete|put|modify|update|tag|untag|remove|attach|detach)\b'"
   [ "$status" -eq 1 ]
+  run grep -c 'terminate-instances\|delete-' "$AWSM/actions.sh"
+  [ "$output" = 0 ]
+}
+
+@test "start, stop, reboot: the instances, ec2 only, and bound behind the confirmation" {
+  act ec2 start i-web i-old
+  grep -q 'ec2 start-instances --instance-ids i-web i-old' "$CALLS"
+  act ec2 stop i-web
+  grep -q 'ec2 stop-instances --instance-ids i-web' "$CALLS"
+  act ec2 reboot i-web
+  grep -q 'ec2 reboot-instances --instance-ids i-web' "$CALLS"
+  : > "$CALLS"
+  run act rds stop alpha
+  [ "$status" -eq 2 ]
+  [[ "$output" == *'stop does not apply to rds'* ]]
+  [ ! -s "$CALLS" ]
+  STUB_AWS_FAIL='An error occurred (UnauthorizedOperation)' FZX_MODE=ec2 run "$AWSM/actions.sh" stop i-web
+  [ "$status" -ne 0 ]
+  stub_fzf
+  run "$FZX" -m aws
+  [[ "$(fzf_bind ctrl-x)" == *'stop'* ]]
+  [[ "$(fzf_bind alt-s)" == *'start'* ]]
+  [[ "$(fzf_bind alt-R)" == *'reboot'* ]]
+}
+
+@test "table modes: rows in their fields, sorted by name, no None shown; a hidden one opens from the menu" {
+  local m
+  run src volumes
+  [[ "${lines[0]}" == vol-2$'\t'*'- '*vol-2*available*gp3*us-east-2a$'\t'vol-2$'\t'available* ]]
+  [[ "${lines[1]}" == vol-1$'\t'*root*vol-1*in-use*$'\t'root$'\t'* ]]
+  for m in volumes vpcs subnets sgs db-subnets cache cache-subnets; do
+    FZX_MODE=$m run "$AWSM/source.sh"
+    [ "$status" -eq 0 ]
+    [ "$(printf '%s\n' "${lines[0]}" | awk -F'\t' '{ print NF }')" -eq 4 ]
+    [[ "$(printf '%s\n' "${lines[0]}" | cut -f2)" != *None* ]]
+  done
+  run bash -c "grep -E '^mode +(volumes|vpcs|subnets|sgs|db-subnets|cache-subnets) ' '$AWSM/components.tsv' | grep -vc hidden"
+  [ "$output" = 0 ]
+  stub_fzf
+  run "$FZX" -m aws:vpcs
+  [ "$status" -eq 0 ]
+}
+
+@test "table modes: an empty list and a failure read as the others do; a header row names the columns" {
+  STUB_AWS_EMPTY=1 run src volumes
+  [[ "$output" == $'\tno EBS volumes in us-east-2\t'* ]]
+  STUB_AWS_FAIL='An error occurred (ExpiredToken)' FZX_MODE=sgs run "$AWSM/source.sh"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *'cannot list security groups'*'aws login'* ]]
+  run bash -c "FZX_MODE=cache FZX_SORT_HEADER=1 '$AWSM/source.sh' | sed 's/\x1b\[[0-9;:]*m//g'"
+  [[ "${lines[0]}" == $'\t'*NAME*STATUS*ENGINE*VERSION*NODE*NODES* ]]
+}
+
+@test "table previews: labels over the fields, the rule for all traffic named, no request" {
+  local d
+  d="$(FZX_MODE=sgs "$AWSM/source.sh" | cut -f4)"
+  : > "$CALLS"
+  run prev sgs sg-1 web "$d"
+  [[ "$output" == *web* && "$output" == *sg-1* && "$output" == *'the web tier'* && "$output" == *tcp/443/443* && "$output" == *'all traffic'* ]]
+  [ ! -s "$CALLS" ]
+  d="$(FZX_MODE=volumes "$AWSM/source.sh" | awk -F'\t' '$1 == "vol-2" { print $4 }')"
+  run prev volumes vol-2 vol-2 "$d"
+  [[ "$output" == *available* && "$output" == *us-east-2a* && "$output" != *None* && "$output" != *attached* ]]
+}
+
+@test "table modes: console pages and the JSON; profiles have neither" {
+  act volumes console vol-1
+  act vpcs console vpc-1
+  act subnets console subnet-1
+  act sgs console sg-1
+  grep -qF '#VolumeDetails:volumeId=vol-1' "$OPENED"
+  grep -qF '/vpcconsole/home?region=us-east-2#VpcDetails:VpcId=vpc-1' "$OPENED"
+  grep -qF '#SubnetDetails:subnetId=subnet-1' "$OPENED"
+  grep -qF '#SecurityGroup:groupId=sg-1' "$OPENED"
+  run act volumes inspect vol-1
+  grep -q 'ec2 describe-volumes --volume-ids vol-1 --output json' "$CALLS"
+  run act db-subnets inspect dbs
+  grep -q 'rds describe-db-subnet-groups --db-subnet-group-name dbs --output json' "$CALLS"
+  run act cache inspect c1
+  grep -q 'elasticache describe-cache-clusters --cache-cluster-id c1 --show-cache-node-info' "$CALLS"
+  run act profiles console work
+  [ "$status" -eq 2 ]
+}
+
+@test "profiles: the environment first and marked; regions from the config file; choosing one marks it" {
+  export AWS_CONFIG_FILE="$BATS_TEST_TMPDIR/config"
+  printf '[default]\nregion = us-east-2\n[profile work]\nregion = eu-north-1\n' > "$AWS_CONFIG_FILE"
+  run src profiles
+  [ "$status" -eq 0 ]
+  [[ "${lines[0]}" == -$'\t'*●*environment*$'\t'environment$'\t'* ]]
+  [[ "${lines[1]}" == default$'\t'*default*profile*us-east-2$'\t'default$'\t'profile ]]
+  [[ "${lines[2]}" == work$'\t'*work*eu-north-1$'\t'work$'\t'profile ]]
+  [[ "${lines[2]}" != *●* ]]
+  act profiles use work
+  [ "$(cat "$FZX_STATE_DIR/aws/profile")" = "profile work" ]
+  run src profiles
+  [[ "${lines[2]}" == *●*work* && "${lines[0]}" != *●* ]]
+  act profiles use -
+  [ ! -e "$FZX_STATE_DIR/aws/profile" ]
+}
+
+@test "a chosen profile: every request names it, over the environment's keys; the Region is its own" {
+  export AWS_CONFIG_FILE="$BATS_TEST_TMPDIR/config" STUB_AWS_EMPTY=1
+  printf '[profile work]\nregion = eu-north-1\n' > "$AWS_CONFIG_FILE"
+  mkdir -p "$FZX_STATE_DIR/aws"
+  echo 'profile work' > "$FZX_STATE_DIR/aws/profile"
+  run src logs
+  [[ "$output" == *'no log groups in eu-north-1'* ]]
+  grep -q -- '--profile work logs describe-log-groups' "$CALLS"
+  ! grep -q 'configure get region' "$CALLS"
+  AWS_REGION=us-east-2 run src logs
+  [[ "$output" == *'in us-east-2'* ]]
+}
+
+@test "choosing a profile drops what the session read as the other one" {
+  export FZX_SESSION_DIR="$BATS_TEST_TMPDIR/session"
+  mkdir -p "$FZX_SESSION_DIR/data" "$FZX_SESSION_DIR/aws_preview"
+  : > "$FZX_SESSION_DIR/data/ec2"
+  : > "$FZX_SESSION_DIR/aws_preview/x"
+  act profiles use work
+  [ ! -e "$FZX_SESSION_DIR/data/ec2" ]
+  [ ! -e "$FZX_SESSION_DIR/aws_preview" ]
+}
+
+@test "profile preview: asks as that profile without choosing it; the environment as itself" {
+  export AWS_CONFIG_FILE="$BATS_TEST_TMPDIR/config"
+  printf '[profile work]\nregion = eu-north-1\n' > "$AWS_CONFIG_FILE"
+  run prev profiles work work profile
+  [[ "$output" == *work* && "$output" == *eu-north-1* && "$output" == *'arn:aws:iam::1:user/me'* ]]
+  grep -q -- '--profile work sts get-caller-identity' "$CALLS"
+  [ ! -e "$FZX_STATE_DIR/aws/profile" ]
+  : > "$CALLS"
+  run prev profiles - environment environment
+  [[ "$output" == *'what the CLI resolves'* && "$output" == *'arn:aws:iam'* ]]
+  ! grep -q -- '--profile' "$CALLS"
+}
+
+@test "aws-vault: its profiles are listed, a chosen one runs through exec, login opens it; off hides them" {
+  cat > "$BATS_TEST_TMPDIR/bin/aws-vault" << STUB
+#!/usr/bin/env bash
+printf 'vault %s vault_env=[%s]\n' "\$*" "\${AWS_VAULT-unset}" >> "$CALLS"
+case "\$1" in
+  list) echo vaulted ;;
+  exec) shift 3; exec aws "\$@" ;;
+esac
+STUB
+  chmod +x "$BATS_TEST_TMPDIR/bin/aws-vault"
+  run src profiles
+  [[ "$output" == *$'\t'vaulted$'\t'vault* ]]
+  FZX_AWS_VAULT=off run bash -c "FZX_AWS_VAULT=off FZX_MODE=profiles '$AWSM/source.sh'"
+  [[ "$output" != *vaulted* ]]
+  act profiles use vaulted
+  [ "$(cat "$FZX_STATE_DIR/aws/profile")" = "vault vaulted" ]
+  : > "$CALLS"
+  # started from inside another exec: aws-vault refuses to nest
+  AWS_VAULT=outer run src vpcs
+  [ "$status" -eq 0 ]
+  grep -q 'vault exec vaulted -- aws .*vault_env=\[unset\]' "$CALLS"
+  grep -q 'ec2 describe-vpcs' "$CALLS"
+  ! grep -q -- '--profile' "$CALLS"
+  act profiles login vaulted
+  grep -q 'vault login vaulted' "$CALLS"
+  run act profiles login -
+  [ "$status" -eq 2 ]
+}
+
+@test "login without aws-vault says so" {
+  run act profiles login work
+  [ "$status" -eq 2 ]
+  [[ "$output" == *'aws-vault is not installed'* ]]
 }
 
 @test "ecs: clusters by name with their counts; a whole row in four fields" {
@@ -285,7 +491,7 @@ act() { FZX_MODE="$1" "$AWSM/actions.sh" "${@:2}"; }
 }
 
 @test "ecs: clusters are described 100 at a time" {
-  sed -i "s|^case \"\\\$\*\" in|[[ \"\$*\" == *'ecs list-clusters'* ]] \&\& { for ((i = 1; i <= 101; i++)); do printf 'c%s\\\\t' \"\\\$i\"; done; echo; exit 0; }\n\&|" "$BATS_TEST_TMPDIR/bin/aws"
+  sed -i "s|^case \"\\\$\*\" in|[[ \"\$*\" == *'ecs list-clusters'* ]] \&\& { for ((i = 1; i <= 101; i++)); do printf 'c%s\\\\t' \"\\\$i\"; done; echo; exit 0; }\n&|" "$BATS_TEST_TMPDIR/bin/aws"
   run src ecs
   [ "$(grep -c 'ecs describe-clusters' "$CALLS")" -eq 2 ]
 }
@@ -438,6 +644,15 @@ act() { FZX_MODE="$1" "$AWSM/actions.sh" "${@:2}"; }
   [ "$(aws::summary aws:ecs)" = "2 clusters" ]
   [ "$(aws::summary aws:eks)" = "2 clusters" ]
   [ "$(aws::summary aws:rds)" = "1 available of 2" ]
+  [ "$(aws::summary aws:volumes)" = "2 EBS volumes" ]
+  sed -i "s|printf 'vol-1\\\\tvol-2\\\\n'|echo vol-1|" "$BATS_TEST_TMPDIR/bin/aws"
+  [ "$(aws::summary aws:volumes)" = "1 EBS volume" ]
+  [ "$(aws::summary aws:profiles)" = "using the environment" ]
+  [ -z "$(aws::summary_key)" ]
+  mkdir -p "$FZX_STATE_DIR/aws"
+  echo 'profile work' > "$FZX_STATE_DIR/aws/profile"
+  [ "$(aws::summary_key)" = "profile work" ]
+  rm "$FZX_STATE_DIR/aws/profile"
   STUB_AWS_EMPTY=1 run aws::summary aws
   [ "$output" = "0 running, 0 stopped" ]
   STUB_AWS_FAIL=denied run aws::summary aws

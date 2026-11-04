@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# aws: EC2 instances, CloudWatch log groups, ECS and EKS clusters and RDS instances, read-only, with whatever credentials and Region the AWS CLI
-# resolves. `fzx -m aws[:logs|:ecs|:eks|:rds]`. Enter prints the ids (instance id, log group or cluster name).
+# aws: EC2 instances, log groups, ECS, EKS and ElastiCache clusters, RDS instances and the network around them,
+# as the AWS CLI resolves them or as the profile chosen here. Only EC2's start, stop and reboot change anything.
+# `fzx -m aws[:MODE]`. Enter prints the ids.
 
 FZX_MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../lib/core.sh

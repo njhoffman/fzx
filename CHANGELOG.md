@@ -6,6 +6,23 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.106.0] - 2026-11-03
+
+### Added
+
+- aws: ElastiCache clusters (`fzx -m aws:cache`), and from the menu EBS volumes, VPCs, subnets, security groups, and
+  RDS and ElastiCache subnet groups (`aws:volumes`, `aws:vpcs`, `aws:subnets`, `aws:sgs`, `aws:db-subnets`,
+  `aws:cache-subnets`), each with a preview, alt-i and alt-O.
+- aws: a profile picker (`fzx -m aws:profiles`): the preview shows who a profile signs in as, and alt-u uses it for
+  every list from then on, over any keys in the environment. aws-vault's profiles are listed when it is installed
+  (`FZX_AWS_VAULT=off` hides them), run through `aws-vault exec`, and alt-L opens one in the console.
+- aws: start (alt-s), stop (ctrl-x) and reboot (alt-R) EC2 instances, each confirmed first. These are the module's
+  only changes to AWS: nothing terminates or deletes.
+
+### Fixed
+
+- aws: console output and log events no longer clear the screen or move the cursor: a boot's firmware output does.
+
 ## [0.105.1] - 2026-11-03
 
 ### Changed

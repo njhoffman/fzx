@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.105.0): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
+Status (0.106.0): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
 docker, files, firewall, fonts, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
 add what you find, and tick items off (`- [x]`) as they land, never delete them; once every item of a section
@@ -139,14 +139,15 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [x] **aws: EC2 and log groups** (p3) [module]: `fzx -m aws[:logs]`, read-only: lists, previews, console output,
       following a log group, the JSON, the console page.
 - [x] **aws: ECS, EKS and RDS** (p3) [module]: `fzx -m aws:ecs`, `aws:eks`, `aws:rds`, read-only.
-- [ ] **aws: the rest of the old widgets** (p3) [module]: EC2 volumes, VPCs, subnets and security groups, RDS subnet
-      and security groups, ElastiCache. Refs: widgets/aws/*. Missing: vault (aws-vault.zsh). Also a profile picker
-      once there is a second profile, and start/stop/reboot behind confirm if wanted.
-- [ ] **aws: rows unchecked on real resources** (p3) [test]: log groups, their preview cache and an empty ECS cluster
-      were checked against AWS (2026-11-03). Still only against the stub, with their --query evaluated with jmespath
-      on sample responses: EC2 and RDS rows and previews, EC2 console output, EKS rows, an ECS cluster with services.
-      No console URL has been opened. Check them when real resources exist or test ones are agreed: an instance, an
-      EKS cluster or a database is billable, or uses free plan credits.
+- [x] **aws: the rest of the old widgets** (p3) [module]: EBS volumes, VPCs, subnets, security groups, RDS and
+      ElastiCache subnet groups, ElastiCache clusters, the profile picker with aws-vault, and EC2 start, stop and
+      reboot behind confirm. RDS security groups left out: DB security groups belong to EC2-Classic, which AWS retired.
+- [x] **aws: rows unchecked on real resources** (p3) [test]: every list, preview and JSON action, EC2 console output,
+      stop and start with the confirmation, and the profile picker ran against real resources (2026-11-03).
+- [ ] **aws: console links and aws-vault unchecked** (p3) [test]: no alt-O URL has been opened (the check needs a
+      signed-in browser; the ElastiCache and subnet group pages are the likeliest to be wrong). aws-vault is not
+      installed, so its listing, exec and login have run only against a stub, and exec may prompt for MFA inside a
+      callback. EKS node group names too: the test cluster had none, so only "no node groups" ran for real.
 - [x] **aws: log group preview is slow** (p3) [perf]: two CLI calls per focus change, about 2.5s, most of it the
       CLI's own startup (modules/aws/preview.sh). Answers are kept in the session for FZX_AWS_PREVIEW_TTL seconds.
 - [ ] **llm** (p3) [module]: ollama models (list, pull, rm). Has: ollama.

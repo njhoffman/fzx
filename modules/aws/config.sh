@@ -10,6 +10,14 @@ FZX_ICON_MODES[logs]=""
 FZX_ICON_MODES[ecs]=""
 FZX_ICON_MODES[eks]="󱃾"
 FZX_ICON_MODES[rds]=""
+FZX_ICON_MODES[cache]=""
+FZX_ICON_MODES[profiles]=""
+FZX_ICON_MODES[volumes]=""
+FZX_ICON_MODES[vpcs]=""
+FZX_ICON_MODES[subnets]=""
+FZX_ICON_MODES[sgs]=""
+FZX_ICON_MODES[db-subnets]=""
+FZX_ICON_MODES[cache-subnets]=""
 
 # the icon's color in the menu
 FZX_COLORS[aws_icon]="38;5;208"
@@ -17,10 +25,20 @@ FZX_COLORS[aws_icon_logs]="38;5;110"
 FZX_COLORS[aws_icon_ecs]="38;5;173"
 FZX_COLORS[aws_icon_eks]="38;5;68"
 FZX_COLORS[aws_icon_rds]="38;5;75"
+FZX_COLORS[aws_icon_cache]="38;5;167"
+FZX_COLORS[aws_icon_profiles]="38;5;250"
+FZX_COLORS[aws_icon_volumes]="38;5;180"
+FZX_COLORS[aws_icon_vpcs]="38;5;141"
+FZX_COLORS[aws_icon_subnets]="38;5;141"
+FZX_COLORS[aws_icon_sgs]="38;5;203"
+FZX_COLORS[aws_icon_db-subnets]="38;5;75"
+FZX_COLORS[aws_icon_cache-subnets]="38;5;167"
 
 # seconds for the CLI to connect and to read an answer, and how many times it tries
 FZX_AWS_TIMEOUT="${FZX_AWS_TIMEOUT:-10}"
 FZX_AWS_ATTEMPTS="${FZX_AWS_ATTEMPTS:-2}"
+# aws-vault's profiles in the profiles mode, when it is installed: auto or off
+FZX_AWS_VAULT="${FZX_AWS_VAULT:-auto}"
 # describe-cluster requests at a time, for the EKS list
 FZX_AWS_JOBS="${FZX_AWS_JOBS:-8}"
 # seconds a preview's request (log events, ECS services, EKS node groups) is kept in the session; 0: not kept

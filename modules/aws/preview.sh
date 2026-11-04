@@ -109,7 +109,7 @@ aws::_log_events() {
     else
       printf '%s\n' "$ts${msg:+$'\t'$msg}"
     fi
-  done <<< "$out"
+  done < <(printf '%s\n' "$out" | aws::clean)
 }
 
 # aws::preview_ecs <cluster> <details>
@@ -199,6 +199,46 @@ aws::preview_rds() {
   aws::_row vpc "$vpc"
 }
 
+# aws::preview_table <mode> <id> <name> <details>: a resources.sh row: its labels over its fields
+aws::preview_table() {
+  local vals=() i v
+  aws::_spec "$1" || return 0
+  IFS=$'\x1f' read -r -a vals <<< "$4"
+  printf '%s%s%s\n\n' "$_B" "$3" "$_R"
+  [[ "$2" == "$3" ]] || aws::_row id "$2"
+  for ((i = 0; i < ${#AWS_LABELS[@]}; i++)); do
+    v="${vals[i]:-}"
+    # a security group's rule for every protocol
+    v="${v//-1\/null\/null/all traffic}"
+    aws::_row "${AWS_LABELS[i]}" "$v"
+  done
+}
+
+# aws::_whoami: the identity the selected profile resolves to; false when it has none
+aws::_whoami() {
+  local out
+  out="$(aws::cli sts get-caller-identity --query Arn --output text 2>&1)" || {
+    printf '\n%s\n' "$out"
+    return 1
+  }
+  printf '\n%sidentity%s\n  %s\n' "$_B" "$_R" "$out"
+}
+
+# aws::preview_profile <profile> <kind>: asks as that profile, without choosing it
+aws::preview_profile() {
+  local AWS_SEL_READ=1 AWS_SEL_KIND="" AWS_SEL_NAME="" region
+  printf '%s%s%s\n\n' "$_B" "$1" "$_R"
+  if [[ "$1" != - ]]; then
+    AWS_SEL_KIND="$2" AWS_SEL_NAME="$1"
+    aws::_row kind "$2"
+    region="$(aws::_config_region "$1")"
+    aws::_row region "${region:-}"
+  else
+    printf '%swhat the CLI resolves unaided: environment variables, then its usual chain%s\n' "$_D" "$_R"
+  fi
+  aws::_cached "whoami:$1" aws::_whoami
+}
+
 # aws::preview <id> <name> <details>: an empty id is a row explaining an empty or unreadable list
 aws::preview() {
   local _B=$'\e[1m' _D=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" _R=$'\e[0m'
@@ -213,6 +253,8 @@ aws::preview() {
     ecs) aws::preview_ecs "$1" "${3:-}" ;;
     eks) aws::preview_eks "$1" "${3:-}" ;;
     rds) aws::preview_rds "$1" "${3:-}" ;;
+    profiles) aws::preview_profile "$1" "${3:-profile}" ;;
+    *) aws::preview_table "$FZX_MODE" "$1" "${2:-}" "${3:-}" ;;
   esac
 }
 

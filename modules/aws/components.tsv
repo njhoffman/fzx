@@ -1,14 +1,27 @@
 # aws components: kind  name  key  description  flags (see lib/components.sh)
-# Read-only: nothing here changes a resource.
+# Only start, stop and reboot of an EC2 instance change anything, each confirmed first. Hidden modes open from the menu.
 mode    ec2      -      EC2 instances in the selected Region, running first          default
 mode    logs     -      CloudWatch log groups in the selected Region                 -
 mode    ecs      -      ECS clusters in the selected Region                          -
 mode    eks      -      EKS clusters in the selected Region                          -
 mode    rds      -      RDS instances in the selected Region, available first        -
+mode    cache    -      ElastiCache clusters in the selected Region                  -
+mode    profiles  -     the CLI's and aws-vault's profiles: which one the lists use  -
+mode    volumes  -      EBS volumes                                                  hidden
+mode    vpcs     -      VPCs                                                         hidden
+mode    subnets  -      subnets                                                      hidden
+mode    sgs      -      security groups                                              hidden
+mode    db-subnets     -  RDS subnet groups                                          hidden
+mode    cache-subnets  -  ElastiCache subnet groups                                  hidden
 toggle  running  alt-a  ec2: only running instances                                  -
 sort    state    -      ec2: running first; rds: available first                     default
-sort    name     -      ec2, logs, ecs, eks, rds: by name                            -
+sort    name     -      ec2, logs, ecs, eks, rds, cache, profiles, volumes, vpcs, subnets, sgs, db-subnets, cache-subnets: by name  -
 sort    size     -      logs: most stored data first                                 desc
-action  console  alt-O  open in the AWS console                                      silent
+action  console  alt-O  ec2, logs, ecs, eks, rds, cache, volumes, vpcs, subnets, sgs, db-subnets, cache-subnets: open in the AWS console  silent
 action  logs     ctrl-l  ec2: console output in the pager; logs: follow, several merged (ctrl-c returns)  foreground
-action  inspect  alt-i  the API's JSON in the pager                                  foreground
+action  inspect  alt-i  ec2, logs, ecs, eks, rds, cache, volumes, vpcs, subnets, sgs, db-subnets, cache-subnets: the API's JSON in the pager  foreground
+action  start    alt-s   ec2: start the instances                                    confirm,reload
+action  stop     ctrl-x  ec2: stop the instances                                     confirm,reload
+action  reboot   alt-R   ec2: reboot the instances                                   confirm,reload
+action  use      alt-u   profiles: use this one for every list, from now on          silent,reload
+action  login    alt-L   profiles: aws-vault login: the console in the browser       silent
