@@ -62,6 +62,7 @@ Inside any module, f1 shows every key, mode, toggle and action. The common ones:
 |---|---|
 | actions | the actions menu of the screen it was opened from |
 | applications | desktop entries with their icons: launch one (a launcher for a window-manager popup) |
+| aws | EC2 instances and CloudWatch log groups, read-only: details, recent events, following a group, the console |
 | audio | outputs, inputs, playing streams and media players |
 | bluetooth | paired and nearby devices: connect, pair, trust, remove |
 | browser | Chrome, Chromium, Brave, Vivaldi and Firefox history and bookmarks, opened in their own profile |

@@ -6,6 +6,17 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.104.0] - 2026-11-03
+
+### Added
+
+- aws module, read-only, with whatever credentials and Region the AWS CLI resolves: `fzx -m aws` lists EC2
+  instances (running first, toggle for running only, by state or name) and `fzx -m aws:logs` CloudWatch log groups
+  (by name or stored size). An instance's preview comes from the row, with no request; a log group's shows the
+  latest events of its newest stream. ctrl-l shows an instance's console output or follows log groups, several
+  merged; alt-i the JSON; alt-O the console page. An empty list names the Region, and a failed read shows the
+  error, with `aws login` when the credentials are what failed.
+
 ## [0.103.0] - 2026-11-03
 
 ### Added

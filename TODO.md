@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.103.0): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, bluetooth, browser, capture, claude, colors, cron, dirs,
+Status (0.104.0): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
 docker, files, firewall, fonts, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
 add what you find, and tick items off (`- [x]`) as they land, never delete them; once every item of a section
@@ -136,9 +136,17 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       fzf-exec-ssh, system/fzscp, fzf-scripts/sshget. Has: ssh, scp, rsync. No ~/.ssh/config here.
 - [ ] **kubernetes** (p3) [module]: contexts, namespaces, pods (logs, exec, describe). Refs: kubectl_fzf.plugin.zsh,
       kubernetes/fz-k, vendors/completers/kubectl.zsh. Has: kubectl. Missing: helm.
-- [ ] **aws** (p3) [module]: EC2, ECS, EKS, RDS and CloudWatch logs. Refs: widgets/aws/*. Has: aws. Missing: vault
-      (aws-vault.zsh). Held back (2026-11-02): ~/.aws holds only the CLI's caches, no config, credentials or
-      profiles, so nothing can be checked live; start with a profile picker, EC2 and log groups once they are.
+- [x] **aws: EC2 and log groups** (p3) [module]: `fzx -m aws[:logs]`, read-only: lists, previews, console output,
+      following a log group, the JSON, the console page.
+- [ ] **aws: ECS, EKS, RDS and the rest** (p3) [module]: the other services of the old widgets, as modes of the aws
+      module. Refs: widgets/aws/*. Missing: vault (aws-vault.zsh). Also a profile picker once there is a second
+      profile, and start/stop/reboot behind confirm if wanted. The account holds none of these, so a list can
+      be checked live only with test resources.
+- [ ] **aws: EC2 rows unchecked on a real instance** (p3) [test]: the account has no instances, so EC2 rows,
+      previews, console output and all console URLs have run only against the stub (the --query was evaluated with
+      jmespath on a sample response). Check them against a real instance when one exists.
+- [ ] **aws: log group preview is slow** (p3) [perf]: two CLI calls per focus change, about 2.5s, most of it the
+      CLI's own startup (modules/aws/preview.sh). A short per-group cache would make moving back quick.
 - [ ] **llm** (p3) [module]: ollama models (list, pull, rm). Has: ollama.
 - [ ] **tasks-personal** (p3) [module]: taskwarrior tasks and calcurse appointments. Has: task, calcurse.
 - [ ] **web search** (p3) [module]: DuckDuckGo, GitHub, Stack Overflow queries opening in the browser.
@@ -148,6 +156,9 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 
 ## 7. Known issues
 
+- [ ] **design.md: broken table under Reloading and navigation** (p3) [docs]: docs/design.md:119-122 has two
+      header rows, a stale two-column one above the three-column one, so the table renders wrongly. Delete lines
+      119-120.
 - [ ] **Timing-sensitive tests under load** (p3) [test]: test/menu.bats "menu_scores: launches by module ..."
       stamps rows "now minus N days" and compares the decayed scores to six decimals; under the parallel suite
       a second's delay gives 0.999999 (seen 2026-11-01, passes alone): compared rounded to 3 decimals since
