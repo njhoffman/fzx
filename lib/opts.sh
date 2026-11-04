@@ -468,11 +468,15 @@ fzx::opts_build() {
   fzx::_freeze_opts
   fzx::require actions
   fzx::actions_bind "$module"
-  # the menus have no actions, but alt-y still copies the line as it shows, not fzfrc's {} with the hidden fields
-  if fzx::in_session && ! fzx::comp_field action copy-line key _; then
-    local _copy
-    printf -v _copy 'FZX_SESSION_DIR=%q %q builtin copy-line {+}' "$FZX_SESSION_DIR" "$FZX_BIN"
-    fzx::bind alt-y "execute-silent($_copy)" "copy the whole lines"
+  # the menus have no actions, but the yank keys still report in the footer rather than reach fzfrc's, which
+  # copy hidden fields and report by notify-send
+  if fzx::in_session; then
+    local _copy_args='{+1}'
+    [[ -n "${FZX_ACTION_ARGS_FOR[copy]:-}" ]] && _copy_args="${FZX_ACTION_ARGS_FOR[copy]}"
+    fzx::comp_field action copy key _ ||
+      fzx::bind ctrl-y "transform($(fzx::cb notify copy "$_copy_args"))" "copy the selection"
+    fzx::comp_field action copy-line key _ ||
+      fzx::bind alt-y "transform($(fzx::cb notify copy-line '{+}'))" "copy the whole lines"
   fi
   fzx::_component_place
   # debug view in the preview; standalone has no session, so only the variables

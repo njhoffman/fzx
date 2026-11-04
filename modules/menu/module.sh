@@ -20,6 +20,9 @@ menu::opts() {
     --preview "$(fzx::cb preview '{1}')"
     "--preview-window=right,40%"
   )
+  # ctrl-y: the entry (its id means nothing outside the menu)
+  # shellcheck disable=SC2034  # read by lib/opts.sh
+  FZX_ACTION_ARGS_FOR['copy']='{+2}'
   # grouped, the first row is a header: start on the entry under it, unless a saved place is restored
   local _pos="" _query=""
   if [[ "${FZX_MODE:-}" == groups ]] && fzx::in_session; then

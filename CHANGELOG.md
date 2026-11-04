@@ -6,6 +6,13 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.99.1] - 2026-11-03
+
+### Fixed
+
+- ctrl-y reports in the footer in every module: the built-in copy had no key, so in docker, files, ps, tmux and 11
+  others it reached the ctrl-y in the user's fzfrc and its notify-send. The menu's ctrl-y and alt-y report there too.
+
 ## [0.99.0] - 2026-11-03
 
 ### Changed

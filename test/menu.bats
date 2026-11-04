@@ -496,7 +496,37 @@ EOF2
   run "$FZX" -m counter
   [[ "$(fzf_bind alt-y)" == *"copy-line"* ]]
   run "$FZX"
-  [[ "$(fzf_bind alt-y)" == *"copy-line"* ]]
+  [[ "$(fzf_bind alt-y)" == "alt-y:transform($FZX _cb notify copy-line {+})"* ]]
   run "$FZX" -m shell:params
   [[ "$(fzf_bind alt-Y)" == *"value"* ]]
+}
+
+@test "ctrl-y reports in the footer on every screen, never reaching fzfrc's notify-send" {
+  stub_fzf
+  local d m missing=""
+  for d in "$FZX_REPO"/modules/*/; do
+    m="${d%/}"; m="${m##*/}"
+    [[ -f "$d/module.sh" ]] || continue
+    # a module that does not apply here may not start; what it binds is what is checked
+    run "$FZX" -m "$m" --dry-run
+    [[ "$output" == *"ctrl-y:transform($FZX _cb notify "* || "$output" == *"ctrl-y:transform("*"_cb notify "* ]] || missing+=" $m"
+  done
+  [ -z "$missing" ] || { printf 'not through the footer:%s\n' "$missing"; return 1; }
+  run "$FZX"
+  [[ "$(fzf_bind ctrl-y)" == "ctrl-y:transform($FZX _cb notify copy {+2})"* ]]
+}
+
+@test "the menu's yanks go to the clipboard and say so, though its action rows are off" {
+  stub_fzf
+  "$FZX" --keep
+  local sid
+  sid="$(< "$BATS_TEST_TMPDIR/fzf.session")"
+  mkdir -p "$BATS_TEST_TMPDIR/clipbin"
+  printf '#!/bin/sh\ncat > "%s/clip"\n' "$BATS_TEST_TMPDIR" > "$BATS_TEST_TMPDIR/clipbin/xclip"
+  cp "$BATS_TEST_TMPDIR/clipbin/xclip" "$BATS_TEST_TMPDIR/clipbin/xsel"
+  chmod +x "$BATS_TEST_TMPDIR/clipbin/"*
+  FZX_SESSION="$sid" PATH="$BATS_TEST_TMPDIR/clipbin:$PATH" run "$FZX" _cb notify copy "ps:all"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *change-footer* ]]
+  [ "$(< "$BATS_TEST_TMPDIR/clip")" = "ps:all" ]
 }

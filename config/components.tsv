@@ -2,6 +2,6 @@
 # one, and ~/.config/fzx/modules/<m>/components.tsv can switch one off ("action  copy  =  =  off").
 # Built-in actions run through `fzx builtin <name> <args>`.
 # kind   name       key  description                         flags
-action   copy       -    copy the selection to the clipboard  silent,builtin
+action   copy       ctrl-y  copy the selection to the clipboard  silent,builtin
 action   copy-line  alt-y  copy the whole lines                  silent,builtin
 action   view       -    view the preview in a pager          foreground,builtin

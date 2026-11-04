@@ -342,6 +342,13 @@ fzx::_cb_action() {
       fzx::builtin "$@"
       return
     fi
+  elif [[ "$name" == copy || "$name" == copy-line ]]; then
+    # the menus switch the rows off and keep the keys (lib/opts.sh)
+    fzx::require builtin
+    fzx::_cb_mode
+    export FZX_MODULE FZX_MODULE_DIR
+    fzx::builtin "$@"
+    return
   fi
   fzx::_cb_call actions action "$@"
 }
