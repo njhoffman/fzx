@@ -10,6 +10,8 @@ git::manifest() {
   fzx::entry git:stash "Stashes"
   fzx::entry git:reflog "Where HEAD has been"
   fzx::entry git:worktrees "Linked work trees"
+  fzx::entry git:grep "Search tracked files as you type"
+  fzx::entry git:clean "What git clean would remove"
 }
 
 git::applicable() {
@@ -47,6 +49,8 @@ git::summary() {
         /^\?\?/ { u++; next } { if (substr($0, 1, 1) != " ") s++; if (substr($0, 2, 1) != " ") m++ }
         END { printf "%d staged, %d modified, %d untracked\n", s, m, u }'
       ;;
+    git:grep) printf '%s tracked files\n' "$(command git ls-files | wc -l)" ;;
+    git:clean) printf '%s to remove\n' "$(command git clean -n -d | wc -l)" ;;
     git:log)
       if [[ "${1:-}" == --all ]]; then
         n="$(command git rev-list --all --count)"

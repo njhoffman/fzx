@@ -43,3 +43,5 @@ FZX_FREEZE_COLS[log]=word
 FZX_FREEZE_COLS[stash]=word
 FZX_FREEZE_COLS[reflog]=word
 FZX_FREEZE_COLS[commit]=word
+FZX_FREEZE_COLS[grep]=word
+FZX_FREEZE_COLS[clean]=word

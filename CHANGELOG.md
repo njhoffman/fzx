@@ -6,6 +6,17 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.102.0] - 2026-11-03
+
+### Added
+
+- git:grep searches tracked files as you type with `git grep`, over the work tree or a commit (`--rev`); enter
+  prints `path:line`.
+- git:clean lists what `git clean -d` would remove, with a preview (toggle ignored adds ignored files); alt-x
+  removes the selected ones after a question naming them.
+- git log and reflog: alt-X resets the branch to the selected commit, asking soft or mixed; hard needs
+  `FZX_GIT_DESTRUCTIVE=1` and a second answer.
+
 ## [0.101.0] - 2026-11-03
 
 ### Added

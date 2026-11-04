@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.101.0): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, bluetooth, browser, capture, claude, colors, cron, dirs,
+Status (0.102.0): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, bluetooth, browser, capture, claude, colors, cron, dirs,
 docker, files, firewall, fonts, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
 add what you find, and tick items off (`- [x]`) as they land, never delete them; once every item of a section
@@ -74,7 +74,7 @@ Reviewed: 2026-11-03
       work tree `~`) through `--git-dir`/`--work-tree` arguments, with a menu entry where `~/.cfg` exists;
       status limited to tracked files (dotbare's `status.showUntrackedFiles no`). dotbare is installed here
       (~/.dotbare) and is how ~/.config projects are versioned.
-- [ ] **git: grep, reset and clean** (p3) [feature]: a `git grep` mode (as files:grep, over the index or a
+- [x] **git: grep, reset and clean** (p3) [feature]: a `git grep` mode (as files:grep, over the index or a
       commit), reset to the selected commit (soft, mixed; hard only with FZX_GIT_DESTRUCTIVE=1) and clean
       of untracked files with a dry-run preview. Refs: fzfmenu/proto-widgets/git/fzg-grep, fzg-reset, fzg-clean.
 - [x] **dirs: bookmark from the list** (p3) [feature]: add and remove bookmarks with keys (fzf-marks' mark/unmark),

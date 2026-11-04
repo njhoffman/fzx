@@ -511,14 +511,114 @@ subjects() { git log --format=%s "$@" | tr '\n' ' '; }
   [[ "$output" != *"apply the stash"* && "$output" == *"copy the selection"* ]]
 }
 
+@test "grep: tracked files by the query, at --rev too; no query lists nothing; a bad term is no match" {
+  echo 'needle here' > tracked.txt
+  git add tracked.txt && git commit -qm 'add tracked'
+  echo 'needle untracked' > loose.txt
+  [ -z "$(FZF_QUERY= src grep)" ]
+  FZF_QUERY=NEEDLE run src grep
+  [ "$output" = "" ] || [[ "$output" != *loose* ]]
+  FZF_QUERY=needle run src grep
+  [ "$output" = "$REAL/tracked.txt"$'\t1\ttracked.txt:1: needle here' ]
+  # lowercase is any case; an uppercase letter is exact
+  echo 'Needle upper' >> tracked.txt
+  git add tracked.txt && git commit -qm upper
+  FZF_QUERY=needle run src grep
+  [ "${#lines[@]}" -eq 2 ]
+  FZF_QUERY=Needle run src grep
+  [ "${#lines[@]}" -eq 1 ] && [[ "${lines[0]}" == *$'\t2\t'* ]]
+  # at a commit: its contents, ids in the work tree's paths
+  FZF_QUERY=needle run src grep --rev HEAD~1
+  [ "$output" = "$REAL/tracked.txt"$'\t1\ttracked.txt:1: needle here' ]
+  FZF_QUERY='(' run src grep
+  [ "$status" -eq 0 ] && [ -z "$output" ]
+  # the preview: the work tree's file, or the commit's
+  FZX_MODE=grep run "$GIT_DIR_MOD/preview.sh" -- "$REAL/tracked.txt" 2
+  [[ "$output" == *"Needle upper"* ]]
+  FZX_MODE=grep run "$GIT_DIR_MOD/preview.sh" --rev HEAD~1 -- "$REAL/tracked.txt" 1
+  [[ "$output" == *"needle here"* && "$output" != *"Needle upper"* ]]
+  # under fzx: the query drives it, a restart in and out, path:line accepted
+  stub_fzf
+  run "$FZX" -m git:grep
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *" --with-nth=3 "* && " ${FZF_ARGS[*]} " == *" --disabled "* && " ${FZF_ARGS[*]} " == *" --accept-nth={1}:{2} "* ]]
+  [[ "$(fzf_bind change)" == "change:reload:sleep 0.1; $FZX _cb source"* ]]
+}
+
+@test "clean: lists what git clean would remove; alt-x asks, naming them, and removes only those; ignored with the toggle" {
+  mkdir -p newdir/inner
+  echo a > one.tmp; echo b > two.tmp; echo c > newdir/inner/f
+  echo '*.log' > .gitignore
+  git add .gitignore && git commit -qm ignore
+  echo d > skip.log
+  run src clean
+  [[ "$output" == *"$REAL/one.tmp"$'\t?? one.tmp'* && "$output" == *"$REAL/newdir"$'\t?? newdir/'* && "$output" != *skip.log* ]]
+  FZX_TOGGLES=ignored run src clean
+  [[ "$output" == *skip.log* ]]
+  # the preview, of a file and of a directory
+  FZX_MODE=clean run "$GIT_DIR_MOD/preview.sh" -- "$REAL/newdir"
+  [[ "$output" == *"removed whole"*"1 files"*"inner/f"* ]]
+  FZX_MODE=clean run "$GIT_DIR_MOD/preview.sh" -- "$REAL/one.tmp"
+  [[ "$output" == *a* ]]
+  # needs no FZX_GIT_DESTRUCTIVE: a no keeps them, a yes removes the chosen one only
+  [ "${FZX_GIT_DESTRUCTIVE:-0}" = 0 ]
+  printf n > "$BATS_TEST_TMPDIR/tty"; export FZX_TTY="$BATS_TEST_TMPDIR/tty"
+  FZX_MODE=clean run "$GIT_DIR_MOD/actions.sh" drop -- "$REAL/one.tmp"
+  [ -f one.tmp ]
+  printf y > "$FZX_TTY"
+  FZX_MODE=clean run "$GIT_DIR_MOD/actions.sh" drop -- "$REAL/one.tmp" "$REAL/newdir"
+  [ ! -e one.tmp ] && [ ! -e newdir ] && [ -f two.tmp ] && [ -f skip.log ]
+  grep -q 'remove (git clean):.*one.tmp newdir' "$FZX_TTY"
+  # the ignored one only with the toggle
+  printf y > "$FZX_TTY"
+  FZX_MODE=clean run "$GIT_DIR_MOD/actions.sh" drop -- "$REAL/skip.log"
+  [ -f skip.log ]
+  printf y > "$FZX_TTY"
+  FZX_MODE=clean FZX_TOGGLES=ignored run "$GIT_DIR_MOD/actions.sh" drop -- "$REAL/skip.log"
+  [ ! -e skip.log ]
+  # drop elsewhere still needs the flag
+  printf y > "$FZX_TTY"
+  FZX_MODE=stash run "$GIT_DIR_MOD/actions.sh" drop -- 'stash@{0}'
+  [[ "$output" == *"set FZX_GIT_DESTRUCTIVE=1"* ]]
+}
+
+@test "reset: soft and mixed keep the changes, hard needs FZX_GIT_DESTRUCTIVE=1 and a second answer; one commit only" {
+  export FZX_TTY="$BATS_TEST_TMPDIR/tty" FZX_MODE=log
+  echo one >> a.txt; git add a.txt; git commit -qm c1
+  echo two >> a.txt; git add a.txt; git commit -qm c2
+  local c0 c1 c2
+  c2="$(git rev-parse HEAD)" c1="$(git rev-parse HEAD~1)" c0="$(git rev-parse HEAD~2)"
+  printf x > "$FZX_TTY"
+  run "$GIT_DIR_MOD/actions.sh" reset -- "$c1"
+  [ "$(git rev-parse HEAD)" = "$c2" ]
+  printf s > "$FZX_TTY"
+  run "$GIT_DIR_MOD/actions.sh" reset -- "$c1"
+  [ "$(git rev-parse HEAD)" = "$c1" ] && [ -n "$(git diff --cached --name-only)" ]
+  grep -q 'reset to.*c1' "$FZX_TTY"
+  printf m > "$FZX_TTY"
+  run "$GIT_DIR_MOD/actions.sh" reset -- "$c0"
+  [ "$(git rev-parse HEAD)" = "$c0" ] && [ -z "$(git diff --cached --name-only)" ] && [ -n "$(git diff --name-only)" ]
+  # hard: refused without the flag, then asked again
+  printf h > "$FZX_TTY"
+  run "$GIT_DIR_MOD/actions.sh" reset -- "$c2"
+  [ "$(git rev-parse HEAD)" = "$c0" ] && [[ "$output" == *"set FZX_GIT_DESTRUCTIVE=1"* ]]
+  export FZX_GIT_DESTRUCTIVE=1
+  printf hn > "$FZX_TTY"
+  run "$GIT_DIR_MOD/actions.sh" reset -- "$c2"
+  [ "$(git rev-parse HEAD)" = "$c0" ]
+  run "$GIT_DIR_MOD/actions.sh" reset -- "$c1" "$c2"
+  [[ "$output" == *"reset takes one commit"* ]]
+}
+
 @test "destructive verbs: listed only with FZX_GIT_DESTRUCTIVE=1, confirmed, and refused without it" {
+  # without it: drop is clean's only, the rewriting verbs are not listed
   run "$GIT_DIR_MOD/components.tsv"
-  [[ "$output" != *drop* ]]
+  [[ "$output" == *$'action\tdrop\talt-x\tclean: remove'* && "$output" != *"status: discard"* && "$output" != *squash* ]]
   FZX_GIT_DESTRUCTIVE=1 run "$GIT_DIR_MOD/components.tsv"
-  [[ "$output" == *$'\n''action  drop     alt-x'*asks* ]]
+  [[ "$output" == *$'\n''action  drop     alt-x'*"status: discard"*asks* && "$output" == *squash* ]]
   stub_fzf
   run "$FZX" -m git "$REPO"
-  [ -z "$(fzf_bind alt-x)" ]
+  [ -z "$(fzf_bind alt-Q)" ]
   FZX_GIT_DESTRUCTIVE=1 run "$FZX" -m git "$REPO"
   [[ "$(fzf_bind alt-x)" == *'_cb action drop'* ]]
   run act status drop -- "$REAL/u space.txt"

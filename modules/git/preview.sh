@@ -72,12 +72,56 @@ git::preview_commit() {
 }
 
 # git::preview [module args...] -- <id> [extra]
+# git::_preview_lib: lib/preview.sh, for a preview run on its own too
+git::_preview_lib() {
+  declare -F fzx::preview_body > /dev/null && return 0
+  # shellcheck source=../../lib/core.sh
+  declare -F fzx::require > /dev/null || source "$(dirname "${BASH_SOURCE[0]}")/../../lib/core.sh"
+  fzx::require preview
+}
+
+# git::preview_grep <absolute path> <line>: the file around the match, as it is at --rev when given
+git::preview_grep() {
+  local id="$1" line="$2" rel="${1#"$GIT_TOP"/}" tmp rc=0
+  [[ -n "$id" ]] || return 0
+  git::_preview_lib
+  if [[ -z "$GIT_REV" ]]; then
+    fzx::preview_body "$id" "$line"
+    return
+  fi
+  tmp="$(mktemp -d)" || return
+  git::g show "$GIT_REV:$rel" > "$tmp/${rel##*/}" 2> /dev/null || rc=$?
+  if ((rc)); then
+    printf 'not in %s: %s\n' "$GIT_REV" "$rel"
+  else
+    fzx::preview_body "$tmp/${rel##*/}" "$line"
+  fi
+  rm -rf -- "$tmp"
+}
+
+# git::preview_clean <absolute path>: what would go: a file's contents, a directory's files
+git::preview_clean() {
+  local id="$1"
+  [[ -n "$id" ]] || return 0
+  if [[ -d "$id" ]]; then
+    printf '\e[31mremoved whole:\e[0m %s files\n\n' "$(command find "$id" -type f | wc -l)"
+    (cd -- "$id" && command find . -type f | sed 's:^\./::' | sort | head -n "${FZF_PREVIEW_LINES:-40}")
+  elif [[ -f "$id" ]]; then
+    git::_preview_lib
+    fzx::preview_body "$id"
+  else
+    printf 'gone: %s\n' "$id"
+  fi
+}
+
 git::preview() {
   git::split "$@" || return
   local id="${GIT_IDS[0]:-}" view
   git::view view
   case "${FZX_MODE:-status}" in
     status) git::preview_status "$id" "$view" ;;
+    grep) git::preview_grep "$id" "${GIT_IDS[1]:-}" ;;
+    clean) git::preview_clean "$id" ;;
     commit) git::preview_commit "$id" "${GIT_IDS[1]:-}" "$view" ;;
     log | reflog) git::g show --color=always --stat --patch "$id" -- | git::diff_filter ;;
     branches) git::g log --color=always --graph --oneline --decorate --max-count=40 "$id" -- ;;

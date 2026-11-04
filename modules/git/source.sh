@@ -210,6 +210,34 @@ git::source_commit() {
     done
 }
 
+# git::source_grep: tracked files holding $FZF_QUERY (fzf exports it to the reload it runs as you type): "absolute
+# path<TAB>line<TAB>display", at --rev when given. An uppercase letter in it makes it case-sensitive
+git::source_grep() {
+  local term="${FZF_QUERY:-}" args=(grep -n -I -E --full-name --color=never) dim=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" rst=$'\e[0m'
+  [[ -n "$term" ]] || return 0
+  [[ -n "${NO_COLOR+x}" ]] && dim="" rst=""
+  [[ "$term" == *[[:upper:]]* ]] || args+=(-i)
+  args+=(-e "$term")
+  [[ -n "$GIT_REV" ]] && args+=("$GIT_REV")
+  # a term that is not a regular expression yet (as you type), or no match: nothing to list
+  git::g "${args[@]}" 2> /dev/null | awk -v top="$GIT_TOP/" -v rev="${GIT_REV:+$GIT_REV:}" -v dim="$dim" -v rst="$rst" '
+    { if (rev != "" && index($0, rev) == 1) $0 = substr($0, length(rev) + 1)
+      i = index($0, ":"); path = substr($0, 1, i - 1); rest = substr($0, i + 1)
+      j = index(rest, ":"); line = substr(rest, 1, j - 1); text = substr(rest, j + 1); gsub(/\t/, " ", text)
+      printf "%s%s\t%s\t%s%s:%s:%s %s\n", top, path, line, dim, path, line, rst, text }'
+  return 0
+}
+
+# git::source_clean: what `git clean -d` would remove (toggle ignored: -x too), "absolute path<TAB>display";
+# a directory, removed whole, ends in /
+git::source_clean() {
+  local args=(-c core.quotePath=false clean -n -d) red=$'\e[31m' rst=$'\e[0m'
+  [[ " ${FZX_TOGGLES:-} " == *" ignored "* ]] && args+=(-x)
+  [[ -n "${NO_COLOR+x}" ]] && red="" rst=""
+  git::g "${args[@]}" | awk -v top="$GIT_TOP/" -v red="$red" -v rst="$rst" '
+    /^Would remove / { p = substr($0, 14); id = p; sub(/\/$/, "", id); printf "%s%s\t%s??%s %s\n", top, id, red, rst, p }'
+}
+
 # git::source [--all] [--rev REV] [DIR]
 git::source() {
   git::args "$@" || return
@@ -221,6 +249,8 @@ git::source() {
     stash) git::source_stash ;;
     reflog) git::source_reflog ;;
     worktrees) git::source_worktrees ;;
+    grep) git::source_grep ;;
+    clean) git::source_clean ;;
     commit) git::source_commit ;;
     *)
       printf 'git: unknown mode: %s\n' "$FZX_MODE" >&2

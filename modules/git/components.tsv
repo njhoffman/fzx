@@ -13,13 +13,17 @@ mode  tags       -  tags, newest first                       -
 mode  stash      -  stashes                                  -
 mode  reflog     -  where HEAD (or --rev REF) has been       -
 mode  worktrees  -  linked work trees                        -
+mode  grep       -  search tracked files as you type (git grep; --rev REV: at a commit)  restart,nopersist
+mode  clean      -  what git clean would remove               -
+toggle  ignored  -  clean: ignored files too                  -
 mode  commit     -  the files a commit (--rev) changed       hidden
 sort  recent     -  branches: last commit first              default,desc
 sort  name       -  branches: by name                        -
+action  reset    alt-X   log, reflog: reset the branch to the selected commit (asks soft or mixed; hard with FZX_GIT_DESTRUCTIVE=1)  foreground,restart
 action  stage    alt-s   status: stage the selected files                                         foreground,reload
 action  unstage  alt-u   status: unstage the selected files                                       foreground,reload
 action  patch    alt-p   status: stage parts of the selected files (add -p)                       foreground,reload
-action  edit     ctrl-e  status, commit: open the selected files in $EDITOR                       foreground,reload
+action  edit     ctrl-e  status, commit, grep: open the selected files in $EDITOR                       foreground,reload
 action  switch   alt-c   branches: switch (remote: create a tracking branch); log, reflog, tags: check out, detached; commit: restore the selected files as of this commit  foreground,restart
 action  pick     alt-k   log, reflog: cherry-pick the selected commits, oldest first; stash: apply the stash  foreground,restart
 action  revert   alt-R   log, reflog: revert the selected commits, newest first                   foreground,restart
@@ -32,9 +36,12 @@ action  fetch    alt-F   fetch every remote, pruning deleted branches           
 action  copy     ctrl-y  copy the selection (paths, hashes, names)                                silent,builtin
 EOF
 
-[[ "${FZX_GIT_DESTRUCTIVE:-0}" == 1 ]] || exit 0
+if [[ "${FZX_GIT_DESTRUCTIVE:-0}" != 1 ]]; then
+  printf 'action\tdrop\talt-x\tclean: remove the selected files (asks, naming them)\tforeground,reload,asks\n'
+  exit 0
+fi
 command cat << 'EOF'
-action  drop     alt-x   status: discard the unstaged changes of the selected files, delete untracked ones; branches: delete the selected branches, remote ones on their remote (a question for each kind); stash: drop the selected stashes  foreground,restart,asks
+action  drop     alt-x   clean: remove the selected files (asks, naming them); status: discard the unstaged changes of the selected files, delete untracked ones; branches: delete the selected branches, remote ones on their remote (a question for each kind); stash: drop the selected stashes  foreground,restart,asks
 action  fixup    alt-U   log: fold what is staged into the selected commit (rewrites history after it)  foreground,restart,confirm
 action  squash   alt-Q   log: squash the selected commit into its parent (rewrites history)        foreground,restart,confirm
 action  reword   alt-W   log: edit the selected commit's message (rewrites history)                foreground,restart,confirm

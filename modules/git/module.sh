@@ -46,6 +46,16 @@ git::opts() {
   )
   # the actions (components.tsv) get the module args too
   FZX_ACTION_ARGS="$a {+1}"
+  # grep follows the query, as files:grep does: path, line, display
+  if [[ "$FZX_MODE" == grep ]]; then
+    FZX_OPTS+=(
+      --with-nth=3
+      --accept-nth='{1}:{2}'
+      --disabled
+      --bind "change:reload:sleep 0.1; $(fzx::cb source)"
+      --preview "$(fzx::cb preview "$a" '{1}' '{2}')"
+    )
+  fi
   if fzx::in_session; then
     fzx::bind "${FZX_KEYS[git.into]}" "transform:$(fzx::cb transform into "$a" '{1}')" \
       "branches, tags: the log; log, reflog, stash: the commit's files; worktrees: status"

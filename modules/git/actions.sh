@@ -95,6 +95,40 @@ git::destructive() {
   return 1
 }
 
+# git::clean <absolute path...>: remove them with git clean (toggle ignored: ignored ones too), after a question
+# naming them
+git::clean() {
+  local rels=() p args=(clean -f -d)
+  for p; do rels+=("${p#"$GIT_TOP"/}"); done
+  [[ " ${FZX_TOGGLES:-} " == *" ignored "* ]] && args+=(-x)
+  git::confirm "remove (git clean):" "${rels[@]}" || return 0
+  git::g "${args[@]}" -- "${rels[@]}"
+}
+
+# git::reset_to <commit>: reset the current branch there, asking how; hard only with FZX_GIT_DESTRUCTIVE=1, and
+# then asked again with what it would lose
+git::reset_to() {
+  local ans="" tty="${FZX_TTY:-/dev/tty}" hard="" subject changed
+  (($# == 1)) || { printf 'git: reset takes one commit, got %s\n' "$#" >&2; return 1; }
+  [[ "${FZX_GIT_DESTRUCTIVE:-0}" == 1 ]] && hard=", [h]ard"
+  subject="$(git::g log -1 --format='%h %s' "$1" --)"
+  printf '\n\e[1mreset to\e[0m %s\n[s]oft (keep the changes staged), [m]ixed (keep them unstaged)%s, anything else cancels: ' \
+    "$subject" "$hard" >> "$tty"
+  IFS= read -rsn1 ans < "$tty" || :
+  printf '\n' >> "$tty"
+  case "$ans" in
+    s) git::g reset --soft "$1" ;;
+    m) git::g reset --mixed "$1" ;;
+    h)
+      git::destructive "reset --hard" || return 1
+      changed="$(git::g status --porcelain | grep -vc '^??')" || :
+      git::confirm "reset --hard, losing changes in $changed files, to:" "$subject" || return 0
+      git::g reset --hard "$1"
+      ;;
+    *) return 0 ;;
+  esac
+}
+
 # drop in status: tracked files lose their unstaged changes (the staged ones stay), untracked ones are
 # deleted
 git::discard() {
@@ -247,8 +281,12 @@ git::action() {
     commit) git::g commit; git::_report $?; return ;;
     amend) git::amend; git::_report $?; return ;;
     fetch) git::g fetch --all --prune; git::_report $?; return ;;
-    stage | unstage | patch | edit | switch | pick | revert | branch | stash | ignore) ;;
-    drop | fixup | squash | reword | rebase) git::destructive "$action" || { git::_report 1; return; } ;;
+    stage | unstage | patch | edit | switch | pick | revert | branch | stash | ignore | reset) ;;
+    drop)
+      # clean has its own question and needs no flag: it removes only what the list shows, chosen
+      [[ "${FZX_MODE:-status}" == clean ]] || git::destructive "$action" || { git::_report 1; return; }
+      ;;
+    fixup | squash | reword | rebase) git::destructive "$action" || { git::_report 1; return; } ;;
     *)
       printf 'git: unknown action: %s\n' "$action" >&2
       return 2
@@ -259,7 +297,9 @@ git::action() {
     stage:status) git::g add -- "$@" ;;
     unstage:status) git::g restore --staged -- "$@" ;;
     patch:status) git::g add -p -- "$@" ;;
-    edit:status | edit:commit) "${EDITOR:-vi}" -- "$@" ;;
+    edit:status | edit:commit | edit:grep) "${EDITOR:-vi}" -- "$@" ;;
+    reset:log | reset:reflog) git::reset_to "$@" ;;
+    drop:clean) git::clean "$@" ;;
     switch:branches)
       if git::g show-ref --verify --quiet "refs/heads/$1"; then
         git::g switch -- "$1"
