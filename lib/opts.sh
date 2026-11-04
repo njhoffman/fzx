@@ -376,6 +376,8 @@ fzx::opts_build() {
   FZX_OPTS+=(--bind "start:reload:$(fzx::cb load)")
   fzx::reload_action "$(fzx::cb source)" act
   fzx::bind "${FZX_KEYS[reload_hard]}" "$act" "reload: run the source again"
+  fzx::bind "${FZX_KEYS[wrap]}" toggle-wrap-word "wrap the list's rows"
+  fzx::bind "${FZX_KEYS[preview_wrap]}" toggle-preview-wrap "wrap the preview"
 
   if fzx::in_session; then
     fzx::session_title label
@@ -435,6 +437,13 @@ fzx::opts_build() {
   else
     fzx::title_paint label "$module${FZX_MODE:+:$FZX_MODE}"
     FZX_OPTS+=("--border-label= $label ")
+  fi
+
+  # the sort keys are always the sort's: with nothing to switch to they do nothing, rather than reach fzf's
+  # own binding for the key (ctrl-/ and ctrl-_ wrap the list)
+  if ! fzx::in_session || (($(fzx::comp_rows sort | wc -l) < 2)); then
+    fzx::bind "${FZX_KEYS[sort_next]}" ignore "next sort order (none here)"
+    fzx::bind "${FZX_KEYS[sort_prev]}" ignore "previous sort order (none here)"
   fi
 
   # the module's opts hook may set these for its action bindings (lib/actions.sh)

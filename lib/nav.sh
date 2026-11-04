@@ -204,6 +204,8 @@ fzx::nav_sort() {
   fzx::comp_sort_names names
   n="${#names[@]}"
   ((n > 0)) || return 0
+  # one sort in this mode: next and previous have nowhere to go
+  ((n > 1)) || [[ "$target" != next && "$target" != prev ]] || return 0
   for ((i = 0; i < n; i++)); do
     [[ "${names[i]}" == "$FZX_SORT" ]] && idx="$i"
   done

@@ -6,6 +6,18 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.98.0] - 2026-11-03
+
+### Changed
+
+- ctrl-w wraps the list's rows (`FZX_KEYS[wrap]`) and alt-w the preview (`FZX_KEYS[preview_wrap]`), everywhere in
+  fzx. ctrl-w no longer deletes a word in the query inside fzx; alt-backspace still does.
+
+### Fixed
+
+- The sort keys (ctrl-\_, f11, f12) do nothing in a module or mode with nothing to switch to, instead of falling
+  through to fzf's own binding, which wrapped the list.
+
 ## [0.97.0] - 2026-11-03
 
 ### Added

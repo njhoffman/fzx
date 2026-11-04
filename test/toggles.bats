@@ -125,11 +125,38 @@ EOF2
   [ "$status" -eq 1 ]
 }
 
-@test "one sort key or none: no f11/f12" {
+@test "one sort key or none: the sort keys do nothing, and never reach fzf's own (ctrl-_ wraps the list)" {
   echo 'toggle  t  -  a toggle  -' > "$FZX_CONFIG_DIR/modules/counter/components.tsv"
   run "$FZX" -m counter
-  run fzf_bind f12
-  [ "$status" -eq 1 ]
+  [ "$(fzf_bind f12)" = "f12:ignore" ]
+  [ "$(fzf_bind f11)" = "f11:ignore" ]
+  [ "$(fzf_bind ctrl-_)" = "ctrl-_:ignore" ]
+  echo 'sort  only  -  the one  -' > "$FZX_CONFIG_DIR/modules/counter/components.tsv"
+  run "$FZX" -m counter
+  [ "$(fzf_bind ctrl-_)" = "ctrl-_:ignore" ]
+  # two rows, one of them in this mode: bound, and next stays put without a reload
+  cat > "$FZX_CONFIG_DIR/modules/counter/components.tsv" << 'EOF2'
+sort  size  -  one: by size       -
+sort  name  -  one, two: by name  -
+EOF2
+  kept -m counter:two
+  [[ "$(fzf_bind ctrl-_)" == "ctrl-_:transform:"*"sort next"* ]]
+  FZX_SESSION="$SID" run "$FZX" _cb sort next
+  [ -z "$output" ]
+  # a module run directly has no session to keep a sort in
+  local mod="$FZX_REPO/modules/ps"
+  run "$mod/module.sh"
+  [ "$(fzf_bind ctrl-_)" = "ctrl-_:ignore" ]
+}
+
+@test "wrapping: ctrl-w the list's rows, alt-w (ctrl-shift-w in alacritty) the preview, in and out of a session" {
+  run "$FZX" -m counter
+  [ "$(fzf_bind ctrl-w)" = "ctrl-w:toggle-wrap-word" ]
+  [ "$(fzf_bind alt-w)" = "alt-w:toggle-preview-wrap" ]
+  run "$FZX_REPO/modules/ps/module.sh"
+  [ "$(fzf_bind ctrl-w)" = "ctrl-w:toggle-wrap-word" ]
+  # modules may not take them
+  [[ " $(. "$FZX_REPO/config/defaults.sh"; echo "${FZX_RESERVED_KEYS[*]}") " == *" ctrl-w "*" alt-w "* ]]
 }
 
 @test "toggle and sort changes are recorded in stats" {
@@ -178,11 +205,13 @@ EOF2
   [[ "$footer" == *three* && "$footer" != *name* ]]
   kept
   FZX_SESSION="$SID" "$FZX" _cb mode two > /dev/null
-  # size is one's only: f5 does nothing in two, next stays on the one sort two has
+  # size is one's only: f5 does nothing in two, next stays on the one sort two has, which is what it shows
   FZX_SESSION="$SID" run "$FZX" _cb sort size
   [ "$status" -eq 0 ]
-  FZX_SESSION="$SID" "$FZX" _cb sort next > /dev/null
-  [ "$(< "$DIR/state/sort")" = name ]
+  FZX_SESSION="$SID" run "$FZX" _cb sort next
+  [ -z "$output" ]
+  FZX_SESSION="$SID" "$FZX" _cb load > /dev/null
+  [ -f "$DIR/data/two@name" ]
 }
 
 @test "header rows (FZX_SORTED_SHOW=header): --header-lines, the sort's direction, a cache of their own; modes without a sort restart" {

@@ -14,6 +14,10 @@ declare -gA FZX_KEYS=(
   # ctrl-_ is what ctrl-shift-_ (and ctrl-/) send; it takes ctrl-/ from fzf's toggle-wrap-word
   [sort_next]="f12,ctrl-_"
   [sort_prev]=f11
+  # wrapping: the list's rows, and the preview. fzf has no ctrl-shift-w (a terminal sends it as ctrl-w unless
+  # told otherwise): alacritty.toml sends it as alt-w, which is the key to name here
+  [wrap]=ctrl-w
+  [preview_wrap]=alt-w
   [back]=alt-left
   [menu]=alt-o
   [escape]=esc
@@ -33,8 +37,7 @@ FZX_TOGGLE_DIGIT_KEYS=1
 # short (^X, M-left) or glyph (⌃X, ⌥←; needs a font with the symbols). Binds and FZX_KEYS keep fzf's names.
 FZX_KEY_STYLE=full
 
-# keys modules may not take: scrolling, query editing and the preview wrap toggle (alt-w) in the user's fzf
-# options. A module binding on one of these is skipped with a warning in the log (fzx's own keys are not
+# keys modules may not take: scrolling, query editing and the wrap toggles (ctrl-w, alt-w). A module binding on one of these is skipped with a warning in the log (fzx's own keys are not
 # checked); drop a key from the list to let modules have it
 FZX_RESERVED_KEYS=(ctrl-f ctrl-b ctrl-u ctrl-w ctrl-g alt-g ctrl-p ctrl-n up down alt-b alt-f alt-w scroll-up scroll-down)
 
