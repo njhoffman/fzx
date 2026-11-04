@@ -51,6 +51,21 @@ _fzx_shell_first_prompt() {
 }
 add-zsh-hook precmd _fzx_shell_first_prompt
 
+# fzx-run <fzx args...>: fzx from a widget. A widget runs at the prompt, where a shell's focus reporting may be
+# on (\e[?1004h; ~/.shell's vi mode turns it on in precmd and off in preexec, which a widget never reaches): fzf
+# reads the focus sequences as typing, an I or O in the query on every pane switch. So it goes off for fzx and
+# back on after it, for a shell that had it on.
+fzx-run() {
+  local rc
+  [[ -w "$TTY" ]] && print -n -- '\e[?1004l' >> "$TTY"
+  command "${FZX_ZSH_BIN:-fzx}" "$@"
+  rc=$?
+  if [[ -w "$TTY" ]] && ((${precmd_functions[(I)__shell_vi_precmd]})) && [[ "${SHELL_VI_FOCUS_INSERT:-always}" != off ]]; then
+    print -n -- '\e[?1004h' >> "$TTY"
+  fi
+  return "$rc"
+}
+
 # fzx-format: selection lines on stdin -> one shell-quoted word each, space-separated; paths under the
 # current directory become relative (the directory itself becomes "."). Both the logical $PWD and its
 # resolved form count, since modules print resolved paths and $PWD may run through a symlink.
@@ -79,7 +94,7 @@ fzx-insert() {
   setopt pipefail no_aliases
   local words
   fzx-keys-refresh
-  words="$(command "${FZX_ZSH_BIN:-fzx}" "$@" < /dev/tty | fzx-format)"
+  words="$(fzx-run "$@" < /dev/tty | fzx-format)"
   if [[ -n "$words" ]]; then
     [[ -n "$LBUFFER" && "$LBUFFER" != *' ' ]] && words=" $words"
     LBUFFER+="$words"
@@ -107,7 +122,7 @@ fzx-history-widget() {
     global | host | directory | session) mode="${FZX_ZSH_HISTORY_MODE:-global}" ;;
     *) mode=global ;;
   esac
-  out="$(FZX_HISTDB_SESSION="${HISTDB_SESSION:-}" command "${FZX_ZSH_BIN:-fzx}" -m "history:$mode" \
+  out="$(FZX_HISTDB_SESSION="${HISTDB_SESSION:-}" fzx-run -m "history:$mode" \
     "${query[@]}" < /dev/tty)"
   rc=$?
   if [[ -n "$out" ]]; then
@@ -128,7 +143,7 @@ fzx-cd-widget-run() {
   setopt pipefail no_aliases
   local dir
   fzx-keys-refresh
-  dir="$(command "${FZX_ZSH_BIN:-fzx}" "$@" < /dev/tty | head -n 1)"
+  dir="$(fzx-run "$@" < /dev/tty | head -n 1)"
   if [[ -z "$dir" ]]; then
     zle reset-prompt
     return 0

@@ -488,3 +488,15 @@ EOF2
     }
   done < <(FZX_MODULE_PATH="$FZX_REPO/modules" fzx::menu_modules)
 }
+
+@test "alt-y copies the whole line in every module: only todos has its own, the others moved to alt-Y" {
+  run grep -lE '^action[[:space:]]+[^[:space:]]+[[:space:]]+alt-y[[:space:]]' "$FZX_REPO"/modules/*/components.tsv
+  [ "$output" = "$FZX_REPO/modules/todos/components.tsv" ]
+  stub_fzf
+  run "$FZX" -m counter
+  [[ "$(fzf_bind alt-y)" == *"copy-line"* ]]
+  run "$FZX"
+  [[ "$(fzf_bind alt-y)" == *"copy-line"* ]]
+  run "$FZX" -m shell:params
+  [[ "$(fzf_bind alt-Y)" == *"value"* ]]
+}

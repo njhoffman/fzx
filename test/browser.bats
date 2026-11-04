@@ -155,7 +155,7 @@ google-chrome|--profile-directory=Profile 2|https://w/|https://w2/|" ]
   [[ " ${FZF_ARGS[*]} " == *" --accept-nth=2 "* && " ${FZF_ARGS[*]} " == *" --with-nth=3 "* ]]
   [[ "$(fzf_bind enter)" == "enter:become($FZX _cb action open {+1..2})"* ]]
   [[ "$(fzf_bind ctrl-o)" == "ctrl-o:execute-silent($FZX _cb action open-stay {+1..2})"* ]]
-  [[ "$(fzf_bind alt-y)" == *"notify copy-title {+4}"* ]]
+  [[ "$(fzf_bind alt-Y)" == *"notify copy-title {+4}"* ]]
 }
 
 @test "menu: where a profile directory exists; the browsers found" {

@@ -81,11 +81,11 @@ fzx::builtin() {
   case "$name" in
     copy-line)
       (($#)) || return 0
-      # the line as the source wrote it: a display split for --freeze-left whole again
+      # the line as it shows: the display whole again (split for --freeze-left), no hidden fields, no padding
       local _k=""
       [[ -n "${FZX_SESSION_DIR:-}" ]] && fzx::_kv_get "$FZX_SESSION_DIR/meta/freeze" _k 2> /dev/null
       if [[ -n "$_k" ]]; then
-        printf '%s\n' "$@" | awk -F'\t' -v OFS='\t' -v k="$_k" '{ last = $NF; NF--; if (last != "") $k = $k " " last; print }' | fzx::clip
+        printf '%s\n' "$@" | awk -F'\t' -v k="$_k" '{ s = $k; if ($NF != "") s = s " " $NF; sub(/ +$/, "", s); print s }' | fzx::clip
       else
         printf '%s\n' "$@" | fzx::clip
       fi

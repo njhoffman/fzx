@@ -97,7 +97,7 @@ rows() {
   [[ " ${FZF_ARGS[*]} " == *" --with-nth=2 "* && " ${FZF_ARGS[*]} " == *" --freeze-left=1 "* ]]
 }
 
-@test "under fzx: the load is split and cached apart; copy-line gets the source's line back" {
+@test "under fzx: the load is split and cached apart; copy-line gets the line as it shows" {
   stub_fzf
   "$FZX" --keep -m wide
   local sid dir
@@ -114,7 +114,7 @@ rows() {
   load_libs log session builtin
   fzx::clip() { cat > "$BATS_TEST_TMPDIR/clip"; }
   FZX_SESSION_DIR="$dir" fzx::builtin copy-line $'a\tname   \textra\tthe rest'
-  [ "$(< "$BATS_TEST_TMPDIR/clip")" = $'a\tname    the rest\textra' ]
+  [ "$(< "$BATS_TEST_TMPDIR/clip")" = "name    the rest" ]
 }
 
 @test "files, dirs and recent keep the end of a path in view; grep shows its start" {

@@ -3,5 +3,5 @@
 # Built-in actions run through `fzx builtin <name> <args>`.
 # kind   name       key  description                         flags
 action   copy       -    copy the selection to the clipboard  silent,builtin
-action   copy-line  -    copy the whole lines                  silent,builtin
+action   copy-line  alt-y  copy the whole lines                  silent,builtin
 action   view       -    view the preview in a pager          foreground,builtin

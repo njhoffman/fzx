@@ -6,6 +6,18 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.99.0] - 2026-11-03
+
+### Changed
+
+- alt-y copies the whole line as it shows in every module (the built-in `copy-line`), without the hidden fields.
+  What applications, browser, fonts and shell had on alt-y moves to alt-Y.
+
+### Fixed
+
+- An I or O no longer lands in the query when you switch tmux panes with fzx open from a zsh widget (ctrl-r, the
+  menu, ...): the widgets turn the shell's focus reporting off while fzx runs, and back on after it.
+
 ## [0.98.0] - 2026-11-03
 
 ### Changed

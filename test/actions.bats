@@ -250,7 +250,7 @@ menu_open() {
   [ "${lines[1]}" = $'edit\t▶ ↻ edit          alt-e    edit the items' ]
   [ "${lines[2]}" = $'pick\t⇥   pick          alt-p    print a value' ]
   [ "${lines[3]}" = $'open\t⇥   open                 ⏎ open the item' ]
-  [ "${lines[4]}" = $'copy-line\t↯   copy-line              copy the whole lines' ]
+  [ "${lines[4]}" = $'copy-line\t↯   copy-line     alt-y    copy the whole lines' ]
   # no icons: the name starts the row
   NO_COLOR=1 FZX_ICONS=none FZX_SESSION="$CHILD" run "$FZX" _cb source
   [ "${lines[0]}" = $'mark\tmark          alt-m    mark the items' ]

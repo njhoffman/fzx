@@ -500,6 +500,11 @@ resolved config: the callback loads the layers just before the first module func
 | `FZX_RESIZE_SETTLE_MS` | `300` | how long the window's size must hold before a popup is reopened at the new size |
 | `FZX_PERSIST`, `FZX_POPUP_OPTS`, `FZX_FLOAT_OPTS`, `FZX_STATS`, `FZX_SUMMARY_TTL`, `FZX_TRACE`, ... | | see their sections |
 
+**Yanking.** ctrl-y and alt-y are global in the user's fzfrc (the first field, the whole line). Modules refine
+them: a `copy` action takes ctrl-y for what the module means by the row (a URL, a family name), and the
+built-in `copy-line` is alt-y everywhere, copying the display as it shows rather than fzf's `{}`, which holds
+the hidden fields. Other copies a module offers use alt-Y.
+
 **Wrapping keys.** `FZX_KEYS[wrap]` (ctrl-w) toggles word wrap in the list and `[preview_wrap]` (alt-w) the
 preview's, in every module; both are in `FZX_RESERVED_KEYS`. fzf has no ctrl-shift-w: the terminal has to send
 something else for it, and alacritty.toml sends alt-w. The sort keys are bound in every module too, to `ignore`

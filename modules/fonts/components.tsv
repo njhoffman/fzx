@@ -3,5 +3,5 @@
 mode    families    -       font families by name                          default
 toggle  mono        alt-m   monospace families only                        -
 action  copy        ctrl-y  copy the family names                          silent,builtin
-action  copy-files  alt-y   copy the families' font files                  notify
+action  copy-files  alt-Y   copy the families' font files                  notify
 action  folder      alt-O   open the folder of each family's regular font  silent

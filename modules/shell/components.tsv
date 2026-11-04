@@ -12,5 +12,5 @@ action  edit        ctrl-e  functions: the file at the definition; commands: a s
 action  rescan      alt-R   completions: ask zsh-complete for the list again (it takes a while)     foreground,reload
 action  status      alt-i   completions: zsh-complete status (provider, origin, errors) in the pager  foreground
 action  help        alt-n   the tldr or man page in the pager (an alias: its command's; a builtin: zshbuiltins)  foreground
-action  value       alt-y   params: copy the values (masked ones skipped)                            silent,notify
+action  value       alt-Y   params: copy the values (masked ones skipped)                            silent,notify
 action  copy        ctrl-y  copy the names                                                          silent,builtin

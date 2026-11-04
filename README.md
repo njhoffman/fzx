@@ -51,6 +51,7 @@ Inside any module, f1 shows every key, mode, toggle and action. The common ones:
 | alt-1 .. alt-8 | the module's toggles, in table order |
 | f11 / f12 | previous / next sort order |
 | alt-o | the main menu, from anywhere (`FZX_KEYS[menu]`) |
+| ctrl-y / alt-y | copy the selection's value (what the module calls it) / the whole line as it shows |
 | ctrl-w / alt-w | wrap the list's rows / the preview (ctrl-shift-w in alacritty sends alt-w) |
 | ctrl-^ | next placement: inline, split, popup, float |
 | alt-^ | a popup or the plain terminal, nothing else |

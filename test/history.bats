@@ -253,6 +253,24 @@ src() { FZX_MODE="$1" "$HIST/source.sh" | plain; }
   [[ "$(fzf_bind alt-a)" == *'_cb toggle runs'* ]]
 }
 
+@test "zsh widgets: the shell's focus reporting is off while fzx runs, back on after for a shell that had it on" {
+  local tty="$BATS_TEST_TMPDIR/tty" bin="$BATS_TEST_TMPDIR/fzx-stub"
+  printf '#!/bin/sh\nprintf RUN >> "%s"\nexit 7\n' "$tty" > "$bin"
+  chmod +x "$bin"
+  # run <precmd hook name> <SHELL_VI_FOCUS_INSERT>: what the terminal is sent
+  focus() {
+    : > "$tty"
+    zsh -f -c 'FZX_ZSH_NO_BIND=1 FZX_ZSH_NO_KEYS_DUMP=1 FZX_ZSH_NO_SHELL_DUMP=1 source "$1" 2> /dev/null
+      TTY="$2" FZX_ZSH_BIN="$3"; precmd_functions=("$4"); SHELL_VI_FOCUS_INSERT="$5"
+      fzx-run -m x; print -n -- "rc=$?" >> "$TTY"' _ "$FZX_REPO/shell/fzx.zsh" "$tty" "$bin" "$1" "$2"
+    cat -v "$tty"
+  }
+  [ "$(focus __shell_vi_precmd always)" = '^[[?1004lRUN^[[?1004hrc=7' ]
+  # a shell that keeps it off, or never had it
+  [ "$(focus __shell_vi_precmd off)" = '^[[?1004lRUNrc=7' ]
+  [ "$(focus other always)" = '^[[?1004lRUNrc=7' ]
+}
+
 @test "zsh widget: global unless FZX_ZSH_HISTORY_MODE says otherwise, the session and the typed text; exit 10 accepts the line" {
   command -v zsh > /dev/null || skip "zsh not installed"
   cat > "$BATS_TEST_TMPDIR/fzxstub" << 'STUB'

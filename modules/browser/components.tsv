@@ -11,4 +11,4 @@ action  open       -       open in the row's browser and profile, then close    
 action  open-stay  ctrl-o  open in the row's browser and profile                        silent
 action  xdg        alt-O   open in the default browser (xdg-open)                        silent
 action  copy       ctrl-y  copy the URLs                                                silent,builtin
-action  copy-title  alt-y   copy the titles                                             notify
+action  copy-title  alt-Y   copy the titles                                             notify

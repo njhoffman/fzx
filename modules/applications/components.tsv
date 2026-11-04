@@ -7,4 +7,4 @@ action  launch       -       launch (gtk-launch, detached), then close          
 action  launch-stay  ctrl-o  launch (gtk-launch, detached)                           silent
 action  edit         alt-e   edit the desktop files                                  foreground,reload
 action  copy         ctrl-y  copy the desktop IDs                                    silent,builtin
-action  copy-exec    alt-y   copy the Exec lines                                     notify
+action  copy-exec    alt-Y   copy the Exec lines                                     notify
