@@ -5,6 +5,7 @@ kdeconnect::manifest() {
   fzx::entry kdeconnect "KDE Connect devices"
   fzx::entry kdeconnect:notifications "Notifications on your KDE Connect devices"
   fzx::entry kdeconnect:commands "Commands your KDE Connect devices offer"
+  fzx::entry kdeconnect:sms "SMS conversations on KDE Connect devices"
 }
 
 # once per menu listing, not once per entry
@@ -40,6 +41,15 @@ kdeconnect::summary() {
         n=$((n + $(kdeconnect::notification_ids "$id" | wc -l)))
       done < <(kdeconnect::connected)
       printf '%s notification%s\n' "$n" "$( ((n == 1)) || echo s)"
+      ;;
+    kdeconnect:sms)
+      # what the daemon has already: asking the phone belongs to opening the list
+      while read -r id name; do
+        [[ -n "$id" ]] || continue
+        kdeconnect::conversations "$id"
+      done < <(kdeconnect::connected) |
+        command jq -rs '[.[].data[0][]?.data] | length as $n | ([.[] | select(.[4] == 1 and .[5] == 0)] | length) as $u |
+          select($n > 0) | "\($n) conversation\(if $n == 1 then "" else "s" end), \($u) unread"'
       ;;
   esac
 }

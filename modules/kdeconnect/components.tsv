@@ -1,10 +1,12 @@
 # kdeconnect components: kind  name  key  description  flags (see lib/components.sh)
-# Ids: a device's id; DEVICE/NOTIFICATION and DEVICE/COMMAND in the other modes.
+# Ids: a device's id; DEVICE/NOTIFICATION, DEVICE/COMMAND and DEVICE/THREAD in the other modes.
 mode    devices        -       paired and nearby devices, connected first                 default
 mode    notifications  -       the notifications on the connected devices                 -
 mode    commands       -       the commands the connected devices offer to run            -
+mode    sms            -       SMS conversations on the connected devices                 -
 sort    state          -       devices: connected first                                   default
-sort    name           -       devices: by name                                           -
+sort    recent         -       sms: newest first                                          default,desc
+sort    name           -       devices, sms: by name                                      -
 action  ping       alt-p   devices: send a ping                                           notify
 action  ring       alt-i   devices: ring it, to find it                                   notify
 action  clipboard  alt-v   devices: send this computer's clipboard                        notify

@@ -40,12 +40,44 @@ case "$args" in
   *'/notifications/8 '*' GetAll '*) echo '{"type":"a{sv}","data":[{"appName":{"type":"s","data":"Battery"},"title":{"type":"s","data":"Low"},"text":{"type":"s","data":"back\\slash"},"dismissable":{"type":"b","data":false}}]}' ;;
   *'/notifications/9 '*' GetAll '*) echo 'Failed' >&2; exit 1 ;;
   *' dismiss '*) exit 0 ;;
+  *' activeConversations '*) [[ -n "${STUB_QUIET:-}" ]] && { echo '{"type":"av","data":[[]]}'; exit; }; cat "$STUB_THREADS" ;;
+  *' requestAllConversationThreads '*) exit 0 ;;
+  *' requestConversation '*) exit 0 ;;
+  *' monitor '*)
+    [[ -n "${STUB_SILENT:-}" ]] && exit 0
+    cat "$STUB_MONITOR"
+    # as the real one: it runs until it is stopped
+    echo "$$" > "$STUB_MONITOR.pid"
+    exec sleep 317 ;;
   *) exit 1 ;;
 esac
 STUB
   chmod +x "$BATS_TEST_TMPDIR/bin/"*
   export PATH="$BATS_TEST_TMPDIR/bin:$PATH" STUB_CALLS="$CALLS"
   export FZX_TTY="$BATS_TEST_TMPDIR/answers" FZX_KDECONNECT_TTY="$BATS_TEST_TMPDIR/typed"
+  # threads: Sam (a contact, unread), a number nobody knows (sent by you), a group of four, one only an attachment
+  export STUB_THREADS="$BATS_TEST_TMPDIR/threads" STUB_MONITOR="$BATS_TEST_TMPDIR/monitor" XDG_DATA_HOME="$BATS_TEST_TMPDIR/data"
+  cat > "$STUB_THREADS" << 'JSON'
+{"type":"av","data":[[
+{"type":"(isa(s)xiixixa(xsss))","data":[1,"see\nyou\tthere\u001b[2J",[["+1 (555) 123-0001"]],1767225600000,1,0,11,1,1,[]]},
+{"type":"(isa(s)xiixixa(xsss))","data":[1,"on my way",[["5559998888"]],1767312000000,2,1,12,2,1,[]]},
+{"type":"(isa(s)xiixixa(xsss))","data":[1,"hello all",[["5551230001"],["5550000002"],["5550000003"],["5550000004"]],1767139200000,1,1,13,3,1,[]]},
+{"type":"(isa(s)xiixixa(xsss))","data":[1,"",[["5550000005"]],1767052800000,1,1,14,4,1,[[1,"image/png","x","y"]]]}
+]]}
+JSON
+  cat > "$STUB_MONITOR" << 'JSON'
+{"member":"conversationUpdated","payload":{"type":"v","data":[{"type":"(isa(s)xiixixa(xsss))","data":[1,"older\u001b[2J\nsecond line",[["5551230001"]],1767139200000,1,1,11,8,1,[]]}]}}
+{"member":"conversationUpdated","payload":{"type":"v","data":[{"type":"(isa(s)xiixixa(xsss))","data":[1,"from me",[["5551230001"]],1767225600000,2,1,11,9,1,[[1,"image/png","x","y"]]]}]}}
+{"member":"conversationUpdated","payload":{"type":"v","data":[{"type":"(isa(s)xiixixa(xsss))","data":[1,"another thread",[["5550000009"]],1767225600000,1,1,99,10,1,[]]}]}}
+{"member":"conversationLoaded","payload":{"type":"xt","data":[99,1]}}
+{"member":"conversationUpdated","payload":{"type":"v","data":[{"type":"(isa(s)xiixixa(xsss))","data":[1,"late one",[["5551230001"]],1767312000000,1,1,11,11,1,[]]}]}}
+{"member":"conversationLoaded","payload":{"type":"xt","data":[11,3]}}
+{"member":"conversationUpdated","payload":{"type":"v","data":[{"type":"(isa(s)xiixixa(xsss))","data":[1,"after it was loaded",[["5551230001"]],1767398400000,1,1,11,12,1,[]]}]}}
+JSON
+  mkdir -p "$XDG_DATA_HOME/kpeoplevcard/kdeconnect-phone1"
+  printf 'BEGIN:VCARD\r\nFN:Sam Lee\r\nTEL;TYPE=CELL:+1 555 123 0001\r\nPHOTO:FN:not a name\r\n abc\r\nEND:VCARD\r\n' > "$XDG_DATA_HOME/kpeoplevcard/kdeconnect-phone1/a.vcf"
+  printf 'BEGIN:VCARD\r\nFN:Pat\r\nTEL:5550000002\r\nEND:VCARD\r\n' > "$XDG_DATA_HOME/kpeoplevcard/kdeconnect-phone1/b.vcf"
+  export TZ=UTC
 }
 
 plain() { sed 's/\x1b\[[0-9;:]*m//g'; }
@@ -164,6 +196,119 @@ typed() { printf '%s\n' "$@" > "$FZX_KDECONNECT_TTY"; }
   [ "$output" = "no devices known" ]
   run prev commands phone1/k1 Lights 'lights --on'
   [[ "$output" == *Lights* && "$output" == *'lights --on'* && "$output" == *k1* ]]
+}
+
+@test "sms: threads, newest first, contacts named, unread marked, you marked, text safe, ids naming device and thread" {
+  run src sms
+  [ "$status" -eq 0 ]
+  [ "${#lines[@]}" -eq 4 ]
+  [[ "${lines[0]}" == phone1/12$'\t'*5559998888*'2026-01-02 00:00'*'you: on my way'$'\t'5559998888 ]]
+  [[ "${lines[1]}" == phone1/11$'\t'*'Sam Lee'*'2026-01-01 00:00'*'see you there'$'\t''Sam Lee' ]]
+  [[ "${lines[2]}" == phone1/13$'\t'*'Sam Lee, Pat +2'*'hello all'* ]]
+  [[ "${lines[3]}" == phone1/14$'\t'*'(attachment)'* ]]
+  [ "$(printf '%s\n' "${lines[0]}" | awk -F'\t' '{ print NF }')" -eq 3 ]
+  run bash -c "FZX_MODE=sms '$KC/source.sh'"
+  [[ "$output" != *$'\e[2J'* && "$output" != *'[2J'* ]]
+  # the unread mark only on the unread thread
+  [[ "$(printf '%s\n' "${lines[1]}" | cut -f2)" == *●* && "$(printf '%s\n' "${lines[0]}" | cut -f2)" != *●* ]]
+}
+
+@test "sms: by name; a header row names the columns" {
+  FZX_SORT=name run src sms
+  [[ "${lines[0]}" == phone1/14$'\t'* && "${lines[1]}" == phone1/12$'\t'* && "${lines[2]}" == phone1/11$'\t'* && "${lines[3]}" == phone1/13$'\t'* ]]
+  run bash -c "FZX_MODE=sms FZX_SORT_HEADER=1 '$KC/source.sh' | sed 's/\x1b\[[0-9;:]*m//g'"
+  [[ "${lines[0]}" == $'\t'*NAME*DATE*LAST* ]]
+  [[ "${lines[1]}" == phone1/12$'\t'* ]]
+}
+
+@test "sms: only a connected device with the plugin; asked once; nothing yet and nobody connected say so" {
+  run src sms
+  grep -q requestAllConversationThreads "$CALLS"
+  ! grep -q '/away1' <(grep -E 'activeConversations|requestAll' "$CALLS")
+  FZX_KDECONNECT_SMS_WAIT=0 STUB_QUIET=1 run src sms
+  [[ "$output" == $'\tno conversations yet'* ]]
+  STUB_NONE=1 run src sms
+  [[ "$output" == $'\tno device connected\t'* ]]
+}
+
+@test "sms: no contacts synced: the numbers show" {
+  rm -rf "$XDG_DATA_HOME/kpeoplevcard"
+  run src sms
+  [[ "${lines[1]}" == *'+1 (555) 123-0001'* ]]
+}
+
+@test "sms preview: this thread only, newest first up to when it loaded, who sent it, attachments, text safe" {
+  run prev sms phone1/11 'Sam Lee'
+  [ "$status" -eq 0 ]
+  [[ "${lines[0]}" == 'Sam Lee' ]]
+  [[ "$output" == *'late one'*'from me'*'attachment'*'older'*'second line'* ]]
+  [[ "$output" != *'another thread'* && "$output" != *'after it was loaded'* && "$output" != *'[2J'* ]]
+  [[ "$output" == *'2026-01-01 00:00  you'* ]]
+  grep -q 'requestConversation xii 11 0 30' "$CALLS"
+}
+
+@test "sms preview: a group names who wrote; the monitor is gone afterwards; nothing back says so" {
+  cat > "$STUB_MONITOR" << 'JSON'
+{"member":"conversationUpdated","payload":{"type":"v","data":[{"type":"(isa(s)xiixixa(xsss))","data":[1,"hi",[["5551230001"],["5550000002"]],1767225600000,1,1,13,5,1,[]]}]}}
+{"member":"conversationLoaded","payload":{"type":"xt","data":[13,1]}}
+JSON
+  run prev sms phone1/13 'Sam Lee, Pat'
+  [[ "$output" == *'2026-01-01 00:00  Sam Lee'* && "$output" == *hi* ]]
+  sleep 0.2
+  ! kill -0 "$(cat "$STUB_MONITOR.pid")" 2> /dev/null
+  STUB_SILENT=1 run prev sms phone1/13 'Sam Lee, Pat'
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'no messages came back'* ]]
+}
+
+@test "sms: what contacts and messages hold is never on a command line, in a file or in the log" {
+  grep -vq -- '--argjson contacts' "$KC/source.sh"
+  run grep -c -- '--argjson contacts\|--arg contacts' "$KC/source.sh" "$KC/preview.sh"
+  [[ "$output" != *:[1-9]* ]]
+  stub_fzf
+  run "$FZX" -m kdeconnect:sms --keep
+  local sid
+  sid="$(basename "$(session_dirs)")"
+  FZX_LOG_LEVEL=debug FZX_SESSION="$sid" run "$FZX" _cb source
+  [[ "$output" == *'Sam Lee'* ]]
+  FZX_LOG_LEVEL=debug FZX_SESSION="$sid" run "$FZX" _cb preview phone1/11 'Sam Lee' ''
+  [[ "$output" == *'late one'* ]]
+  FZX_LOG_LEVEL=debug FZX_SESSION="$sid" run "$FZX" _cb notify copy 'Sam Lee'
+  FZX_LOG_LEVEL=debug FZX_SESSION="$sid" run "$FZX" _cb action ping 'Sam Lee'
+  # a failing callback logs at error, where arguments used to show
+  FZX_LOG_LEVEL=debug FZX_SESSION="$sid" run "$FZX" _cb action dismiss 'Sam Lee'
+  run grep -rlE 'Sam Lee|late one|on my way|hello all' "$FZX_STATE_DIR" "$FZX_CACHE_DIR" "$(session_dirs)"
+  [ "$status" -ne 0 ]
+  # copying a whole row and opening the actions menu hand over the row itself: not to the log either
+  FZX_SESSION="$sid" run "$FZX" _cb notify copy-line 'Sam Lee 2026 hello all'
+  FZX_SESSION="$sid" run "$FZX" _cb nav goto actions copy-line 'Sam Lee 2026 hello all' --fzx--
+  run grep -rlE 'Sam Lee|hello all' "$FZX_STATE_DIR" "$FZX_CACHE_DIR"
+  [ "$status" -ne 0 ]
+  # and the log still says what ran
+  grep -q 'cb preview rc=0' "$FZX_STATE_DIR/fzx.log"
+}
+
+@test "sms: copies as everywhere, ctrl-y the name and alt-y the row; the menu entry and a count" {
+  stub_fzf
+  run "$FZX" -m kdeconnect:sms
+  [[ "$(fzf_bind alt-y)" == *'_cb notify copy-line {+}'* ]]
+  [[ "$(fzf_bind ctrl-y)" == *"_cb notify copy {+3}"* ]]
+  load_libs log config menu
+  fzx::menu_entries kdeconnect "$KC"
+  [[ " ${FZX_ENTRY_TARGETS[*]} " == *" kdeconnect:sms "* ]]
+  [ "$(kdeconnect::summary kdeconnect:sms)" = "4 conversations, 1 unread" ]
+  STUB_QUIET=1 run kdeconnect::summary kdeconnect:sms
+  [ -z "$output" ]
+  ! grep -q requestAll "$CALLS"
+}
+
+@test "FZX_LOG_ARGS: other modules still name their arguments" {
+  stub_fzf
+  run "$FZX" -m ps --keep
+  local sid
+  sid="$(basename "$(session_dirs)")"
+  FZX_SESSION="$sid" run "$FZX" _cb action nosuchaction naming-this-argument
+  grep -q 'cb action nosuchaction naming-this-argument' "$FZX_STATE_DIR/fzx.log"
 }
 
 @test "ping, ring, clipboard: each selected device" {
@@ -317,7 +462,7 @@ typed() { printf '%s\n' "$@" > "$FZX_KDECONNECT_TTY"; }
 
 @test "every row of the table parses, in every mode" {
   local m
-  for m in devices notifications commands; do
+  for m in devices notifications commands sms; do
     run bash -c "'$FZX' -m kdeconnect:$m --dry-run 2>&1 > /dev/null"
     [ "$status" -eq 0 ]
     [ -z "$output" ]

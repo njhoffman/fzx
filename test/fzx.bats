@@ -49,11 +49,25 @@ setup() {
   [[ "${lines[0]}" == *'[--raw]' && "${lines[1]}" == *'usage statistics' ]]
 }
 
+@test "--help on a real terminal: its width is found without COLUMNS, and descriptions wrap in their column" {
+  command -v script > /dev/null || skip "no script command"
+  run script -qec "stty cols 70; env -u COLUMNS NO_COLOR=1 '$FZX' --help" /dev/null < /dev/null
+  [ "$status" -eq 0 ]
+  local plain long=0 wrapped=0 line
+  plain="${output//$'\r'/}"
+  while IFS= read -r line; do
+    ((${#line} <= 70)) || long=$((long + 1))
+    [[ "$line" == "        "* ]] && wrapped=$((wrapped + 1))
+  done <<< "$plain"
+  [ "$long" -eq 0 ]
+  [ "$wrapped" -gt 5 ]
+}
+
 @test "--help: cool colors on a terminal, not with NO_COLOR" {
   command -v script > /dev/null || skip "no script command"
   run script -qec "'$FZX' --help" /dev/null < /dev/null
-  [[ "$output" == *$'\e[1;38;5;39mCommands'* && "$output" == *$'\e[38;5;110mMODULE'* && "$output" == *$'\e[38;5;79m'* ]]
-  [[ "$output" != *'38;5;114m'* && "$output" != *'38;5;180m'* ]]
+  [[ "$output" == *$'\e[1;38;5;39mCommands'* && "$output" == *$'\e[38;5;110mMODULE'* && "$output" == *$'\e[38;5;73m'* ]]
+  [[ "$output" != *'38;5;114m'* && "$output" != *'38;5;180m'* && "$output" != *'38;5;79m'* ]]
   run script -qec "env NO_COLOR=1 '$FZX' --help" /dev/null < /dev/null
   [[ "$output" != *$'\e['* ]]
 }

@@ -78,7 +78,12 @@ fzx::callback() {
   local level=info
   [[ "$verb" == preview || "$verb" == trace || "$verb" == prompt ]] && level=debug
   ((rc == 0)) || level=error
-  fzx::log "$level" "cb $verb${*:+ $*} rc=$rc $((end - start))ms"
+  # FZX_LOG_ARGS=0: a module whose rows hold private text keeps them out of the log
+  if [[ "${FZX_LOG_ARGS:-1}" == 0 ]]; then
+    fzx::log "$level" "cb $verb rc=$rc $((end - start))ms"
+  else
+    fzx::log "$level" "cb $verb${*:+ $*} rc=$rc $((end - start))ms"
+  fi
   if ((${#_FZX_STAT[@]})); then
     fzx::require stats
     # FZX_MODE inherited from fzf's environment goes stale after an in-place mode switch: resolve it,

@@ -3,6 +3,9 @@
 #   devices        id: the device's. Details: reachable paired type charge charging (0x1f-separated)
 #   notifications  id: DEVICE/NOTIFICATION. Read from the bus, none of it kept
 #   commands       id: DEVICE/COMMAND. Details: the command line
+#   sms            id: DEVICE/THREAD, name: who it is with (sort recent or name). Read from the bus, none of it kept
+# A message is the D-Bus struct (event, body, addresses, date, type, read, thread, uid, sub, attachments): type 1 came
+# in, 2 went out; read 0 is unread; addresses are one-field structs.
 # A list with nothing to show, or that cannot be read, is a row with an empty id and the message as its name.
 # What a device sends is text from elsewhere: control characters never reach the screen.
 
@@ -50,6 +53,66 @@ kdeconnect::notification() {
     command jq -c '.data[0] | map_values(.data)'
 }
 
+# kdeconnect::conversations <device>: the newest message of each thread the daemon knows, as busctl's JSON
+kdeconnect::conversations() {
+  command busctl --user --json=short call "$KDECONNECT_BUS" "$(kdeconnect::path "$1")" "$KDECONNECT_IFACE.conversations" activeConversations 2> /dev/null
+}
+
+# kdeconnect::_ask_threads <device>: ask the phone for its threads; the answer arrives in the daemon by itself
+kdeconnect::_ask_threads() {
+  command busctl --user call "$KDECONNECT_BUS" "$(kdeconnect::path "$1")" "$KDECONNECT_IFACE.conversations" requestAllConversationThreads > /dev/null 2>&1
+}
+
+# kdeconnect::_threads <device>: its threads: at once when the daemon has them, else after the first sync settles
+# (the same count twice) or FZX_KDECONNECT_SMS_WAIT seconds
+kdeconnect::_threads() {
+  local out n=0 last=-1 i
+  kdeconnect::_ask_threads "$1"
+  out="$(kdeconnect::conversations "$1")"
+  n="$(command jq '.data[0] | length' <<< "$out" 2> /dev/null)"
+  if ((${n:-0} == 0)); then
+    for ((i = 0; i < ${FZX_KDECONNECT_SMS_WAIT:-8}; i++)); do
+      sleep 1
+      out="$(kdeconnect::conversations "$1")"
+      n="$(command jq '.data[0] | length' <<< "$out" 2> /dev/null)"
+      ((${n:-0} > 0 && ${n:-0} == last)) && break
+      last="${n:-0}"
+    done
+  fi
+  printf '%s\n' "$out"
+}
+
+# kdeconnect::contacts <device>: "DIGITS<TAB>NAME" from the vCards the contacts plugin syncs, the last 10 digits of
+# each number so +1 555 and 555 match
+kdeconnect::contacts() {
+  local dir="${XDG_DATA_HOME:-$HOME/.local/share}/kpeoplevcard/kdeconnect-$1"
+  [[ -d "$dir" ]] || return 0
+  find "$dir" -name '*.vcf' -exec awk '
+    function flush(  i) { for (i = 1; i <= n; i++) if (fn != "") print tel[i] "\t" fn; n = 0; fn = "" }
+    FNR == 1 { flush() }
+    { sub(/\r$/, "") }
+    /^FN[:;]/ { fn = $0; sub(/^[^:]*:/, "", fn); gsub(/\\/, "", fn); gsub(/\t/, " ", fn) }
+    /^TEL[:;]/ { t = $0; sub(/^[^:]*:/, "", t); gsub(/[^0-9]/, "", t); if (t != "") tel[++n] = substr(t, length(t) > 10 ? length(t) - 9 : 1) }
+    END { flush() }' {} +
+}
+
+# KDECONNECT_JQ: what the sms list and preview share: who an address is, and text made safe to draw. $contacts arrives
+# through a file descriptor, never on a command line, where any user on this machine could read it
+# shellcheck disable=SC2016  # jq's variables
+KDECONNECT_JQ='
+  def who: tostring as $a | ($a | gsub("[^0-9]"; "") | .[-10:]) as $k | ($contacts[0][$k] // $a);
+  def safe: (. // "") | tostring | gsub("\u001b\\[[0-9;:?=]*[A-Za-z]"; "") | gsub("[\u0001-\u0008\u000b-\u001f\u007f]+"; " ");
+  def flat: safe | gsub("[\t\n]+"; " ");
+  def names: map(.[0] | who | flat);
+  def people: names | if length > 3 then (.[0:2] | join(", ")) + " +\(length - 2)" else join(", ") end;
+  def when: (.[3] / 1000 | strflocaltime("%Y-%m-%d %H:%M"));
+'
+
+# kdeconnect::_contacts_json <device>: the contacts as one JSON object
+kdeconnect::_contacts_json() {
+  kdeconnect::contacts "$1" | command jq -Rn '[inputs | split("\t") | {(.[0]): .[1]}] | add // {}'
+}
+
 # kdeconnect::color <name> <default SGR>: an escape sequence from FZX_COLORS
 kdeconnect::color() { printf '\e[%sm' "${FZX_COLORS[$1]:-$2}"; }
 
@@ -68,6 +131,7 @@ kdeconnect::source() {
     devices) kdeconnect::_source_devices ;;
     notifications) kdeconnect::_source_notifications ;;
     commands) kdeconnect::_source_commands ;;
+    sms) kdeconnect::_source_sms ;;
     *)
       printf 'kdeconnect: unknown mode: %s\n' "$FZX_MODE" >&2
       return 2
@@ -161,6 +225,43 @@ kdeconnect::_source_commands() {
     done < <(kdeconnect::cli --list-commands -d "$id" 2> /dev/null | kdeconnect::clean)
   done < <(kdeconnect::connected)
   ((any)) || kdeconnect::note "no connected device offers commands"
+}
+
+kdeconnect::_source_sms() {
+  local id name sort="${FZX_SORT:-recent}" hl="${FZX_COLORS[sorted]:-4}"
+  fzx::require header
+  fzx::header_print 1 "$([[ "$sort" == name ]] && echo NAME || echo DATE)" "" 1 0 NAME 26 0 DATE 16 0 LAST 0 0
+  while read -r id name; do
+    [[ -n "$id" ]] || continue
+    kdeconnect::plugins "$id" | grep -qx sms || continue
+    kdeconnect::_threads "$id" |
+      command jq -r --slurpfile contacts <(kdeconnect::_contacts_json "$id") --arg dev "$id" --arg sort "$sort" --arg hl $'\e['"${hl}m" --arg r $'\e[0m' \
+        --arg name "$(kdeconnect::color kdeconnect_name '1;38;5;111')" --arg dim "$(kdeconnect::color dim '38;5;244')" \
+        --arg new "$(kdeconnect::color kdeconnect_connected '38;5;114')" "$KDECONNECT_JQ"'
+        def pad($w): if length > $w then .[0:$w-1] + "…" else . + (" " * ($w - length)) end;
+        .data[0][]?.data |
+        (.[2] | people) as $who | (.[4] == 1 and .[5] == 0) as $unread | (when) as $date |
+        ((if .[4] == 2 then "you: " else "" end) + ((.[1] | flat) as $b | if $b != "" then $b elif (.[9] | length) > 0 then "(attachment)" else "" end)) as $last |
+        [(if $sort == "name" then ($who | ascii_downcase) else (9999999999999 - .[3] | tostring | ("0" * (16 - length)) + .) end),
+         "\($dev)/\(.[6])",
+         "\(if $unread then "\($new)●\($r)" else " " end) \($name)\(if $sort == "name" then $hl else "" end)\($who | pad(26))\($r) \($dim)\(if $sort == "recent" then $hl else "" end)\($date)\($r) \($last)",
+         $who] | @tsv' | sed 's/\\\\/\\/g'
+  done < <(kdeconnect::connected) | LC_ALL=C sort -s -t $'\t' -k1,1 | cut -f2- | kdeconnect::_or_note
+}
+
+# kdeconnect::_or_note: stdin, or a row saying why the sms list is empty
+kdeconnect::_or_note() {
+  local line got=0
+  while IFS= read -r line; do
+    got=1
+    printf '%s\n' "$line"
+  done
+  ((got)) && return 0
+  if [[ -n "$(kdeconnect::connected)" ]]; then
+    kdeconnect::note "no conversations yet: the phone may still be syncing (ctrl-r reads again)"
+  else
+    kdeconnect::note "no device connected"
+  fi
 }
 
 [[ "${BASH_SOURCE[0]}" == "$0" ]] && {

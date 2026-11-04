@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # kdeconnect preview: a device's state, battery, certificate and plugins; a notification's whole text, read from
-# the bus so a dismissed one says so; a command's line. An empty id is a row explaining an empty or unreadable list.
+# the bus so a dismissed one says so; a command's line; a conversation's latest messages, newest first, held in memory
+# only. An empty id is a row explaining an empty or unreadable list.
 
 # shellcheck source=./source.sh
 source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
@@ -55,6 +56,59 @@ kdeconnect::preview_command() {
   kdeconnect::_row key "${1#*/}"
 }
 
+# kdeconnect::thread_messages <device> <thread> <limit>: busctl's JSON lines for the messages of a thread. They come as
+# signals after asking, so the monitor starts first; it says nothing when it is ready, hence the pause, and a second
+# request if nothing answers. In variables only, never a file. Fails when nothing came
+kdeconnect::thread_messages() {
+  local dev="$1" thread="$2" limit="$3" path iface="$KDECONNECT_IFACE.conversations" fd pid line got=() asked=1 rc
+  path="$(kdeconnect::path "$dev")"
+  exec {fd}< <(exec timeout "${FZX_KDECONNECT_SMS_WAIT:-8}" busctl --user monitor --json=short --match="type='signal',interface='$iface',path='$path'" 2> /dev/null)
+  pid=$!
+  # fzf ends a preview when the cursor moves: the monitor goes with it
+  trap 'kill "$pid" 2> /dev/null' EXIT TERM
+  sleep 0.25
+  command busctl --user call "$KDECONNECT_BUS" "$path" "$iface" requestConversation xii "$thread" 0 "$limit" > /dev/null 2>&1
+  while :; do
+    IFS= read -r -t 3 -u "$fd" line
+    rc=$?
+    if ((rc > 128)); then
+      ((asked < 2)) || break
+      asked=2
+      command busctl --user call "$KDECONNECT_BUS" "$path" "$iface" requestConversation xii "$thread" 0 "$limit" > /dev/null 2>&1
+      continue
+    fi
+    ((rc == 0)) || break
+    case "$line" in
+      *'"member":"conversationLoaded"'*)
+        [[ "$(command jq -r '.payload.data[0]' <<< "$line")" == "$thread" ]] && break
+        ;;
+      *'"member":"conversationUpdated"'*) got+=("$line") ;;
+    esac
+  done
+  kill "$pid" 2> /dev/null
+  trap - EXIT TERM
+  exec {fd}<&-
+  ((${#got[@]})) || return 1
+  printf '%s\n' "${got[@]}"
+}
+
+# kdeconnect::preview_sms <device/thread> <who>
+kdeconnect::preview_sms() {
+  local dev="${1%%/*}" thread="${1#*/}" lines
+  if ! lines="$(kdeconnect::thread_messages "$dev" "$thread" "${FZX_KDECONNECT_SMS_MESSAGES:-30}")"; then
+    printf '%s%s%s\n\n%sno messages came back from the phone%s\n' "$_B" "$2" "$_R" "$_D" "$_R"
+    return 0
+  fi
+  printf '%s%s%s\n\n' "$_B" "$2" "$_R"
+  command jq -rs --slurpfile contacts <(kdeconnect::_contacts_json "$dev") --argjson thread "$thread" \
+    --arg b "$_B" --arg d "$_D" --arg r "$_R" "$KDECONNECT_JQ"'
+    [.[].payload.data[0].data | select(.[6] == $thread)] | unique_by(.[3], .[7]) | sort_by(-.[3]) | .[] |
+    "\($d)\(when)\($r)  \(if .[4] == 2 then "you" elif (.[2] | length) > 1 then (.[2][0][0] | who | flat) else "" end)",
+    ((.[1] | safe) as $t | if $t != "" then $t else empty end),
+    (if (.[9] | length) > 0 then "\($d)(\(.[9] | length) attachment\(if (.[9] | length) == 1 then "" else "s" end))\($r)" else empty end),
+    ""' <<< "$lines"
+}
+
 # kdeconnect::preview <id> <name> <details>
 kdeconnect::preview() {
   local _B=$'\e[1m' _D=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" _R=$'\e[0m'
@@ -67,6 +121,7 @@ kdeconnect::preview() {
     devices) kdeconnect::preview_device "$1" "${2:-}" "${3:-}" ;;
     notifications) kdeconnect::preview_notification "$1" ;;
     commands) kdeconnect::preview_command "$1" "${2:-}" "${3:-}" ;;
+    sms) kdeconnect::preview_sms "$1" "${2:-}" ;;
   esac
 }
 

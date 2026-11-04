@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# kdeconnect: KDE Connect devices, the notifications on them and the commands they offer. `fzx -m
-# kdeconnect[:notifications|:commands]`. Enter prints the ids.
+# kdeconnect: KDE Connect devices, their notifications and SMS conversations, and the commands they offer. `fzx -m
+# kdeconnect[:notifications|:commands|:sms]`. Enter prints the ids.
 
 FZX_MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../lib/core.sh

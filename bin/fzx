@@ -13,9 +13,10 @@ source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib/core.sh"
 fzx::usage() {
   local title="" head="" cmd="" meta="" var="" rst="" cols="${COLUMNS:-}" size
   if [[ -t 1 ]]; then
-    if [[ -z "$cols" ]] && size="$(stty size <&1 2> /dev/null)"; then cols="${size#* }"; fi
+    # /dev/tty: inside $(...) stdout is the pipe being read, not the terminal
+    if [[ -z "$cols" ]] && size="$(stty size < /dev/tty 2> /dev/null)"; then cols="${size#* }"; fi
     if [[ -z "${NO_COLOR:-}" ]]; then
-      title=$'\e[1m' head=$'\e[1;38;5;39m' cmd=$'\e[38;5;79m' meta=$'\e[38;5;110m' var=$'\e[38;5;117m' rst=$'\e[0m'
+      title=$'\e[1m' head=$'\e[1;38;5;39m' cmd=$'\e[38;5;73m' meta=$'\e[38;5;110m' var=$'\e[38;5;117m' rst=$'\e[0m'
     fi
   fi
   [[ "$cols" =~ ^[0-9]+$ ]] || cols=0

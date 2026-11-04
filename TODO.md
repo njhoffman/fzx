@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.107.1): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
+Status (0.108.0): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
 docker, files, firewall, fonts, git, github, glyphs, history, kdeconnect, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
 add what you find, and tick items off (`- [x]`) as they land, never delete them; once every item of a section
@@ -172,6 +172,13 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [x] **Prompts typed under fzx go to the log** (p2) [bug]: lib/callback.sh:23 sends every action's stderr to the log,
       and `read -e -p` draws its prompt and echoes typing on stderr. Every prompt now goes through `fzx::tty_read`
       (lib/core.sh), a test refuses a bare one, and real errors still reach the log.
+- [x] **kdeconnect: read SMS conversations** (p3) [feature]: `fzx -m kdeconnect:sms`, read-only: threads with contacts'
+      names, messages in the preview by D-Bus signal, kept in memory only.
+- [ ] **kdeconnect: reply to a conversation** (p3) [feature]: the sms mode reads only. `replyToConversation` (xsav) on
+      the conversations interface handles groups, which `--send-sms` does not; confirm like the SMS action.
+- [ ] **The flag `off` cannot remove alt-y** (p3) [bug]: docs/design.md says it removes a built-in, and the menu and actions
+      modules set it for copy-line, but lib/opts.sh:478 binds alt-y whenever no row has it, so `fzx -m menu` still copies
+      lines. Either bind it only for modules that did not switch it off, or say in the docs that the key stays.
 - [ ] **Timing-sensitive tests under load** (p3) [test]: test/menu.bats "menu_scores: launches by module ..."
       stamps rows "now minus N days" and compares the decayed scores to six decimals; under the parallel suite
       a second's delay gives 0.999999 (seen 2026-11-01, passes alone): compared rounded to 3 decimals since

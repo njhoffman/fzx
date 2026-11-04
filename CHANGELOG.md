@@ -6,6 +6,22 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.108.0] - 2026-11-03
+
+### Added
+
+- kdeconnect: `fzx -m kdeconnect:sms` lists your SMS conversations, newest first or by name, with contacts' names, an
+  unread mark and the last message; the preview shows the latest messages, newest first. It only reads, messages are held
+  in memory and kept nowhere, and the phone asked for its threads once per list. `FZX_KDECONNECT_SMS_MESSAGES`,
+  `FZX_KDECONNECT_SMS_WAIT`.
+
+### Fixed
+
+- kdeconnect: notification titles and message text can no longer reach `fzx.log` through a callback's arguments (the new
+  `FZX_LOG_ARGS`, off for this module).
+- `fzx --help` now finds the terminal's width by itself, so descriptions really wrap under their column: 0.105.1 only did so
+  with `COLUMNS` set. Its green is now a dimmer blue-green.
+
 ## [0.107.1] - 2026-11-03
 
 ### Fixed
