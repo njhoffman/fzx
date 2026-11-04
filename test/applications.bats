@@ -17,6 +17,7 @@ entry() {
 setup() {
   setup_fzx
   export NO_COLOR=1 FZX_ICONS=none
+  unset XDG_CURRENT_DESKTOP
   export XDG_DATA_HOME="$BATS_TEST_TMPDIR/home" XDG_DATA_DIRS="$BATS_TEST_TMPDIR/sys:$BATS_TEST_TMPDIR/missing"
   H="$XDG_DATA_HOME/applications" S="$BATS_TEST_TMPDIR/sys/applications"
   entry "$S/editor.desktop" "[Desktop Entry]" "Type=Application" "Name=Editor" "GenericName=Text Editor" \
@@ -61,6 +62,59 @@ setup() {
   FZX_TOGGLES=hidden run "$APPS/source.sh"
   [ "${#lines[@]}" -eq 4 ]
   [[ "$output" == *$'helper.desktop\tHelper'* ]]
+}
+
+@test "entries: TryExec not installed, OnlyShowIn and NotShowIn against this desktop are hidden; the toggle shows them" {
+  export XDG_CURRENT_DESKTOP=i3:other
+  entry "$S/noexec.desktop" "[Desktop Entry]" "Type=Application" "Name=No Exec" "TryExec=fzx-not-installed" "Exec=x"
+  entry "$S/hasexec.desktop" "[Desktop Entry]" "Type=Application" "Name=Has Exec" "TryExec=gtk-launch" "Exec=x"
+  entry "$S/abs.desktop" "[Desktop Entry]" "Type=Application" "Name=Abs Exec" "TryExec=$STUBS/gtk-launch" "Exec=x"
+  entry "$S/gnome.desktop" "[Desktop Entry]" "Type=Application" "Name=Gnome Only" "OnlyShowIn=GNOME;KDE;" "Exec=x"
+  entry "$S/here.desktop" "[Desktop Entry]" "Type=Application" "Name=Here Only" "OnlyShowIn=GNOME;other;" "Exec=x"
+  entry "$S/not.desktop" "[Desktop Entry]" "Type=Application" "Name=Not Here" "NotShowIn=i3;" "Exec=x"
+  entry "$S/notelse.desktop" "[Desktop Entry]" "Type=Application" "Name=Not Elsewhere" "NotShowIn=GNOME;" "Exec=x"
+  run "$APPS/source.sh"
+  [[ "$output" == *"Has Exec"* && "$output" == *"Abs Exec"* && "$output" == *"Here Only"* && "$output" == *"Not Elsewhere"* ]]
+  [[ "$output" != *"No Exec"* && "$output" != *"Gnome Only"* && "$output" != *"Not Here"* ]]
+  FZX_TOGGLES=hidden run "$APPS/source.sh"
+  [[ "$output" == *"No Exec"* && "$output" == *"Gnome Only"* && "$output" == *"Not Here"* ]]
+  # no desktop known: those two lists are not applied, TryExec still is
+  XDG_CURRENT_DESKTOP="" run "$APPS/source.sh"
+  [[ "$output" == *"Gnome Only"* && "$output" == *"Not Here"* && "$output" != *"No Exec"* ]]
+}
+
+@test "desktop actions: alt-a lists them in Actions= order, enter runs the Exec line with field codes dealt with" {
+  entry "$S/many.desktop" "[Desktop Entry]" "Type=Application" "Name=Many" "Icon=many" "Exec=many %U" "Actions=new;priv;gone;" \
+    "" "[Desktop Action priv]" "Name=Private" "Exec=$BATS_TEST_TMPDIR/rec --private %u %i %c %k 100%%" \
+    "" "[Desktop Action new]" "Name=New Window" "Exec=$BATS_TEST_TMPDIR/rec --new %F"
+  printf '#!/usr/bin/env bash\nprintf "%%s|" "$@" >> "%s/ran"; echo >> "%s/ran"\n' "$BATS_TEST_TMPDIR" "$BATS_TEST_TMPDIR" > "$BATS_TEST_TMPDIR/rec"
+  chmod +x "$BATS_TEST_TMPDIR/rec"
+  FZX_MODE=actions run "$APPS/source.sh" --file "$S/many.desktop"
+  [ "${#lines[@]}" -eq 2 ]
+  [ "$(cut -f1,2 <<< "${lines[0]}")" = "$S/many.desktop#action:new"$'\t'new ]
+  [[ "${lines[1]}" == *$'\tpriv\tPrivate '* ]]
+  # none, or no such file
+  FZX_MODE=actions run "$APPS/source.sh" --file "$S/browser.desktop"
+  [[ "$output" == $'-\t-\t'*"no actions"* ]]
+  FZX_MODE=actions run "$APPS/source.sh" --file "$S/gone.desktop"
+  [ "$status" -eq 2 ]
+  "$APPS/actions.sh" launch "$S/many.desktop#action:new"
+  local i
+  for ((i = 0; i < 30; i++)); do [[ -s "$BATS_TEST_TMPDIR/ran" ]] && break; sleep 0.1; done
+  [ "$(< "$BATS_TEST_TMPDIR/ran")" = "--new|" ]
+  rm "$BATS_TEST_TMPDIR/ran"
+  "$APPS/actions.sh" launch "$S/many.desktop#action:priv"
+  for ((i = 0; i < 30; i++)); do [[ -s "$BATS_TEST_TMPDIR/ran" ]] && break; sleep 0.1; done
+  [ "$(< "$BATS_TEST_TMPDIR/ran")" = "--private|--icon|many|Many|$S/many.desktop|100%|" ]
+  # a row with nothing to run, and the preview
+  run "$APPS/actions.sh" launch -
+  [ "$status" -eq 0 ]
+  run "$APPS/preview.sh" "$S/many.desktop#action:new" new
+  [ "${lines[0]}" = "New Window" ] && [ "${lines[1]}" = Many ] && [[ "$output" == *"--new %F"* ]]
+  # under fzx
+  stub_fzf
+  run "$FZX" -m applications
+  [ "$(fzf_bind alt-a)" = "alt-a:transform:$FZX _cb nav goto applications:actions --file {1}" ]
 }
 
 @test "icons: the theme, what it inherits (an SVG first), hicolor's largest PNG, pixmaps, a path" {

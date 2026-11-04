@@ -29,3 +29,7 @@ FZX_PREVIEW_LAYOUTS=("0:down,45%,border-top" "120:right,45%")
 
 # the menu group this module is listed under (menu mode groups)
 FZX_MENU_GROUP=system
+
+declare -gA FZX_KEYS
+# the entry's own actions (New Window, ...)
+FZX_KEYS[applications.actions]=alt-a

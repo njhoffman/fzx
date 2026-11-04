@@ -6,6 +6,18 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.100.0] - 2026-11-03
+
+### Added
+
+- applications: alt-a lists an entry's own actions (New Window, New Private Window, ...); enter runs the action's
+  Exec line, with field codes removed or filled in, and alt-left comes back.
+
+### Changed
+
+- applications hides what the desktop entry spec hides: a TryExec that is not installed, and OnlyShowIn or
+  NotShowIn against `$XDG_CURRENT_DESKTOP`. The hidden toggle lists them, dim.
+
 ## [0.99.2] - 2026-11-03
 
 ### Changed

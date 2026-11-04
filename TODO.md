@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.99.2): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, bluetooth, browser, capture, claude, colors, cron, dirs,
+Status (0.100.0): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, bluetooth, browser, capture, claude, colors, cron, dirs,
 docker, files, firewall, fonts, git, github, glyphs, history, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
 add what you find, and tick items off (`- [x]`) as they land, never delete them; once every item of a section
@@ -124,10 +124,10 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       (it is set here, and 9222 does not answer): it needs Chrome started with `--user-data-dir` too. Firefox
       keeps open tabs in sessionstore-backups/recovery.jsonlz4 (mozlz4: an lz4 block with a magic header,
       which needs a decoder such as python's lz4).
-- [ ] **applications: desktop actions** (p3) [feature]: the preview lists an entry's `[Desktop Action]`
+- [x] **applications: desktop actions** (p3) [feature]: the preview lists an entry's `[Desktop Action]`
       groups (New Window, New Private Window), but neither gtk-launch nor dex starts one. Running the
       action's Exec line (field codes %f %u %F %U removed, %i %c %k expanded) from a second list would.
-- [ ] **applications: TryExec and OnlyShowIn** (p3) [feature]: entries whose TryExec is not installed and
+- [x] **applications: TryExec and OnlyShowIn** (p3) [feature]: entries whose TryExec is not installed and
       those `OnlyShowIn`/`NotShowIn` excludes from this desktop are listed; the spec hides both.
 - [x] **firewall: add rules** (p3) [feature]: rules come only from profiles (alt-a, alt-D). A prompt for a
       free rule (`allow 8080/tcp from 192.168.1.0/24`, readline as docker's alt-E has, checked with

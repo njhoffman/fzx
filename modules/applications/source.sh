@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # applications source: desktop entries (Type=Application) as rows "file  id  display  name  icon", by name.
 # An entry's ID is its path under the applications directory with / as -; the first directory holding an ID
-# wins (yours over the system's). $FZX_TOGGLES: hidden also lists NoDisplay and Hidden entries (dim).
+# wins (yours over the system's). $FZX_TOGGLES: hidden also lists what the spec hides, dim: NoDisplay and Hidden
+# entries, a TryExec that is not installed, and OnlyShowIn or NotShowIn against $XDG_CURRENT_DESKTOP (no
+# desktop set: those two are not applied).
+# Mode actions (hidden; --file FILE): the entry's [Desktop Action] groups, the id "FILE#action:KEY".
 
 # applications::dirs: the applications directories, highest precedence first
 applications::dirs() {
@@ -29,13 +32,28 @@ applications::_files() {
 # applications::entries: "file id name generic comment categories icon exec terminal hidden" per entry,
 # the [Desktop Entry] group only, the first file of each ID
 applications::entries() {
-  applications::_files | awk -F'\t' -v OFS='\t' '
+  applications::_files | awk -F'\t' -v OFS='\t' -v desktops="${XDG_CURRENT_DESKTOP:-}" -v path="$PATH" '
     function clean(s) { gsub(/\t/, " ", s); return s }
+    # the file can be read: awk has no stat, and an executable a user can run is readable all but always
+    function readable(f,  x, ok) { ok = (getline x < f) >= 0; close(f); return ok }
+    function installed(c,  i, n, d) {
+      if (c in known) return known[c]
+      if (c ~ /\//) return known[c] = readable(c)
+      n = split(path, d, ":")
+      for (i = 1; i <= n; i++) if (d[i] != "" && readable(d[i] "/" c)) return known[c] = 1
+      return known[c] = 0
+    }
+    # a ";" list names one of the desktops in $XDG_CURRENT_DESKTOP
+    function names(list,  i, n, d, m, j, l) {
+      n = split(desktops, d, ":"); m = split(list, l, ";")
+      for (i = 1; i <= n; i++) for (j = 1; j <= m; j++) if (d[i] != "" && d[i] == l[j]) return 1
+      return 0
+    }
     {
       file = $1; id = $2
       if (id in seen) next
       seen[id] = 1
-      grp = ""; type = ""; name = ""; gen = ""; com = ""; cat = ""; icon = ""; ex = ""; term = ""; hid = 0
+      grp = ""; type = ""; name = ""; gen = ""; com = ""; cat = ""; icon = ""; ex = ""; term = ""; hid = 0; try = ""; only = ""; not = ""
       while ((getline line < file) > 0) {
         sub(/\r$/, "", line)
         if (line ~ /^\[/) { grp = line; continue }
@@ -50,15 +68,57 @@ applications::entries() {
         else if (k == "Icon") icon = v
         else if (k == "Exec") ex = v
         else if (k == "Terminal") term = v
+        else if (k == "TryExec") try = v
+        else if (k == "OnlyShowIn") only = v
+        else if (k == "NotShowIn") not = v
         else if ((k == "NoDisplay" || k == "Hidden") && v == "true") hid = 1
       }
       close(file)
       if (type != "Application" || name == "") next
+      if (try != "" && !installed(try)) hid = 1
+      if (desktops != "" && ((only != "" && !names(only)) || (not != "" && names(not)))) hid = 1
       print file, id, clean(name), clean(gen), clean(com), clean(cat), clean(icon), clean(ex), term, hid
     }'
 }
 
+# applications::actions <file>: the rows of an entry's [Desktop Action] groups, in the order Actions= has them
+applications::actions() {
+  local d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
+  [[ -n "${NO_COLOR+x}" ]] && d="" r=""
+  awk -F= -v OFS='\t' -v file="$1" -v d="$d" -v r="$r" '
+    function pad(t, w) { return length(t) > w ? substr(t, 1, w - 1) "…" : sprintf("%-" w "s", t) }
+    function value() { s = $0; sub(/^[^=]*= */, "", s); gsub(/\t/, " ", s); return s }
+    /^\[Desktop Entry\]/ { g = "" ; ent = 1; next }
+    /^\[Desktop Action / { g = $0; sub(/^\[Desktop Action /, "", g); sub(/\][[:space:]]*$/, "", g); ent = 0; next }
+    /^\[/ { g = ""; ent = 0; next }
+    ent && /^Actions *=/ { order = value() }
+    g != "" && /^Name *=/ { nm[g] = value() }
+    g != "" && /^Exec *=/ { ex[g] = value() }
+    END {
+      n = split(order, o, ";")
+      for (i = 1; i <= n; i++) {
+        k = o[i]
+        if (k == "" || nm[k] == "") continue
+        print file "#action:" k, k, pad(nm[k], 32) "  " d ex[k] r, nm[k], ""
+        shown++
+      }
+      if (!shown) print "-", "-", d "this entry has no actions" r, "", ""
+    }' "$1" 2> /dev/null
+}
+
 applications::source() {
+  if [[ "${FZX_MODE:-apps}" == actions ]]; then
+    local file=""
+    while (($#)); do
+      case "$1" in
+        --file) file="${2:-}"; shift ;;
+      esac
+      shift
+    done
+    [[ -f "$file" ]] || { printf 'applications: --file needs a desktop file: %s\n' "$file" >&2; return 2; }
+    applications::actions "$file"
+    return
+  fi
   local show=0 c=$'\e['"${FZX_COLORS[applications_category]:-38;5;110}m" d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
   [[ " ${FZX_TOGGLES:-} " == *" hidden "* ]] && show=1
   [[ -n "${NO_COLOR+x}" ]] && c="" d="" r=""

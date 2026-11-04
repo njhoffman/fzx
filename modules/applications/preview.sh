@@ -81,11 +81,27 @@ applications::_field() {
     g == "[Desktop Entry]" && index($0, k "=") == 1 { print substr($0, length(k) + 2); exit }' "$1" 2> /dev/null
 }
 
-# applications::preview <file> <id>
+# applications::_action_field <file> <action> <key>: a key's value in that [Desktop Action] group
+applications::_action_field() {
+  awk -v g="[Desktop Action $2]" -v k="$3" '
+    /^\[/ { in_g = ($0 == g); next }
+    in_g && index($0, k "=") == 1 { print substr($0, length(k) + 2); exit }' "$1" 2> /dev/null
+}
+
+# applications::preview <file> <id>; an action's row (<file>#action:<key>): its name, command and file
 applications::preview() {
   local file="${1:-}" id="${2:-}" icon img="" rows="${FZX_APPLICATIONS_ICON_ROWS:-8}" v key
   local b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
   [[ -n "${NO_COLOR+x}" ]] && b="" d="" r=""
+  [[ "$file" != - ]] || return 0
+  if [[ "$file" == *"#action:"* ]]; then
+    local action="${file##*#action:}"
+    file="${file%#action:*}"
+    printf '%s%s%s\n%s%s%s\n\n%s\n' "$b" "$(applications::_action_field "$file" "$action" Name)" "$r" "$d" \
+      "$(applications::_field "$file" Name)" "$r" "$(applications::_action_field "$file" "$action" Exec)"
+    printf '\n%s%s%s\n' "$d" "$file" "$r"
+    return 0
+  fi
   [[ -f "$file" ]] || { printf 'no file %s\n' "$file"; return 0; }
   icon="$(applications::_field "$file" Icon)"
   applications::icon_file "$icon" img || img=""

@@ -2,9 +2,10 @@
 # Ids are desktop files; enter launches the selection and closes (for a popup bound in the window manager),
 # ctrl-o launches and stays.
 mode    apps         -       desktop entries by name                                 default
-toggle  hidden       alt-h   entries marked NoDisplay or Hidden too (dim)            -
+mode    actions      -       an entry's own actions (--file FILE)                    hidden
+toggle  hidden       alt-h   apps: what the spec hides too, dim (NoDisplay, Hidden, TryExec not installed, OnlyShowIn, NotShowIn)  -
 action  launch       -       launch (gtk-launch, detached), then close               become,default
 action  launch-stay  ctrl-o  launch (gtk-launch, detached)                           silent
 action  edit         alt-e   edit the desktop files                                  foreground,reload
 action  copy         ctrl-y  copy the desktop IDs                                    silent,builtin
-action  copy-exec    alt-Y   copy the Exec lines                                     notify
+action  copy-exec    alt-Y   apps: copy the Exec lines                                     notify
