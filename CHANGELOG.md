@@ -6,6 +6,19 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.105.0] - 2026-11-03
+
+### Added
+
+- aws: ECS clusters (`fzx -m aws:ecs`: counts, with the services in the preview), EKS clusters (`aws:eks`: version and
+  endpoint, with the node groups in the preview) and RDS instances (`aws:rds`: available first or by name, the
+  preview without a request). Read-only like the rest of the module; alt-O and alt-i work on all of them.
+
+### Changed
+
+- aws: moving back to a log group is immediate: what its preview asked AWS is kept in the session for
+  `FZX_AWS_PREVIEW_TTL` seconds (60; 0 keeps nothing), as are ECS services and EKS node groups. ctrl-r clears it.
+
 ## [0.104.0] - 2026-11-03
 
 ### Added

@@ -4,8 +4,12 @@
 #   ec2   (toggle running; sort state or name): state name type public-ip private-ip zone launched image vpc
 #         subnet key groups tags
 #   logs  (sort name or size): bytes retention created class
+#   ecs, eks, rds: services.sh
 # A list that cannot be read, or has nothing in it, is a row with an empty id and the whole message as its
 # name. A failed read returns 1, so it is not cached. The CLI's "None" marks a value AWS did not send.
+
+# shellcheck source=./services.sh
+source "$(dirname "${BASH_SOURCE[0]}")/services.sh"
 
 # aws::cli <args...>: the AWS CLI with no pager, bounded waits (FZX_AWS_TIMEOUT, FZX_AWS_ATTEMPTS)
 aws::cli() {
@@ -44,9 +48,14 @@ aws::failed() {
 
 aws::source() {
   command -v aws > /dev/null || { printf 'aws: the aws command is not installed\n' >&2; return 2; }
+  # what previews kept from before this read (ctrl-r) is older than the list
+  [[ -z "${FZX_SESSION_DIR:-}" ]] || rm -rf -- "$FZX_SESSION_DIR/aws_preview"
   case "${FZX_MODE:-ec2}" in
     ec2) aws::_source_ec2 ;;
     logs) aws::_source_logs ;;
+    ecs) aws::_source_ecs ;;
+    eks) aws::_source_eks ;;
+    rds) aws::_source_rds ;;
     *)
       printf 'aws: unknown mode: %s\n' "$FZX_MODE" >&2
       return 2

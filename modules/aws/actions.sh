@@ -16,6 +16,9 @@ aws::console_url() {
       id="${id//#/\$2523}"
       printf '%s/cloudwatch/home?region=%s#logsV2:log-groups/log-group/%s\n' "$base" "$2" "$id"
       ;;
+    ecs) printf '%s/ecs/v2/clusters/%s?region=%s\n' "$base" "$id" "$2" ;;
+    eks) printf '%s/eks/home?region=%s#/clusters/%s\n' "$base" "$2" "$id" ;;
+    rds) printf '%s/rds/home?region=%s#database:id=%s;is-cluster=false\n' "$base" "$2" "$id" ;;
   esac
 }
 
@@ -75,6 +78,17 @@ aws::action() {
         aws::cli logs describe-log-groups "--log-group-name-prefix=$id" --output json \
           --query "logGroups[?logGroupName=='$id'] | [0]" 2>&1
       done | aws::json
+      ;;
+    inspect:ecs) aws::cli ecs describe-clusters --clusters "${ids[@]}" --output json 2>&1 | aws::json ;;
+    inspect:eks)
+      for id in "${ids[@]}"; do aws::cli eks describe-cluster --name "$id" --output json 2>&1; done | aws::json
+      ;;
+    inspect:rds)
+      for id in "${ids[@]}"; do aws::cli rds describe-db-instances --db-instance-identifier "$id" --output json 2>&1; done | aws::json
+      ;;
+    logs:*)
+      printf 'aws: logs does not apply to %s\n' "$mode" >&2
+      return 2
       ;;
     *)
       printf 'aws: unknown action: %s\n' "$action" >&2

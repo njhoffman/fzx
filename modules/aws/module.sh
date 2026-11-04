@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# aws: EC2 instances and CloudWatch log groups, read-only, with whatever credentials and Region the AWS CLI
-# resolves. `fzx -m aws[:logs]`. Enter prints the ids (instance id, log group name).
+# aws: EC2 instances, CloudWatch log groups, ECS and EKS clusters and RDS instances, read-only, with whatever credentials and Region the AWS CLI
+# resolves. `fzx -m aws[:logs|:ecs|:eks|:rds]`. Enter prints the ids (instance id, log group or cluster name).
 
 FZX_MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../lib/core.sh

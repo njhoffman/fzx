@@ -2,9 +2,12 @@
 # Read-only: nothing here changes a resource.
 mode    ec2      -      EC2 instances in the selected Region, running first          default
 mode    logs     -      CloudWatch log groups in the selected Region                 -
+mode    ecs      -      ECS clusters in the selected Region                          -
+mode    eks      -      EKS clusters in the selected Region                          -
+mode    rds      -      RDS instances in the selected Region, available first        -
 toggle  running  alt-a  ec2: only running instances                                  -
-sort    state    -      ec2: running first                                           default
-sort    name     -      ec2, logs: by name                                           -
+sort    state    -      ec2: running first; rds: available first                     default
+sort    name     -      ec2, logs, ecs, eks, rds: by name                            -
 sort    size     -      logs: most stored data first                                 desc
 action  console  alt-O  open in the AWS console                                      silent
 action  logs     ctrl-l  ec2: console output in the pager; logs: follow, several merged (ctrl-c returns)  foreground
