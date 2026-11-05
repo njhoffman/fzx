@@ -6,6 +6,15 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.108.1] - 2026-11-05
+
+### Fixed
+
+- An I or O no longer lands in fzf's query when you switch tmux panes with fzf open from any zsh widget, such as
+  fzf-tab's completion list. With `shell/fzx.zsh` sourced, the `fzf` function turns the shell's focus reporting off
+  around fzf in a widget and back on after it, as fzx's own widgets already did. `FZX_ZSH_NO_FZF=1` opts out of this
+  along with the rest of that function.
+
 ## [0.108.0] - 2026-11-03
 
 ### Added

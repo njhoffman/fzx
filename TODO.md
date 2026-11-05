@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.108.0): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
+Status (0.108.1): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
 docker, files, firewall, fonts, git, github, glyphs, history, kdeconnect, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
 add what you find, and tick items off (`- [x]`) as they land, never delete them; once every item of a section
@@ -206,6 +206,13 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       markdown and every filetype `nvcat-dispatch` claims (any *.conf, systemd units, ...); files over
       FZX_PREVIEW_NVCAT_MAX_LINES already go to bat. Cache its output under $FZX_CACHE_DIR keyed by path,
       mtime and width (lib/render.sh, fzx::_render_nvcat), or keep one Neovim running.
+
+- [x] **fzf-tab: I or O in the query on a pane switch** (p2) [bug]: `fzx-run` only covered fzx's widgets; fzf from
+      any other widget kept the shell's focus reporting on. `fzf` in `shell/fzx.zsh` now does the same around it.
+- [ ] **Focus guard misses fzf started outside the function** (p3) [bug]: the `fzf` function can't reach scripts a
+      widget runs that start fzf themselves, widgets using `$commands[fzf]` or `fzf-tmux`, or
+      `ftb-tmux-popup` (popup mode was never tested for this bug). They would get the same I or O in the query
+      if focus reports reach them. Fix per case when one shows it.
 
 ## 8. Outside this repo
 

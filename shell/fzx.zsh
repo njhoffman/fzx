@@ -51,18 +51,29 @@ _fzx_shell_first_prompt() {
 }
 add-zsh-hook precmd _fzx_shell_first_prompt
 
-# fzx-run <fzx args...>: fzx from a widget. A widget runs at the prompt, where a shell's focus reporting may be
-# on (\e[?1004h; ~/.shell's vi mode turns it on in precmd and off in preexec, which a widget never reaches): fzf
-# reads the focus sequences as typing, an I or O in the query on every pane switch. So it goes off for fzx and
-# back on after it, for a shell that had it on.
-fzx-run() {
-  local rc
+# A widget runs at the prompt, where a shell's focus reporting may be on (\e[?1004h; ~/.shell's vi mode turns it
+# on in precmd and off in preexec, which a widget never reaches): fzf reads the focus sequences as typing, an I or
+# O in the query on every pane switch. So it goes off for the fzf or fzx a widget starts, and back on after it, for
+# a shell that had it on.
+_fzx_focus_off() {
   [[ -w "$TTY" ]] && print -n -- '\e[?1004l' >> "$TTY"
-  command "${FZX_ZSH_BIN:-fzx}" "$@"
-  rc=$?
+  return 0
+}
+
+_fzx_focus_restore() {
   if [[ -w "$TTY" ]] && ((${precmd_functions[(I)__shell_vi_precmd]})) && [[ "${SHELL_VI_FOCUS_INSERT:-always}" != off ]]; then
     print -n -- '\e[?1004h' >> "$TTY"
   fi
+  return 0
+}
+
+# fzx-run <fzx args...>: fzx from a widget, with focus reporting off.
+fzx-run() {
+  local rc
+  _fzx_focus_off
+  command "${FZX_ZSH_BIN:-fzx}" "$@"
+  rc=$?
+  _fzx_focus_restore
   return "$rc"
 }
 
@@ -212,14 +223,21 @@ if [[ "${FZX_ZSH_NO_JUMP:-0}" != 1 ]]; then
 fi
 
 # fzf: with no options and nothing piped in, the files module (prettypath icons when installed) instead
-# of fzf's own walker; prints what it prints. Anything else is the real fzf.
+# of fzf's own walker; prints what it prints. Anything else is the real fzf. From a widget (fzf-tab, a history
+# widget) focus reporting goes off around it; that test is ZLE_STATE, since `zle` fails in the $(...) widgets run
+# fzf in. Scripts that start fzf themselves are out of reach here.
 if [[ "${FZX_ZSH_NO_FZF:-0}" != 1 ]]; then
   fzf() {
+    local rc widget=${+ZLE_STATE}
+    ((widget)) && _fzx_focus_off
     if (($# == 0)) && [[ -t 0 ]]; then
       command "${FZX_ZSH_BIN:-fzx}" -m files
     else
       command fzf "$@"
     fi
+    rc=$?
+    ((widget)) && _fzx_focus_restore
+    return "$rc"
   }
 fi
 

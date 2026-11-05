@@ -271,6 +271,29 @@ src() { FZX_MODE="$1" "$HIST/source.sh" | plain; }
   [ "$(focus other always)" = '^[[?1004lRUNrc=7' ]
 }
 
+@test "zsh fzf: from a widget focus reporting is off around it, as a command it is left alone" {
+  local tty="$BATS_TEST_TMPDIR/tty" dir="$BATS_TEST_TMPDIR/bin"
+  mkdir -p "$dir"
+  printf '#!/bin/sh\nprintf RUN >> "%s"\nexit 7\n' "$tty" > "$dir/fzf"
+  chmod +x "$dir/fzf"
+  # focus <hook> <SHELL_VI_FOCUS_INSERT> <run>: what the terminal is sent; ZLE_STATE is what a widget sees
+  focus() {
+    : > "$tty"
+    zsh -f -c 'FZX_ZSH_NO_BIND=1 FZX_ZSH_NO_KEYS_DUMP=1 FZX_ZSH_NO_SHELL_DUMP=1 source "$1" 2> /dev/null
+      path=("$3" $path); TTY="$2"; precmd_functions=("$4"); SHELL_VI_FOCUS_INSERT="$5"
+      eval "$6"; print -n -- "rc=$?" >> "$TTY"' _ "$FZX_REPO/shell/fzx.zsh" "$tty" "$dir" "$1" "$2" "$3" < /dev/null
+    cat -v "$tty"
+  }
+  [ "$(focus __shell_vi_precmd always 'ZLE_STATE=insert; fzf --multi')" = '^[[?1004lRUN^[[?1004hrc=7' ]
+  # fzf-tab and most widgets run it in a subshell
+  [ "$(focus __shell_vi_precmd always 'ZLE_STATE=insert; (fzf --multi)')" = '^[[?1004lRUN^[[?1004hrc=7' ]
+  # a shell that keeps it off, or never had it
+  [ "$(focus __shell_vi_precmd off 'ZLE_STATE=insert; fzf --multi')" = '^[[?1004lRUNrc=7' ]
+  [ "$(focus other always 'ZLE_STATE=insert; fzf --multi')" = '^[[?1004lRUNrc=7' ]
+  # a command at the prompt: preexec and precmd already handle it
+  [ "$(focus __shell_vi_precmd always 'fzf --multi')" = 'RUNrc=7' ]
+}
+
 @test "zsh widget: global unless FZX_ZSH_HISTORY_MODE says otherwise, the session and the typed text; exit 10 accepts the line" {
   command -v zsh > /dev/null || skip "zsh not installed"
   cat > "$BATS_TEST_TMPDIR/fzxstub" << 'STUB'
