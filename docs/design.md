@@ -612,7 +612,8 @@ changes, commits ahead/behind the upstream (no fetch), branch counts and stashes
 (e.g. `delta --paging=never`) is applied to preview diffs. There is no discard/restore key on purpose.
 `files` (files and dirs modes) and `dirs` decorate their display column with prettypath icons and colors
 when `FZX_PRETTY` is `auto` (the default; on when `prettypath` is installed) or `1` (lib/pretty.sh): paths go
-in absolute (prettypath drops relative ones), `--stat_file=false`, the base directory is cut from the
+in absolute (prettypath drops relative ones), unstatted (prettypath 0.1.0 stats only for size and date
+tokens, and the display format has none), the base directory is cut from the
 shown directory, and dirs joins the result back to its scores by path (a path missing from the result
 keeps a plain display). Older prettypath versions strip `%` from `%path%` (the id) and drop paths
 directly under `/`; `fzx::pretty_sound` probes the installed one once per binary (path and mtime, cached in

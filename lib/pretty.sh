@@ -24,7 +24,7 @@ fzx::pretty_sound() {
     [[ "$(< "$file")" == sound ]]
     return
   fi
-  got="$(printf '%s\n' "$probe" | command prettypath --stat_file=false --format=%path% 2> /dev/null)"
+  got="$(printf '%s\n' "$probe" | command prettypath --format=%path% 2> /dev/null)"
   mkdir -p -- "${file%/*}"
   if [[ "$got" == "$want" ]]; then
     echo sound > "$file"
@@ -45,10 +45,10 @@ fzx::pretty() {
   [[ "${1:-}" == --dirs ]] && { dirs=1; shift; }
   base="${1:-}"
   [[ -n "$base" ]] && shown="${base/#$HOME/\~}/"
-  cmd="prettypath --stat_file=false --format='%path%"$'\t'"%icon% %dir%%name%'"
+  cmd="prettypath --format='%path%"$'\t'"%icon% %dir%%name%'"
   if fzx::pretty_sound; then
     if [[ -n "$dirs" ]]; then sed 's:/*$:/:'; else command cat; fi |
-      command prettypath --stat_file=false --format=$'%path%\t%icon% %dir%%name%'
+      command prettypath --format=$'%path%\t%icon% %dir%%name%'
   else
     sed 's:/$::' | awk -v cmd="$cmd" -v home="$HOME" '
       /%/ || /^\/[^\/]*$/ { shown = $0; if (index(shown, home "/") == 1) shown = "~" substr(shown, length(home) + 1)

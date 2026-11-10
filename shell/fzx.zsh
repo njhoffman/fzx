@@ -181,7 +181,7 @@ fzx-jump() {
   [[ -n "$dir" && -d "$dir" ]] || return 1
   builtin cd -- "$dir" || return
   if (($+commands[prettypath])); then
-    print -r -- "$PWD" | prettypath --stat_file=false --format='  %icon% %dir%%name%'
+    print -r -- "$PWD" | prettypath --format='  %icon% %dir%%name%'
   else
     print -r -- "  ${PWD/#$HOME/~}"
   fi

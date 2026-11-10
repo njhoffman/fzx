@@ -48,7 +48,8 @@ STUB
   # --dirs: every path is a directory (zoxide lists them without the slash)
   run fzx::pretty --dirs "$TREE" <<< "$TREE/sub"
   [ "$output" = "$TREE/sub"$'\t'"[D] sub" ]
-  grep -q -- "--stat_file=false" "$BATS_TEST_TMPDIR/pp.args"
+  # prettypath 0.1.0 stats only for size and date tokens, so fzx passes no --stat_file
+  ! grep -q -- "--stat_file" "$BATS_TEST_TMPDIR/pp.args"
 }
 
 @test "files: the listing goes through prettypath unless FZX_PRETTY=0" {

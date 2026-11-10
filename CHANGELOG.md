@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.108.2] - 2026-11-10
+
+### Changed
+
+- The files, dirs and jump displays no longer pass `--stat_file=false` to prettypath: prettypath 0.1.0 stats a file
+  only when the format shows its size or dates, which these displays do not. With an older prettypath installed, the
+  lists build about three times slower; update it with `luarocks make` in its repo.
+
 ## [0.108.1] - 2026-11-05
 
 ### Fixed
