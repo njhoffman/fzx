@@ -179,6 +179,12 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 
 ## 7. Known issues
 
+- [ ] **A split-pane menu that would not close** (p2) [bug]: on 2026-11-10 a split (`todos:here`, then
+      nav goto `menu:list`; FZX_SPLIT_PANE=1, lib/run.sh fzx::_fzf_pane) stayed open about 52 minutes until
+      its pane was killed by hand; the keys tried are unknown. Not a test: it ran under the real runtime dir and
+      history. In the pane fzx execs fzf, so any fzf exit should end it: check live (detached tmux, CPU-limited
+      systemd-run) whether esc and back from a goto child in a split reach fzf and close the pane, and whether
+      the split is focused when it opens.
 - [x] **design.md: broken table under Reloading and navigation** (p3) [docs]: docs/design.md:119-122 has two
       header rows, a stale two-column one above the three-column one, so the table renders wrongly. Delete lines
       119-120.
