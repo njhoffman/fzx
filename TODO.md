@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.110.3): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
+Status (0.111.0): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
 docker, files, firewall, fonts, git, github, glyphs, history, kdeconnect, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
 add what you find, and tick items off (`- [x]`) as they land, never delete them; once every item of a section
@@ -14,7 +14,7 @@ category: `[bug]` `[feature]` `[refactor]` `[docs]` `[test]` `[chore]` `[perf]`,
 
 Categories: module
 
-Reviewed: 2026-11-03
+Reviewed: 2026-11-11
 
 ## 1. Next up
 
@@ -233,6 +233,18 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       markdown and every filetype `nvcat-dispatch` claims (any *.conf, systemd units, ...); files over
       FZX_PREVIEW_NVCAT_MAX_LINES already go to bat. Cache its output under $FZX_CACHE_DIR keyed by path,
       mtime and width (lib/render.sh, fzx::_render_nvcat), or keep one Neovim running.
+- [ ] **files: the flags label falls off long paths** (p3) [bug]: the header shows the extra rg/fd flags
+      (alt-a, 0.110.0) as "  rg: FLAGS" after the base path, so on a long path the label is cut off at the
+      terminal's edge and the flags in effect are hidden. Put the label before the path, or shorten the
+      path first.
+- [ ] **files: a refused flag does not say why** (p3) [feature]: the flags screen (modules/files/actions.sh)
+      rings the bell and names the refused flag in the header, but not the reason (not on the FILES_FLAGS_RG
+      or FILES_FLAGS_FD whitelist, which keeps out flags that change the output format fzx parses, or a
+      value missing). Add the reason and, for an unknown flag, the nearest allowed one.
+- [ ] **CI never runs the real-prettypath tests** (p3) [test]: test/pretty.bats's "real prettypath" cases
+      (0.111.0) skip without prettypath 0.2.0 or later, and CI does not install it, so only local runs catch
+      a prettypath change that breaks the displays. Install it in .github/workflows/ci.yml (luarocks, or
+      the repo's launcher), pinned like just.
 
 - [x] **fzf-tab: I or O in the query on a pane switch** (p2) [bug]: `fzx-run` only covered fzx's widgets; fzf from
       any other widget kept the shell's focus reporting on. `fzf` in `shell/fzx.zsh` now does the same around it.
@@ -244,8 +256,8 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       widget runs that start fzf themselves, widgets using `$commands[fzf]` or `fzf-tmux`, or
       `ftb-tmux-popup` (popup mode was never tested for this bug). They would get the same I or O in the query
       if focus reports reach them. Fix per case when one shows it.
-- [ ] **An empty NO_COLOR turns color off in most of fzx** (p3) [bug]: 98 checks in lib/ and modules/ (56
-      files) test `${NO_COLOR+x}`, so `NO_COLOR=` (set, empty) drops color, while bin/fzx (`${NO_COLOR:-}`)
+- [ ] **An empty NO_COLOR turns color off in most of fzx** (p3) [bug]: 100 checks in lib/ and modules/ (54
+      files, recounted 2026-11-11) test `${NO_COLOR+x}`, so `NO_COLOR=` (set, empty) drops color, while bin/fzx (`${NO_COLOR:-}`)
       and prettypath treat an empty one as unset, as no-color.org asks ("present and not an empty string").
       One helper (fzx::no_color) used everywhere would make them agree; the fix is mechanical but touches
       every module, so it wants the full suite and a look at each preview.
