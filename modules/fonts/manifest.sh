@@ -13,5 +13,5 @@ fonts::applicable() {
 fonts::summary() {
   local n
   n="$(command fc-list --format '%{family[0]}\n' 2> /dev/null | sort -u | wc -l)"
-  printf '%d families\n' "$((n))"
+  printf '%s\n' "$(fzx::plural "$((n))" family families)"
 }

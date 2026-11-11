@@ -20,17 +20,17 @@ logs::summary() {
   case "$1" in
     logs:units)
       n="$(SYSTEMD_COLORS=0 systemctl --failed --no-legend --plain --no-pager 2> /dev/null | wc -l)"
-      printf '%s failed system units\n' "${n// /}"
+      printf '%s\n' "$(fzx::plural "$n" 'failed system unit')"
       ;;
     logs:docker)
       n="$(docker ps -q 2> /dev/null | wc -l)" || return 1
-      printf '%s running containers\n' "${n// /}"
+      printf '%s\n' "$(fzx::plural "$n" 'running container')"
       ;;
     logs)
       # shellcheck source=./source.sh
       source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
       n="$(logs::source_files | wc -l)"
-      printf '%s log files\n' "${n// /}"
+      printf '%s\n' "$(fzx::plural "$n" 'log file')"
       ;;
   esac
 }

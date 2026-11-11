@@ -15,15 +15,15 @@ history::summary() {
   local db="${FZX_HISTDB_FILE:-$HOME/.histdb/zsh-history.db}" dir="${PWD//\'/\'\'}"
   case "$1" in
     history:directory)
-      printf '%s commands\n' "$(command sqlite3 -readonly "$db" "select count(distinct command_id) from history
-        join places on places.id = history.place_id where places.dir = '$dir'" 2> /dev/null)"
+      printf '%s\n' "$(fzx::plural "$(command sqlite3 -readonly "$db" "select count(distinct command_id) from history
+        join places on places.id = history.place_id where places.dir = '$dir'" 2> /dev/null)" command)"
       ;;
     history:host)
       local host="${HOST:-$(hostname)}"
-      printf '%s commands\n' "$(command sqlite3 -readonly "$db" "select count(distinct command_id) from history
-        join places on places.id = history.place_id where places.host = '${host//\'/\'\'}'" 2> /dev/null)"
+      printf '%s\n' "$(fzx::plural "$(command sqlite3 -readonly "$db" "select count(distinct command_id) from history
+        join places on places.id = history.place_id where places.host = '${host//\'/\'\'}'" 2> /dev/null)" command)"
       ;;
-    *) printf '%s commands, %s hosts\n' "$(command sqlite3 -readonly "$db" "select count(*) from commands" 2> /dev/null)" \
-      "$(command sqlite3 -readonly "$db" "select count(distinct host) from places" 2> /dev/null)" ;;
+    *) printf '%s, %s\n' "$(fzx::plural "$(command sqlite3 -readonly "$db" "select count(*) from commands" 2> /dev/null)" command)" \
+      "$(fzx::plural "$(command sqlite3 -readonly "$db" "select count(distinct host) from places" 2> /dev/null)" host)" ;;
   esac
 }

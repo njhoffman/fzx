@@ -82,6 +82,18 @@ fzx::parse_duration() {
   printf -v "$2" '%s' "$_n"
 }
 
+# fzx::plural <n> <word> [plural]: prints "n word", or "n plural" (default: word plus "s") unless n is 1; no
+# newline, so it goes inside a summary's printf. Blanks (BSD wc -l pads its count) are dropped; empty is 0.
+fzx::plural() {
+  local n="${1//[[:space:]]/}"
+  n="${n:-0}"
+  if [[ "$n" == 1 ]]; then printf '%s %s' "$n" "$2"; else printf '%s %s' "$n" "${3:-${2}s}"; fi
+}
+
+# the same for awk summaries: awk "$FZX_AWK_PLURAL"' ... { print plural(n, "file") }', plural(n, "entry", "entries")
+# shellcheck disable=SC2034  # read by the manifests' awk programs
+FZX_AWK_PLURAL='function plural(n, w, p) { n += 0; return n " " (n == 1 ? w : (p != "" ? p : w "s")) }'
+
 # print an error, log it when logging is loaded, and exit: fzx::die <code> <message>
 fzx::die() {
   local code="$1"

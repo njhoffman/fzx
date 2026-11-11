@@ -21,11 +21,11 @@ cron::summary() {
     cron)
       # shellcheck source=./source.sh
       source "$(dirname "${BASH_SOURCE[0]}")/source.sh" || :
-      printf '%s entries\n' "$(FZX_MODE=all cron::entries 2> /dev/null | wc -l)"
+      printf '%s\n' "$(fzx::plural "$(FZX_MODE=all cron::entries 2> /dev/null | wc -l)" entry entries)"
       ;;
     cron:user)
       n="$(command crontab -l 2> /dev/null | grep -cEv '^[[:space:]]*(#|$|[A-Za-z_][A-Za-z0-9_]*[[:space:]]*=)')" || :
-      if command crontab -l > /dev/null 2>&1; then printf '%s entries\n' "${n:-0}"; else echo "no crontab"; fi
+      if command crontab -l > /dev/null 2>&1; then printf '%s\n' "$(fzx::plural "$n" entry entries)"; else echo "no crontab"; fi
       ;;
     cron:scripts)
       n=0
@@ -33,7 +33,7 @@ cron::summary() {
       for d in /etc/cron.hourly /etc/cron.daily /etc/cron.weekly /etc/cron.monthly; do
         for f in "$d"/*; do [[ -f "$f" && -x "$f" ]] && n=$((n + 1)); done
       done
-      printf '%s scripts\n' "$n"
+      printf '%s\n' "$(fzx::plural "$n" script)"
       ;;
   esac
 }

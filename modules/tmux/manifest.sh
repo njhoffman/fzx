@@ -23,32 +23,32 @@ tmux::summary() {
   case "$1" in
     tmux)
       command tmux list-sessions -F '#{session_attached}' |
-        awk '{ n++; if ($1 > 0) a++ } END { printf "%d sessions, %d attached\n", n, a }'
+        awk "$FZX_AWK_PLURAL"'{ n++; if ($1 > 0) a++ } END { printf "%s, %d attached\n", plural(n, "session"), a }'
       ;;
     tmux:windows)
       command tmux list-windows -a -F '#{session_id}' |
-        awk '{ n++; if (!seen[$1]++) s++ } END { printf "%d windows across %d sessions\n", n, s }'
+        awk "$FZX_AWK_PLURAL"'{ n++; if (!seen[$1]++) s++ } END { print plural(n, "window") " across " plural(s, "session") }'
       ;;
     tmux:panes)
       command tmux list-panes -a -F '#{window_id}' |
-        awk '{ n++; if (!seen[$1]++) w++ } END { printf "%d panes across %d windows\n", n, w }'
+        awk "$FZX_AWK_PLURAL"'{ n++; if (!seen[$1]++) w++ } END { print plural(n, "pane") " across " plural(w, "window") }'
       ;;
-    tmux:buffers) printf '%s buffers\n' "$(command tmux list-buffers -F x | wc -l)" ;;
+    tmux:buffers) printf '%s\n' "$(fzx::plural "$(command tmux list-buffers -F x | wc -l)" buffer)" ;;
     tmux:keys) command tmux list-keys | tmux::summary_keys ;;
     tmux:commands | tmux:options | tmux:variables | tmux:styles | tmux:formats | tmux:status | tmux:hooks)
       # the mode's own list, as its rows count them
       local mode="${1#tmux:}" word
       # shellcheck source=./source.sh
       source "$(dirname "${BASH_SOURCE[0]}")/source.sh" || :
-      case "$mode" in status) word=samples ;; *) word="$mode" ;; esac
-      printf '%s %s\n' "$(FZX_MODE="$mode" tmux::source 2> /dev/null | wc -l)" "$word"
+      case "$mode" in status) word=sample ;; *) word="${mode%s}" ;; esac
+      printf '%s\n' "$(fzx::plural "$(FZX_MODE="$mode" tmux::source 2> /dev/null | wc -l)" "$word")"
       ;;
     *) return 0 ;;
   esac
 }
 
-# tmux::summary_keys: `tmux list-keys` lines -> "N bindings in M tables"
+# tmux::summary_keys: `tmux list-keys` lines -> "N bindings in M tables" ("1 binding" for one)
 tmux::summary_keys() {
-  awk '{ for (i = 1; i < NF; i++) if ($i == "-T") { n++; if (!seen[$(i + 1)]++) t++; break } }
-    END { printf "%d bindings in %d tables\n", n, t }'
+  awk "$FZX_AWK_PLURAL"'{ for (i = 1; i < NF; i++) if ($i == "-T") { n++; if (!seen[$(i + 1)]++) t++; break } }
+    END { print plural(n, "binding") " in " plural(t, "table") }'
 }

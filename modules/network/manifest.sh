@@ -34,7 +34,7 @@ network::summary_services() {
     disown
   fi
   if [[ -f "$file" ]]; then
-    printf '%s services\n' "$(awk -F'\t' '$5 != 0 { n++ } END { print n + 0 }' "$file")"
+    printf '%s\n' "$(fzx::plural "$(awk -F'\t' '$5 != 0 { n++ } END { print n + 0 }' "$file")" service)"
   else
     printf 'browsing the network\n'
   fi

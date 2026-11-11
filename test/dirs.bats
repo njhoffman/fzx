@@ -81,7 +81,7 @@ bookmarks() {
   printf 'here\n' > "$tty"
   "$DIRS/actions.sh" mark "$T/alpha" > /dev/null
   dirs::applicable dirs:bookmarks
-  [ "$(dirs::summary dirs:bookmarks)" = "1 bookmarks" ]
+  [ "$(dirs::summary dirs:bookmarks)" = "1 bookmark" ]
   local s="$BATS_TEST_TMPDIR/s"
   mkdir -p "$s/data"
   : > "$s/data/bookmarks@name"

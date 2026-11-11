@@ -207,7 +207,7 @@ yt_calls() { cat "$BATS_TEST_TMPDIR/yt.calls" 2> /dev/null || echo 0; }
   run youtube::summary youtube
   [ -z "$output" ]
   src "one" > /dev/null
-  [ "$(youtube::summary youtube)" = "1 recent searches" ]
+  [ "$(youtube::summary youtube)" = "1 recent search" ]
 }
 
 FORMATS_JSON='{"title":"First video","formats":[

@@ -8,6 +8,7 @@ FONTS="$(readlink -f "$BATS_TEST_DIRNAME/../modules/fonts")"
 
 setup() {
   setup_fzx
+  load_libs # manifests run under the menu, with core (fzx::plural) loaded
   export NO_COLOR=1 FZX_ICONS=none
   STUBS="$BATS_TEST_TMPDIR/stubs"
   mkdir -p "$STUBS"

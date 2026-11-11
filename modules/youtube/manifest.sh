@@ -13,5 +13,5 @@ youtube::summary() {
   local file="$FZX_STATE_DIR/youtube/history" n
   [[ -f "$file" ]] || return 0
   n="$(wc -l < "$file")"
-  printf '%s recent searches\n' "${n// /}"
+  printf '%s\n' "$(fzx::plural "$n" 'recent search' 'recent searches')"
 }

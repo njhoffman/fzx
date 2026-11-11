@@ -15,5 +15,5 @@ applications::summary() {
   for d in "${XDG_DATA_HOME:-$HOME/.local/share}/applications" /usr/local/share/applications /usr/share/applications; do
     for f in "$d"/*.desktop; do [[ -e "$f" ]] && ((n++)); done
   done
-  printf '%d entries\n' "$n"
+  printf '%s\n' "$(fzx::plural "$n" entry entries)"
 }

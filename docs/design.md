@@ -116,8 +116,6 @@ follow the query (`files:grep`), so a later launch must not start with the last 
 
 ### Reloading and navigation
 
-| Operation | Mechanism |
-|---|---|
 | Operation | Key | Mechanism |
 |---|---|---|
 | Hard reload | `ctrl-r` | `reload(fzx _cb source)`: rerun the source, rewrite `data/<mode>` |

@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.108.6] - 2026-11-10
+
+### Fixed
+
+- Menu summaries say "1 buffer", "1 entry", "1 stash" and so on for a count of one, instead of "1 buffers"; the
+  manifests share `fzx::plural` (and `plural()` for their awk summaries, from `FZX_AWK_PLURAL`).
+- docs/design.md: the table under "Reloading and navigation" lost a stale header row that broke its rendering.
+
 ## [0.108.5] - 2026-11-10
 
 ### Fixed

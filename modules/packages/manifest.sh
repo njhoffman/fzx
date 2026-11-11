@@ -35,7 +35,7 @@ packages::summary() {
     # apt's lists: read once and kept until they change, so opening the mode is quicker for it too
     packages:available)
       n="$(packages::_cached available "$(packages::_stamp "$(packages::_apt_lists)")" packages::_available_raw | wc -l)"
-      printf '%s packages\n' "$n"
+      printf '%s\n' "$(fzx::plural "$n" package)"
       ;;
     packages:upgradable)
       n="$(packages::_cached upgradable "$(packages::_stamp "$(packages::_apt_lists)" "$(packages::_dpkg_status)")" packages::_upgradable_raw | wc -l)"

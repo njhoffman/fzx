@@ -26,6 +26,6 @@ todos::summary() {
   mapfile -t files < <(FZX_MODE="$mode" todos::files)
   ((${#files[@]})) || return 0
   for file in "${files[@]}"; do FZX_TOGGLES="" todos::parse "$file"; done |
-    awk -F'\t' -v files="${#files[@]}" -v mode="$mode" '{ n++; if ($7 == 1) u++; if ($6 == 1) o++ }
-      END { printf "%d open%s, %d urgent, %d overdue\n", n, mode == "all" ? " in " files " files" : "", u, o }'
+    awk -F'\t' -v files="${#files[@]}" -v mode="$mode" "$FZX_AWK_PLURAL"'{ n++; if ($7 == 1) u++; if ($6 == 1) o++ }
+      END { printf "%d open%s, %d urgent, %d overdue\n", n, mode == "all" ? " in " plural(files, "file") : "", u, o }'
 }

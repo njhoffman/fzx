@@ -16,6 +16,7 @@ entry() {
 
 setup() {
   setup_fzx
+  load_libs # manifests run under the menu, with core (fzx::plural) loaded
   export NO_COLOR=1 FZX_ICONS=none
   unset XDG_CURRENT_DESKTOP
   export XDG_DATA_HOME="$BATS_TEST_TMPDIR/home" XDG_DATA_DIRS="$BATS_TEST_TMPDIR/sys:$BATS_TEST_TMPDIR/missing"
@@ -166,5 +167,5 @@ gtk-launch kde-tool.desktop" ]
 @test "menu: the desktop file count" {
   source "$APPS/manifest.sh"
   run applications::summary applications
-  [[ "$output" =~ ^[0-9]+\ entries$ ]]
+  [[ "$output" =~ ^(1\ entry|[0-9]+\ entries)$ ]]
 }

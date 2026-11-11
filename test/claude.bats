@@ -7,6 +7,7 @@ CLAUDE="$(readlink -f "$BATS_TEST_DIRNAME/../modules/claude")"
 
 setup() {
   setup_fzx
+  load_libs # manifests run under the menu, with core (fzx::plural) loaded
   export FZX_ICONS=unicode
   P="$BATS_TEST_TMPDIR/projects"
   mkdir -p "$P/alpha" "$P/beta" "$P/gamma" "$BATS_TEST_TMPDIR/bin"
@@ -116,9 +117,9 @@ claude_fn() {
 
 @test "summary: projects and yours, and the ones in use" {
   src > /dev/null
-  run bash -c "source '$CLAUDE/manifest.sh'; claude::summary claude"
+  run bash -c "source '$FZX_REPO/lib/core.sh'; source '$CLAUDE/manifest.sh'; claude::summary claude"
   [ "$output" = "3 projects, 2 yours" ]
-  run bash -c "source '$CLAUDE/manifest.sh'; claude::summary claude:active"
+  run bash -c "source '$FZX_REPO/lib/core.sh'; source '$CLAUDE/manifest.sh'; claude::summary claude:active"
   [ "$output" = "1 in use" ]
 }
 

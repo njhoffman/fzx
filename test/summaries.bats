@@ -47,7 +47,7 @@ STUB
   run summary tmux tmux:panes
   [ "$output" = "4 panes across 3 windows" ]
   run summary tmux tmux:buffers
-  [ "$output" = "1 buffers" ]
+  [ "$output" = "1 buffer" ]
   run summary tmux tmux:keys
   [[ "$output" =~ ^[0-9]+\ bindings\ in\ [0-9]+\ tables$ ]]
   # the reference entries count their rows

@@ -19,13 +19,13 @@ glyphs::applicable() {
 
 # glyphs::summary <target>: how many the mode lists
 glyphs::summary() {
-  local mode=nerd word=glyphs
+  local mode=nerd word=glyph plural=""
   # shellcheck source=./source.sh
   source "$(dirname "${BASH_SOURCE[0]}")/source.sh" || :
   case "$1" in
-    glyphs:unicode) mode=unicode word=characters ;;
-    glyphs:blocks) mode=blocks word=blocks ;;
-    glyphs:emoji) mode=emoji word=emoji ;;
+    glyphs:unicode) mode=unicode word=character ;;
+    glyphs:blocks) mode=blocks word=block ;;
+    glyphs:emoji) mode=emoji word=emoji plural=emoji ;;
   esac
-  printf '%s %s\n' "$(FZX_MODE="$mode" glyphs::source 2> /dev/null | wc -l)" "$word"
+  printf '%s\n' "$(fzx::plural "$(FZX_MODE="$mode" glyphs::source 2> /dev/null | wc -l)" "$word" "$plural")"
 }

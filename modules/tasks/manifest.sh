@@ -22,7 +22,7 @@ tasks::summary() {
       here="$(tasks::here)" && n="$(tasks::scan "$here" | wc -l)" || n=0
       printf '%s here, %s picked\n' "$n" "$picked"
       ;;
-    tasks:repos) printf '%s projects chosen\n' "$chosen" ;;
-    tasks:all) [[ -s "$index" ]] && awk -F'\t' '{ d[$1] = 1 } END { printf "%d tasks in %d repositories\n", NR, length(d) }' "$index" ;;
+    tasks:repos) printf '%s chosen\n' "$(fzx::plural "$chosen" project)" ;;
+    tasks:all) [[ -s "$index" ]] && awk -F'\t' "$FZX_AWK_PLURAL"'{ d[$1] = 1 } END { print plural(NR, "task") " in " plural(length(d), "repository", "repositories") }' "$index" ;;
   esac
 }

@@ -24,12 +24,12 @@ capture::summary() {
   [[ "$1" == *:* ]] && mode="${1#*:}"
   n="$(env -u FZX_SESSION -u FZX_SESSION_DIR FZX_MODE="$mode" "$(dirname "${BASH_SOURCE[0]}")/source.sh" 2> /dev/null | wc -l)" || return 1
   case "$mode" in
-    lines) printf '%s lines\n' "$n" ;;
-    urls) printf '%s URLs\n' "$n" ;;
-    paths) printf '%s paths\n' "$n" ;;
-    words) printf '%s words\n' "$n" ;;
-    hashes) printf '%s hashes\n' "$n" ;;
-    ips) printf '%s addresses\n' "$n" ;;
+    lines) printf '%s\n' "$(fzx::plural "$n" line)" ;;
+    urls) printf '%s\n' "$(fzx::plural "$n" URL)" ;;
+    paths) printf '%s\n' "$(fzx::plural "$n" path)" ;;
+    words) printf '%s\n' "$(fzx::plural "$n" word)" ;;
+    hashes) printf '%s\n' "$(fzx::plural "$n" hash hashes)" ;;
+    ips) printf '%s\n' "$(fzx::plural "$n" address addresses)" ;;
     *) printf '%s\n' "$n" ;;
   esac
 }

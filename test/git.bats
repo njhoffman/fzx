@@ -9,6 +9,7 @@ GIT_DIR_MOD="$(readlink -f "$BATS_TEST_DIRNAME/../modules/git")"
 
 setup() {
   setup_fzx
+  load_libs # manifests run under the menu, with core (fzx::plural) loaded
   # isolate from the user's git config
   export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
   export GIT_AUTHOR_NAME=T GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=T GIT_COMMITTER_EMAIL=t@t
@@ -238,7 +239,7 @@ prev_rev() { FZX_MODE="$1" "$GIT_DIR_MOD/preview.sh" --rev "$2" -- "${@:3}" | se
   [ "$(git::summary git:log --all)" = "3 commits on all refs" ]
   [ "$(git::summary git:branches)" = "2 local, 2 remote, on main" ]
   git stash -q
-  [ "$(git::summary git:stash)" = "1 stashes" ]
+  [ "$(git::summary git:stash)" = "1 stash" ]
 }
 
 @test "manifest: the summary key follows HEAD and the refs; outside a repository it is empty" {

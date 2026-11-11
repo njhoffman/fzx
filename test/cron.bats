@@ -10,6 +10,7 @@ NOW=1767225600
 
 setup() {
   setup_fzx
+  load_libs # manifests run under the menu, with core (fzx::plural) loaded
   export NO_COLOR=1 FZX_ICONS=none TZ=UTC FZX_CRON_NOW="$NOW"
   STUBS="$BATS_TEST_TMPDIR/stubs"
   mkdir -p "$STUBS" "$BATS_TEST_TMPDIR/etc/cron.d" "$BATS_TEST_TMPDIR/spool" "$BATS_TEST_TMPDIR/etc/cron.daily"

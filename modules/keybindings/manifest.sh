@@ -24,7 +24,7 @@ keybindings::summary() {
       source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
       keybindings::zsh_dump_path file
       [[ -s "$file" ]] || return 0
-      awk -F'\t' '$1 == "bind" { n++; if (!seen[$2]++) m++ } END { printf "%d bindings in %d keymaps\n", n, m }' "$file"
+      awk -F'\t' "$FZX_AWK_PLURAL"'$1 == "bind" { n++; if (!seen[$2]++) m++ } END { print plural(n, "binding") " in " plural(m, "keymap") }' "$file"
       ;;
     keybindings:tmux)
       # shellcheck source=../tmux/manifest.sh
@@ -33,8 +33,8 @@ keybindings::summary() {
       ;;
     keybindings:fzf)
       fzx::require keys
-      printf '%s of yours, %s fzf defaults\n' "$(fzx::user_binds 2> /dev/null | awk -F'\t' '$1 != ""' | wc -l)" \
-        "$(printf '%s\n' "$FZX_FZF_DEFAULT_BINDS" | wc -l)"
+      printf '%s of yours, %s\n' "$(fzx::user_binds 2> /dev/null | awk -F'\t' '$1 != ""' | wc -l)" \
+        "$(fzx::plural "$(printf '%s\n' "$FZX_FZF_DEFAULT_BINDS" | wc -l)" 'fzf default')"
       ;;
   esac
 }

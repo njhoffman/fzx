@@ -4,6 +4,7 @@ load test_helper
 
 setup() {
   setup_fzx
+  load_libs # manifests run under the menu, with core (fzx::plural) loaded
   export FZF_DEFAULT_OPTS='' FZF_DEFAULT_OPTS_FILE=/dev/null
   export LSAN_OPTIONS=detect_leaks=0
   unset TMUX_PANE FZX_TMUX_PANE FZX_TOGGLES TMUX_PREFIX FZX_TMUX_SESSION_PREFIX
@@ -499,10 +500,11 @@ wait_log() {
   source "$TMUX_MOD/manifest.sh"
   local mode word n
   for mode in commands options variables styles formats status hooks; do
-    word="$mode"
-    [[ "$mode" == status ]] && word=samples
+    word="${mode%s}"
+    [[ "$mode" == status ]] && word=sample
     n="$(FZX_MODE="$mode" "$TMUX_MOD/source.sh" | wc -l)"
     [ "$n" -gt 0 ] || [ "$mode" = hooks ]
+    ((n == 1)) || word+=s
     [ "$(tmux::summary "tmux:$mode")" = "$n $word" ]
   done
   tmux kill-server

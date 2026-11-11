@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.108.5): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
+Status (0.108.6): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
 docker, files, firewall, fonts, git, github, glyphs, history, kdeconnect, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
 add what you find, and tick items off (`- [x]`) as they land, never delete them; once every item of a section
@@ -28,7 +28,7 @@ Reviewed: 2026-11-03
 - [x] **Floats follow the window** (p3) [feature]: popups are reopened on a window resize (`fzx _resized`,
       `nav relayout`); a float keeps its first size. `tmux resize-pane -x/-y` plus a move to the new
       position (if new-pane floats can be moved) would do it without a relaunch.
-- [ ] **Summary wording** (p3) [chore]: summaries print "1 buffers", "1 recent searches", and the newer
+- [x] **Summary wording** (p3) [chore]: summaries print "1 buffers", "1 recent searches", and the newer
       "1 entries" (cron, git reflog), "1 profiles" (firewall), "1 stars", "1 stashes", "1 scripts"; a small
       plural helper for the manifests (about 20 printf lines under modules/*/manifest.sh).
 
@@ -179,7 +179,7 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 
 ## 7. Known issues
 
-- [ ] **design.md: broken table under Reloading and navigation** (p3) [docs]: docs/design.md:119-122 has two
+- [x] **design.md: broken table under Reloading and navigation** (p3) [docs]: docs/design.md:119-122 has two
       header rows, a stale two-column one above the three-column one, so the table renders wrongly. Delete lines
       119-120.
 - [x] **Prompts typed under fzx go to the log** (p2) [bug]: lib/callback.sh:23 sends every action's stderr to the log,

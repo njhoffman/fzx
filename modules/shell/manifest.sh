@@ -33,18 +33,18 @@ shell::summary() {
       source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
       shell::path_commands | awk 'END { printf "%d on PATH\n", NR }'
       ;;
-    shell:aliases) [[ -s "$dump" ]] && awk -F'\t' '$1 == "alias" { n++ } END { printf "%d aliases\n", n }' "$dump" ;;
+    shell:aliases) [[ -s "$dump" ]] && awk -F'\t' "$FZX_AWK_PLURAL"'$1 == "alias" { n++ } END { print plural(n, "alias", "aliases") }' "$dump" ;;
     shell:functions)
-      [[ -s "$dump" ]] && awk -F'\t' '$1 == "function" { n++; if (substr($2, 1, 1) == "_") c++ }
-        END { printf "%d functions, %d for completion\n", n - c, c }' "$dump"
+      [[ -s "$dump" ]] && awk -F'\t' "$FZX_AWK_PLURAL"'$1 == "function" { n++; if (substr($2, 1, 1) == "_") c++ }
+        END { printf "%s, %d for completion\n", plural(n - c, "function"), c }' "$dump"
       ;;
     shell:completions)
       # from the cached list only (making it takes zsh-complete a while)
       local file="${FZX_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/fzx}/shell/completions.tsv"
-      [[ -s "$file" ]] && awk -F'\t' '$1 == "active" { if (!($2 in c)) n++; c[$2] = 1; p[$3] = 1 } END { k = 0; for (x in p) k++; printf "%d commands, %d providers\n", n, k }' "$file"
+      [[ -s "$file" ]] && awk -F'\t' "$FZX_AWK_PLURAL"'$1 == "active" { if (!($2 in c)) n++; c[$2] = 1; p[$3] = 1 } END { k = 0; for (x in p) k++; print plural(n, "command") ", " plural(k, "provider") }' "$file"
       ;;
     shell:params)
-      [[ -s "$dump" ]] && awk -F'\t' '$1 == "param" { n++; if ($3 ~ /export/) e++ } END { printf "%d parameters, %d exported\n", n, e }' "$dump"
+      [[ -s "$dump" ]] && awk -F'\t' "$FZX_AWK_PLURAL"'$1 == "param" { n++; if ($3 ~ /export/) e++ } END { printf "%s, %d exported\n", plural(n, "parameter"), e }' "$dump"
       ;;
   esac
 }

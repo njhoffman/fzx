@@ -20,7 +20,7 @@ firewall::summary() {
       ;;
     firewall:apps)
       n="$(cat "$dir"/* 2> /dev/null | grep -c '^\[')" || :
-      printf '%s profiles\n' "${n:-0}"
+      printf '%s\n' "$(fzx::plural "$n" profile)"
       ;;
   esac
 }

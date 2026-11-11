@@ -5,6 +5,7 @@ load test_helper
 
 setup() {
   setup_fzx
+  load_libs # manifests run under the menu, with core (fzx::plural) loaded
   export FZF_DEFAULT_OPTS='' FZF_DEFAULT_OPTS_FILE=/dev/null NO_COLOR=1
   unset TMUX_PANE FZX_TMUX_PANE FZX_TOGGLES
   CAP="$FZX_REPO/modules/capture"
@@ -42,9 +43,9 @@ src() { FZX_MODE="$1" "$CAP/source.sh" "${@:2}"; }
   source "$CAP/manifest.sh"
   fill 'echo see https://example.com/a and /tmp/x.txt'
   run capture::summary capture:urls
-  [ "$output" = "1 URLs" ]
+  [ "$output" = "1 URL" ]
   run capture::summary capture:paths
-  [[ "$output" =~ ^[1-9][0-9]*\ paths$ ]]
+  [[ "$output" =~ ^(1\ path|[1-9][0-9]+\ paths|[2-9]\ paths)$ ]]
   local k1 k2
   k1="$(capture::summary_key)"
   [[ "$k1" == "$PANE:"* ]]

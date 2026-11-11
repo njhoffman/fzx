@@ -49,21 +49,21 @@ git::summary() {
         /^\?\?/ { u++; next } { if (substr($0, 1, 1) != " ") s++; if (substr($0, 2, 1) != " ") m++ }
         END { printf "%d staged, %d modified, %d untracked\n", s, m, u }'
       ;;
-    git:grep) printf '%s tracked files\n' "$(command git ls-files | wc -l)" ;;
+    git:grep) printf '%s\n' "$(fzx::plural "$(command git ls-files | wc -l)" 'tracked file')" ;;
     git:clean) printf '%s to remove\n' "$(command git clean -n -d | wc -l)" ;;
     git:log)
       if [[ "${1:-}" == --all ]]; then
         n="$(command git rev-list --all --count)"
-        printf '%s commits on all refs\n' "$n"
+        printf '%s on all refs\n' "$(fzx::plural "$n" commit)"
         return
       fi
       n="$(command git rev-list --count HEAD)" || return 1
       if upstream="$(command git rev-parse --abbrev-ref '@{upstream}' 2> /dev/null)" &&
         counts="$(command git rev-list --left-right --count 'HEAD...@{upstream}' 2> /dev/null)"; then
         read -r ahead behind <<< "$counts"
-        printf '%s commits, %s ahead / %s behind %s\n' "$n" "$ahead" "$behind" "$upstream"
+        printf '%s, %s ahead / %s behind %s\n' "$(fzx::plural "$n" commit)" "$ahead" "$behind" "$upstream"
       else
-        printf '%s commits, no upstream\n' "$n"
+        printf '%s, no upstream\n' "$(fzx::plural "$n" commit)"
       fi
       ;;
     git:branches)
@@ -72,13 +72,13 @@ git::summary() {
         "$(command git for-each-ref refs/remotes --format='%(refname)' | grep -vc '/HEAD$')" \
         "$(command git symbolic-ref --quiet --short HEAD || echo detached)"
       ;;
-    git:stash) printf '%s stashes\n' "$(command git stash list | wc -l)" ;;
+    git:stash) printf '%s\n' "$(fzx::plural "$(command git stash list | wc -l)" stash stashes)" ;;
     git:tags)
-      printf '%s tags, latest %s\n' "$(command git for-each-ref refs/tags --format=x | wc -l)" \
+      printf '%s, latest %s\n' "$(fzx::plural "$(command git for-each-ref refs/tags --format=x | wc -l)" tag)" \
         "$(command git for-each-ref --sort=-creatordate --count=1 refs/tags --format='%(refname:short)')"
       ;;
-    git:reflog) printf '%s entries\n' "$(command git reflog | wc -l)" ;;
-    git:worktrees) printf '%s work trees\n' "$(command git worktree list | wc -l)" ;;
+    git:reflog) printf '%s\n' "$(fzx::plural "$(command git reflog | wc -l)" entry entries)" ;;
+    git:worktrees) printf '%s\n' "$(fzx::plural "$(command git worktree list | wc -l)" 'work tree')" ;;
     *) return 0 ;;
   esac
 }

@@ -19,5 +19,5 @@ dirs::applicable() {
 # no summary for the fd walk of ~: it can take longer than the summary timeout
 dirs::summary() {
   [[ "$1" == dirs:bookmarks ]] || return 0
-  printf '%s bookmarks\n' "$(dirs::bookmarks | wc -l)"
+  printf '%s\n' "$(fzx::plural "$(dirs::bookmarks | wc -l)" bookmark)"
 }

@@ -53,7 +53,7 @@ github::summary() {
     github:starred)
       # one star per page: the last page's number is the count
       n="$(command gh api -i 'user/starred?per_page=1' 2> /dev/null | sed -n 's/^[Ll]ink:.*[?&]page=\([0-9]*\)>; rel="last".*/\1/p')"
-      printf '%s stars\n' "${n:-0}"
+      printf '%s\n' "$(fzx::plural "$n" star)"
       ;;
     github:notifications)
       # from the last list only: the repos entry's summary asks GitHub for the unread count

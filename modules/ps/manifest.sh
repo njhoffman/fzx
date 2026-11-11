@@ -16,6 +16,6 @@ ps::summary() {
   done
   case "$1" in
     ps) printf '%s of yours, %s total\n' "$mine" "$n" ;;
-    *) printf '%s processes\n' "$n" ;;
+    *) printf '%s\n' "$(fzx::plural "$n" process processes)" ;;
   esac
 }

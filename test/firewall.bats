@@ -8,6 +8,7 @@ FW="$(readlink -f "$BATS_TEST_DIRNAME/../modules/firewall")"
 
 setup() {
   setup_fzx
+  load_libs # manifests run under the menu, with core (fzx::plural) loaded
   export NO_COLOR=1 FZX_ICONS=none
   STUBS="$BATS_TEST_TMPDIR/stubs"
   mkdir -p "$STUBS" "$BATS_TEST_TMPDIR/apps"

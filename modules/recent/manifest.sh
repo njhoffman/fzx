@@ -30,20 +30,20 @@ recent::summary() {
   case "$1" in
     recent)
       if [[ -f "$FZX_RECENT_NVIM_DB" ]]; then
-        printf '%s files\n' "$(command sqlite3 -readonly "$FZX_RECENT_NVIM_DB" 'SELECT COUNT(*) FROM files')"
+        printf '%s\n' "$(fzx::plural "$(command sqlite3 -readonly "$FZX_RECENT_NVIM_DB" 'SELECT COUNT(*) FROM files')" file)"
       else
-        printf '%s files\n' "$(command fasd -f -l 2> /dev/null | wc -l)"
+        printf '%s\n' "$(fzx::plural "$(command fasd -f -l 2> /dev/null | wc -l)" file)"
       fi
       ;;
-    recent:fasd) printf '%s files\n' "$(command fasd -f -l 2> /dev/null | wc -l)" ;;
+    recent:fasd) printf '%s\n' "$(fzx::plural "$(command fasd -f -l 2> /dev/null | wc -l)" file)" ;;
     recent:zlua)
       # shellcheck source=./source.sh
       source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
       recent::zlua zl || return 0
-      printf '%s known directories\n' "$(command "$FZX_RECENT_ZLUA_LUA" "$zl" -l 2> /dev/null | wc -l)"
+      printf '%s\n' "$(fzx::plural "$(command "$FZX_RECENT_ZLUA_LUA" "$zl" -l 2> /dev/null | wc -l)" 'known directory' 'known directories')"
       ;;
-    recent:dirs) printf '%s known directories\n' "$(command zoxide query --list 2> /dev/null | wc -l)" ;;
-    recent:visited) printf '%s known directories\n' "$(command fasd -d -l 2> /dev/null | wc -l)" ;;
+    recent:dirs) printf '%s\n' "$(fzx::plural "$(command zoxide query --list 2> /dev/null | wc -l)" 'known directory' 'known directories')" ;;
+    recent:visited) printf '%s\n' "$(fzx::plural "$(command fasd -d -l 2> /dev/null | wc -l)" 'known directory' 'known directories')" ;;
     *) return 0 ;;
   esac
 }

@@ -35,6 +35,26 @@ setup() {
   [[ "$t" =~ ^[0-9]{13}$ ]]
 }
 
+@test "plural: singular for one, word plus s or the given plural otherwise" {
+  [ "$(fzx::plural 1 file)" = "1 file" ]
+  [ "$(fzx::plural 0 file)" = "0 files" ]
+  [ "$(fzx::plural 2 file)" = "2 files" ]
+  [ "$(fzx::plural 1 entry entries)" = "1 entry" ]
+  [ "$(fzx::plural 3 entry entries)" = "3 entries" ]
+  [ "$(fzx::plural 2 'work tree')" = "2 work trees" ]
+}
+
+@test "plural: blanks dropped (BSD wc -l), empty is zero, no newline" {
+  [ "$(fzx::plural '       1' buffer)" = "1 buffer" ]
+  [ "$(fzx::plural '' buffer)" = "0 buffers" ]
+  [ "$(fzx::plural 1 x | od -An -c | tr -d ' ')" = "1x" ]
+}
+
+@test "plural: the awk function agrees, an unset count is zero" {
+  run awk "$FZX_AWK_PLURAL"'BEGIN { print plural(1, "pane") "|" plural(4, "pane") "|" plural(x, "alias", "aliases") "|" plural(1, "alias", "aliases") }'
+  [ "$output" = "1 pane|4 panes|0 aliases|1 alias" ]
+}
+
 @test "session_create: writes meta and exports the session" {
   fzx::session_create counter /some/dir
   [ -n "$FZX_SESSION" ]

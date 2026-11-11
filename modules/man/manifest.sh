@@ -20,8 +20,8 @@ man::summary() {
   # shellcheck source=./source.sh
   source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
   case "$1" in
-    man) n="$(FZX_MODE=commands man::source | wc -l)" && printf '%s commands\n' "${n// /}" ;;
-    man:all) n="$(FZX_MODE=all man::source | wc -l)" && printf '%s pages\n' "${n// /}" ;;
+    man) n="$(FZX_MODE=commands man::source | wc -l)" && printf '%s\n' "$(fzx::plural "$n" command)" ;;
+    man:all) n="$(FZX_MODE=all man::source | wc -l)" && printf '%s\n' "$(fzx::plural "$n" page)" ;;
     man:tldr)
       # the page names alone: reading every page for its description takes seconds
       local dir p names=()

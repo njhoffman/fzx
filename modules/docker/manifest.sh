@@ -23,8 +23,8 @@ docker::applicable() {
 docker::summary() {
   case "$1" in
     docker) printf '%s running, %s stopped\n' "$(command docker ps -q | wc -l)" "$(command docker ps -aq --filter status=exited | wc -l)" ;;
-    docker:images) printf '%s images, %s dangling\n' "$(command docker images -q | wc -l)" "$(command docker images -q --filter dangling=true | wc -l)" ;;
-    docker:volumes) printf '%s volumes, %s unused\n' "$(command docker volume ls -q | wc -l)" "$(command docker volume ls -q --filter dangling=true | wc -l)" ;;
-    docker:compose) printf '%s projects\n' "$(command docker compose ls -aq 2> /dev/null | wc -l)" ;;
+    docker:images) printf '%s, %s dangling\n' "$(fzx::plural "$(command docker images -q | wc -l)" image)" "$(command docker images -q --filter dangling=true | wc -l)" ;;
+    docker:volumes) printf '%s, %s unused\n' "$(fzx::plural "$(command docker volume ls -q | wc -l)" volume)" "$(command docker volume ls -q --filter dangling=true | wc -l)" ;;
+    docker:compose) printf '%s\n' "$(fzx::plural "$(command docker compose ls -aq 2> /dev/null | wc -l)" project)" ;;
   esac
 }

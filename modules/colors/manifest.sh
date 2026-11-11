@@ -20,8 +20,8 @@ colors::summary() {
     colors:names | colors:fzx)
       # shellcheck source=./source.sh
       source "$(dirname "${BASH_SOURCE[0]}")/source.sh" || :
-      printf '%s %s\n' "$(FZX_MODE="${1#colors:}" colors::source 2> /dev/null | wc -l)" \
-        "$([[ "$1" == colors:names ]] && echo names || echo colors)"
+      printf '%s\n' "$(fzx::plural "$(FZX_MODE="${1#colors:}" colors::source 2> /dev/null | wc -l)" \
+        "$([[ "$1" == colors:names ]] && echo name || echo color)")"
       ;;
   esac
 }
