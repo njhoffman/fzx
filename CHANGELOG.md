@@ -6,6 +6,15 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.110.3] - 2026-11-10
+
+### Fixed
+
+- The test suite passes where there is no display and no tmux server, as in CI: the copy test pins the display it
+  stubs xclip for, and the key test gives the capture module a pane. CI installs just from its release (1.59.0):
+  Ubuntu's 1.21 cannot read the `[doc]` attributes the tasks tests use, and those tests now skip on a just
+  older than 1.37.
+
 ## [0.110.2] - 2026-11-10
 
 ### Removed

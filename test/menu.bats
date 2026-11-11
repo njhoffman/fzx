@@ -556,11 +556,14 @@ EOF2
 @test "ctrl-y reports in the footer on every screen, never reaching fzfrc's notify-send" {
   stub_fzf
   local d m missing=""
+  # what a module needs to build its options where nothing it reads exists (CI has no tmux server)
+  local -A needs=([capture]="--pane %0")
   for d in "$FZX_REPO"/modules/*/; do
     m="${d%/}"; m="${m##*/}"
     [[ -f "$d/module.sh" ]] || continue
     # a module that does not apply here may not start; what it binds is what is checked
-    run "$FZX" -m "$m" --dry-run
+    # shellcheck disable=SC2086  # the extra arguments are words
+    run "$FZX" -m "$m" --dry-run ${needs[$m]:-}
     [[ "$output" == *"ctrl-y:transform($FZX _cb notify "* || "$output" == *"ctrl-y:transform("*"_cb notify "* ]] || missing+=" $m"
   done
   [ -z "$missing" ] || { printf 'not through the footer:%s\n' "$missing"; return 1; }
@@ -586,7 +589,8 @@ EOF2
   printf '#!/bin/sh\ncat > "%s/clip"\n' "$BATS_TEST_TMPDIR" > "$BATS_TEST_TMPDIR/clipbin/xclip"
   cp "$BATS_TEST_TMPDIR/clipbin/xclip" "$BATS_TEST_TMPDIR/clipbin/xsel"
   chmod +x "$BATS_TEST_TMPDIR/clipbin/"*
-  FZX_SESSION="$sid" PATH="$BATS_TEST_TMPDIR/clipbin:$PATH" run "$FZX" _cb notify copy "ps:all"
+  # xclip is used only with a display (CI has none, and would fall back to tmux)
+  FZX_SESSION="$sid" DISPLAY=:0 WAYLAND_DISPLAY= PATH="$BATS_TEST_TMPDIR/clipbin:$PATH" run "$FZX" _cb notify copy "ps:all"
   [ "$status" -eq 0 ]
   [[ "$output" == *change-footer* ]]
   [ "$(< "$BATS_TEST_TMPDIR/clip")" = "ps:all" ]

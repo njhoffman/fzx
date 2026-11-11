@@ -86,6 +86,10 @@ act() { FZX_MODE="$1" "$TASKS/actions.sh" "${@:2}"; }
 
 @test "scan: a just recipe's whole comment block, attributes between; a [doc] attribute wins" {
   command -v just > /dev/null && command -v jq > /dev/null || skip "just or jq not installed"
+  # [doc] attributes are just 1.27, one overriding the comment above it 1.37; older ones reject this justfile
+  local v
+  v="$(just --version | awk '{ print $2 }')"
+  [[ "$(printf '%s\n' 1.37.0 "$v" | sort -V | head -1)" == 1.37.0 ]] || skip "just $v is older than 1.37"
   cat > "$B/justfile" << 'EOF2'
 # lint every file (the long
 # comment goes on)
