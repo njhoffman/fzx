@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.110.1): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
+Status (0.110.2): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
 docker, files, firewall, fonts, git, github, glyphs, history, kdeconnect, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
 add what you find, and tick items off (`- [x]`) as they land, never delete them; once every item of a section
@@ -184,7 +184,7 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       in parallel batches (`printf '%s\0' "${files[@]}" | xargs -0 -P"$(nproc)" -n 16 shellcheck`), keeping one
       exit status for CI.
 - [ ] **A split-pane menu that would not close** (p2) [bug]: on 2026-11-10 a split (`todos:here`, then
-      nav goto `menu:list`; FZX_SPLIT_PANE=1, lib/run.sh fzx::_fzf_pane) stayed open about 52 minutes until
+      nav goto `menu:list`; lib/run.sh fzx::_fzf_pane) stayed open about 52 minutes until
       its pane was killed by hand; the keys tried are unknown. Not a test: it ran under the real runtime dir and
       history. In the pane fzx execs fzf, so any fzf exit should end it.
       Found live (0.110.1): esc from the menu in a split while its summaries still ran left the pane blank,

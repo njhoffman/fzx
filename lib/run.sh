@@ -539,7 +539,7 @@ fzx::_fzf_pane() {
   rm -f -- "$base".out "$base".rc
   # the pane inherits tmux's environment, not ours: replay our exported variables there
   export -p | grep -vE '^declare -x (PWD|OLDPWD|SHLVL|TMUX_PANE|_)=' > "$base.env"
-  printf -v cmd 'source %q; export FZX_SPLIT_PANE=1; %q --resume %q > %q; echo $? > %q' \
+  printf -v cmd 'source %q; %q --resume %q > %q; echo $? > %q' \
     "$base.env" "$FZX_BIN" "$FZX_SESSION" "$base.out" "$base.rc"
   if ! pane="$(tmux "$tmux_cmd" -P -F '#{pane_id}' -c "$PWD" "$@" "bash -c $(printf '%q' "$cmd")")"; then
     fzx::log error "tmux $tmux_cmd failed, running inline"

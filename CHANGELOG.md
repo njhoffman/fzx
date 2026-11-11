@@ -6,6 +6,12 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.110.2] - 2026-11-10
+
+### Removed
+
+- `FZX_SPLIT_PANE`, which split panes exported but nothing read.
+
 ## [0.110.1] - 2026-11-10
 
 ### Fixed
