@@ -8,10 +8,17 @@ setup() {
   mkdir -p "$BATS_TEST_TMPDIR/bin" "$BATS_TEST_TMPDIR/tree/sub"
   touch "$BATS_TEST_TMPDIR/tree/sub/a.txt"
   # stub: records its args; "path<TAB>[I] dir/name" with HOME as ~, like prettypath's %dir%%name%
-  # (the probe's --format=%path% prints the path alone)
+  # (a --format=%path% run prints the path alone)
   cat > "$BATS_TEST_TMPDIR/bin/prettypath" << 'STUB'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "$BATS_TEST_TMPDIR/pp.args"
+# --version: PP_VERSION (default 0.5.0); PP_LEGACY=1 prints a dev version, PP_NOVERSION=1 has no --version
+# (reads stdin like any run, printing nothing for the empty input fzx gives it)
+if [[ "$*" == --version ]]; then
+  if [[ -n "${PP_NOVERSION:-}" ]]; then cat > /dev/null; exit 0; fi
+  if [[ -n "${PP_LEGACY:-}" ]]; then echo "prettypath dev-4"; else echo "prettypath ${PP_VERSION:-0.5.0}"; fi
+  exit 0
+fi
 # PP_LEGACY=1 acts like prettypath before the fixes: "%" stripped, paths right under / dropped
 while IFS= read -r p; do
   if [[ -n "${PP_LEGACY:-}" ]]; then
@@ -69,15 +76,32 @@ STUB
   [[ "${lines[0]}" == "$TREE/sub"$'\t'*"     12"*"  [D] $TREE/sub" ]]
 }
 
-@test "sound prettypath: every path goes through it, % included; the probe is cached" {
+@test "sound prettypath: every path goes through it, % included; the version check is cached" {
   load_libs log pretty
   run fzx::pretty "$TREE" <<< "$TREE/50%off.txt"
   [ "$output" = "$TREE/50%off.txt"$'\t'"[I] 50%off.txt" ]
   [ "$(cat "$FZX_CACHE_DIR"/prettypath/*)" = sound ]
-  local calls
-  calls="$(grep -c -- '--format=%path%$' "$BATS_TEST_TMPDIR/pp.args")"
+  [ "$(grep -c -- '^--version$' "$BATS_TEST_TMPDIR/pp.args")" -eq 1 ]
   fzx::pretty "$TREE" <<< "$TREE/a" > /dev/null
-  [ "$(grep -c -- '--format=%path%$' "$BATS_TEST_TMPDIR/pp.args")" -eq "$calls" ]
+  [ "$(grep -c -- '^--version$' "$BATS_TEST_TMPDIR/pp.args")" -eq 1 ]
+}
+
+@test "pretty_sound: 0.1.0 and later are sound; older, dev and version-less builds are legacy" {
+  load_libs log pretty
+  local v
+  for v in 0.1.0 0.5.0 1.0.0 10.2.3; do
+    rm -rf "$FZX_CACHE_DIR/prettypath"
+    PP_VERSION=$v fzx::pretty_sound
+  done
+  for v in 0.0.9 0.0.1 dev-4 "1.0"; do
+    rm -rf "$FZX_CACHE_DIR/prettypath"
+    ! PP_VERSION=$v fzx::pretty_sound
+  done
+  rm -rf "$FZX_CACHE_DIR/prettypath"
+  # without --version the binary reads stdin; the check must not wait on it (stdin here stays open 10s)
+  PP_NOVERSION=1 run timeout 5 bash -c 'source "$1/lib/core.sh"; fzx::require log pretty; fzx::pretty_sound' _ \
+    "$FZX_REPO" < <(sleep 10)
+  [ "$status" -eq 1 ]
 }
 
 @test "legacy prettypath: paths it would mangle or drop get a plain display, ids intact" {

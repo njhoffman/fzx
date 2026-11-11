@@ -11,11 +11,13 @@ fzx::pretty_on() {
   command -v prettypath > /dev/null
 }
 
-# fzx::pretty_sound: the installed prettypath passes every path through intact. Older versions strip "%"
-# from %path% (the id fzx prints) and drop paths directly under / without a word. Probed once per
-# prettypath binary (keyed by its path and mtime) and remembered in FZX_CACHE_DIR.
+# fzx::pretty_sound: the installed prettypath passes every path through intact: version 0.1.0 or later (its
+# --version prints "prettypath X.Y.Z"). Older versions strip "%" from %path% (the id fzx prints) and drop
+# paths directly under / without a word; they print "prettypath dev-N" or, before --version existed, read
+# stdin (hence < /dev/null). Checked once per prettypath binary (keyed by its path and mtime) and
+# remembered in FZX_CACHE_DIR.
 fzx::pretty_sound() {
-  local bin mtime key file probe=$'/fzx-probe%x/a b\n/fzx-probe' want=$'/fzx-probe%x/a b\n/fzx-probe' got
+  local bin mtime key file got
   bin="$(command -v prettypath)" || return 1
   mtime="$(stat -L -c %Y -- "$bin" 2> /dev/null)" || mtime=0
   key="$(printf '%s:%s' "$bin" "$mtime" | md5sum)"
@@ -24,14 +26,14 @@ fzx::pretty_sound() {
     [[ "$(< "$file")" == sound ]]
     return
   fi
-  got="$(printf '%s\n' "$probe" | command prettypath --format=%path% 2> /dev/null)"
+  got="$(command prettypath --version < /dev/null 2> /dev/null)"
   mkdir -p -- "${file%/*}"
-  if [[ "$got" == "$want" ]]; then
+  if [[ "$got" =~ ^prettypath\ ([0-9]+)\.([0-9]+)\.([0-9]+)$ ]] && ((BASH_REMATCH[1] > 0 || BASH_REMATCH[2] >= 1)); then
     echo sound > "$file"
     return 0
   fi
   echo legacy > "$file"
-  fzx::log warn "prettypath mangles or drops some paths (old version); those are shown without icons"
+  fzx::log warn "prettypath mangles or drops some paths (older than 0.1.0); those are shown without icons"
   return 1
 }
 

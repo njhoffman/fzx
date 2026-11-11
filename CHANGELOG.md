@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.108.3] - 2026-11-10
+
+### Changed
+
+- fzx tells whether the installed prettypath handles every path by its `--version` (0.1.0 or later) instead of
+  running a test path through it. It is still checked once per prettypath binary; a build too old to have
+  `--version`, or a dev build, counts as an old one, as before.
+
 ## [0.108.2] - 2026-11-10
 
 ### Changed
