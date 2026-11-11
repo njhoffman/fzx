@@ -858,6 +858,12 @@ immediately. `start:+bg-transform:fzx _cb transform refresh` then computes the s
 `FZX_SUMMARY_TIMEOUT` (default 3s), and answers with a single `reload` when anything changed. A
 failing or timed-out summary is cached empty, so it is not retried on every open. The timeout watcher
 must not hold the callback's stdout: fzf waits for every writer of a `bg-transform` to close it.
+The refresh runs under `setsid` (`refresh-run`): a session and process group of its own, no controlling
+terminal and stdin from /dev/null, so no summary can change the terminal's modes under fzf. The group is
+recorded in `state/bg_pgid`; any navigation away from the menu (`fzx::nav`, all but relayout) and session
+cleanup stop it (`fzx::bg_stop`, only while its leader still carries the session in its environment), so a
+refresh cut short does not keep running beside the next screen. Leaving the menu while it ran used to cost
+seconds in a split pane (blank, keys echoed) before the screen behind it came back.
 A summary describes what the entry would open from here (counts, the state of a server or repository)
 and stays well under the timeout: one that would need an interactive shell or a walk of `~` (the zsh
 key bindings without a saved dump, `dirs`) prints nothing instead. A summary that depends on more than the

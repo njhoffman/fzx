@@ -164,7 +164,10 @@ fzx::_menu_module() {
       if [[ "${FZX_ICONS:-nerd}" == nerd ]]; then
         mode=""
         [[ "${FZX_ENTRY_TARGETS[i]}" == *:* ]] && mode="${FZX_ENTRY_TARGETS[i]#*:}"
-        icon="${FZX_ICON_MODES[$mode]:-${FZX_ICON:- }}"
+        # an entry without a mode has no mode icon (an empty key is an error for an associative array)
+        icon=""
+        [[ -n "$mode" ]] && icon="${FZX_ICON_MODES[$mode]:-}"
+        icon="${icon:-${FZX_ICON:- }}"
         color="${FZX_COLORS[${name}_icon_$mode]:-${FZX_COLORS[${name}_icon]:-${FZX_COLORS[menu_target]:-0}}}"
         icon=$'\e['"${color}m$icon"$'\e[0m '
       fi

@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.110.0): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
+Status (0.110.1): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
 docker, files, firewall, fonts, git, github, glyphs, history, kdeconnect, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
 add what you find, and tick items off (`- [x]`) as they land, never delete them; once every item of a section
@@ -186,9 +186,13 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [ ] **A split-pane menu that would not close** (p2) [bug]: on 2026-11-10 a split (`todos:here`, then
       nav goto `menu:list`; FZX_SPLIT_PANE=1, lib/run.sh fzx::_fzf_pane) stayed open about 52 minutes until
       its pane was killed by hand; the keys tried are unknown. Not a test: it ran under the real runtime dir and
-      history. In the pane fzx execs fzf, so any fzf exit should end it: check live (detached tmux, CPU-limited
-      systemd-run) whether esc and back from a goto child in a split reach fzf and close the pane, and whether
-      the split is focused when it opens.
+      history. In the pane fzx execs fzf, so any fzf exit should end it.
+      Found live (0.110.1): esc from the menu in a split while its summaries still ran left the pane blank,
+      the terminal cooked and keys echoed for 3-5s (the refresh kept running beside the next screen): fixed,
+      the refresh now runs in its own group and leaving the menu stops it (1.6s+2s down to 50ms+170ms).
+      Not reproduced: a pane stuck for good; every run recovered. The fzf found was the menu's own, alive,
+      so keys may not have reached it (focus back in the Claude pane next to it?). Still open: ask what was
+      pressed when it happens again; check `tmux display -p '#{pane_active}'` on the split.
 - [x] **design.md: broken table under Reloading and navigation** (p3) [docs]: docs/design.md:119-122 has two
       header rows, a stale two-column one above the three-column one, so the table renders wrongly. Delete lines
       119-120.

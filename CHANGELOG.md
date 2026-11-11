@@ -6,6 +6,16 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.110.1] - 2026-11-10
+
+### Fixed
+
+- Leaving the menu while its summaries were still being computed (esc, back, a goto) took seconds in a tmux
+  split, with the pane blank and keys echoed: the summary refresh kept running beside the next screen. It now
+  runs in a process group of its own, without the terminal, and leaving the menu stops it.
+- Menu entries without a mode of a module that gives its modes icons (music, github) logged "bad array
+  subscript" and lost their icon.
+
 ## [0.110.0] - 2026-11-10
 
 ### Added

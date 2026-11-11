@@ -150,6 +150,58 @@ EOF2
   [ "$(wc -l < "$COUNTER_FILE.summaries")" -eq 2 ]
 }
 
+@test "refresh: summaries run in a process group of their own, without the terminal; the group is recorded while it runs" {
+  fixture_modules
+  menu_session
+  local probe="$BATS_TEST_TMPDIR/probe" pgid sid tty
+  COUNTER_SUMMARY_PROBE="$probe" COUNTER_SUMMARY_SLEEP=2 "$FZX" _cb transform refresh > /dev/null &
+  local job=$!
+  local i
+  for i in $(seq 50); do [[ -s "$FZX_SESSION_DIR/state/bg_pgid" ]] && break; sleep 0.1; done
+  [ -s "$FZX_SESSION_DIR/state/bg_pgid" ]
+  wait "$job"
+  read -r pgid sid tty < "$probe"
+  # not the test's group; its own session; no controlling terminal
+  [ "$pgid" != "$(ps -o pgid= -p $$ | tr -d ' ')" ] && [ "$pgid" = "$sid" ] && [ "$tty" = "?" ]
+  # done: the group is forgotten
+  [ ! -e "$FZX_SESSION_DIR/state/bg_pgid" ]
+}
+
+@test "refresh: leaving the menu stops a refresh still running; a pid that is not the session's is left alone" {
+  fixture_modules
+  menu_session
+  local start=$EPOCHSECONDS
+  COUNTER_SUMMARY_SLEEP=20 FZX_SUMMARY_TIMEOUT=30 "$FZX" _cb transform refresh > /dev/null &
+  local job=$! i
+  for i in $(seq 50); do [[ -s "$COUNTER_FILE.summaries" ]] && break; sleep 0.1; done
+  [ -s "$FZX_SESSION_DIR/state/bg_pgid" ]
+  # any navigation away: here the menu's escape at the root, which aborts
+  run "$FZX" _cb nav escape
+  [ "$output" = abort ]
+  wait "$job" || :
+  ((EPOCHSECONDS - start < 10))
+  [ ! -e "$FZX_SESSION_DIR/state/bg_pgid" ]
+  grep -q "background job .* stopped" "$LOG"
+  # a recorded group led by a process of another session (a pid used again) is not signalled; one of this
+  # session's is
+  local pidfile="$BATS_TEST_TMPDIR/leader" other
+  env -u FZX_SESSION setsid bash -c 'echo $$ > "$1"; exec sleep 30' _ "$pidfile" &
+  for i in $(seq 50); do [[ -s "$pidfile" ]] && break; sleep 0.1; done
+  other="$(< "$pidfile")"
+  fzx::state_set bg_pgid "$other"
+  run "$FZX" _cb nav escape
+  kill -0 "$other"
+  kill "$other"
+  rm -f "$pidfile"
+  setsid bash -c 'echo $$ > "$1"; exec sleep 30' _ "$pidfile" &
+  for i in $(seq 50); do [[ -s "$pidfile" ]] && break; sleep 0.1; done
+  other="$(< "$pidfile")"
+  fzx::state_set bg_pgid "$other"
+  run "$FZX" _cb nav escape
+  for i in $(seq 30); do kill -0 "$other" 2> /dev/null || break; sleep 0.1; done
+  ! kill -0 "$other" 2> /dev/null
+}
+
 @test "refresh: summaries older than FZX_SUMMARY_TTL are recomputed" {
   fixture_modules
   menu_session
@@ -538,4 +590,15 @@ EOF2
   [ "$status" -eq 0 ]
   [[ "$output" == *change-footer* ]]
   [ "$(< "$BATS_TEST_TMPDIR/clip")" = "ps:all" ]
+}
+
+@test "icons: a mode's own icon from an associative FZX_ICON_MODES; an entry without a mode gets the module's, no error" {
+  fixture_modules
+  menu_session
+  mkdir -p "$FZX_CONFIG_DIR/modules/counter"
+  printf '%s\n' 'declare -gA FZX_ICON_MODES' 'FZX_ICON_MODES[two]=Z' 'FZX_ICON=Y' > "$FZX_CONFIG_DIR/modules/counter/config.sh"
+  FZX_ICONS=nerd run plain_lines
+  [[ "$(printf '%s\n' "${lines[@]}" | grep '^counter#1|')" == *"Z "* ]]
+  [[ "$(printf '%s\n' "${lines[@]}" | grep '^counter#0|')" == *"Y "* ]]
+  ! grep -q 'bad array subscript' "$LOG"
 }

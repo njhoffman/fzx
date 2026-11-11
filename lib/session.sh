@@ -96,12 +96,31 @@ fzx::session_destroy() {
     root=""
     fzx::_kv_get "$dir/meta/root" root
     if [[ "$root" == "$FZX_SESSION" ]]; then
+      fzx::bg_stop "$dir"
       rm -rf -- "$dir"
       n=$((n + 1))
     fi
   done
+  fzx::bg_stop "$FZX_SESSION_DIR"
   rm -rf -- "$FZX_SESSION_DIR"
   fzx::log info "session destroyed (and $n children)"
+}
+
+# fzx::bg_stop [session dir]: end the background job a session's screen started (state/bg_pgid: a process
+# group of its own, the menu's summary refresh), so it stops competing with the screen that follows. Only a
+# group still led by a process of that session (FZX_SESSION in its environment) is signalled: a pid used
+# again since is left alone. Needs /proc; without it the job runs to its end as before.
+fzx::bg_stop() {
+  local _d="${1:-$FZX_SESSION_DIR}" _g="" _sid
+  fzx::_kv_get "$_d/state/bg_pgid" _g 2> /dev/null || return 0
+  rm -f -- "$_d/state/bg_pgid"
+  [[ "$_g" =~ ^[0-9]+$ && -r "/proc/$_g/environ" ]] || return 0
+  _sid="${_d%/}"
+  _sid="${_sid##*/}"
+  tr '\0' '\n' < "/proc/$_g/environ" 2> /dev/null | grep -qxF "FZX_SESSION=$_sid" || return 0
+  kill -TERM -- "-$_g" 2> /dev/null
+  declare -F fzx::log > /dev/null && fzx::log info "background job $_g of ${_sid} stopped"
+  return 0
 }
 
 # module arguments stored at creation, into the FZX_ARGS array

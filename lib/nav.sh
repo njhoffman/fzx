@@ -240,6 +240,8 @@ fzx::nav() {
   fzx::state_set query "${FZF_QUERY:-}"
   fzx::state_set pos "${FZF_POS:-1}"
   fzx::require layout && fzx::layout_save
+  # this screen is being left (or started again): its background job would only slow the next one
+  [[ "$action" == relayout ]] || fzx::bg_stop
 
   case "$action" in
     resume)
