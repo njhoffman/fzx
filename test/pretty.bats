@@ -19,6 +19,14 @@ if [[ "$*" == --version ]]; then
   if [[ -n "${PP_LEGACY:-}" ]]; then echo "prettypath dev-4"; else echo "prettypath ${PP_VERSION:-0.5.0}"; fi
   exit 0
 fi
+# --dirs and --base=DIR as prettypath 0.2.0 has them (fzx passes them only to a version that does)
+dirs="" base=""
+for a in "$@"; do
+  case "$a" in
+    --dirs) dirs=1 ;;
+    --base=*) base="${a#--base=}" base="${base%/}" ;;
+  esac
+done
 # PP_LEGACY=1 acts like prettypath before the fixes: "%" stripped, paths right under / dropped
 while IFS= read -r p; do
   if [[ -n "${PP_LEGACY:-}" ]]; then
@@ -28,7 +36,11 @@ while IFS= read -r p; do
   # like prettypath: a trailing "/" marks a directory ([D], the folder icon) and is dropped from the path
   icon='[I]'
   [[ "$p" == ?*/ ]] && p="${p%/}" icon='[D]'
-  if [[ "$*" == *"--format=%path%" ]]; then printf '%s\n' "$p"; else printf '%s\t%s %s\n' "$p" "$icon" "${p/#$HOME/\~}"; fi
+  [[ -n "$dirs" ]] && icon='[D]'
+  # the display: relative to --base (the base itself by its name), else with HOME as ~
+  shown="${p/#$HOME/\~}"
+  if [[ -n "$base" && "$p" == "$base" ]]; then shown="${p##*/}"; elif [[ -n "$base" && "$p" == "$base"/* ]]; then shown="${p#"$base"/}"; fi
+  if [[ "$*" == *"--format=%path%" ]]; then printf '%s\n' "$p"; else printf '%s\t%s %s\n' "$p" "$icon" "$shown"; fi
 done
 STUB
   chmod +x "$BATS_TEST_TMPDIR/bin/prettypath"
@@ -80,7 +92,7 @@ STUB
   load_libs log pretty
   run fzx::pretty "$TREE" <<< "$TREE/50%off.txt"
   [ "$output" = "$TREE/50%off.txt"$'\t'"[I] 50%off.txt" ]
-  [ "$(cat "$FZX_CACHE_DIR"/prettypath/*)" = sound ]
+  [ "$(cat "$FZX_CACHE_DIR"/prettypath/*)" = current ]
   [ "$(grep -c -- '^--version$' "$BATS_TEST_TMPDIR/pp.args")" -eq 1 ]
   fzx::pretty "$TREE" <<< "$TREE/a" > /dev/null
   [ "$(grep -c -- '^--version$' "$BATS_TEST_TMPDIR/pp.args")" -eq 1 ]
@@ -102,6 +114,39 @@ STUB
   PP_NOVERSION=1 run timeout 5 bash -c 'source "$1/lib/core.sh"; fzx::require log pretty; fzx::pretty_sound' _ \
     "$FZX_REPO" < <(sleep 10)
   [ "$status" -eq 1 ]
+}
+
+@test "pretty_level: 0.2.0 and later current, 0.1.x sound, older or dev legacy" {
+  load_libs log pretty
+  local v
+  for v in 0.2.0 0.7.1 1.0.0; do
+    rm -rf "$FZX_CACHE_DIR/prettypath"
+    [ "$(PP_VERSION=$v fzx::pretty_level)" = current ]
+  done
+  for v in 0.1.0 0.1.9; do
+    rm -rf "$FZX_CACHE_DIR/prettypath"
+    [ "$(PP_VERSION=$v fzx::pretty_level)" = sound ]
+  done
+  rm -rf "$FZX_CACHE_DIR/prettypath"
+  [ "$(PP_VERSION=0.0.9 fzx::pretty_level)" = legacy ]
+}
+
+@test "pretty: a current prettypath gets --base and --dirs; 0.1.x gets the slash and the cut from fzx" {
+  load_libs log pretty
+  run fzx::pretty "$TREE" <<< "$TREE/sub/a.txt"
+  [ "$output" = "$TREE/sub/a.txt"$'\t'"[I] sub/a.txt" ]
+  grep -qx -- "--format=%path%"$'\t'"%icon% %dir%%name% --base=$TREE" "$BATS_TEST_TMPDIR/pp.args"
+  run fzx::pretty --dirs <<< "$TREE/sub"
+  [ "$output" = "$TREE/sub"$'\t'"[D] $TREE/sub" ]
+  grep -qx -- "--format=%path%"$'\t'"%icon% %dir%%name% --dirs" "$BATS_TEST_TMPDIR/pp.args"
+  # 0.1.x: no --base or --dirs (it would ignore them); fzx adds the slash and cuts the base itself
+  rm -rf "$FZX_CACHE_DIR/prettypath" "$BATS_TEST_TMPDIR/pp.args"
+  export PP_VERSION=0.1.0
+  run fzx::pretty "$TREE" <<< "$TREE/sub/a.txt"
+  [ "$output" = "$TREE/sub/a.txt"$'\t'"[I] sub/a.txt" ]
+  run fzx::pretty --dirs <<< "$TREE/sub"
+  [ "$output" = "$TREE/sub"$'\t'"[D] $TREE/sub" ]
+  ! grep -q -- "--base\|--dirs" "$BATS_TEST_TMPDIR/pp.args"
 }
 
 @test "legacy prettypath: paths it would mangle or drop get a plain display, ids intact" {

@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.108.4] - 2026-11-10
+
+### Changed
+
+- With prettypath 0.2.0 or later, the files, dirs and recent displays let prettypath drop the base directory
+  (`--base`) and mark zoxide's directories (`--dirs`) instead of fixing up its output with awk and sed. Older
+  prettypath versions get the same displays as before.
+
 ## [0.108.3] - 2026-11-10
 
 ### Changed

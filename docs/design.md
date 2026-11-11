@@ -615,10 +615,12 @@ when `FZX_PRETTY` is `auto` (the default; on when `prettypath` is installed) or 
 in absolute (prettypath drops relative ones), unstatted (prettypath 0.1.0 stats only for size and date
 tokens, and the display format has none), the base directory is cut from the
 shown directory, and dirs joins the result back to its scores by path (a path missing from the result
-keeps a plain display). prettypath before 0.1.0 strips `%` from `%path%` (the id) and drops paths
-directly under `/`; `fzx::pretty_sound` checks the installed one's `--version` (`prettypath X.Y.Z`, at least
-0.1.0; read with stdin closed, since builds without `--version` read it) once per binary (path and mtime,
-cached in `$FZX_CACHE_DIR/prettypath/`), and with an old one those paths skip prettypath. About 13µs per path with
+keeps a plain display). `fzx::pretty_level` reads the installed prettypath's `--version` (`prettypath X.Y.Z`;
+read with stdin closed, since builds without `--version` read it) once per binary (path and mtime, cached in
+`$FZX_CACHE_DIR/prettypath/`): 0.2.0 and later (`current`) get `--base` and `--dirs` and cut the base and mark
+directories themselves; with 0.1.x (`sound`) fzx appends the slash and cuts the base from the display with
+awk; before 0.1.0 (`legacy`) prettypath strips `%` from `%path%` (the id) and drops paths directly under `/`,
+so those paths skip it. About 13µs per path with
 the fixed prettypath (20k paths in 0.26s), streamed.
 Directories keep fd's trailing `/` into prettypath, which marks them as directories (folder icon) and drops
 it from `%path%`; `fzx::pretty --dirs` adds it for lists without one (zoxide). prettypath's own roadmap
