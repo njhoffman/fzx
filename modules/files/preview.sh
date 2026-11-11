@@ -26,6 +26,27 @@ files::header() {
   printf '%s%s%s%s%s  %s%s%s\n' "$dim" "$dir" "$rst$b" "$name" "$rst" "$dim" "$info" "$rst"
 }
 
+# files::flags_preview <text>: the args screen's check of what is typed: the command's added flags, or why one
+# is refused
+files::flags_preview() {
+  local words=() err ok=$'\e[32m' bad=$'\e[31m' dim=$'\e[38;5;244m' rst=$'\e[0m'
+  [[ -n "${NO_COLOR+x}" ]] && ok="" bad="" dim="" rst=""
+  declare -F fzx::session_args > /dev/null || fzx::require session
+  # shellcheck source=./source.sh
+  declare -F files::flags_parse > /dev/null || source "$(dirname "${BASH_SOURCE[0]}")/source.sh" || :
+  fzx::session_args
+  files::args "${FZX_ARGS[@]}" 2> /dev/null || return 0
+  if files::flags_parse "$FILES_TOOL" "$1" words err; then
+    if ((${#words[@]})); then
+      printf '%sadds:%s %s %s\n' "$ok" "$rst" "$FILES_TOOL" "${words[*]}"
+    else
+      printf '%sno flags: enter clears them%s\n' "$dim" "$rst"
+    fi
+  else
+    printf '%srefused:%s %s\n' "$bad" "$rst" "$err"
+  fi
+}
+
 # files::replace_preview <path> <line> <replacement>: the match's line as it is (red, -) and as the
 # replacement leaves it (green, +), between FZX_FILES_REPLACE_CONTEXT (3) lines on each side
 files::replace_preview() {
@@ -50,6 +71,10 @@ files::replace_preview() {
 # files::preview <path> [line]
 files::preview() {
   local path="${1:-}" line="${2:-}" lines="${FZF_PREVIEW_LINES:-40}"
+  if [[ "${FZX_MODE:-}" == args ]]; then
+    files::flags_preview "$1"
+    return 0
+  fi
   # no row (an empty list): nothing to show
   [[ -n "$path" ]] || return 0
   [[ -e "$path" ]] || {

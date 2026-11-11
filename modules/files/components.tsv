@@ -10,6 +10,7 @@ ROWS
 if command -v rg > /dev/null; then
   printf 'mode\treplace\t-\treplace a grep term'"'"'s matches (--term T): what you type is the replacement\thidden,nopersist\n'
 fi
+printf 'mode\targs\t-\tthe flags alt-a adds to fd or rg (--tool): what you type is the flags\thidden,nopersist\n'
 if command -v plocate > /dev/null || command -v locate > /dev/null; then
   printf 'mode\tlocate\t-\tpaths the locate database has under the directory, as you type\trestart,nopersist\n'
 fi

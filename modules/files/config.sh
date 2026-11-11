@@ -22,6 +22,7 @@ FZX_KEYS[files.into]=ctrl-o  # browse the directory under the cursor (a file's o
 FZX_KEYS[files.up]=alt-up    # browse the parent directory
 FZX_KEYS[files.filter]=ctrl-t # grep: filter the matches with fzf instead of grepping, and back
 FZX_KEYS[files.replace]=alt-s # grep: replace the term's matches (a screen where the query is the replacement)
+FZX_KEYS[files.flags]=alt-a   # files, dirs, grep: fd's or rg's flags (a screen where the query is the flags)
 
 # file lists can be large and change rarely within a few minutes: reuse them across runs
 FZX_PERSIST=cache:5m

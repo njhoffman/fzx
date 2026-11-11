@@ -243,9 +243,12 @@ fzx::data_key() {
   [[ -n "$FZX_SORT" ]] && _key+="@$FZX_SORT"
   [[ "${FZX_SORT_HEADER:-0}" == 1 ]] && _key+="#header"
   # rows split for --freeze-left differ from ones cached before it
-  local _f=""
+  local _f="" _v=""
   [[ -n "${FZX_SESSION_DIR:-}" ]] && fzx::_kv_get "$FZX_SESSION_DIR/meta/freeze" _f 2> /dev/null
   [[ -n "$_f" ]] && _key+="~$_f"
+  # the module's own part, when its opts set one (meta/view, path-safe: files keeps a hash of its alt-a flags)
+  [[ -n "${FZX_SESSION_DIR:-}" ]] && fzx::_kv_get "$FZX_SESSION_DIR/meta/view" _v 2> /dev/null
+  [[ -n "$_v" ]] && _key+="%$_v"
   printf -v "$1" '%s' "$_key"
 }
 

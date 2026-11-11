@@ -6,6 +6,20 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.110.0] - 2026-11-10
+
+### Added
+
+- files: alt-a in files, dirs and grep opens a screen for the fd or rg flags to add: type them (`-t py -w`,
+  `-e md -d 2`), the preview checks each as you type and enter applies them, esc leaves them as they were.
+  Only flags that keep the rows readable are allowed (the screen lists them). They last for the session,
+  through into, up, alt-r and mode changes, and the header shows them.
+
+### Changed
+
+- The cache key of a view can carry a module's own part (`meta/view`), so rows cached under other settings
+  are never served for it.
+
 ## [0.109.0] - 2026-11-10
 
 ### Added

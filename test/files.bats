@@ -373,3 +373,117 @@ replace_session() {
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " == *" --disabled "* && " ${FZF_ARGS[*]} " == *"replace: needle  (type the replacement"* ]]
 }
+
+# srcs <mode> <args...>: the source in the current session, as the callbacks run it, paths relative to the base
+srcs() { bash -c "source '$FZX_REPO/lib/core.sh'; fzx::require log session; source '$FILES/source.sh'; FZX_MODE=$1 FZF_QUERY=needle files::source '$B' ${*:2}" | cut -f1 | sed "s:^$B/::" | sort; }
+
+@test "flags: allowed ones parse, joined and attached forms too; others and missing values are refused" {
+  source "$FILES/source.sh" || :
+  local w=()
+  files::flags_parse rg "-t py -wi --glob=!*.md -m3" w
+  [ "${w[*]}" = "-t py -w -i --glob !*.md -m 3" ]
+  files::flags_parse fd "-e md -S -1M --changed-within 2weeks" w
+  [ "${w[*]}" = "-e md -S -1M --changed-within 2weeks" ]
+  files::flags_parse rg "" w && [ "${#w[@]}" -eq 0 ]
+  local bad
+  for bad in "-e foo" "--json" "-l" "-C 3" "-g" "--fixed-strings=1" "-wl"; do
+    run files::flags_parse rg "$bad" w
+    [ "$status" -eq 1 ] && [[ "$output" == rg:* ]]
+  done
+  for bad in "-t f" "-g x" "-x ls"; do
+    run files::flags_parse fd "$bad" w
+    [ "$status" -eq 1 ]
+  done
+}
+
+@test "flags: the session tree's saved flags reach rg and fd; nothing outside a session" {
+  command -v rg > /dev/null || skip "ripgrep not installed"
+  load_libs log session
+  fzx::session_create files "$FILES" "$B"
+  files_all="$(srcs files)"
+  [[ "$files_all" == *a/x* && "$files_all" == *top* ]]
+  bash -c "source '$FZX_REPO/lib/core.sh'; fzx::require session; source '$FILES/source.sh'; files::flags_set fd '-E a'"
+  [ "$(< "$FZX_SESSION_DIR/state/files_flags_fd")" = "-E a" ]
+  run srcs files
+  [[ "$output" != *a/x* && "$output" == *top* ]]
+  bash -c "source '$FZX_REPO/lib/core.sh'; fzx::require session; source '$FILES/source.sh'; files::flags_set rg '-g top'"
+  run srcs grep
+  [ "$output" = top ]
+  # a child of the tree reads the root's
+  local root="$FZX_SESSION"
+  fzx::session_create files "$FILES" "$B/a"
+  fzx::meta_set root "$root"
+  run srcs grep
+  [ "$output" = top ]
+  # standalone: no session, no flags
+  run bash -c "unset FZX_SESSION FZX_SESSION_DIR; FZX_MODE=grep FZF_QUERY=needle '$FILES/source.sh' '$B' | wc -l"
+  ((output > 1))
+}
+
+@test "flags: alt-a opens the args screen for the mode's tool as a child; the header and the cache key follow the flags" {
+  command -v rg > /dev/null || skip "ripgrep not installed"
+  load_libs log session
+  fzx::session_create files "$FILES" "$B"
+  fzx::state_set mode grep
+  run "$FZX" _cb transform flags
+  [[ "$output" == "become:$FZX --resume "*" -m :args" ]]
+  local child="${output##*--resume }" args=()
+  child="${child%% *}"
+  mapfile -d '' -t args < "$FZX_RUNTIME_DIR/sessions/$child/meta/args"
+  [ "${args[*]}" = "$B --tool rg" ]
+  fzx::state_set mode dirs
+  run "$FZX" _cb transform flags
+  [[ "$output" == *" -m :args" ]]
+  child="${output##*--resume }" child="${child%% *}"
+  mapfile -d '' -t args < "$FZX_RUNTIME_DIR/sessions/$child/meta/args"
+  [ "${args[*]}" = "$B --tool fd" ]
+  fzx::state_set mode locate
+  run "$FZX" _cb transform flags
+  [ "$output" = bell ]
+  # the parent's header names its flags, and its view key changes with them
+  stub_fzf
+  fzx::state_set mode files
+  run "$FZX" --resume "$FZX_SESSION"
+  [[ "$(fzf_bind alt-a)" == "alt-a:transform:$FZX _cb transform flags" ]]
+  [ -z "$(cat "$FZX_SESSION_DIR/meta/view" 2> /dev/null)" ]
+  fzx::state_set files_flags_fd '-E a'
+  run "$FZX" --resume "$FZX_SESSION"
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *"  fd: -E a "* ]]
+  [[ "$(< "$FZX_SESSION_DIR/meta/view")" == fd[0-9]* ]]
+}
+
+@test "flags: the args screen lists the allowed flags, starts with the saved ones, checks them as you type; enter saves or refuses" {
+  load_libs log session
+  stub_fzf
+  fzx::session_create files "$FILES" "$B" --tool fd
+  fzx::state_set mode args
+  fzx::state_set files_flags_fd '-e md'
+  run "$FZX" --resume "$FZX_SESSION"
+  [ "$status" -eq 0 ]
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *" --disabled "* && " ${FZF_ARGS[*]} " == *" --query=-e md "* ]]
+  [[ "$(fzf_bind enter)" == "enter:transform:$FZX _cb transform flags-apply" ]]
+  run bash -c "FZX_MODE=args '$FILES/source.sh' '$B' --tool fd | cut -f1"
+  [[ "$output" == *"-e|--extension"* && "$output" != *"-t|"* ]]
+  # in a child of a files session: the preview and enter
+  fzx::session_create files "$FILES" "$B"
+  local parent="$FZX_SESSION"
+  printf '%s' '-e md' > "$FZX_SESSION_DIR/state/files_flags_fd"
+  fzx::session_create files "$FILES" "$B" --tool fd
+  fzx::meta_set root "$parent"
+  fzx::meta_set parent "$parent"
+  fzx::state_set mode args
+  run "$FZX" _cb preview "-d 2"
+  [[ "$output" == *"adds:"*"fd -d 2"* ]]
+  run "$FZX" _cb preview "-t f"
+  [[ "$output" == *"refused:"*"-t"* ]]
+  FZF_QUERY="-t f" run "$FZX" _cb transform flags-apply
+  [[ "$output" == "bell+change-header"*"refused, fd: not a flag here: -t"* ]]
+  [ "$(< "$FZX_SESSIONS_DIR/$parent/state/files_flags_fd")" = "-e md" ]
+  FZF_QUERY="  -d   2  -e sh " run "$FZX" _cb transform flags-apply
+  [ "$output" = "become:$FZX --resume $parent" ]
+  [ "$(< "$FZX_SESSIONS_DIR/$parent/state/files_flags_fd")" = "-d 2 -e sh" ]
+  FZF_QUERY="" run "$FZX" _cb transform flags-apply
+  [ -z "$(< "$FZX_SESSIONS_DIR/$parent/state/files_flags_fd")" ]
+}

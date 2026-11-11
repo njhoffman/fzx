@@ -53,6 +53,7 @@ files::fd_args() {
   files::on hidden && _args+=(--hidden)
   files::on ignored && _args+=(--no-ignore)
   for _ex in "${FZX_FILES_EXCLUDES[@]}"; do _args+=(--exclude "$_ex"); done
+  files::flags_add fd _args
 }
 
 # files::list <f|d>: absolute paths under FILES_BASE, directories with a trailing "/", in sort order. With
@@ -116,15 +117,24 @@ files::grep_term() {
   printf -v "$1" '%s' "$_term"
 }
 
-# files::args [DIR] [--term T]: FILES_DIR (the directory argument) and FILES_TERM (the replace mode's term)
+# files::args [DIR] [--term T] [--tool rg|fd]: FILES_DIR (the directory argument), FILES_TERM (the replace mode's
+# term) and FILES_TOOL (the args mode's: whose flags it edits)
 files::args() {
-  declare -g FILES_DIR="" FILES_TERM=""
+  declare -g FILES_DIR="" FILES_TERM="" FILES_TOOL=""
   while (($#)); do
     case "$1" in
       --term)
         FILES_TERM="${2-}"
         (($# > 1)) && shift
         shift
+        ;;
+      --tool)
+        FILES_TOOL="${2-}"
+        [[ "$FILES_TOOL" == rg || "$FILES_TOOL" == fd ]] || {
+          printf 'files: --tool is rg or fd, got: %s\n' "$FILES_TOOL" >&2
+          return 2
+        }
+        shift 2
         ;;
       --) shift ;;
       *)
@@ -148,6 +158,172 @@ files::rg_args() {
   files::on ignored && _a+=(--no-ignore)
   files::on follow && _a+=(--follow)
   for _ex in "${FZX_FILES_EXCLUDES[@]}"; do _a+=(--glob "!$_ex"); done
+  files::flags_add rg _a
+}
+
+# The flags alt-a may add to rg (grep, replace) and fd (files, dirs), as "names<TAB>value<TAB>description" with
+# names "|"-separated and value 1 when the flag takes one (the next word, attached to a short flag, or after
+# "=" on a long one). Only flags that leave the rows as the source reads them: not rg's --json, -l, -c,
+# --vimgrep or context lines, not rg's -e (the term would be read as a path), not fd's -t (the mode's) or -g
+# (fd would read the "." pattern as a glob). The toggles cover hidden, ignored, follow and multiline.
+# shellcheck disable=SC2034  # read through namerefs (FILES_FLAGS_${tool^^})
+FILES_FLAGS_RG=(
+  $'-t|--type\t1\tonly files of this type (rg --type-list)'
+  $'-T|--type-not\t1\tnot files of this type'
+  $'-g|--glob\t1\tonly paths matching the glob; !GLOB leaves them out'
+  $'--iglob\t1\tthe same, ignoring case'
+  $'-F|--fixed-strings\t0\tthe term is a plain string, not a regular expression'
+  $'-w|--word-regexp\t0\tonly matches with word boundaries around them'
+  $'-x|--line-regexp\t0\tonly matches that are the whole line'
+  $'-s|--case-sensitive\t0\tcase-sensitive (smart case is the default)'
+  $'-i|--ignore-case\t0\tcase-insensitive'
+  $'-P|--pcre2\t0\tPCRE2 regular expressions (look-around, backreferences)'
+  $'-d|--max-depth\t1\tdescend at most this many directories'
+  $'-m|--max-count\t1\tat most this many matching lines per file'
+  $'--max-filesize\t1\tskip files larger than this (50K, 10M)'
+)
+# shellcheck disable=SC2034  # read through namerefs
+FILES_FLAGS_FD=(
+  $'-e|--extension\t1\tonly this extension (repeat for more)'
+  $'-E|--exclude\t1\tleave out paths matching the glob'
+  $'-d|--max-depth\t1\tdescend at most this many directories'
+  $'--min-depth\t1\tonly paths at least this deep'
+  $'-S|--size\t1\tby size: +10k at least, -1M at most'
+  $'--changed-within\t1\tmodified within: 2weeks, 1d, 2026-01-01'
+  $'--changed-before\t1\tmodified before: the same forms'
+  $'-o|--owner\t1\tby owner: user, :group, user:group'
+)
+
+# files::_flag_spec <rg|fd> <flag> <var>: the flag's value column (0 or 1) into var; fails for one not allowed
+files::_flag_spec() {
+  local -n _fs_rows="FILES_FLAGS_${1^^}"
+  local _fs_row _fs_names
+  for _fs_row in "${_fs_rows[@]}"; do
+    _fs_names="${_fs_row%%$'\t'*}"
+    if [[ "|$_fs_names|" == *"|$2|"* ]]; then
+      _fs_row="${_fs_row#*$'\t'}"
+      printf -v "$3" '%s' "${_fs_row%%$'\t'*}"
+      return 0
+    fi
+  done
+  return 1
+}
+
+# files::flags_parse <rg|fd> <text> <var> [error var]: the text's flags as words into the array var, each checked
+# against the tool's list; words split on blanks (no quoting). Short flags without a value may be joined (-wi),
+# one that takes a value may carry it (-tpy). Fails on a flag not allowed or a missing value, saying which in
+# the error var (no subshell: the words must reach the caller), or on stderr without one.
+files::flags_parse() {
+  local -n _fp_out="$3"
+  local _fp_words=() _fp_i _fp_w _fp_name _fp_takes _fp_rest _fp_err=""
+  _fp_out=()
+  read -ra _fp_words <<< "$2"
+  for ((_fp_i = 0; _fp_i < ${#_fp_words[@]}; _fp_i++)); do
+    _fp_w="${_fp_words[_fp_i]}"
+    if [[ "$_fp_w" == --*=* ]]; then
+      _fp_name="${_fp_w%%=*}"
+      if ! files::_flag_spec "$1" "$_fp_name" _fp_takes || [[ "$_fp_takes" != 1 ]]; then
+        _fp_err="not a flag here: $_fp_w"
+        break
+      fi
+      _fp_out+=("$_fp_name" "${_fp_w#*=}")
+    elif [[ "$_fp_w" =~ ^-[A-Za-z].+$ ]]; then
+      # joined short flags, or a short flag with its value attached
+      _fp_rest="${_fp_w:1}"
+      while [[ -n "$_fp_rest" ]]; do
+        _fp_name="-${_fp_rest:0:1}" _fp_rest="${_fp_rest:1}"
+        files::_flag_spec "$1" "$_fp_name" _fp_takes || {
+          _fp_err="not a flag here: $_fp_name (in $_fp_w)"
+          break 2
+        }
+        if [[ "$_fp_takes" == 1 ]]; then
+          _fp_out+=("$_fp_name" "$_fp_rest")
+          _fp_rest=""
+        else
+          _fp_out+=("$_fp_name")
+        fi
+      done
+    elif ! files::_flag_spec "$1" "$_fp_w" _fp_takes; then
+      _fp_err="not a flag here: $_fp_w"
+      break
+    else
+      _fp_out+=("$_fp_w")
+      if [[ "$_fp_takes" == 1 ]]; then
+        ((_fp_i + 1 < ${#_fp_words[@]})) || {
+          _fp_err="$_fp_w needs a value"
+          break
+        }
+        _fp_out+=("${_fp_words[++_fp_i]}")
+      fi
+    fi
+  done
+  [[ -z "$_fp_err" ]] && return 0
+  _fp_out=()
+  if [[ -n "${4:-}" ]]; then printf -v "$4" '%s: %s' "$1" "$_fp_err"; else printf '%s: %s\n' "$1" "$_fp_err" >&2; fi
+  return 1
+}
+
+# files::_flags_file <rg|fd> <var>: where the session tree keeps the tool's flags (its root's state); fails
+# outside a session
+files::_flags_file() {
+  local _ff_root=""
+  [[ -n "${FZX_SESSION_DIR:-}" ]] && declare -F fzx::meta_get > /dev/null || return 1
+  fzx::meta_get root _ff_root 2> /dev/null || _ff_root="${FZX_SESSION:-}"
+  [[ -n "$_ff_root" ]] || return 1
+  printf -v "$2" '%s/%s/state/files_flags_%s' "$FZX_SESSIONS_DIR" "$_ff_root" "$1"
+}
+
+# files::flags_get <rg|fd> <var> / files::flags_set <rg|fd> <text>: the flags alt-a set in this session tree
+# (every files screen of it: they stay through into, up, alt-r and mode changes); empty outside a session
+files::flags_get() {
+  local _fg_file
+  printf -v "$2" '%s' ""
+  files::_flags_file "$1" _fg_file && [[ -f "$_fg_file" ]] || return 0
+  fzx::_kv_get "$_fg_file" "$2"
+}
+files::flags_set() {
+  local _fs_file
+  files::_flags_file "$1" _fs_file || return 1
+  fzx::_kv_set "$_fs_file" "$2"
+}
+
+# files::flags_add <rg|fd> <array var>: the saved flags appended to a command's options (they were checked
+# when saved; a list that no longer passes is left out and logged)
+files::flags_add() {
+  local _fa_text _fa_words=()
+  files::flags_get "$1" _fa_text
+  [[ -n "$_fa_text" ]] || return 0
+  if files::flags_parse "$1" "$_fa_text" _fa_words 2> /dev/null; then
+    local -n _fa_into="$2"
+    _fa_into+=("${_fa_words[@]}")
+  else
+    declare -F fzx::log > /dev/null && fzx::log warn "files: saved $1 flags refused, left out: $_fa_text"
+  fi
+  return 0
+}
+
+# files::mode_tool <mode> <var>: whose flags the mode takes: rg (grep and replace, with ripgrep), fd (files,
+# dirs); empty for the others
+files::mode_tool() {
+  case "$1" in
+    grep | replace) if command -v rg > /dev/null; then printf -v "$2" rg; else printf -v "$2" ''; fi ;;
+    files | dirs) printf -v "$2" fd ;;
+    *) printf -v "$2" '' ;;
+  esac
+}
+
+# files::flags_rows <rg|fd>: the args screen's rows, "names<TAB>display"
+files::flags_rows() {
+  local -n _fr_rows="FILES_FLAGS_${1^^}"
+  local row names takes desc shown val b=$'\e[1m' dim=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" rst=$'\e[0m'
+  [[ -n "${NO_COLOR+x}" ]] && b="" dim="" rst=""
+  for row in "${_fr_rows[@]}"; do
+    IFS=$'\t' read -r names takes desc <<< "$row"
+    val=""
+    [[ "$takes" == 1 ]] && val=" VALUE"
+    shown="${names//|/, }$val"
+    printf '%s\t%s%-28s%s %s%s%s\n' "$names" "$b" "$shown" "$rst" "$dim" "$desc" "$rst"
+  done
 }
 
 # files::replace_matches <term>: "path<TAB>line" of every line the term matches under FILES_BASE (never
@@ -253,6 +429,13 @@ files::source() {
             n = split(rel, parts, "/"); dir = substr(rel, 1, length(rel) - length(parts[n]))
             printf "%s\t%s%s%s%s\n", path, dim, dir, rst, parts[n] }'
       return "${PIPESTATUS[0]}"
+      ;;
+    args)
+      [[ -n "$FILES_TOOL" ]] || {
+        printf 'files: args needs --tool rg|fd\n' >&2
+        return 2
+      }
+      files::flags_rows "$FILES_TOOL"
       ;;
     replace)
       [[ -n "$FILES_TERM" ]] || {

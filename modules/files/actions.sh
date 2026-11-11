@@ -218,6 +218,41 @@ files::_transform_replace() {
   fzx::nav goto files:replace "$FILES_BASE" --term "$term"
 }
 
+# files::transform flags: alt-a in files, dirs and grep: the args screen for the mode's tool (fd or rg), a
+# child session: esc returns to this one unchanged
+files::_transform_flags() {
+  local tool
+  fzx::session_args
+  files::args "${FZX_ARGS[@]}" || return
+  files::base "$FILES_DIR" || return
+  files::mode_tool "${FZX_MODE:-files}" tool
+  [[ -n "$tool" ]] || { printf 'bell'; return 0; }
+  fzx::require nav
+  fzx::nav goto files:args "$FILES_BASE" --tool "$tool"
+}
+
+# files::transform flags-apply: enter on the args screen: the query's flags, when every one is allowed, saved
+# for the session tree and back to the screen they are for (it starts again, so its rows follow them); a
+# refused one rings the bell and says why in the header, the screen staying open
+files::_transform_flags_apply() {
+  local text="${FZF_QUERY:-}" words=() err header
+  fzx::session_args
+  files::args "${FZX_ARGS[@]}" || return
+  files::base "$FILES_DIR" || return
+  [[ -n "$FILES_TOOL" ]] || return 2
+  fzx::require opts
+  if ! files::flags_parse "$FILES_TOOL" "$text" words err; then
+    files::_header "${FILES_BASE/#$HOME/\~}  refused, $err" header
+    printf 'bell+%s' "$header"
+    return 0
+  fi
+  # one blank between words, as they will be shown and keyed
+  read -ra words <<< "$text"
+  files::flags_set "$FILES_TOOL" "${words[*]}" || return 1
+  fzx::require nav
+  fzx::nav back
+}
+
 # files::transform filter: in grep mode, ctrl-t. Grepping, fzf takes over: the query's term is frozen (the
 # source keeps grepping it on reloads and toggles) and the header shows it; filtering, the term returns to
 # the query and grepping resumes. fzf keeps its filtered matches when search goes off: the reload restores
@@ -225,6 +260,8 @@ files::_transform_replace() {
 files::transform() {
   local on="" term="" text header q reload
   [[ "${1:-}" == replace ]] && { files::_transform_replace; return; }
+  [[ "${1:-}" == flags ]] && { files::_transform_flags; return; }
+  [[ "${1:-}" == flags-apply ]] && { files::_transform_flags_apply; return; }
   [[ "${1:-}" == filter ]] || {
     printf 'files: unknown transform: %s\n' "${1:-}" >&2
     return 2
@@ -234,6 +271,10 @@ files::transform() {
   fzx::session_args
   files::base "${FZX_ARGS[0]:-}" || return
   text="${FILES_BASE/#$HOME/\~}"
+  # alt-a's rg flags stay in the header
+  local flags=""
+  command -v rg > /dev/null && files::flags_get rg flags
+  [[ -n "$flags" ]] && text+="  rg: $flags"
   fzx::require opts
   fzx::state_get files_grep_filter on 2> /dev/null || on=""
   if [[ -z "$on" ]]; then

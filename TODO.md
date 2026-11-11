@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.109.0): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
+Status (0.110.0): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
 docker, files, firewall, fonts, git, github, glyphs, history, kdeconnect, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
 add what you find, and tick items off (`- [x]`) as they land, never delete them; once every item of a section
@@ -46,7 +46,7 @@ Reviewed: 2026-11-03
 
 ## 4. Core features
 
-- [ ] **Grepper and finder arguments in the prompt** (p2) [feature]: in files (grep and the finder modes), a
+- [x] **Grepper and finder arguments in the prompt** (p2) [feature]: in files (grep and the finder modes), a
       key that puts the rg/fd arguments into the query, enter applies them; show the current arguments in
       the preview's top line or a label. Prior art: resources/ (older setups). Grep mode's switch between
       grepping and fzf filtering (ctrl-t) shipped in 0.40.0; fd and ripgrep are already the tools used.

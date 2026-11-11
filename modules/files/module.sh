@@ -11,15 +11,29 @@ source "$FZX_MODULE_DIR/source.sh"
 
 # shellcheck disable=SC2034  # FZX_ACTION_ARGS*: read by lib/actions.sh
 files::opts() {
+  local tool="" flags="" label="" view=""
   files::args "${FZX_ARGS[@]}" || return
   files::base "$FILES_DIR" || return
   # undo takes no rows: fzf runs no command naming a row ({+1}) when nothing matches, as after a replacement
   FZX_ACTION_ARGS_FOR['undo']='{q}'
 
+  if [[ "$FZX_MODE" == args ]]; then
+    files::opts_flags
+    return
+  fi
+  # alt-a's flags for this mode's tool: shown in the header, and part of the cache key (meta/view), so rows
+  # cached without them (or with others) are never served
+  files::mode_tool "$FZX_MODE" tool
+  [[ -n "$tool" ]] && files::flags_get "$tool" flags
+  files::flags_label "$tool" "$flags" label
+  if fzx::in_session; then
+    [[ -n "$flags" ]] && view="$tool$(printf '%s' "$flags" | cksum | cut -d' ' -f1)"
+    fzx::meta_set view "$view"
+  fi
   FZX_OPTS+=(
     --delimiter=$'\t'
     "--preview-window=right,55%,nohidden"
-    "--header=${FILES_BASE/#$HOME/\~}"
+    "--header=${FILES_BASE/#$HOME/\~}$label"
   )
   if [[ "$FZX_MODE" == replace ]]; then
     # the query is the replacement: rows and preview follow it, enter applies it
@@ -30,7 +44,7 @@ files::opts() {
       --multi
       --bind "change:reload:sleep 0.1; $(fzx::cb source)"
       --preview "$(fzx::cb preview '{1}' '{2}' '{q}')"
-      "--header=${FILES_BASE/#$HOME/\~}  replace: $FILES_TERM  (type the replacement; \$1 is a group, \$\$ a dollar; enter applies to the selected or every match)"
+      "--header=${FILES_BASE/#$HOME/\~}$label  replace: $FILES_TERM  (type the replacement; \$1 is a group, \$\$ a dollar; enter applies to the selected or every match)"
     )
     FZX_ACTION_ARGS_FOR['apply']='{q} {+1} -- {+2}'
     FZX_ACTION_ARGS_FOR['edit']='{1} {2}'
@@ -67,7 +81,7 @@ files::opts() {
       local db="" age=""
       files::locate_db db && files::_age "$db" age
       FZX_OPTS+=(--disabled --bind "change:reload:sleep 0.1; $(fzx::cb source)"
-        "--header=${FILES_BASE/#$HOME/\~}  locate${age:+ (database $age old: updatedb refreshes it)}")
+        "--header=${FILES_BASE/#$HOME/\~}$label  locate${age:+ (database $age old: updatedb refreshes it)}")
     fi
   fi
   if [[ "$FZX_MODE" == grep ]] && fzx::in_session; then
@@ -79,12 +93,48 @@ files::opts() {
       fzx::bind "${FZX_KEYS[files.replace]}" "transform:$(fzx::cb transform replace)" \
         "grep: replace the term's matches (the query becomes the replacement)"
   fi
+  if [[ -n "$tool" ]] && fzx::in_session; then
+    fzx::bind "${FZX_KEYS[files.flags]}" "transform:$(fzx::cb transform flags)" \
+      "files, dirs, grep: the $tool flags to add (a screen: type them, enter applies)"
+  fi
   if fzx::in_session; then
     local parent="${FILES_BASE%/*}"
     fzx::bind "${FZX_KEYS[files.into]}" "transform:$(fzx::cb nav goto "files:$FZX_MODE" '{1}')" \
       "browse the directory under the cursor"
     fzx::bind "${FZX_KEYS[files.up]}" "transform:$(fzx::cb nav goto "files:$FZX_MODE" "$(printf '%q' "${parent:-/}")")" \
       "browse the parent directory"
+  fi
+}
+
+# files::flags_label <tool> <flags> <var>: "  rg: FLAGS" for the header, empty without flags
+files::flags_label() {
+  if [[ -n "$2" ]]; then printf -v "$3" '  %s: %s' "$1" "$2"; else printf -v "$3" ''; fi
+}
+
+# files::opts_flags: the args screen (alt-a, a child of the screen it edits): the rows list the flags allowed,
+# the query is the flags (it starts with the saved ones), the preview checks them as you type, enter saves
+# them and returns, esc returns without saving
+files::opts_flags() {
+  local saved where="${FILES_BASE/#$HOME/\~}"
+  [[ -n "$FILES_TOOL" ]] || {
+    printf 'files: args needs --tool rg|fd\n' >&2
+    return 2
+  }
+  files::flags_get "$FILES_TOOL" saved
+  fzx::meta_set view ""
+  FZX_OPTS+=(
+    --delimiter=$'\t'
+    --with-nth=2
+    --disabled
+    --no-sort
+    "--query=$saved"
+    "--preview-window=up,3,nohidden,border-bottom"
+    --preview "$(fzx::cb preview '{q}')"
+    --bind "change:refresh-preview"
+    "--header=$where  $FILES_TOOL flags: type them, enter applies, esc leaves them as they were (words split on blanks)"
+  )
+  if fzx::in_session; then
+    fzx::bind enter "transform:$(fzx::cb transform flags-apply)" "apply the flags and go back"
   fi
 }
 
