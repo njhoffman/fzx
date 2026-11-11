@@ -369,10 +369,11 @@ github::tree_rows() {
   [[ -n "$rows" ]] || return 0
   fzx::require pretty
   if fzx::pretty_on; then
-    # prettypath decorates the paths (directories marked by a trailing "/"); joined back by path
-    awk -F'\t' -v OFS='\t' 'NR == FNR { shown[$1] = $2; next }
-      { key = $5 ($2 == "tree" ? "/" : ""); print $1, $2, $3, $4, $5, (key in shown ? shown[key] : "  " key) }' \
-      <(awk -F'\t' '{ print $5 ($2 == "tree" ? "/" : "") }' <<< "$rows" | fzx::pretty) - <<< "$rows"
+    # prettypath's display of each path (a tree's with a trailing "/", for the folder icon), in a sixth
+    # column (fzx::pretty_field), which then replaces that path column
+    awk -F'\t' -v OFS='\t' '{ print $0, $5 ($2 == "tree" ? "/" : "") }' <<< "$rows" |
+      fzx::pretty_field 6 |
+      awk -F'\t' -v OFS='\t' '{ print $1, $2, $3, $4, $5, $7 }'
   else
     awk -F'\t' -v OFS='\t' -v d="$d" -v r="$r" '
       { dir = $5; base = $5; if (sub(/[^\/]*$/, "", dir)) base = substr($5, length(dir) + 1)

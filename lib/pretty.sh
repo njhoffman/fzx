@@ -83,3 +83,26 @@ fzx::pretty() {
       { if (shown != "" && (i = index($2, shown))) $2 = substr($2, 1, i - 1) substr($2, i + length(shown))
         print }'
 }
+
+# fzx::pretty_field N [--dirs] [base]: tab-separated rows on stdin -> the same rows, in order, with
+# prettypath's display of field N (a path; a trailing "/" marks a directory) appended as a last column.
+# prettypath 0.2.0 and later decorate a copy of the field in place (--field, one pass, nothing to join); with
+# an older one field N goes through fzx::pretty and is joined back by path (the trailing "/" left out of the
+# key, as prettypath leaves it out of %path%), and a path it did not return gets a plain display.
+fzx::pretty_field() {
+  local n="$1" level in args
+  shift
+  level="$(fzx::pretty_level)" || level=legacy
+  if [[ "$level" == current ]]; then
+    args=(--field=-1 --format='%icon% %dir%%name%')
+    [[ "${1:-}" == --dirs ]] && { args+=(--dirs); shift; }
+    [[ -n "${1:-}" ]] && args+=("--base=$1")
+    awk -F'\t' -v n="$n" '{ print $0 "\t" $n; fflush() }' | command prettypath "${args[@]}"
+    return
+  fi
+  in="$(cat)"
+  [[ -n "$in" ]] || return 0
+  awk -F'\t' -v n="$n" 'NR == FNR { shown[$1] = $2; next }
+    { key = $n; sub(/\/+$/, "", key); print $0 "\t" ((key in shown) ? shown[key] : "  " key) }' \
+    <(cut -f"$n" <<< "$in" | fzx::pretty "$@") - <<< "$in"
+}

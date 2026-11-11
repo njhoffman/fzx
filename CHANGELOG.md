@@ -6,6 +6,18 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.108.5] - 2026-11-10
+
+### Fixed
+
+- github: directories in a repository's file list get the folder icon and colors; they always showed the plain
+  display, because their trailing "/" kept them from matching prettypath's output.
+
+### Changed
+
+- dirs, recent and github decorate their path column with prettypath in one pass (prettypath 0.2.0 and later:
+  `--field`) instead of decorating the paths separately and joining the results back by path.
+
 ## [0.108.4] - 2026-11-10
 
 ### Changed

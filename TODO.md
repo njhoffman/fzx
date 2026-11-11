@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.108.4): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
+Status (0.108.5): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
 docker, files, firewall, fonts, git, github, glyphs, history, kdeconnect, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
 add what you find, and tick items off (`- [x]`) as they land, never delete them; once every item of a section
@@ -209,7 +209,7 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 
 - [x] **fzf-tab: I or O in the query on a pane switch** (p2) [bug]: `fzx-run` only covered fzx's widgets; fzf from
       any other widget kept the shell's focus reporting on. `fzf` in `shell/fzx.zsh` now does the same around it.
-- [ ] **github: trees never get a prettypath display** (p3) [bug]: modules/github/source.sh sends tree paths
+- [x] **github: trees never get a prettypath display** (p3) [bug]: modules/github/source.sh sends tree paths
       with a trailing "/" (so prettypath shows the folder icon) and joins the result back by that key, but
       prettypath's `%path%` drops the slash, so `key in shown` never matches a tree and every directory keeps
       the plain display. Strip the slash from the join key (as recent does with `sub(/\/$/, "", path)`).
@@ -218,13 +218,15 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       `ftb-tmux-popup` (popup mode was never tested for this bug). They would get the same I or O in the query
       if focus reports reach them. Fix per case when one shows it.
 
-## 8. Outside this repo
+## Completed
+
+### 8. Outside this repo (completed 2026-11-10)
 
 - [x] **prettypath follow-ups** (p3) [chore] (~/ghq/github.com/njhoffman/prettypath): all landed in prettypath
       (automatic stat 0.1.0; `--base`, `--dirs`, `--field`, NO_COLOR 0.2.0). fzx no longer passes
       `--stat_file=false`, and with prettypath 0.2.0 or later fzx::pretty passes `--base`/`--dirs` instead of
       its prefix-strip awk and slash sed (kept for 0.1.x).
-- [ ] **Use prettypath --field instead of joining by path** (p3) [refactor]: dirs, recent and github pipe one
+- [x] **Use prettypath --field instead of joining by path** (p3) [refactor]: dirs, recent and github pipe one
       column through fzx::pretty and join the result back by path with awk. With prettypath 0.2.0+ (level
       `current`), `--field=N` decorates that column in place and keeps the others, in order; the join (and its
       "a path prettypath does not return keeps a plain display" case) would go away for current versions.

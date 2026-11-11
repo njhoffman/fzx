@@ -614,8 +614,9 @@ changes, commits ahead/behind the upstream (no fetch), branch counts and stashes
 when `FZX_PRETTY` is `auto` (the default; on when `prettypath` is installed) or `1` (lib/pretty.sh): paths go
 in absolute (prettypath drops relative ones), unstatted (prettypath 0.1.0 stats only for size and date
 tokens, and the display format has none), the base directory is cut from the
-shown directory, and dirs joins the result back to its scores by path (a path missing from the result
-keeps a plain display). `fzx::pretty_level` reads the installed prettypath's `--version` (`prettypath X.Y.Z`;
+shown directory, and dirs, recent and github add prettypath's display as a column beside their own
+(`fzx::pretty_field`: with prettypath 0.2.0 and later one `--field` pass over a copy of the path column;
+with an older one a join by path, where a path missing from the result keeps a plain display). `fzx::pretty_level` reads the installed prettypath's `--version` (`prettypath X.Y.Z`;
 read with stdin closed, since builds without `--version` read it) once per binary (path and mtime, cached in
 `$FZX_CACHE_DIR/prettypath/`): 0.2.0 and later (`current`) get `--base` and `--dirs` and cut the base and mark
 directories themselves; with 0.1.x (`sound`) fzx appends the slash and cuts the base from the display with

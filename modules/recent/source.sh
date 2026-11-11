@@ -70,14 +70,13 @@ recent::format() {
   [[ -n "$in" ]] || return 0
   fzx::require pretty
   if fzx::pretty_on; then
-    # prettypath decorates the paths; joined back to their scores by path, in the input's order (by path,
-    # not by line: an older prettypath can drop lines, which keep a plain display)
-    awk -F'\t' -v dim="$dim" -v rst="$rst" -v w="$width" -v hs="$hs" -v hp="$hp" 'NR == FNR { shown[$1] = $2; next }
-      { path = $2; sub(/\/$/, "", path); disp = (path in shown) ? shown[path] : "  " path
-        # the sorted color survives prettypath'"'"'s own resets
-        if (hp != "") { gsub(/\033\[0m/, "&" hp, disp); disp = hp disp rst }
-        printf "%s\t%s%*s%s%s  %s\n", path, dim, w - length($1), "", hs $1, rst, disp }' \
-      <(cut -f2 <<< "$in" | fzx::pretty "${pretty[@]}") - <<< "$in"
+    # prettypath's display of each path, appended as a third column (fzx::pretty_field)
+    fzx::pretty_field 2 "${pretty[@]}" <<< "$in" |
+      awk -F'\t' -v dim="$dim" -v rst="$rst" -v w="$width" -v hs="$hs" -v hp="$hp" '
+        { path = $2; sub(/\/$/, "", path); disp = $3
+          # the sorted color survives prettypath'"'"'s own resets
+          if (hp != "") { gsub(/\033\[0m/, "&" hp, disp); disp = hp disp rst }
+          printf "%s\t%s%*s%s%s  %s\n", path, dim, w - length($1), "", hs $1, rst, disp }'
   else
     awk -F'\t' -v home="$HOME" -v dim="$dim" -v rst="$rst" -v w="$width" -v hs="$hs" -v hp="$hp" '
       { path = $2; sub(/\/$/, "", path); shown = path

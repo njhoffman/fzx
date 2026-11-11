@@ -31,22 +31,17 @@ dirs::all() {
 # FZX_SORT orders by (bookmarks: name or path) is drawn in FZX_COLORS[sorted] as well; a header row
 # (FZX_SORT_HEADER, lib/header.sh) names the columns first
 dirs::format() {
-  local dim=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" rst=$'\e[0m' in hl=$'\e['"${FZX_COLORS[sorted]:-4}m" hn="" hp=""
+  local dim=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" rst=$'\e[0m' hl=$'\e['"${FZX_COLORS[sorted]:-4}m" hn="" hp=""
   case "${FZX_SORT:-}" in name) hn="$hl" ;; path) hp="$hl" ;; esac
   fzx::require pretty header
   fzx::header_print 1 "$([[ "${FZX_SORT:-}" == path ]] && echo PATH || echo NAME)" NAME 7 1 "" 0 0 PATH 0 0
   if fzx::pretty_on; then
-    # prettypath decorates the paths; joined back to their scores by path, in the input's order (by path,
-    # not by line: an older prettypath can drop lines)
-    in="$(cat)"
-    [[ -n "$in" ]] || return 0
-    awk -F'\t' -v dim="$dim" -v rst="$rst" -v hn="$hn" -v hp="$hp" 'NR == FNR { shown[$1] = $2; next }
-      { path = $2; sub(/\/$/, "", path)
-        # a path prettypath did not return (an older version drops some) keeps a plain display
-        disp = (path in shown) ? shown[path] : "  " path
-        if (hp != "") { gsub(/\033\[0m/, "&" hp, disp); disp = hp disp rst }
-        printf "%s\t%s%*s%s%s  %s\n", path, dim, 7 - length($1), "", hn $1, rst, disp }' \
-      <(cut -f2 <<< "$in" | fzx::pretty --dirs) - <<< "$in" |
+    # prettypath's display of each path, appended as a third column (fzx::pretty_field)
+    fzx::pretty_field 2 --dirs |
+      awk -F'\t' -v dim="$dim" -v rst="$rst" -v hn="$hn" -v hp="$hp" '
+        { path = $2; sub(/\/$/, "", path); disp = $3
+          if (hp != "") { gsub(/\033\[0m/, "&" hp, disp); disp = hp disp rst }
+          printf "%s\t%s%*s%s%s  %s\n", path, dim, 7 - length($1), "", hn $1, rst, disp }' |
       while IFS= read -r line; do
         [[ -d "${line%%$'\t'*}" ]] && printf '%s\n' "$line"
       done
