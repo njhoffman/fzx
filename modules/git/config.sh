@@ -13,6 +13,11 @@ FZX_COLORS[git_icon]="38;5;166"
 FZX_KEYS[git.into]=ctrl-o   # branches, tags: the log; log, reflog, stash: the commit's files; worktrees: status
 FZX_KEYS[git.view]=alt-v    # status, commit: the preview shows the diff or the blame
 
+# the dotbare repository `--dotfiles` opens (a bare git directory and its work tree; dotbare's own variables
+# first, as the todos module reads them); the menu lists it wherever the directory exists
+FZX_GIT_DOTBARE_DIR="${FZX_GIT_DOTBARE_DIR-${DOTBARE_DIR:-$HOME/.cfg}}"
+FZX_GIT_DOTBARE_TREE="${FZX_GIT_DOTBARE_TREE-${DOTBARE_TREE:-$HOME}}"
+
 # commits listed in log mode
 FZX_GIT_LOG_LIMIT="${FZX_GIT_LOG_LIMIT:-1000}"
 

@@ -6,6 +6,15 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.109.0] - 2026-11-10
+
+### Added
+
+- git: `fzx -m git --dotfiles` opens the dotbare repository (`FZX_GIT_DOTBARE_DIR`, default `$DOTBARE_DIR` or
+  ~/.cfg, with its work tree `FZX_GIT_DOTBARE_TREE`, default `$DOTBARE_TREE` or ~) from any directory, in every
+  mode; the menu lists it as "Dotfiles" wherever the repository exists. Status shows tracked files only, and
+  clean is off there, since the work tree is the home directory.
+
 ## [0.108.6] - 2026-11-10
 
 ### Fixed

@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.108.6): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
+Status (0.109.0): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
 docker, files, firewall, fonts, git, github, glyphs, history, kdeconnect, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
 add what you find, and tick items off (`- [x]`) as they land, never delete them; once every item of a section
@@ -70,7 +70,7 @@ Reviewed: 2026-11-03
 
 ## 5. Module improvements
 
-- [ ] **git: the dotfiles repository** (p2) [feature]: the git module over dotbare's bare repository (`~/.cfg`,
+- [x] **git: the dotfiles repository** (p2) [feature]: the git module over dotbare's bare repository (`~/.cfg`,
       work tree `~`) through `--git-dir`/`--work-tree` arguments, with a menu entry where `~/.cfg` exists;
       status limited to tracked files (dotbare's `status.showUntrackedFiles no`). dotbare is installed here
       (~/.dotbare) and is how ~/.config projects are versioned.
@@ -179,6 +179,10 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 
 ## 7. Known issues
 
+- [ ] **just lint takes two minutes** (p3) [perf]: the Justfile's lint runs one shellcheck over about 250 files, each
+      re-reading what it sources, on one core (115s at 0.108.6, 2026-11-10; each file alone takes 0.1-0.4s). Run it
+      in parallel batches (`printf '%s\0' "${files[@]}" | xargs -0 -P"$(nproc)" -n 16 shellcheck`), keeping one
+      exit status for CI.
 - [ ] **A split-pane menu that would not close** (p2) [bug]: on 2026-11-10 a split (`todos:here`, then
       nav goto `menu:list`; FZX_SPLIT_PANE=1, lib/run.sh fzx::_fzf_pane) stayed open about 52 minutes until
       its pane was killed by hand; the keys tried are unknown. Not a test: it ran under the real runtime dir and

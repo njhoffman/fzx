@@ -7,13 +7,17 @@
 # commit (hidden: opened by ctrl-o) lists the files the --rev commit changed against its first parent.
 # Mode from $FZX_MODE (default status).
 
-# git::args [--all] [--rev REV] [DIR]: GIT_TOP (work tree root), GIT_ALL, GIT_REV
+# git::args [--all] [--rev REV] [--dotfiles] [DIR]: GIT_TOP (work tree root), GIT_ALL, GIT_REV, GIT_DOTFILES and
+# GIT_REPO_ARGS (--git-dir and --work-tree for git::g). --dotfiles is the dotbare repository
+# (FZX_GIT_DOTBARE_DIR, a bare one, and its work tree FZX_GIT_DOTBARE_TREE); its git options stay in
+# GIT_REPO_ARGS instead of GIT_DIR in the environment, which fzf would hand to every module reached from here.
 git::args() {
   local dir=""
-  GIT_ALL=0 GIT_REV=""
+  GIT_ALL=0 GIT_REV="" GIT_DOTFILES=0 GIT_REPO_ARGS=()
   while (($#)); do
     case "$1" in
       --all) GIT_ALL=1 ;;
+      --dotfiles) GIT_DOTFILES=1 ;;
       --rev)
         [[ -n "${2:-}" ]] || {
           printf 'git: --rev needs a revision\n' >&2
@@ -36,6 +40,19 @@ git::args() {
     esac
     shift
   done
+  if ((GIT_DOTFILES)); then
+    [[ -z "$dir" ]] || {
+      printf 'git: --dotfiles takes no directory, got: %s\n' "$dir" >&2
+      return 2
+    }
+    local gd="${FZX_GIT_DOTBARE_DIR-${DOTBARE_DIR:-$HOME/.cfg}}" tree="${FZX_GIT_DOTBARE_TREE-${DOTBARE_TREE:-$HOME}}"
+    GIT_REPO_ARGS=("--git-dir=$gd" "--work-tree=$tree")
+    GIT_TOP="$(command git -C "$tree" "${GIT_REPO_ARGS[@]}" rev-parse --show-toplevel 2> /dev/null)" || {
+      printf 'git: no dotbare repository at %s (work tree %s)\n' "$gd" "$tree" >&2
+      return 2
+    }
+    return 0
+  fi
   GIT_TOP="$(command git -C "${dir:-.}" rev-parse --show-toplevel 2> /dev/null)" || {
     printf 'git: not inside a git work tree: %s\n' "${dir:-$PWD}" >&2
     return 2
@@ -46,7 +63,7 @@ git::args() {
 git::g() {
   local cfg=() kv
   for kv in "${FZX_GIT_COLOR_CONFIG[@]}"; do cfg+=(-c "$kv"); done
-  command git -C "$GIT_TOP" "${cfg[@]}" "$@"
+  command git -C "$GIT_TOP" "${GIT_REPO_ARGS[@]}" "${cfg[@]}" "$@"
 }
 
 # git::split [module args...] -- [ids...]: callbacks get the module args explicitly (they are not in the
@@ -87,7 +104,10 @@ git::status_icon() {
 git::source_status() {
   local entry xy path orig x y icon
   fzx::require icons
-  git::g status --porcelain=v1 -z --untracked-files=all |
+  # the dotbare work tree is the home directory: tracked files only (dotbare's status.showUntrackedFiles no)
+  local untracked=all
+  ((${GIT_DOTFILES:-0})) && untracked=no
+  git::g status --porcelain=v1 -z --untracked-files="$untracked" |
     while IFS= read -r -d '' entry; do
       xy="${entry:0:2}" path="${entry:3}" orig=""
       [[ "$xy" == R* || "$xy" == C* ]] && IFS= read -r -d '' orig
@@ -228,10 +248,19 @@ git::source_grep() {
   return 0
 }
 
+# git::clean_allowed: not in the dotbare repository, whose work tree is the home directory: everything there
+# untracked is "what git clean would remove"
+git::clean_allowed() {
+  ((${GIT_DOTFILES:-0})) || return 0
+  printf 'git: clean is off for the dotbare repository (its work tree is %s)\n' "$GIT_TOP" >&2
+  return 1
+}
+
 # git::source_clean: what `git clean -d` would remove (toggle ignored: -x too), "absolute path<TAB>display";
 # a directory, removed whole, ends in /
 git::source_clean() {
   local args=(-c core.quotePath=false clean -n -d) red=$'\e[31m' rst=$'\e[0m'
+  git::clean_allowed || return 0
   [[ " ${FZX_TOGGLES:-} " == *" ignored "* ]] && args+=(-x)
   [[ -n "${NO_COLOR+x}" ]] && red="" rst=""
   git::g "${args[@]}" | awk -v top="$GIT_TOP/" -v red="$red" -v rst="$rst" '

@@ -734,3 +734,84 @@ history3() {
   [ "$(subjects -2)" = "c4 wip " ]
   [ ! -e c3.txt ]
 }
+
+# a dotbare-style repository: a bare git directory whose work tree holds untracked files it must never list
+dotbare_fixture() {
+  HOMETREE="$BATS_TEST_TMPDIR/home" CFG="$BATS_TEST_TMPDIR/home/.cfg"
+  mkdir -p "$HOMETREE/.config/app"
+  git init -q --bare -b main "$CFG"
+  git --git-dir="$CFG" config status.showUntrackedFiles no
+  echo rc > "$HOMETREE/.apprc" && echo cfg > "$HOMETREE/.config/app/config"
+  git --git-dir="$CFG" --work-tree="$HOMETREE" add .apprc .config/app/config
+  git --git-dir="$CFG" --work-tree="$HOMETREE" commit -qm dots
+  echo changed >> "$HOMETREE/.apprc"
+  echo stray > "$HOMETREE/untracked.txt"
+  export FZX_GIT_DOTBARE_DIR="$CFG" FZX_GIT_DOTBARE_TREE="$HOMETREE"
+  HOMEREAL="$(cd "$HOMETREE" && pwd -P)"
+}
+
+@test "dotfiles: status of the dotbare repository from anywhere, tracked files only" {
+  dotbare_fixture
+  cd /
+  FZX_ICONS=none run src status --dotfiles
+  [ "$status" -eq 0 ]
+  [ "${#lines[@]}" -eq 1 ]
+  [[ "$output" == "$HOMEREAL/.apprc"$'\t'" M .apprc" ]]
+  FZX_MODE=log run "$GIT_DIR_MOD/source.sh" --dotfiles
+  [[ "$output" == *dots* ]]
+}
+
+@test "dotfiles: refused with a directory, or when the repository is missing" {
+  dotbare_fixture
+  run src status --dotfiles "$REPO"
+  [ "$status" -eq 2 ] && [[ "$output" == *"takes no directory"* ]]
+  FZX_GIT_DOTBARE_DIR="$BATS_TEST_TMPDIR/none" run src status --dotfiles
+  [ "$status" -eq 2 ] && [[ "$output" == *"no dotbare repository"* ]]
+}
+
+@test "dotfiles: clean lists nothing and removes nothing, even when asked" {
+  dotbare_fixture
+  run src clean --dotfiles
+  [ "$status" -eq 0 ] && [[ "$output" != *untracked.txt* ]]
+  printf y > "$BATS_TEST_TMPDIR/tty"; export FZX_TTY="$BATS_TEST_TMPDIR/tty"
+  FZX_MODE=clean run "$GIT_DIR_MOD/actions.sh" drop --dotfiles -- "$HOMEREAL/untracked.txt"
+  [ "$status" -ne 0 ] && [[ "$output" == *"clean is off"* ]]
+  [ -f "$HOMETREE/untracked.txt" ]
+}
+
+@test "dotfiles: the actions and the preview work on the dotbare repository" {
+  dotbare_fixture
+  cd /
+  FZX_MODE=status run "$GIT_DIR_MOD/actions.sh" stage --dotfiles -- "$HOMEREAL/.apprc"
+  [ "$status" -eq 0 ]
+  [ "$(git --git-dir="$CFG" --work-tree="$HOMETREE" diff --cached --name-only)" = .apprc ]
+  FZX_MODE=status run "$GIT_DIR_MOD/preview.sh" --dotfiles -- "$HOMEREAL/.apprc"
+  [[ "$output" == *changed* ]]
+}
+
+@test "dotfiles: the menu entry where the repository exists, its summary counting tracked files" {
+  dotbare_fixture
+  source "$GIT_DIR_MOD/manifest.sh"
+  cd /
+  unset _GIT_WORK_TREE
+  git::applicable git --dotfiles
+  run git::applicable git
+  [ "$status" -eq 1 ]
+  [ "$(git::summary git --dotfiles)" = "0 staged, 1 modified, 0 untracked" ]
+  [ "$(git::summary git:log --dotfiles)" = "1 commit, no upstream" ]
+  # the plain entries' environment is untouched afterwards
+  [ -z "${GIT_DIR:-}" ] && [ -z "${GIT_WORK_TREE:-}" ]
+  FZX_GIT_DOTBARE_DIR="$BATS_TEST_TMPDIR/none" run git::applicable git --dotfiles
+  [ "$status" -eq 1 ]
+}
+
+@test "dotfiles: under fzx the header names it and the binds carry --dotfiles" {
+  dotbare_fixture
+  stub_fzf
+  cd /
+  run "$FZX" -m git --dotfiles
+  [ "$status" -eq 0 ]
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *" --header=dotfiles  main "* ]]
+  [[ "$(fzf_bind alt-s)" == "alt-s:execute($FZX _cb action stage --dotfiles -- {+1})"* ]]
+}

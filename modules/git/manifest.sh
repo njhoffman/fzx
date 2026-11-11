@@ -12,9 +12,22 @@ git::manifest() {
   fzx::entry git:worktrees "Linked work trees"
   fzx::entry git:grep "Search tracked files as you type"
   fzx::entry git:clean "What git clean would remove"
+  fzx::entry git "Dotfiles: changed files (dotbare)" --dotfiles
+}
+
+# git::dotbare_env: GIT_DIR and GIT_WORK_TREE for the dotbare repository, local to the caller (local -x)
+# when it declares them; for the summaries, whose plain git calls then see that repository
+git::dotbare_env() {
+  GIT_DIR="${FZX_GIT_DOTBARE_DIR-${DOTBARE_DIR:-$HOME/.cfg}}" GIT_WORK_TREE="${FZX_GIT_DOTBARE_TREE-${DOTBARE_TREE:-$HOME}}"
 }
 
 git::applicable() {
+  if [[ " ${*:2} " == *" --dotfiles "* ]]; then
+    local -x GIT_DIR GIT_WORK_TREE
+    git::dotbare_env
+    [[ -d "$GIT_DIR" ]] && command git rev-parse --is-inside-work-tree > /dev/null 2>&1
+    return
+  fi
   # the work tree is checked once per menu listing, not once per entry
   if [[ -z "${_GIT_WORK_TREE:-}" ]]; then
     command git rev-parse --is-inside-work-tree > /dev/null 2>&1
@@ -41,11 +54,17 @@ git::summary_key() {
 }
 
 git::summary() {
-  local target="$1" n counts ahead behind upstream
+  local target="$1" n counts ahead behind upstream untracked=()
   shift
+  if [[ " $* " == *" --dotfiles "* ]]; then
+    # its git calls below see the dotbare repository; the status counts tracked files only
+    local -x GIT_DIR GIT_WORK_TREE
+    git::dotbare_env
+    untracked=(--untracked-files=no)
+  fi
   case "$target" in
     git)
-      command git status --porcelain=v1 | awk '
+      command git status --porcelain=v1 "${untracked[@]}" | awk '
         /^\?\?/ { u++; next } { if (substr($0, 1, 1) != " ") s++; if (substr($0, 2, 1) != " ") m++ }
         END { printf "%d staged, %d modified, %d untracked\n", s, m, u }'
       ;;

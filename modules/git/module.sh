@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # git: status, log, branches, tags, stash, reflog and work trees of a repository.
-# `fzx -m git[:log|:branches|:tags|:stash|:reflog|:worktrees] [--all] [--rev REV] [DIR]`; `git:commit
+# `fzx -m git[:log|:branches|:tags|:stash|:reflog|:worktrees] [--all] [--rev REV] [--dotfiles | DIR]`; `git:commit
 # --rev REV` (ctrl-o on a commit) lists the files it changed. Enter prints paths, hashes or names.
 
 FZX_MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -14,6 +14,7 @@ git::header() {
   local branch upstream counts ahead behind header
   branch="$(git::g symbolic-ref --quiet --short HEAD 2> /dev/null || git::g rev-parse --short HEAD)"
   header="${GIT_TOP##*/}  $branch"
+  ((GIT_DOTFILES)) && header="dotfiles  $branch"
   if upstream="$(git::g rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2> /dev/null)" &&
     counts="$(git::g rev-list --left-right --count 'HEAD...@{upstream}' 2> /dev/null)"; then
     read -r ahead behind <<< "$counts"

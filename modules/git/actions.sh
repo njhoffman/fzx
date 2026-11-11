@@ -99,6 +99,7 @@ git::destructive() {
 # naming them
 git::clean() {
   local rels=() p args=(clean -f -d)
+  git::clean_allowed || return 1
   for p; do rels+=("${p#"$GIT_TOP"/}"); done
   [[ " ${FZX_TOGGLES:-} " == *" ignored "* ]] && args+=(-x)
   git::confirm "remove (git clean):" "${rels[@]}" || return 0
