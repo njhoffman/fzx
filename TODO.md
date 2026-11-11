@@ -83,6 +83,19 @@ Reviewed: 2026-11-03
       buffers paste (newest first, under FZX_STATE_DIR), and named snippets saved on purpose (snippetdb's
       put/get/remove/list). Open: a capture mode, or a module of its own that the zsh widgets can use
       outside tmux too. Ref: resources/fzfmenu/proto-widgets/tmux/snippetdb.
+- [ ] **Test fzx::pretty against a real prettypath** (p3) [test]: test/pretty.bats runs every case against a
+      stub that reimplements prettypath's `--base`, `--dirs` and `--field` by hand, so a change in prettypath
+      (or a stub that drifts from it) goes unnoticed. Add a few cases that use the installed prettypath when
+      `prettypath --version` is 0.2.0 or later (skipped otherwise): fzx::pretty with a base and `--dirs`, and
+      fzx::pretty_field on a row with a trailing-"/" path, checked with the escapes stripped.
+- [ ] **Drop support for prettypath before 0.2.0** (p3) [refactor]: lib/pretty.sh keeps three paths (current,
+      sound, legacy): the slash sed, the prefix-strip awk, the plain-display fallback and the join in
+      fzx::pretty_field exist only for prettypath 0.1.x and older, with their tests and stub modes. Once no
+      machine runs one, require 0.2.0 (a `legacy` level shows plain displays and logs why) and remove them.
+- [ ] **design.md quotes old prettypath speeds** (p3) [docs]: docs/design.md gives "about 13µs per path
+      (20k paths in 0.26s)", measured on prettypath under lua 5.1 before 0.1.0. Under luajit (prettypath
+      0.3.0's launcher) `make bench` there shows about 3-4µs per path for the default format. Update the
+      figure or drop it in favor of pointing at prettypath's `make bench`.
 
 ## 6. New modules
 
@@ -217,6 +230,11 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       widget runs that start fzf themselves, widgets using `$commands[fzf]` or `fzf-tmux`, or
       `ftb-tmux-popup` (popup mode was never tested for this bug). They would get the same I or O in the query
       if focus reports reach them. Fix per case when one shows it.
+- [ ] **An empty NO_COLOR turns color off in most of fzx** (p3) [bug]: 98 checks in lib/ and modules/ (56
+      files) test `${NO_COLOR+x}`, so `NO_COLOR=` (set, empty) drops color, while bin/fzx (`${NO_COLOR:-}`)
+      and prettypath treat an empty one as unset, as no-color.org asks ("present and not an empty string").
+      One helper (fzx::no_color) used everywhere would make them agree; the fix is mechanical but touches
+      every module, so it wants the full suite and a look at each preview.
 
 ## Completed
 
