@@ -6,6 +6,21 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.111.0] - 2026-11-11
+
+### Removed
+
+- Support for prettypath older than 0.2.0. Such a prettypath now counts as not installed: the files, dirs,
+  recent and github lists keep their plain displays, and the log says why once. fzx no longer adds the
+  trailing slash, cuts the base directory or joins displays back by path itself; prettypath's `--dirs`,
+  `--base` and `--field` do that.
+
+### Changed
+
+- The prettypath tests also run against the installed prettypath (when it is 0.2.0 or later), so a change in
+  prettypath that breaks the displays shows up here. docs/design.md points at prettypath's `make bench` for
+  its speed instead of a figure measured before 0.1.0.
+
 ## [0.110.3] - 2026-11-10
 
 ### Fixed

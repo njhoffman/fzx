@@ -201,7 +201,8 @@ FZX_HEADER_POSITION=footer
 # before the component line comes back, in seconds (sleep's syntax)
 FZX_NOTIFY_SECONDS=2
 
-# icons and colors from prettypath in the files and dirs lists: auto (when it is installed), 1 or 0
+# icons and colors from prettypath in the files and dirs lists: auto (when prettypath 0.2.0 or later is
+# installed; an older one is ignored), 1 or 0
 FZX_PRETTY="${FZX_PRETTY:-auto}"
 
 # icons in rows and previews (lib/icons.sh): nerd (Nerd Font glyphs), unicode (plain symbols, for terminals

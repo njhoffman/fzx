@@ -610,21 +610,18 @@ visible. Menu entries apply only inside a work tree (stash only when stashes exi
 changes, commits ahead/behind the upstream (no fetch), branch counts and stashes. `FZX_GIT_DIFF_FILTER`
 (e.g. `delta --paging=never`) is applied to preview diffs. There is no discard/restore key on purpose.
 `files` (files and dirs modes) and `dirs` decorate their display column with prettypath icons and colors
-when `FZX_PRETTY` is `auto` (the default; on when `prettypath` is installed) or `1` (lib/pretty.sh): paths go
-in absolute (prettypath drops relative ones), unstatted (prettypath 0.1.0 stats only for size and date
-tokens, and the display format has none), the base directory is cut from the
-shown directory, and dirs, recent and github add prettypath's display as a column beside their own
-(`fzx::pretty_field`: with prettypath 0.2.0 and later one `--field` pass over a copy of the path column;
-with an older one a join by path, where a path missing from the result keeps a plain display). `fzx::pretty_level` reads the installed prettypath's `--version` (`prettypath X.Y.Z`;
-read with stdin closed, since builds without `--version` read it) once per binary (path and mtime, cached in
-`$FZX_CACHE_DIR/prettypath/`): 0.2.0 and later (`current`) get `--base` and `--dirs` and cut the base and mark
-directories themselves; with 0.1.x (`sound`) fzx appends the slash and cuts the base from the display with
-awk; before 0.1.0 (`legacy`) prettypath strips `%` from `%path%` (the id) and drops paths directly under `/`,
-so those paths skip it. About 13µs per path with
-the fixed prettypath (20k paths in 0.26s), streamed.
+when `FZX_PRETTY` is `auto` (the default; on when `prettypath` 0.2.0 or later is installed) or `1`
+(lib/pretty.sh): paths go in absolute (prettypath drops relative ones), unstatted (prettypath stats only for
+size and date tokens, and the display format has none), and `--base` cuts the base directory from the shown
+one; dirs, recent and github add prettypath's display as a column beside their own (`fzx::pretty_field`, one
+`--field` pass over a copy of the path column). `fzx::pretty_level` reads the installed prettypath's
+`--version` (`prettypath X.Y.Z`; read with stdin closed, since builds without `--version` read it) once per
+binary (path and mtime, cached in `$FZX_CACHE_DIR/prettypath/`): anything older than 0.2.0, or a dev build,
+is `legacy`, which `fzx::pretty_on` treats as no prettypath (plain displays, and one warning in the log).
 Directories keep fd's trailing `/` into prettypath, which marks them as directories (folder icon) and drops
-it from `%path%`; `fzx::pretty --dirs` adds it for lists without one (zoxide). prettypath's own roadmap
-(stat only when the format needs it, `--base`, `--dirs`, a field of tabbed input) is in its TODO.md.
+it from `%path%`; `--dirs` marks every path as one for lists without the slash (zoxide). The display is
+streamed; prettypath's `make bench` measures its cost per path (a few µs under luajit, its launcher's
+default).
 `files` lists in path order (component by component, so `a/` comes before `a-b/`) or newest first, and
 leaves `FZX_FILES_EXCLUDES` (tool caches such as `.ruff_cache`) out of every mode. With follow off,
 symbolic links are listed by their target's kind but not entered: fd's `--type f`/`--type d` skip links, so
