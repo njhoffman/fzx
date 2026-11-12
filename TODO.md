@@ -179,6 +179,13 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 
 ## 7. Known issues
 
+- [ ] **test/tmux.bats left two tmux servers running** (p3) [test]: on 2026-11-12, two servers from a run about 32h
+      earlier were still up (`tmux -S /tmp/bats-run-qc5pKA/test/983/tmux.sock` and `.../985/`, session `first`
+      from `setup()`), their test directories already deleted. `teardown()` does run `tmux kill-server` through the
+      stub, so the cause is unconfirmed: the run may have been interrupted between setup and teardown, or a test
+      may point the stub at another socket. Have setup record the server PID and teardown kill it if
+      `kill-server` left it running.
+
 - [ ] **just lint takes two minutes** (p3) [perf]: the Justfile's lint runs one shellcheck over about 250 files, each
       re-reading what it sources, on one core (115s at 0.108.6, 2026-11-10; each file alone takes 0.1-0.4s). Run it
       in parallel batches (`printf '%s\0' "${files[@]}" | xargs -0 -P"$(nproc)" -n 16 shellcheck`), keeping one
