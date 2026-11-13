@@ -355,6 +355,13 @@ fzx::_mode_hidden() {
   return 1
 }
 
+# fzx::_escdelay: export FZX_ESCDELAY as ESCDELAY, how long fzf waits after esc for the rest of an alt key or
+# arrow sequence (its default, 100ms, is the delay before esc acts); empty leaves fzf's own
+fzx::_escdelay() {
+  [[ "${FZX_ESCDELAY:-}" =~ ^[0-9]+$ ]] && export ESCDELAY="$FZX_ESCDELAY"
+  return 0
+}
+
 # The owner runs fzf as a child so it can clean up when the become() chain ends. Every other launch
 # (resume, mode restart, navigation) execs fzf: otherwise each become() would leave one more waiting
 # bash process behind it and the process chain would grow with every navigation.
@@ -362,6 +369,7 @@ fzx::_fzf() {
   local start end rc
   if [[ -z "${_FZX_OWNER:-}" && -z "${FZX_STANDALONE:-}" ]]; then
     fzx::log info "fzf exec module=$FZX_MODULE mode=$FZX_MODE opts=${#FZX_OPTS[@]}"
+    fzx::_escdelay
     exec fzf "${FZX_OPTS[@]}" < /dev/null
   fi
   fzx::now_ms start
@@ -375,6 +383,7 @@ fzx::_fzf() {
     fzx::_fzf_float "${p#float}"
   else
     fzx::log info "fzf start module=$FZX_MODULE mode=$FZX_MODE opts=${#FZX_OPTS[@]}"
+    fzx::_escdelay
     fzf "${FZX_OPTS[@]}" < /dev/null
   fi
   rc=$?

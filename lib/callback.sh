@@ -88,10 +88,12 @@ fzx::callback() {
     fzx::require stats
     # FZX_MODE inherited from fzf's environment goes stale after an in-place mode switch: resolve it,
     # unless the handler names the mode the event belongs to (_FZX_STAT[3])
+    # (the mode alone: fzx::_cb_mode would load the components table for toggles and sort, which the row lacks)
     if [[ -n "${_FZX_STAT[3]:-}" ]]; then
       FZX_MODE="${_FZX_STAT[3]}"
     else
-      fzx::_cb_mode
+      fzx::session_modes
+      fzx::session_mode FZX_MODE
     fi
     fzx::stat "${_FZX_STAT[0]}" "$((end - start))" "${_FZX_STAT[1]}" "${_FZX_STAT[2]}"
   fi

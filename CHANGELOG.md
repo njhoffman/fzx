@@ -6,6 +6,17 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.112.0] - 2026-11-13
+
+### Changed
+
+- Esc closes fzx about four times faster (about 200ms down to 35-50ms here). fzf waits after Esc for the rest of an alt
+  key or arrow sequence: fzx now runs fzf with `ESCDELAY=25` instead of fzf's 100ms (`FZX_ESCDELAY`, new; an
+  `ESCDELAY` you set is kept, and `FZX_ESCDELAY=""` leaves it alone). On the first screen of a session that is not
+  kept, Esc quits directly instead of starting a callback that could only print `abort`.
+- Every callback starts a little faster: bin/fzx no longer runs `readlink` and `dirname` when fzf calls it by its own
+  path, and the stats row of a callback reads the mode without loading the module's components table.
+
 ## [0.111.0] - 2026-11-11
 
 ### Removed

@@ -122,17 +122,64 @@ setup() {
   [ "${args[*]}" = "--all --mode x" ]
 }
 
+@test "bin/fzx: found through a symlink, or as \$FZX_ROOT/bin/fzx (callbacks) without resolving it" {
+  ln -s "$FZX_REPO/bin/fzx" "$BATS_TEST_TMPDIR/fzx-link"
+  run env -u FZX_ROOT "$BATS_TEST_TMPDIR/fzx-link" --version
+  [ "$status" -eq 0 ] && [[ "$output" == "fzx "* ]]
+  run env FZX_ROOT="$FZX_REPO" "$FZX_REPO/bin/fzx" --version
+  [ "$status" -eq 0 ] && [[ "$output" == "fzx "* ]]
+  # no readlink or dirname on the callback path
+  local trace="$BATS_TEST_TMPDIR/trace"
+  FZX_ROOT="$FZX_REPO" PS4='+ ' bash -x "$FZX_REPO/bin/fzx" --version 2> "$trace" > /dev/null
+  ! grep -q 'readlink\|dirname' "$trace"
+}
+
 @test "core binds: start loads, reload key reruns the source, soft reload resumes, back" {
   run "$FZX" -m counter
   [ "$(fzf_bind start)" = "start:reload:$FZX _cb load" ]
   [ "$(fzf_bind ctrl-r)" = "ctrl-r:reload($FZX _cb source)" ]
   [ "$(fzf_bind alt-r)" = "alt-r:transform:$FZX _cb nav resume" ]
   [ "$(fzf_bind alt-left)" = "alt-left:transform:$FZX _cb nav back" ]
-  [ "$(fzf_bind esc)" = "esc:transform:$FZX _cb nav escape" ]
+  # the root of a tree that is not kept: escape quits without a callback
+  [ "$(fzf_bind esc)" = "esc:abort" ]
   ! fzf_bind ctrl-c
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " == *" --listen=$FZX_RUNTIME_DIR/sessions/"*"/fzf.sock "* ]]
   [[ " ${FZF_ARGS[*]} " == *" --with-shell=bash -c "* ]]
+}
+
+@test "escape: aborts at a root, the callback on child screens and on a kept tree's root" {
+  run "$FZX" --keep -m counter
+  [ "$status" -eq 0 ]
+  local root child
+  root="$(basename "$(session_dirs)")"
+  [ "$(fzf_bind esc)" = "esc:transform:$FZX _cb nav escape" ]
+  FZX_SESSION="$root" run "$FZX" _cb nav goto counter --child
+  child="${output##* }"
+  [ -d "$FZX_RUNTIME_DIR/sessions/$child" ]
+  run "$FZX" --resume "$child"
+  [ "$status" -eq 0 ]
+  [ "$(fzf_bind esc)" = "esc:transform:$FZX _cb nav escape" ]
+  # the same child under a root that is not kept still goes back
+  rm -f -- "$FZX_RUNTIME_DIR/sessions/$root/meta/keep"
+  run "$FZX" --resume "$child"
+  [ "$(fzf_bind esc)" = "esc:transform:$FZX _cb nav escape" ]
+}
+
+@test "ESCDELAY: FZX_ESCDELAY reaches fzf (25 by default); a set ESCDELAY stays; empty leaves it alone" {
+  export STUB_FZF_RUN='printf "%s" "${ESCDELAY-unset}" > "$BATS_TEST_TMPDIR/escdelay"'
+  env -u ESCDELAY "$FZX" -m counter
+  [ "$(cat "$BATS_TEST_TMPDIR/escdelay")" = 25 ]
+  ESCDELAY=60 "$FZX" -m counter
+  [ "$(cat "$BATS_TEST_TMPDIR/escdelay")" = 60 ]
+  FZX_ESCDELAY=10 ESCDELAY=60 "$FZX" -m counter
+  [ "$(cat "$BATS_TEST_TMPDIR/escdelay")" = 10 ]
+  env -u ESCDELAY FZX_ESCDELAY= "$FZX" -m counter
+  [ "$(cat "$BATS_TEST_TMPDIR/escdelay")" = unset ]
+  # a screen fzf execs (navigation, resume) gets it too
+  run "$FZX" --keep -m counter
+  env -u ESCDELAY "$FZX" --resume "$(basename "$(session_dirs)")"
+  [ "$(cat "$BATS_TEST_TMPDIR/escdelay")" = 25 ]
 }
 
 @test "the Escape key can be remapped; standalone keeps fzf's Escape behavior" {
@@ -140,7 +187,7 @@ setup() {
   printf 'FZX_KEYS[escape]=ctrl-q\n' > "$FZX_CONFIG_DIR/config.sh"
   run "$FZX" -m ps
   [ "$status" -eq 0 ]
-  [ "$(fzf_bind ctrl-q)" = "ctrl-q:transform:$FZX _cb nav escape" ]
+  [ "$(fzf_bind ctrl-q)" = "ctrl-q:abort" ]
   ! fzf_bind esc
   run "$FZX_REPO/modules/ps/module.sh"
   [ "$status" -eq 0 ]

@@ -124,6 +124,13 @@ kept_session() {
   [ "$(rows mode | tr '\n' ',')" = "counter one - one>two,counter two - two>three:restart," ]
 }
 
+@test "a callback's row names the mode the session is in, not the one fzf's environment still has" {
+  kept_session
+  "$FZX" _cb mode next > /dev/null
+  FZX_MODE=one "$FZX" _cb nav resume > /dev/null
+  [ "$(rows nav)" = "counter two - resume" ]
+}
+
 @test "navigation records resume, back, back:none and placement changes" {
   mkdir -p "$FZX_CONFIG_DIR"
   echo 'FZX_PLACEMENTS=(inline popup)' >> "$FZX_CONFIG_DIR/config.sh"

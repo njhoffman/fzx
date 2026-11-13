@@ -390,7 +390,15 @@ fzx::opts_build() {
     # the menu has nowhere to go from itself
     [[ "$module" == menu || -z "${FZX_KEYS[menu]:-}" ]] ||
       fzx::bind "${FZX_KEYS[menu]}" "transform:$(fzx::cb nav menu)" "the main menu"
-    fzx::bind "${FZX_KEYS[escape]}" "transform:$(fzx::cb nav escape)" "back to the previous screen; quit at the root"
+    # at the root of a tree that is not kept, escape can only quit: fzf aborts without starting a callback
+    # (fzx::nav escape would save the query, position and layout the owner's cleanup then removes; the exit
+    # row records the abort). Child screens go back; a kept tree's root saves them for its resume.
+    local _parent="" _keep=""
+    if ! fzx::meta_get parent _parent && ! { fzx::meta_get keep _keep && [[ "$_keep" == 1 ]]; }; then
+      fzx::bind "${FZX_KEYS[escape]}" abort "quit"
+    else
+      fzx::bind "${FZX_KEYS[escape]}" "transform:$(fzx::cb nav escape)" "back to the previous screen; quit at the root"
+    fi
     fzx::bind "${FZX_KEYS[popout]}" "transform:$(fzx::cb nav placement next)" "next placement: ${FZX_PLACEMENTS[*]}"
     [[ -n "${FZX_KEYS[popup_toggle]:-}" ]] &&
       fzx::bind "${FZX_KEYS[popup_toggle]}" "transform:$(fzx::cb nav placement popup-toggle)" "popup or the plain terminal"

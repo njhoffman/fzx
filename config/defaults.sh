@@ -201,6 +201,11 @@ FZX_HEADER_POSITION=footer
 # before the component line comes back, in seconds (sleep's syntax)
 FZX_NOTIFY_SECONDS=2
 
+# how long fzf waits after esc for the rest of an alt key or arrow sequence, in ms (exported to fzf as ESCDELAY):
+# esc acts only after it. fzf's own default is 100; over a slow link (ssh without tmux) an alt key may then
+# arrive as esc and a letter. "" leaves ESCDELAY as it is
+FZX_ESCDELAY="${FZX_ESCDELAY-${ESCDELAY:-25}}"
+
 # icons and colors from prettypath in the files and dirs lists: auto (when prettypath 0.2.0 or later is
 # installed; an older one is ignored), 1 or 0
 FZX_PRETTY="${FZX_PRETTY:-auto}"

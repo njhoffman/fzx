@@ -3,8 +3,15 @@
 
 set -o pipefail
 
-# shellcheck source=../lib/core.sh
-source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib/core.sh"
+# called as $FZX_BIN (every callback fzf runs, FZX_ROOT exported) the checkout is known: no readlink and dirname
+# processes on each one. Any other path (a symlink in ~/.local/bin, another checkout) is resolved.
+if [[ -n "${FZX_ROOT:-}" && "${BASH_SOURCE[0]}" == "$FZX_ROOT/bin/fzx" ]]; then
+  # shellcheck source=../lib/core.sh
+  source "$FZX_ROOT/lib/core.sh"
+else
+  # shellcheck source=../lib/core.sh
+  source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib/core.sh"
+fi
 
 # fzx::usage: the help, from one table: "#" a line of its own, "@" a section, the rest what to type<TAB>what it
 # does. Each section's descriptions start in one column. Colored on a terminal, unless NO_COLOR is set. Fitted to
