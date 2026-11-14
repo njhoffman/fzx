@@ -7,6 +7,8 @@
 #   systemd  a user unit in $XDG_RUNTIME_DIR/systemd/user (enable links it from
 #            ~/.config/systemd/user/default.target.wants; teardown disables it). System units and sudo
 #            stay stubbed (test/modules.bats).
+#   fzf      tmux servers fzx-live-* (one attached to the other, so a popup has a client), killed in teardown:
+#            fzf behaviour fzx relies on that its man page does not promise; run after every fzf upgrade.
 
 load test_helper
 
@@ -25,6 +27,10 @@ teardown() {
     command docker rm -f "$LIVE" > /dev/null 2>&1
     command docker volume rm -f "$LIVE" > /dev/null 2>&1
     command docker network rm "$LIVE" > /dev/null 2>&1
+  fi
+  if [[ "$BATS_TEST_DESCRIPTION" == fzf* ]]; then
+    tmux -L "$LIVE-outer" kill-server > /dev/null 2>&1
+    tmux -L "$LIVE" kill-server > /dev/null 2>&1
   fi
   if [[ "$BATS_TEST_DESCRIPTION" == systemd* ]]; then
     systemctl --user disable "$LIVE.service" > /dev/null 2>&1
@@ -173,4 +179,22 @@ sact() { "$SYSTEMD/actions.sh" "$@"; }
   run ssrc failed
   [[ "$output" == *"$id"* ]]
   systemctl --user reset-failed "$LIVE.service"
+}
+
+@test "fzf: become() inside a --popup runs in the caller's terminal (lib/run.sh fzx::_placement relies on it)" {
+  command -v tmux > /dev/null || skip "no tmux"
+  command -v fzf > /dev/null || skip "no fzf"
+  fzf --help 2>&1 | grep -q -- '--popup' || skip "this fzf has no --popup"
+  local out="$BATS_TEST_TMPDIR/become" pane_tty i
+  # the inner server, its client attached from a detached outer one: popups need a client
+  tmux -L "$LIVE" -f /dev/null new-session -d -x 120 -y 30 'bash --noprofile --norc'
+  tmux -L "$LIVE-outer" -f /dev/null new-session -d -x 120 -y 30 "env -u TMUX tmux -L $LIVE attach"
+  for i in $(seq 50); do [[ -n "$(tmux -L "$LIVE" list-clients)" ]] && break; sleep 0.1; done
+  pane_tty="$(tmux -L "$LIVE" display-message -p '#{pane_tty}')"
+  # (stdin is /dev/tty there, so `tty` says nothing useful: the terminal is the one stderr writes to)
+  tmux -L "$LIVE" send-keys "seq 3 | fzf --popup=center,50%,50% --bind 'start:become(readlink /proc/self/fd/2 > $out)'" Enter
+  for i in $(seq 100); do [[ -s "$out" ]] && break; sleep 0.1; done
+  [ -s "$out" ]
+  # the pane's terminal, not the popup's: so every fzx launch asks for --popup again (docs/design.md, popups)
+  [ "$(cat "$out")" = "$pane_tty" ]
 }

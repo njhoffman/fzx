@@ -8,6 +8,8 @@ env:
   FZF_VERSION: 0.74.5
   # Ubuntu 24.04's just (1.21) cannot parse [doc] attributes (1.27) or let one override a comment (1.37)
   JUST_VERSION: 1.59.0
+  # test/pretty.bats's "real prettypath" cases run against this one (they skip without 0.2.0 or later)
+  PRETTYPATH_VERSION: 0.8.1
 
 jobs:
   test:
@@ -25,6 +27,17 @@ jobs:
           # Debian ships fd as fdfind; the files module handles both, the tests look for fd
           sudo ln -sf "$(command -v fdfind)" /usr/local/bin/fd
           git config --global user.name ci && git config --global user.email ci@example.com
+      # prettypath (github.com/njhoffman/prettypath) under Lua 5.1, as its own CI installs it
+      - uses: leafo/gh-actions-lua@v10
+        with:
+          luaVersion: "5.1"
+      - uses: leafo/gh-actions-luarocks@v4
+      - name: Install prettypath
+        run: |
+          git clone --depth 1 --branch "v${PRETTYPATH_VERSION}" https://github.com/njhoffman/prettypath "$RUNNER_TEMP/prettypath"
+          # make installs the rockspec's dependencies (luv, lua-filesize) as well
+          (cd "$RUNNER_TEMP/prettypath" && luarocks make prettypath-dev-4.rockspec)
+          prettypath --version
       - name: Lint
         run: just lint
       - name: Test

@@ -6,6 +6,26 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.114.1] - 2026-11-13
+
+### Changed
+
+- docs/design.md says what the `off` flag does to the copy built-ins: the row leaves the help and the actions menu,
+  while ctrl-y and alt-y stay bound in every session, so a yank key from FZF_DEFAULT_OPTS never reaches one.
+- `just lint` runs shellcheck in parallel batches, one per core, instead of once over all 267 files (about two
+  minutes on one core).
+- `just test-live` also checks the fzf behaviour popups rely on: `become()` inside a `--popup` runs in the caller's
+  terminal. Run it after every fzf upgrade.
+- CI installs prettypath (pinned, `PRETTYPATH_VERSION`), so the tests against the real one run there too.
+
+### Fixed
+
+- The tests no longer fail on a loaded machine: the menu's applicability and summary timeouts are 20s in the tests
+  (fixture modules dropped out of the list at 2s), and the elapsed-time checks have room while still well under
+  the delays they guard against.
+- test/tmux.bats ends its tmux servers by pid when `kill-server` leaves one running, and a run kills servers an
+  interrupted earlier run left behind (their test directory gone).
+
 ## [0.114.0] - 2026-11-13
 
 ### Added

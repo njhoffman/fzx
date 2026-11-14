@@ -35,10 +35,46 @@ STUB
   export TMUX_PANE="$(tmux display-message -p -t first '#{pane_id}')"
   export PANE="$TMUX_PANE"
   export SECOND="$(tmux new-session -d -s second -P -F '#{session_id}' 'sleep 600')"
+  # the server's pid, for teardown (kill-server once left two running, 2026-11-12)
+  TEST_TMUX_PIDS="$(tmux display-message -p '#{pid}')"
 }
 
 teardown() {
-  tmux kill-server 2>/dev/null || :
+  local pid
+  # a test may have started a server of its own on the socket since
+  TEST_TMUX_PIDS+=" $(tmux display-message -p '#{pid}' 2> /dev/null)"
+  tmux kill-server 2> /dev/null || :
+  for pid in $TEST_TMUX_PIDS; do
+    # only a tmux on this test's socket: a pid used again since is left alone
+    [[ "$(tr '\0' ' ' < "/proc/$pid/cmdline" 2> /dev/null)" == *"$TEST_TMUX_SOCKET"* ]] && kill "$pid" 2> /dev/null
+  done
+  return 0
+}
+
+# servers an interrupted run left behind (teardown never ran): tmux on a bats test socket that is gone
+setup_file() {
+  local pid sock
+  for pid in $(pgrep -u "$(id -u)" -f 'tmux -S /tmp/bats-run-[^ ]*/test/[0-9]+/tmux.sock' 2> /dev/null); do
+    sock="$(tr '\0' '\n' < "/proc/$pid/cmdline" 2> /dev/null | sed -n '/^-S$/{n;p;q}')"
+    [[ -n "$sock" && "$sock" == /tmp/bats-run-*/test/*/tmux.sock && ! -e "$sock" ]] && kill "$pid" 2> /dev/null
+  done
+  return 0
+}
+
+@test "a server an interrupted run left (its test directory gone) is ended by the next run; others are not" {
+  local dir="$BATS_RUN_TMPDIR/test/99999" keep="$BATS_RUN_TMPDIR/test/99998" pid other i
+  mkdir -p "$dir" "$keep"
+  "$TEST_TMUX_BIN" -S "$dir/tmux.sock" -f /dev/null new-session -d -s left 'sleep 300'
+  "$TEST_TMUX_BIN" -S "$keep/tmux.sock" -f /dev/null new-session -d -s kept 'sleep 300'
+  pid="$("$TEST_TMUX_BIN" -S "$dir/tmux.sock" display-message -p '#{pid}')"
+  other="$("$TEST_TMUX_BIN" -S "$keep/tmux.sock" display-message -p '#{pid}')"
+  rm -rf "$dir"
+  setup_file
+  for i in $(seq 30); do kill -0 "$pid" 2> /dev/null || break; sleep 0.1; done
+  ! kill -0 "$pid" 2> /dev/null
+  # a server whose socket is still there is a running test's
+  kill -0 "$other"
+  "$TEST_TMUX_BIN" -S "$keep/tmux.sock" kill-server
 }
 
 src() {

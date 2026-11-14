@@ -26,6 +26,9 @@ setup_fzx() {
   # rows as the sources write them (test/freeze.bats turns the split on)
   export FZX_FREEZE_LEFT=0
   unset FZX_SORT_HEADER FZX_SORT_DESC FZX_SORTED_HEADER_COLOR FZX_SORTED_ARROWS
+  # the menu's applicability checks and summaries get room on a loaded machine (the parallel suite): at the defaults
+  # (2s, 3s) a fixture module's check could miss them and drop out of the list; the tests of the timeouts set theirs
+  export FZX_APPLICABLE_TIMEOUT=20 FZX_SUMMARY_TIMEOUT=20
   export COUNTER_FILE="$BATS_TEST_TMPDIR/counter"
   LOG="$FZX_STATE_DIR/fzx.log"
   # renderers that start Neovim or draw by the user's own config (lib/render.sh) fail, so previews go to

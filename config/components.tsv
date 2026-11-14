@@ -1,5 +1,6 @@
 # components every module gets (lib/components.sh); a module row of the same kind and name replaces
-# one, and ~/.config/fzx/modules/<m>/components.tsv can switch one off ("action  copy  =  =  off").
+# one, and ~/.config/fzx/modules/<m>/components.tsv can switch one off ("action  copy  =  =  off"): out of the help
+# and the actions menu, while ctrl-y and alt-y still copy in a session (docs/design.md, Actions).
 # Built-in actions run through `fzx builtin <name> <args>`.
 # kind   name       key  description                         flags
 action   copy       ctrl-y  copy the selection to the clipboard  silent,builtin

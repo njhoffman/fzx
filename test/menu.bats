@@ -124,17 +124,18 @@ zslow::manifest() { fzx::entry zslow "too slow"; }
 zslow::applicable() { sleep 60; }
 EOF2
   # margins for the parallel suite, where every module's manifest is read at once on a loaded machine
-  export FZX_MODULE_PATH="$BATS_TEST_TMPDIR/mods:$FZX_MODULE_PATH" FZX_APPLICABLE_TIMEOUT=6
+  # (the bound only has to be well under zslow's 60s: it shows zslow was cut off, not waited for)
+  export FZX_MODULE_PATH="$BATS_TEST_TMPDIR/mods:$FZX_MODULE_PATH" FZX_APPLICABLE_TIMEOUT=10
   menu_session
   fzx::state_set mode list
   local start=$EPOCHSECONDS
   run plain_lines
-  ((EPOCHSECONDS - start < 12))
+  ((EPOCHSECONDS - start < 40))
   # in module order, the slow one in time included
   [[ "${lines[0]}" == "aaslow#0|"* ]]
   [ -n "$(entry 'counter#0')" ]
   [[ "$output" != *zslow* ]]
-  grep -q 'menu: zslow took over 6s, left out' "$LOG"
+  grep -q 'menu: zslow took over 10s, left out' "$LOG"
 }
 
 @test "refresh: writes stale summaries, asks for one reload, then is quiet" {
@@ -171,7 +172,7 @@ EOF2
   fixture_modules
   menu_session
   local start=$EPOCHSECONDS
-  COUNTER_SUMMARY_SLEEP=20 FZX_SUMMARY_TIMEOUT=30 "$FZX" _cb transform refresh > /dev/null &
+  COUNTER_SUMMARY_SLEEP=60 FZX_SUMMARY_TIMEOUT=90 "$FZX" _cb transform refresh > /dev/null &
   local job=$! i
   for i in $(seq 50); do [[ -s "$COUNTER_FILE.summaries" ]] && break; sleep 0.1; done
   [ -s "$FZX_SESSION_DIR/state/bg_pgid" ]
@@ -179,7 +180,8 @@ EOF2
   run "$FZX" _cb nav escape
   [ "$output" = abort ]
   wait "$job" || :
-  ((EPOCHSECONDS - start < 10))
+  # well under the summary's 60s: the refresh was stopped, not waited for
+  ((EPOCHSECONDS - start < 40))
   [ ! -e "$FZX_SESSION_DIR/state/bg_pgid" ]
   grep -q "background job .* stopped" "$LOG"
   # a recorded group led by a process of another session (a pid used again) is not signalled; one of this
@@ -267,8 +269,9 @@ EOF2
   fixture_modules
   menu_session
   local start=$EPOCHSECONDS
-  COUNTER_SUMMARY_SLEEP=10 FZX_SUMMARY_TIMEOUT=1 run "$FZX" _cb transform refresh
-  ((EPOCHSECONDS - start < 5))
+  # under the 30s the summary would take, with room for a loaded machine
+  COUNTER_SUMMARY_SLEEP=30 FZX_SUMMARY_TIMEOUT=1 run "$FZX" _cb transform refresh
+  ((EPOCHSECONDS - start < 20))
   [ "$output" = "reload:$FZX _cb source" ]
   grep -q 'summary of counter#0 failed or timed out' "$LOG"
   run "$FZX" _cb transform refresh

@@ -174,6 +174,7 @@ the man page does not describe: a popup is two fzf processes, the original one i
 and one inside the popup, and `become()` from inside the popup is executed by the original one, in the
 caller's terminal. A launch that did not ask for the popup again would therefore drop back inline. If a
 later fzf runs `become()` inside the popup instead, `_placement` must skip `--popup` when already in one.
+`just test-live` checks it (test/live.bats, "fzf: become() inside a --popup ..."): run it after every fzf upgrade.
 
 Splits are made by the owner (`fzx::_fzf_split`): `tmux split-window -P -F '#{pane_id}' -c $PWD -v|-h [-b]
 [-l SIZE]` running `fzx --resume <sid>` with its output and exit status in `split.out` / `split.rc` in the
@@ -396,7 +397,9 @@ modification time) and todos (urgency) sort without a column to mark.
 Built-ins come from `config/components.tsv` and every module gets them, listed after its own rows:
 `copy` (the ids, `{+1}`), `copy-line` (`{+}`) and `view` (the module's preview of the item in `$PAGER`).
 Clipboard: wl-copy, xclip, xsel, pbcopy, else tmux's paste buffer. A module row of the same name replaces
-a built-in, and the flag `off` removes it (the menu and actions modules switch all three off).
+a built-in, and the flag `off` removes it from the help and the actions menu (the menu and actions modules switch
+all three off). The yank keys stay bound in every session even so: ctrl-y and alt-y copy `{+1}` and `{+}` with the
+footer's report (lib/opts.sh), so a key bound in FZF_DEFAULT_OPTS, which may copy hidden fields, never reaches one.
 
 Arguments are fzf placeholders appended to `fzx _cb action NAME`: `FZX_ACTION_ARGS` (default `{+1}`) for
 the module's actions and `FZX_ACTION_ARGS_FOR[name]` for one action, built-ins included, both set in the

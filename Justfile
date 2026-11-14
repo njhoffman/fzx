@@ -31,7 +31,9 @@ lint:
         */components.tsv) [[ -x "$f" ]] && files+=("$f") ;;
       esac
     done < <(git ls-files -z --cached --others --exclude-standard)
-    shellcheck "${files[@]}"
+    # batches across every core: one shellcheck over all of them took two minutes, each file re-reading what it
+    # sources (xargs exits 123 when any batch finds something, so CI still fails)
+    printf '%s\0' "${files[@]}" | xargs -0 -P "$(nproc)" -n 8 shellcheck
 
 # print the resolved fzf command for a module
 dry-run MODULE *ARGS:

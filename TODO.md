@@ -179,14 +179,14 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 
 ## 7. Known issues
 
-- [ ] **test/tmux.bats left two tmux servers running** (p3) [test]: on 2026-11-12, two servers from a run about 32h
+- [x] **test/tmux.bats left two tmux servers running** (p3) [test]: on 2026-11-12, two servers from a run about 32h
       earlier were still up (`tmux -S /tmp/bats-run-qc5pKA/test/983/tmux.sock` and `.../985/`, session `first`
       from `setup()`), their test directories already deleted. `teardown()` does run `tmux kill-server` through the
       stub, so the cause is unconfirmed: the run may have been interrupted between setup and teardown, or a test
       may point the stub at another socket. Have setup record the server PID and teardown kill it if
       `kill-server` left it running.
 
-- [ ] **just lint takes two minutes** (p3) [perf]: the Justfile's lint runs one shellcheck over about 250 files, each
+- [x] **just lint takes two minutes** (p3) [perf]: the Justfile's lint runs one shellcheck over about 250 files, each
       re-reading what it sources, on one core (115s at 0.108.6, 2026-11-10; each file alone takes 0.1-0.4s). Run it
       in parallel batches (`printf '%s\0' "${files[@]}" | xargs -0 -P"$(nproc)" -n 16 shellcheck`), keeping one
       exit status for CI.
@@ -210,10 +210,10 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       names, messages in the preview by D-Bus signal, kept in memory only.
 - [x] **kdeconnect: reply to a conversation** (p3) [feature]: the sms mode reads only. `replyToConversation` (xsav) on
       the conversations interface handles groups, which `--send-sms` does not; confirm like the SMS action.
-- [ ] **The flag `off` cannot remove alt-y** (p3) [bug]: docs/design.md says it removes a built-in, and the menu and actions
+- [x] **The flag `off` cannot remove alt-y** (p3) [bug]: docs/design.md says it removes a built-in, and the menu and actions
       modules set it for copy-line, but lib/opts.sh:478 binds alt-y whenever no row has it, so `fzx -m menu` still copies
       lines. Either bind it only for modules that did not switch it off, or say in the docs that the key stays.
-- [ ] **Timing-sensitive tests under load** (p3) [test]: test/menu.bats "menu_scores: launches by module ..."
+- [x] **Timing-sensitive tests under load** (p3) [test]: test/menu.bats "menu_scores: launches by module ..."
       stamps rows "now minus N days" and compares the decayed scores to six decimals; under the parallel suite
       a second's delay gives 0.999999 (seen 2026-11-01, passes alone): compared rounded to 3 decimals since
       0.83.0. The same
@@ -223,7 +223,7 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [ ] **firewall: header with nothing added** (p3) [bug]: with ufw off the header says "rules added, not in
       effect" even when `ufw show added` lists none; say it only when there are some.
 - [ ] **Zellij popups untested** (p3) [test]: popups are only checked on tmux; zellij is not installed here.
-- [ ] **Undocumented fzf behaviour we depend on** (p3) [test]: `become()` inside a `--popup` runs in the original
+- [x] **Undocumented fzf behaviour we depend on** (p3) [test]: `become()` inside a `--popup` runs in the original
       terminal, so every launch re-requests the popup (`fzx::_placement`). Observed on fzf 0.74 (devel);
       re-check on every fzf upgrade with the popup test in design.md's popout notes.
 - [ ] **grep mode stats noise** (p3) [bug]: every keystroke in `files:grep` records a `source reload` row;
@@ -248,7 +248,7 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       rings the bell and names the refused flag in the header, but not the reason (not on the FILES_FLAGS_RG
       or FILES_FLAGS_FD whitelist, which keeps out flags that change the output format fzx parses, or a
       value missing). Add the reason and, for an unknown flag, the nearest allowed one.
-- [ ] **CI never runs the real-prettypath tests** (p3) [test]: test/pretty.bats's "real prettypath" cases
+- [x] **CI never runs the real-prettypath tests** (p3) [test]: test/pretty.bats's "real prettypath" cases
       (0.111.0) skip without prettypath 0.2.0 or later, and CI does not install it, so only local runs catch
       a prettypath change that breaks the displays. Install it in .github/workflows/ci.yml (luarocks, or
       the repo's launcher), pinned like just.
