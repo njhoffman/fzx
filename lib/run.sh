@@ -259,10 +259,13 @@ fzx::placement_from_fzf_tmux() {
 # terminal, so a launch that did not ask again would drop back inline. Splits are made by the owner
 # (fzx::_fzf_split); launches inside the split pane are not the owner and run inline there. A popup
 # launch records its geometry (fzx::popup_geometry) and, in tmux, makes sure the window's resize hook is
-# set (fzx::_resize_hook_set), so the popup follows the window.
+# set (fzx::_resize_hook_set), so the popup follows the window. In a split or float pane fzf has the whole
+# pane, so it is asked for all of it: a --height from the user's FZF_DEFAULT_OPTS(_FILE) (-1 keeps a shell
+# line visible inline) would leave rows empty under its border. fzf's --popup sizes its own fzf already.
 fzx::_placement() {
   local dry_run="${1:-0}" p spec geo
   fzx::placement p
+  fzx::placement_pane "$p" && FZX_OPTS+=(--height=100%)
   case "$p" in
     popup | popup:*)
       if [[ "$p" == popup ]]; then fzx::popup_opts popup spec; else spec="${p#popup:}"; fi

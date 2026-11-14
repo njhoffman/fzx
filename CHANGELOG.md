@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.114.4] - 2026-11-14
+
+### Fixed
+
+- Split and float panes fill the pane: fzx passes `--height=100%` there, so a `--height=-1` (or any other height) in
+  `FZF_DEFAULT_OPTS_FILE` no longer leaves an empty row under fzf's bottom border. Inline launches keep the user's
+  `--height`; popups were never affected.
+
 ## [0.114.3] - 2026-11-13
 
 ### Changed

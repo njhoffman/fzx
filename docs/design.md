@@ -137,7 +137,9 @@ Zellij, splits tmux, floats a tmux with `new-pane`).
 Floats are floating tmux panes (`tmux new-pane`), made by the owner like splits (`fzx::_fzf_pane`), not
 fzf's `--popup`: inside one, `become()` keeps working as in a split. OPTS use the `--popup` syntax
 (`[center|top|bottom|left|right][,W[%]][,H[%]]`), resolved to cells against the window's size, since
-`new-pane` places a pane by its top-left corner.
+`new-pane` places a pane by its top-left corner. In a split or float fzf runs full-screen in the pane, so fzx passes `--height=100%`:
+a `--height` from the user's `FZF_DEFAULT_OPTS(_FILE)` (`-1` is common, for a shell line above inline fzf)
+would leave rows empty under its border. Inline launches keep the user's `--height`.
 
 **Popup geometry.** A plain `popup` or `float` (no OPTS) is sized by `FZX_POPUP_LAYOUTS`, `MINCOLS:SPEC`
 entries like the preview layouts: the entry with the largest MINCOLS at most the width of the whole tmux

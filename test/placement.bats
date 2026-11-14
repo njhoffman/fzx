@@ -125,6 +125,34 @@ kept() {
   ! fzf_bind 'alt-^'
 }
 
+@test "split and float ask fzf for the whole pane; inline and popups leave --height to the user and fzf" {
+  printf '%s\n' '--height=-1' > "$BATS_TEST_TMPDIR/fzfrc"
+  export FZF_DEFAULT_OPTS_FILE="$BATS_TEST_TMPDIR/fzfrc"
+  run "$FZX" -m counter
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " != *" --height="* ]]
+  # fzf's --popup fills the popup on its own
+  run "$FZX" -m counter --popup
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *" --popup="* ]]
+  [[ " ${FZF_ARGS[*]} " != *" --height="* ]]
+  # in a split or float the pane's `fzx --resume` runs fzf: the placement is the tree's, read from its state
+  local p
+  for p in split:down,40% float; do
+    kept
+    printf '%s' "$p" > "$DIR/state/placement"
+    rm -f "$BATS_TEST_TMPDIR/fzf.args"
+    run "$FZX" --resume "$SID"
+    read_fzf_args
+    [[ " ${FZF_ARGS[*]} " == *" --height=100% "* ]]
+    rm -rf "$FZX_RUNTIME_DIR/sessions"
+  done
+  # a split refused outside tmux falls back to inline: no override
+  TMUX="" run "$FZX" -m counter --split
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " != *" --height="* ]]
+}
+
 @test "--split and --popup set the starting placement" {
   kept --split
   [ "$(< "$DIR/state/placement")" = split:down,40% ]
