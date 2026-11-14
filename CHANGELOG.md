@@ -6,6 +6,17 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.113.0] - 2026-11-13
+
+### Fixed
+
+- Rows and previews with some emoji no longer push the border out of line. fzf and tmux (with
+  `variation-selector-always-wide on`) count a heart with its emoji selector, a skin-toned or joined emoji and a
+  keycap as different widths, so the row ran a cell or two long or short. kdeconnect (sms and notifications, lists
+  and previews), browser (history, bookmarks and tabs; the title in the preview) and history drop those parts
+  (`fzx::glyphs_plain`): the heart draws as text, skin tones go, a family shows its members. Ids, URLs and copied
+  titles keep them. `FZX_GLYPHS_PLAIN=0` turns it off.
+
 ## [0.112.0] - 2026-11-13
 
 ### Changed

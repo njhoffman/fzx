@@ -94,6 +94,27 @@ fzx::plural() {
 # shellcheck disable=SC2034  # read by the manifests' awk programs
 FZX_AWK_PLURAL='function plural(n, w, p) { n += 0; return n " " (n == 1 ? w : (p != "" ? p : w "s")) }'
 
+# fzx::glyphs_plain [-z | FIELD...]: stdin without the codepoints that make fzf and the terminal (tmux, with
+# variation-selector-always-wide on) disagree on a row's width, so a row holding them pushes or pulls the border:
+# the emoji and text variation selectors (U+FE0F, U+FE0E: a heart then draws as text), skin tones (U+1F3FB-U+1F3FF),
+# the zero-width joiner (U+200D: a family emoji draws as its members) and the keycap mark (U+20E3). Zero-width
+# spaces, direction marks and plain wide emoji agree already and stay. With FIELD numbers only those tab-separated
+# fields change (a display column, never an id); -z takes NUL-separated records whole. FZX_GLYPHS_PLAIN=0 passes
+# everything through (a terminal that draws them as fzf counts them). Byte patterns, so any locale and awk do.
+fzx::glyphs_plain() {
+  if [[ "${FZX_GLYPHS_PLAIN:-1}" == 0 ]]; then
+    command cat
+  elif [[ "${1:-}" == -z || $# -eq 0 ]]; then
+    LC_ALL=C sed -u ${1:+-z} -e 's/\xef\xb8[\x8e\x8f]//g; s/\xe2\x80\x8d//g; s/\xf0\x9f\x8f[\xbb-\xbf]//g; s/\xe2\x83\xa3//g'
+  else
+    local IFS=,
+    LC_ALL=C awk -F'\t' -v OFS='\t' -v fields="$*" 'BEGIN { n = split(fields, f, ",") }
+      { for (i = 1; i <= n; i++) if (f[i] + 0 <= NF)
+          gsub(/\357\270[\216\217]|\342\200\215|\360\237\217[\273-\277]|\342\203\243/, "", $(f[i]))
+        print; fflush() }'
+  fi
+}
+
 # print an error, log it when logging is loaded, and exit: fzx::die <code> <message>
 fzx::die() {
   local code="$1"

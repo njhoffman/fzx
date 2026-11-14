@@ -26,7 +26,7 @@ history::preview() {
     from history h left join places on places.id = h.place_id where h.id = $id")"
   IFS=$'\x1f' read -r when status secs dir host session runs failed cut first <<< "$row"
 
-  printf '%s\n' "$argv" | FZF_PREVIEW_COLUMNS="${FZF_PREVIEW_COLUMNS:-80}" fzx::render_text --language zsh --style plain --wrap
+  printf '%s\n' "$argv" | fzx::glyphs_plain | FZF_PREVIEW_COLUMNS="${FZF_PREVIEW_COLUMNS:-80}" fzx::render_text --language zsh --style plain --wrap
   printf '%s%s%s\n' "$D" "$(printf '%*s' "${FZF_PREVIEW_COLUMNS:-60}" '' | tr ' ' '-')" "$R"
 
   local status_icon=failed

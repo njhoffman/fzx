@@ -213,6 +213,20 @@ typed() { printf '%s\n' "$@" > "$FZX_KDECONNECT_TTY"; }
   [[ "$(printf '%s\n' "${lines[1]}" | cut -f2)" == *●* && "$(printf '%s\n' "${lines[0]}" | cut -f2)" != *●* ]]
 }
 
+@test "sms and its preview: emoji the terminal widens differently lose their selectors and skin tones" {
+  sed -i 's/"on my way"/"on my way \\u2764\\ufe0f \\ud83d\\udc4d\\ud83c\\udffb"/' "$STUB_THREADS"
+  sed -i 's/"late one"/"late one \\u2764\\ufe0f"/' "$STUB_MONITOR"
+  local heart skin
+  heart="$(printf '\u2764')" skin="$(printf '\U1F3FB')"
+  run src sms
+  [[ "${lines[0]}" == phone1/12$'\t'*"you: on my way $heart $(printf '\U1F44D')"$'\t'5559998888 ]]
+  [[ "$output" != *$'\ufe0f'* && "$output" != *"$skin"* ]]
+  run prev sms phone1/11 'Sam Lee'
+  [[ "$output" == *"late one $heart"* && "$output" != *$'\ufe0f'* ]]
+  FZX_GLYPHS_PLAIN=0 run src sms
+  [[ "${lines[0]}" == *"$skin"* ]]
+}
+
 @test "sms: by name; a header row names the columns" {
   FZX_SORT=name run src sms
   [[ "${lines[0]}" == phone1/14$'\t'* && "${lines[1]}" == phone1/12$'\t'* && "${lines[2]}" == phone1/11$'\t'* && "${lines[3]}" == phone1/13$'\t'* ]]

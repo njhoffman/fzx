@@ -188,6 +188,10 @@ kdeconnect::_source_devices() {
 }
 
 kdeconnect::_source_notifications() {
+  kdeconnect::_notification_rows | fzx::glyphs_plain 2
+}
+
+kdeconnect::_notification_rows() {
   local id name nid any=0 app title
   app="$(kdeconnect::color kdeconnect_name '1;38;5;111')" title="$(kdeconnect::color dim '38;5;244')"
   while read -r id name; do
@@ -246,7 +250,7 @@ kdeconnect::_source_sms() {
          "\($dev)/\(.[6])",
          "\(if $unread then "\($new)●\($r)" else " " end) \($name)\(if $sort == "name" then $hl else "" end)\($who | pad(26))\($r) \($dim)\(if $sort == "recent" then $hl else "" end)\($date)\($r) \($last)",
          $who] | @tsv' | sed 's/\\\\/\\/g'
-  done < <(kdeconnect::connected) | LC_ALL=C sort -s -t $'\t' -k1,1 | cut -f2- | kdeconnect::_or_note
+  done < <(kdeconnect::connected) | LC_ALL=C sort -s -t $'\t' -k1,1 | cut -f2- | fzx::glyphs_plain 2 | kdeconnect::_or_note
 }
 
 # kdeconnect::_or_note: stdin, or a row saying why the sms list is empty

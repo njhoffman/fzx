@@ -11,7 +11,8 @@ browser::preview() {
   [[ -n "${NO_COLOR+x}" ]] && b="" d="" r="" c=""
   # a profile whose tabs could not be read: its row says why
   [[ -n "$url" ]] || { [[ -n "$title" ]] && printf '%s\n' "$title"; return 0; }
-  printf '%s%s%s\n\n' "$b" "${title:-(no title)}" "$r"
+  # shellcheck disable=SC2119  # no fields: the whole text
+  printf '%s%s%s\n\n' "$b" "${title:-(no title)}" "$r" | fzx::glyphs_plain
   printf '%s\n' "$url"
   # scheme://host/path: the host on its own line
   if [[ "$url" =~ ^[a-z]+://([^/]+)(.*)$ ]]; then

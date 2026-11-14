@@ -206,6 +206,12 @@ FZX_NOTIFY_SECONDS=2
 # arrive as esc and a letter. "" leaves ESCDELAY as it is
 FZX_ESCDELAY="${FZX_ESCDELAY-${ESCDELAY:-25}}"
 
+# emoji whose width fzf and the terminal count differently (a variation selector, skin tone, joiner or keycap: tmux
+# with variation-selector-always-wide draws them wider or narrower than fzf plans, and the row pushes the border)
+# lose those parts in the lists and previews that show other people's text (kdeconnect, browser, history): 1, or 0
+# to keep them (a terminal that counts them as fzf does). Exported: sources and previews read it
+export FZX_GLYPHS_PLAIN="${FZX_GLYPHS_PLAIN:-1}"
+
 # icons and colors from prettypath in the files and dirs lists: auto (when prettypath 0.2.0 or later is
 # installed; an older one is ignored), 1 or 0
 FZX_PRETTY="${FZX_PRETTY:-auto}"

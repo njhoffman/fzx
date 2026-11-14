@@ -117,12 +117,13 @@ kdeconnect::preview() {
     printf '%s\n' "${2:-}"
     return 0
   fi
+  # names and messages come from the phone: emoji as the terminal draws them (fzx::glyphs_plain)
   case "${FZX_MODE:-devices}" in
     devices) kdeconnect::preview_device "$1" "${2:-}" "${3:-}" ;;
     notifications) kdeconnect::preview_notification "$1" ;;
     commands) kdeconnect::preview_command "$1" "${2:-}" "${3:-}" ;;
     sms) kdeconnect::preview_sms "$1" "${2:-}" ;;
-  esac
+  esac | fzx::glyphs_plain
 }
 
 [[ "${BASH_SOURCE[0]}" == "$0" ]] && {

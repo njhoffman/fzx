@@ -236,6 +236,9 @@ What a module ships with, beyond the scripts above:
   terminal (fzx's border): a 120-column terminal is 116 to them, so an entry meant for it starts at 110 or
   so. Content that reads wide (logs, diffs, pane captures) also gets a larger `FZX_POPUP_LAYOUTS`. Check
   each live at 80, 120 and 200 columns.
+- **Other people's text**: rows and previews of text from elsewhere (messages, page titles, commands) pass
+  through `fzx::glyphs_plain` (lib/core.sh; display fields only, never ids): fzf and tmux count a variation
+  selector, skin tone, zero-width joiner or keycap differently, and the row pushes the border out of line.
 - **Icon and menu color**: `FZX_ICON` and `FZX_COLORS[<module>_icon]`; modes with an icon of their own in
   `FZX_ICON_MODES` and `FZX_COLORS[<module>_icon_<mode>]`.
 - **Menu**: `manifest.sh` with an entry per mode worth listing, `<module>::applicable` when the module

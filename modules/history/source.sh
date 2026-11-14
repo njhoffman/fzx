@@ -301,7 +301,7 @@ history::source() {
     else
       history::raw "$where" "$sort"
     fi
-  } | history::format "$mode"
+  } | history::format "$mode" | fzx::glyphs_plain -z
   return "${PIPESTATUS[0]}"
 }
 

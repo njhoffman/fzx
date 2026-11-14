@@ -51,6 +51,13 @@ src() { FZX_MODE="$1" "$HIST/source.sh" | plain; }
   [[ "$output" != *here* ]]
 }
 
+@test "commands with emoji selectors and skin tones show without them; the id stays the run's" {
+  sqlite3 "$FZX_HISTDB_FILE" "insert into commands (argv) values ('echo $(printf '\u2764\ufe0f\U1F44D\U1F3FB')');
+    insert into history (session, command_id, place_id, exit_status, start_time, duration) values (2, 6, 1, 0, $(date +%s), 0);"
+  run src host
+  [[ "${lines[0]}" == 7$'\t'*$'\techo '"$(printf '\u2764\U1F44D')" ]]
+}
+
 @test "ages: seconds, minutes, days and years since the latest run; the latest run's duration" {
   run src host
   [[ "$(cut -f2 <<< "${lines[0]}")" =~ ^\ +3[0-9]s\  ]]

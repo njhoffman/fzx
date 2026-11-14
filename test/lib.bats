@@ -35,6 +35,35 @@ setup() {
   [[ "$t" =~ ^[0-9]{13}$ ]]
 }
 
+@test "glyphs_plain: selectors, skin tones, joiners and keycaps go; other text and plain emoji stay" {
+  load_libs
+  local in out
+  in="$(printf 'a \u2764\ufe0f b \U1F44D\U1F3FB c \U1F468\u200d\U1F469 d 1\ufe0f\u20e3 e \u263a\ufe0e f \U1F602 g a\u200bb \u00e9')"
+  out="$(fzx::glyphs_plain <<< "$in")"
+  [ "$out" = "$(printf 'a \u2764 b \U1F44D c \U1F468\U1F469 d 1 e \u263a f \U1F602 g a\u200bb \u00e9')" ]
+  # the same under any locale
+  [ "$(LC_ALL=C fzx::glyphs_plain <<< "$in")" = "$out" ]
+  # FZX_GLYPHS_PLAIN=0: through untouched
+  [ "$(FZX_GLYPHS_PLAIN=0 fzx::glyphs_plain <<< "$in")" = "$in" ]
+}
+
+@test "glyphs_plain: only the given fields; -z keeps NUL-separated records" {
+  load_libs
+  local heart skin row awk
+  heart="$(printf '\u2764\ufe0f')" skin="$(printf '\U1F44D\U1F3FB')"
+  row="id-$heart"$'\t'"shown $heart"$'\t'"also $skin"$'\t'"kept $skin"
+  for awk in gawk mawk; do
+    command -v "$awk" > /dev/null || continue
+    mkdir -p "$BATS_TEST_TMPDIR/$awk"
+    ln -sf "$(command -v "$awk")" "$BATS_TEST_TMPDIR/$awk/awk"
+    run env PATH="$BATS_TEST_TMPDIR/$awk:$PATH" bash -c 'source "$1/lib/core.sh"; fzx::glyphs_plain 2 3 <<< "$2"' _ "$FZX_REPO" "$row"
+    [ "$output" = "id-$heart"$'\t'"shown $(printf '\u2764')"$'\t'"also $(printf '\U1F44D')"$'\t'"kept $skin" ]
+  done
+  # a field past the end of a row adds nothing
+  [ "$(fzx::glyphs_plain 9 <<< $'a\tb')" = $'a\tb' ]
+  [ "$(printf '1\tx%s\ny\0002\tz\0' "$heart" | fzx::glyphs_plain -z | tr '\0' '|')" = "1"$'\t'"x$(printf '\u2764')"$'\n'"y|2"$'\t'"z|" ]
+}
+
 @test "plural: singular for one, word plus s or the given plural otherwise" {
   [ "$(fzx::plural 1 file)" = "1 file" ]
   [ "$(fzx::plural 0 file)" = "0 files" ]

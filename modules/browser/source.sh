@@ -139,7 +139,7 @@ browser::rows() {
       mid = mode == "bookmarks" ? pad($4, 24) : mode == "tabs" ? pad($4, 10) : pad($5, 16)
       disp = col pad($7, lw) r "  " d mid r "  " pad($2, 60) "  " d $3 r
       print $1, $3, disp, $2, $4, $5, $6, $7
-    }'
+    }' | fzx::glyphs_plain 3
 }
 
 browser::source() {

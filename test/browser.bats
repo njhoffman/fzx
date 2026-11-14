@@ -87,6 +87,17 @@ calls_settle() {
   [[ "${lines[2]}" == *$'\tfirefox default  2025-12-31 23:58  Fox '* ]]
 }
 
+@test "rows: the display loses emoji selectors and skin tones; the url and title fields keep them" {
+  load_libs
+  source "$FZX_REPO/modules/browser/source.sh" || :
+  local t
+  t="$(printf 'Hi \u2764\ufe0f \U1F44D\U1F3FB')"
+  run browser::rows 10 <<< "chrome:Default"$'\t'"$t"$'\t'"https://x.example/"$'\t3\t2025-01-01 00:00\t1\tchrome Me'
+  IFS=$'\t' read -r -a f <<< "$output"
+  [ "${f[1]}" = https://x.example/ ] && [ "${f[3]}" = "$t" ]
+  [[ "${f[2]}" == *"Hi $(printf '\u2764 \U1F44D') "* && "${f[2]}" != *$'\ufe0f'* ]]
+}
+
 @test "history: the toggles pick the browsers; sort by visits" {
   FZX_TOGGLES=firefox run src history
   [ "${#lines[@]}" -eq 1 ] && [[ "${lines[0]}" == firefox:abcd.default* ]]
