@@ -104,9 +104,9 @@ shell::colors() {
   )
   local k
   for k in "${!c[@]}"; do
-    if [[ -n "${NO_COLOR+x}" ]]; then printf -- '-v\nc_%s=\n' "$k"; else printf -- '-v\nc_%s=\e[%sm\n' "$k" "${c[$k]}"; fi
+    if [[ -n "${NO_COLOR:+x}" ]]; then printf -- '-v\nc_%s=\n' "$k"; else printf -- '-v\nc_%s=\e[%sm\n' "$k" "${c[$k]}"; fi
   done
-  if [[ -n "${NO_COLOR+x}" ]]; then printf -- '-v\nr=\n'; else printf -- '-v\nr=\e[0m\n'; fi
+  if [[ -n "${NO_COLOR:+x}" ]]; then printf -- '-v\nr=\n'; else printf -- '-v\nr=\e[0m\n'; fi
 }
 
 # awk helpers shared by the modes: unq (the value without the single quotes zsh's (q+) put around a plain
@@ -247,7 +247,7 @@ shell::completions() {
   local dump="" opts=() all=0 own="${FZX_COLORS[shell_provider_own]:-38;5;114}" sys="${FZX_COLORS[shell_provider_system]:-38;5;244}"
   local other="${FZX_COLORS[shell_provider]:-38;5;180}"
   [[ " ${FZX_TOGGLES:-} " == *" all "* ]] && all=1
-  [[ -n "${NO_COLOR+x}" ]] && own="" sys="" other=""
+  [[ -n "${NO_COLOR:+x}" ]] && own="" sys="" other=""
   mapfile -t opts < <(shell::colors)
   ((all)) || shell::dump dump 2> /dev/null || dump=""
   {

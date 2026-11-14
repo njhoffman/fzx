@@ -47,7 +47,7 @@ history::preview() {
   else secs="${secs}s"; fi
   # labels with their icons (lib/icons.sh), padded to one width
   local lb=1 l_when l_status l_secs l_dir l_host l_runs
-  [[ -n "${NO_COLOR+x}" ]] && lb=""
+  [[ -n "${NO_COLOR:+x}" ]] && lb=""
   fzx::require icons
   fzx::icon_label clock "last run " "$lb" l_when
   fzx::icon_label "$status_icon" "status   " "$lb" l_status

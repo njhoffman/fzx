@@ -18,7 +18,7 @@
 ps::color() {
   fzx::require header
   fzx::header_vars
-  awk -v kernel="$1" -v scol="${2:-0}" -v hl="${FZX_COLORS[sorted]:-4}" -v me="${USER:-$(id -un)}" -v nocolor="${NO_COLOR+x}" \
+  awk -v kernel="$1" -v scol="${2:-0}" -v hl="${FZX_COLORS[sorted]:-4}" -v me="${USER:-$(id -un)}" -v nocolor="${NO_COLOR:+x}" \
     "${FZX_HEADER_VARS[@]}" "$FZX_HEADER_AWK"'
     function c(code, text) { return nocolor != "" || text ~ /^ *$/ ? text : "\033[" code "m" text "\033[0m" }
     function pad(text, w, right) { return right ? sprintf("%" w "s", text) : sprintf("%-" w "s", text) }

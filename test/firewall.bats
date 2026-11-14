@@ -27,7 +27,8 @@ STUB
 if [[ -f "$BATS_TEST_TMPDIR/inactive" ]]; then
   case "$*" in
     status*) echo "Status: inactive"; exit 0 ;;
-    "show added") printf "Added user rules (see 'ufw status' for running firewall):\nufw allow 22/tcp\nufw limit 2222/tcp comment 'ssh'\nufw allow OpenSSH\nufw deny 'Postfix SMTPS'\n"; exit 0 ;;
+    "show added") [[ -f "$BATS_TEST_TMPDIR/empty" ]] && { echo "Added user rules (see 'ufw status' for running firewall):"; exit 0; }
+      printf "Added user rules (see 'ufw status' for running firewall):\nufw allow 22/tcp\nufw limit 2222/tcp comment 'ssh'\nufw allow OpenSSH\nufw deny 'Postfix SMTPS'\n"; exit 0 ;;
   esac
 fi
 case "$*" in
@@ -164,6 +165,23 @@ ufw --force delete 3" ]
   source "$FW/actions.sh" || :
   firewall::_words "allow from 10.0.0.1 to any app 'Postfix SMTPS' comment 'x y'"
   [ "${#FIREWALL_WORDS[@]}" -eq 7 ] && [ "${FIREWALL_WORDS[6]}" = "Postfix SMTPS" ]
+}
+
+@test "ufw off with no rules added: the header does not say any are; no rows" {
+  touch "$BATS_TEST_TMPDIR/inactive" "$BATS_TEST_TMPDIR/empty"
+  run src rules
+  [ "$status" -eq 0 ]
+  [ "$output" = $'-\t-\tufw  inactive' ]
+  run src apps
+  [ "${lines[0]}" = $'-\t-\tufw  inactive' ]
+  [[ "${lines[3]}" == $'OpenSSH\tOpenSSH\tOpenSSH '* && "${lines[3]}" != *off* ]]
+}
+
+@test "an empty NO_COLOR keeps color, as an unset one does" {
+  NO_COLOR= run src rules
+  [[ "${lines[0]}" == *$'\e[1mufw'* ]]
+  NO_COLOR=1 run src rules
+  [[ "$output" != *$'\e['* ]]
 }
 
 @test "add and insert: checked with --dry-run, then added (at a position); verbs only; insert needs a number" {

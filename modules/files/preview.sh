@@ -30,7 +30,7 @@ files::header() {
 # is refused
 files::flags_preview() {
   local words=() err ok=$'\e[32m' bad=$'\e[31m' dim=$'\e[38;5;244m' rst=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && ok="" bad="" dim="" rst=""
+  [[ -n "${NO_COLOR:+x}" ]] && ok="" bad="" dim="" rst=""
   declare -F fzx::session_args > /dev/null || fzx::require session
   # shellcheck source=./source.sh
   declare -F files::flags_parse > /dev/null || source "$(dirname "${BASH_SOURCE[0]}")/source.sh" || :
@@ -52,7 +52,7 @@ files::flags_preview() {
 files::replace_preview() {
   local path="$1" line="$2" repl="$3" c="${FZX_FILES_REPLACE_CONTEXT:-3}" new
   local red=$'\e[31m' green=$'\e[32m' dim=$'\e[38;5;244m' rst=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && red="" green="" dim="" rst=""
+  [[ -n "${NO_COLOR:+x}" ]] && red="" green="" dim="" rst=""
   [[ "$line" =~ ^[0-9]+$ ]] || return 0
   declare -F fzx::session_args > /dev/null || fzx::require session
   # shellcheck source=./source.sh

@@ -8,7 +8,7 @@ browser::preview() {
   local b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m' c
   c=$'\e['"${FZX_COLORS[browser_chrome]:-38;5;75}m"
   [[ "$src" == firefox:* ]] && c=$'\e['"${FZX_COLORS[browser_firefox]:-38;5;209}m"
-  [[ -n "${NO_COLOR+x}" ]] && b="" d="" r="" c=""
+  [[ -n "${NO_COLOR:+x}" ]] && b="" d="" r="" c=""
   # a profile whose tabs could not be read: its row says why
   [[ -n "$url" ]] || { [[ -n "$title" ]] && printf '%s\n' "$title"; return 0; }
   # shellcheck disable=SC2119  # no fields: the whole text

@@ -285,7 +285,7 @@ cron::_rows() {
   local d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" s=$'\e['"${FZX_COLORS[cron_schedule]:-38;5;110}m"
   local u=$'\e['"${FZX_COLORS[cron_user]:-38;5;180}m" x=$'\e['"${FZX_COLORS[cron_invalid]:-38;5;203}m"
   local hl=$'\e['"${FZX_COLORS[sorted]:-4}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && d="" s="" u="" x="" hl="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && d="" s="" u="" x="" hl="" r=""
   # the header row (lib/header.sh); the command is not padded, so its source is left unnamed
   fzx::require header
   fzx::header_print 2 "$([[ "$sort" == next ]] && echo NEXT)" NEXT 12 0 "" 0 0 SCHEDULE 18 0 "" 0 0 USER 8 0 "" 0 0 COMMAND 0 0
@@ -322,7 +322,7 @@ cron::_rows() {
 cron::scripts() {
   local recs="$1" dir f period nx job now="${FZX_CRON_NOW:-$(date +%s)}" when name
   local d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" s=$'\e['"${FZX_COLORS[cron_schedule]:-38;5;110}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && d="" s="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && d="" s="" r=""
   for dir in ${FZX_CRON_SCRIPT_DIRS:-/etc/cron.hourly /etc/cron.daily /etc/cron.weekly /etc/cron.monthly /etc/cron.yearly}; do
     [[ -d "$dir" ]] || continue
     period="${dir##*/}" period="${period#cron.}"

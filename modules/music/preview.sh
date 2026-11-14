@@ -150,7 +150,7 @@ music::preview() {
   declare -g MP_B=$'\e[1m' MP_D=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" MP_R=$'\e[0m'
   declare -g MP_A=$'\e['"${FZX_COLORS[music_artist]:-38;5;180}m" MP_AL=$'\e['"${FZX_COLORS[music_album]:-38;5;111}m"
   declare -g MP_RT=$'\e['"${FZX_COLORS[music_rating]:-38;5;179}m"
-  [[ -n "${NO_COLOR+x}" ]] && MP_B="" MP_D="" MP_R="" MP_A="" MP_AL="" MP_RT=""
+  [[ -n "${NO_COLOR:+x}" ]] && MP_B="" MP_D="" MP_R="" MP_A="" MP_AL="" MP_RT=""
   case "$kind" in
     song)
       [[ "${FZX_MODE:-queue}" == queue ]] && music::status

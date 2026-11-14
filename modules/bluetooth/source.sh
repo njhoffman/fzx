@@ -142,7 +142,7 @@ bluetooth::list() {
   local mode="${FZX_MODE:-paired}"
   local b=$'\e[1m' on=$'\e['"${FZX_COLORS[bluetooth_connected]:-38;5;114}m" off=$'\e['"${FZX_COLORS[bluetooth_off]:-38;5;203}m"
   local dim=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && b="" on="" off="" dim="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && b="" on="" off="" dim="" r=""
   bluetooth::_icons
   command jq -r --arg mode "$mode" --arg b "$b" --arg on "$on" --arg off "$off" --arg dim "$dim" --arg r "$r" \
     "${BLUETOOTH_ICON_ARGS[@]}" "$BLUETOOTH_JQ"'

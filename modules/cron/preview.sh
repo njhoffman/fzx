@@ -24,7 +24,7 @@ cron::runs() {
 cron::preview() {
   local id="${1:-}" kind file line rec
   local b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" x=$'\e['"${FZX_COLORS[cron_invalid]:-38;5;203}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && b="" d="" x="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && b="" d="" x="" r=""
   [[ -n "$id" ]] || return 0
   cron::split "$id" kind file line
   if [[ "$kind" == script ]]; then

@@ -51,7 +51,7 @@ tasks::definition() {
 
 tasks::preview() {
   local id="${1:-}" dir kind name file line cmd gotask b=$'\e[1m' d=$'\e[38;5;244m' r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && b="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && b="" d="" r=""
   [[ "$id" == - ]] && return 0
   if [[ "${FZX_MODE:-selected}" == projects ]]; then
     printf '%s%s%s  %s%s%s\n\n' "$b" "${id##*/}" "$r" "$d" "${id/#$HOME/\~}" "$r"

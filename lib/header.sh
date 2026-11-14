@@ -29,7 +29,7 @@ fzx::header_vars() {
   local arrow col="${FZX_COLORS[header_column]:-}" srt="${FZX_COLORS[header_sorted]:-1}" aw=0
   fzx::header_arrow arrow
   [[ -n "$arrow" ]] && aw="$(fzx::header_width "$arrow")"
-  [[ -n "${NO_COLOR+x}" ]] && col="" srt=""
+  [[ -n "${NO_COLOR:+x}" ]] && col="" srt=""
   # shellcheck disable=SC2034  # read by the sources
   FZX_HEADER_VARS=(-v "hon=${FZX_SORT_HEADER:-0}" -v "hcol=$col" -v "hsort=$srt" -v "harrow=$arrow" -v "harroww=$aw")
   # shellcheck disable=SC2034
@@ -53,7 +53,7 @@ fzx::header_cell() {
   _n="${#_name}"
   [[ -n "$_arrow" ]] && _n=$((_n + $(fzx::header_width "$_arrow")))
   if ((_on)); then _code="${FZX_COLORS[header_sorted]:-1}"; else _code="${FZX_COLORS[header_column]:-}"; fi
-  [[ -n "${NO_COLOR+x}" ]] && _code=""
+  [[ -n "${NO_COLOR:+x}" ]] && _code=""
   [[ -n "$_code" && -n "$_t" ]] && _t=$'\e['"${_code}m$_t"$'\e[0m'
   ((_w > _n)) && printf -v _p '%*s' $((_w - _n)) ''
   if ((_right)); then _hc_out="$_p$_t"; else _hc_out="$_t$_p"; fi

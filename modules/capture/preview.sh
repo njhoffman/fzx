@@ -18,7 +18,7 @@ capture::preview() {
   elif ((y > bottom)); then where="$((y - bottom)) lines below the view"
   else where="on the screen"; fi
   local D=$'\e[38;5;244m' H=$'\e[1;38;5;255;48;5;24m' R=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && D="" H="" R=""
+  [[ -n "${NO_COLOR:+x}" ]] && D="" H="" R=""
   printf '%s%s in %s, %s%s\n\n' "$D" "${CAPTURE_PANE}" "$(command tmux display-message -p -t "$CAPTURE_PANE" '#{pane_current_command}')" "$where" "$R"
   from=$((y - 8)) to=$((y + 8))
   ((from < -CAPTURE_HISTORY)) && from=$((-CAPTURE_HISTORY))

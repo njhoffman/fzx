@@ -229,7 +229,7 @@ tasks::kinds() {
 
 # tasks::display: rows from tasks::rows -> "id<TAB>project:task<TAB>display"
 tasks::display() {
-  awk -F'\t' -v nocolor="${NO_COLOR+x}" -v proj="${FZX_COLORS[tasks_project]:-38;5;111}" -v name="${FZX_COLORS[tasks_name]:-1;38;5;255}" \
+  awk -F'\t' -v nocolor="${NO_COLOR:+x}" -v proj="${FZX_COLORS[tasks_project]:-38;5;111}" -v name="${FZX_COLORS[tasks_name]:-1;38;5;255}" \
     -v markc="${FZX_COLORS[tasks_mark]:-38;5;114}" -v dim="${FZX_COLORS[dim]:-38;5;244}" -v kindspec="$(tasks::kinds)" '
     function c(code, text) { return nocolor != "" || text == "" || code == "" ? text : "\033[" code "m" text "\033[0m" }
     BEGIN { nk = split(kindspec, ks, "\n"); for (i = 1; i <= nk; i++) { split(ks[i], f, "\037"); icon[f[1]] = f[2]; kc[f[1]] = f[3] } }
@@ -256,7 +256,7 @@ tasks::projects() {
   index="$(tasks::index)"
   chosen="$(tasks::state_dir)/projects"
   here="$(tasks::here)" || here=""
-  awk -F'\t' -v chosen="$chosen" -v here="$here" -v home="$HOME" -v nocolor="${NO_COLOR+x}" \
+  awk -F'\t' -v chosen="$chosen" -v here="$here" -v home="$HOME" -v nocolor="${NO_COLOR:+x}" \
     -v proj="${FZX_COLORS[tasks_project]:-38;5;111}" -v markc="${FZX_COLORS[tasks_mark]:-38;5;114}" -v dim="${FZX_COLORS[dim]:-38;5;244}" \
     -v kindspec="$(tasks::kinds)" '
     function c(code, text) { return nocolor != "" || text == "" || code == "" ? text : "\033[" code "m" text "\033[0m" }

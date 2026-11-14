@@ -12,7 +12,7 @@ fonts::list() {
 fonts::source() {
   local mono=0 m=$'\e['"${FZX_COLORS[fonts_mono]:-38;5;114}m" d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
   [[ " ${FZX_TOGGLES:-} " == *" mono "* ]] && mono=1
-  [[ -n "${NO_COLOR+x}" ]] && m="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && m="" d="" r=""
   command -v fc-list > /dev/null || { printf 'fonts: needs fc-list (fontconfig)\n' >&2; return 1; }
   fonts::list | sort -t$'\t' -k1,1f -k1,1 -k2,2 | awk -F'\t' -v OFS='\t' -v mono="$mono" -v m="$m" -v d="$d" -v r="$r" '
     function pad(t, w) { return length(t) > w ? substr(t, 1, w - 1) "…" : sprintf("%-" w "s", t) }

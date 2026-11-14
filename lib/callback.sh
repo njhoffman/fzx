@@ -399,7 +399,7 @@ fzx::_cb_notify() {
   # one line, short enough for the footer, no characters that end the action
   msg="${msg//[$'\n\t\r']/ }"
   ((${#msg} > 120)) && msg="${msg:0:119}…"
-  [[ -n "$color" && -z "${NO_COLOR+x}" ]] && msg=$'\e['"${color}m$msg"$'\e[0m'
+  [[ -n "$color" && -z "${NO_COLOR:+x}" ]] && msg=$'\e['"${color}m$msg"$'\e[0m'
   fzx::require opts
   fzx::action_arg change-footer "$msg" act || act="change-footer(${msg//[()]/})"
   printf '%s+bg-cancel+bg-transform-footer(sleep %s; %s)' "$act" "${FZX_NOTIFY_SECONDS:-2}" "$(fzx::cb footer)"

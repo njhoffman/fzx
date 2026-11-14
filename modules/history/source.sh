@@ -198,7 +198,7 @@ history::format() {
   "$awk" -F'\x1f' -v now="$(date +%s)" -v sort="${FZX_SORT:-recent}" -v toggles=" ${FZX_TOGGLES:-} " \
     -v failed="$failed" -v interrupted="$interrupted" -v intr="$(history::interrupted_sql)" \
     -v ic="${FZX_COLORS[history_interrupted]:-38;5;179}" -v hosts="$hosts" \
-    -v ml="${FZX_HISTORY_MULTILINE:-1}" -v maxl="${FZX_HISTORY_MAX_LINES:-4}" -v me="$(history::host)" -v nocolor="${NO_COLOR+x}" \
+    -v ml="${FZX_HISTORY_MULTILINE:-1}" -v maxl="${FZX_HISTORY_MAX_LINES:-4}" -v me="$(history::host)" -v nocolor="${NO_COLOR:+x}" \
     -v dim="${FZX_COLORS[dim]:-38;5;244}" -v red="${FZX_COLORS[history_failed]:-38;5;203}" \
     -v hl="${FZX_COLORS[sorted]:-4}" '
     function esc(code) { return nocolor != "" ? "" : "\033[" code "m" }

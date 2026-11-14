@@ -24,25 +24,26 @@ firewall::_conf_enabled() {
     "${FZX_FIREWALL_CONF:-/etc/ufw/ufw.conf}" 2> /dev/null
 }
 
-# firewall::header <status verbose output|"">: the header row: on or off, the default policies, logging; or
-# what is missing
+# firewall::header <status verbose output|""> [added]: the header row: on or off, the default policies,
+# logging; or what is missing. A non-empty added (ufw off, `ufw show added` lists rules) says they are not in
+# effect.
 firewall::header() {
-  local out="$1" b=$'\e[1m' on=$'\e['"${FZX_COLORS[firewall_allow]:-38;5;114}m" off=$'\e['"${FZX_COLORS[firewall_deny]:-38;5;203}m"
+  local out="$1" added="${2:+1}" b=$'\e[1m' on=$'\e['"${FZX_COLORS[firewall_allow]:-38;5;114}m" off=$'\e['"${FZX_COLORS[firewall_deny]:-38;5;203}m"
   local d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && b="" on="" off="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && b="" on="" off="" d="" r=""
   if [[ -z "$out" ]]; then
     local st
     st="$([[ "$(firewall::_conf_enabled)" == yes ]] && printf '%sactive%s' "$on" "$r" || printf '%sinactive%s' "$off" "$r")"
     printf -- '-\t-\t%sufw%s  %s %s(ufw.conf)  rules need root: run sudo -v, then ctrl-r%s\n' "$b" "$r" "$st" "$d" "$r"
     return
   fi
-  awk -v b="$b" -v on="$on" -v off="$off" -v d="$d" -v r="$r" '
+  awk -v b="$b" -v on="$on" -v off="$off" -v d="$d" -v r="$r" -v added="$added" '
     /^Status:/ { st = $2 }
     /^Default:/ { sub(/^Default: */, ""); pol = $0 }
     /^Logging:/ { sub(/^Logging: */, ""); lg = $0 }
     END {
       printf "-\t-\t%sufw%s  %s%s%s", b, r, (st == "active" ? on : off), st, r
-      if (st == "inactive") printf "  %srules added, not in effect%s", d, r
+      if (st == "inactive" && added != "") printf "  %srules added, not in effect%s", d, r
       if (pol != "") printf "  %s%s%s", d, pol, r
       if (lg != "") printf "  %slogging %s%s", d, lg, r
       printf "\n"
@@ -54,17 +55,20 @@ firewall::rules() {
   local out verbose
   local a=$'\e['"${FZX_COLORS[firewall_allow]:-38;5;114}m" x=$'\e['"${FZX_COLORS[firewall_deny]:-38;5;203}m"
   local l=$'\e['"${FZX_COLORS[firewall_limit]:-38;5;180}m" d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && a="" x="" l="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && a="" x="" l="" d="" r=""
   firewall::_sudo
   if [[ -n "$FIREWALL_NOROOT" ]] || ! verbose="$(firewall::ufw status verbose 2> /dev/null)"; then
     firewall::header ""
     return 0
   fi
-  firewall::header "$verbose"
   if [[ "$verbose" == "Status: inactive"* ]]; then
-    firewall::added
+    local added
+    added="$(firewall::added)"
+    firewall::header "$verbose" "$added"
+    [[ -z "$added" ]] || printf '%s\n' "$added"
     return 0
   fi
+  firewall::header "$verbose"
   out="$(firewall::ufw status numbered 2> /dev/null)" || return 0
   awk -v a="$a" -v x="$x" -v l="$l" -v d="$d" -v r="$r" '
     function pad(t, w) { return length(t) > w ? substr(t, 1, w - 1) "…" : sprintf("%-" w "s", t) }
@@ -88,7 +92,7 @@ firewall::rules() {
 firewall::added() {
   local a=$'\e['"${FZX_COLORS[firewall_allow]:-38;5;114}m" x=$'\e['"${FZX_COLORS[firewall_deny]:-38;5;203}m"
   local l=$'\e['"${FZX_COLORS[firewall_limit]:-38;5;180}m" d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && a="" x="" l="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && a="" x="" l="" d="" r=""
   firewall::ufw show added 2> /dev/null | awk -v a="$a" -v x="$x" -v l="$l" -v d="$d" -v r="$r" '
     /^ufw / {
       spec = substr($0, 5); act = $2; rest = spec; sub(/^[^ ]+ */, "", rest)
@@ -115,21 +119,22 @@ firewall::profiles() {
 
 # firewall::apps: the header row, then the profiles: name, ports, title, and the rules that name it (root)
 firewall::apps() {
-  local verbose="" rules=""
+  local verbose="" rules="" shown=""
   local d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" a=$'\e['"${FZX_COLORS[firewall_allow]:-38;5;114}m"
   local x=$'\e['"${FZX_COLORS[firewall_deny]:-38;5;203}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && d="" a="" x="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && d="" a="" x="" r=""
   firewall::_sudo
   if [[ -z "$FIREWALL_NOROOT" ]] && verbose="$(firewall::ufw status verbose 2> /dev/null)"; then
     if [[ "$verbose" == "Status: inactive"* ]]; then
       # ufw off: the added rules that name a profile ("allow OpenSSH", "allow 'Postfix SMTPS'"), as
       # status would list them, marked off
-      rules="$(firewall::ufw show added 2> /dev/null | awk '
+      shown="$(firewall::ufw show added 2> /dev/null | awk '/^ufw /')"
+      rules="$(awk '
         /^ufw (allow|deny|reject|limit)( (in|out))? / {
           act = toupper($2); name = $0; sub(/^ufw [a-z]+ ((in|out) )?/, "", name); sub(/ comment .*/, "", name)
           gsub(/^\047|\047$|^"|"$/, "", name)
           if (name ~ /^[A-Za-z]/) printf "%s %s off\n", name, act
-        }')"
+        }' <<< "$shown")"
       [[ -n "$rules" ]] || rules=" "
     else
       rules="$(firewall::ufw status 2> /dev/null)"
@@ -137,7 +142,7 @@ firewall::apps() {
   else
     verbose=""
   fi
-  firewall::header "$verbose"
+  firewall::header "$verbose" "$shown"
   firewall::profiles | awk -F '\t' -v rules="$rules" -v d="$d" -v a="$a" -v x="$x" -v r="$r" '
     function pad(t, w) { return length(t) > w ? substr(t, 1, w - 1) "…" : sprintf("%-" w "s", t) }
     BEGIN {

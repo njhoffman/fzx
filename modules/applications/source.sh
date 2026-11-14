@@ -84,7 +84,7 @@ applications::entries() {
 # applications::actions <file>: the rows of an entry's [Desktop Action] groups, in the order Actions= has them
 applications::actions() {
   local d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && d="" r=""
   awk -F= -v OFS='\t' -v file="$1" -v d="$d" -v r="$r" '
     function pad(t, w) { return length(t) > w ? substr(t, 1, w - 1) "…" : sprintf("%-" w "s", t) }
     function value() { s = $0; sub(/^[^=]*= */, "", s); gsub(/\t/, " ", s); return s }
@@ -121,7 +121,7 @@ applications::source() {
   fi
   local show=0 c=$'\e['"${FZX_COLORS[applications_category]:-38;5;110}m" d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
   [[ " ${FZX_TOGGLES:-} " == *" hidden "* ]] && show=1
-  [[ -n "${NO_COLOR+x}" ]] && c="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && c="" d="" r=""
   applications::entries | awk -F'\t' -v OFS='\t' -v show="$show" -v c="$c" -v d="$d" -v r="$r" '
     # the first registered main category in Categories
     function main_cat(c,   n, p, i) {

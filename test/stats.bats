@@ -249,3 +249,22 @@ write_stats() {
   run "$FZX" gc
   [ "$(wc -l < "$STATS")" -eq 14 ]
 }
+
+# prune fixtures: N rows of about 200 bytes, a day ago or 200 days ago
+prune_rows() {
+  local ts=$((($EPOCHSECONDS - $2 * 86400) * 1000)) pad
+  printf -v pad '%200s' ''
+  for ((i = 0; i < $1; i++)); do printf '%s\tr\ts\tm\t-\tsource\t1\t1\t%s\n' "$ts" "${pad// /x}"; done
+}
+
+@test "stats prune: rows appended while the file is filtered are kept, after the recent ones" {
+  load_libs log stats
+  { prune_rows 6000 200; prune_rows 2 1; } > "$FZX_STATS_FILE"
+  # a writer appends once the filter has read the file, as fzx::stat would
+  awk() { command awk "$@"; local rc=$?; printf 'late\n' >> "$FZX_STATS_FILE"; return $rc; }
+  fzx::stats_prune
+  unset -f awk
+  [ "$(wc -l < "$FZX_STATS_FILE")" -eq 3 ]
+  [ "$(tail -n 1 "$FZX_STATS_FILE")" = late ]
+  [ -z "$(find "$FZX_STATE_DIR" -name 'stats.tsv.*')" ]
+}

@@ -90,7 +90,7 @@ fzx::render_text() {
   fi
   # a file nvcat has a filetype for, matched by the name it goes by (a github blob's repository path)
   local ft
-  if [[ "$file" != - && -z "$language$line" && -z "${NO_COLOR+x}" ]] && command -v nvcat-dispatch > /dev/null &&
+  if [[ "$file" != - && -z "$language$line" && -z "${NO_COLOR:+x}" ]] && command -v nvcat-dispatch > /dev/null &&
     command -v nvcat > /dev/null && fzx::_render_short "$file" &&
     ft="$(command nvcat-dispatch --print "${name:-$file}" 2> /dev/null)" && [[ -n "$ft" ]]; then
     _FZX_PV_RENDERER="nvcat:$ft"
@@ -98,7 +98,7 @@ fzx::render_text() {
   fi
   if command -v bat > /dev/null; then
     local args=(--color=always --paging=never)
-    [[ -n "${NO_COLOR+x}" ]] && args[0]=--color=never
+    [[ -n "${NO_COLOR:+x}" ]] && args[0]=--color=never
     [[ -n "$style" ]] && args+=("--style=$style")
     [[ -n "$language" ]] && args+=("--language=$language")
     [[ -n "$name" ]] && args+=("--file-name=$name")
@@ -148,7 +148,7 @@ fzx::render_markdown() {
   fi
   {
     local draw=1
-    [[ -n "${NO_COLOR+x}" ]] && draw=""
+    [[ -n "${NO_COLOR:+x}" ]] && draw=""
     [[ -n "$draw" ]] && ! fzx::_render_short "$file" && draw=""
     fzx::preview_viewer "$file" markdown viewer
     if [[ -n "$viewer" ]]; then

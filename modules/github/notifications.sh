@@ -42,7 +42,7 @@ github::notification_rows() {
   local r=$'\e[0m' u=$'\e['"${FZX_COLORS[github_unread]:-38;5;75}m" t=$'\e['"${FZX_COLORS[github_type]:-38;5;110}m"
   local o=$'\e['"${FZX_COLORS[github_owner]:-38;5;244}m" n=$'\e['"${FZX_COLORS[github_name]:-1;38;5;75}m"
   local d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" i_issue i_pr i_release i_discussion i_commit i_check
-  [[ -n "${NO_COLOR+x}" ]] && r="" u="" t="" o="" n="" d=""
+  [[ -n "${NO_COLOR:+x}" ]] && r="" u="" t="" o="" n="" d=""
   fzx::require icons
   fzx::icon issue_open i_issue
   fzx::icon pr_open i_pr
@@ -76,7 +76,7 @@ github::notification_rows() {
 # github::notification_source: the mode's rows, or a row with gh's message when listing fails
 github::notification_source() {
   local file red=$'\e[31m' r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && red="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && red="" r=""
   if ! github::notifications file; then
     printf 'github: cannot list notifications: %s\n' "$GITHUB_ERROR" >&2
     printf '%s\terror\t-\t-\t-\t%scannot list notifications:%s %s\n' "$GITHUB_ERROR" "$red" "$r" "$GITHUB_ERROR"

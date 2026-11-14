@@ -316,7 +316,7 @@ files::mode_tool() {
 files::flags_rows() {
   local -n _fr_rows="FILES_FLAGS_${1^^}"
   local row names takes desc shown val b=$'\e[1m' dim=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" rst=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && b="" dim="" rst=""
+  [[ -n "${NO_COLOR:+x}" ]] && b="" dim="" rst=""
   for row in "${_fr_rows[@]}"; do
     IFS=$'\t' read -r names takes desc <<< "$row"
     val=""
@@ -348,9 +348,9 @@ files::replace_rows() {
   else
     colors=(--colors 'match:fg:red')
   fi
-  [[ -n "${NO_COLOR+x}" ]] && dim="" rst=""
+  [[ -n "${NO_COLOR:+x}" ]] && dim="" rst=""
   command rg "${args[@]}" --no-config --field-match-separator=$'\x1f' \
-    "$([[ -n "${NO_COLOR+x}" ]] && echo --color=never || echo --color=always)" \
+    "$([[ -n "${NO_COLOR:+x}" ]] && echo --color=never || echo --color=always)" \
     --colors 'path:none' --colors 'line:none' --colors 'match:none' "${colors[@]}" -- "$1" "$FILES_BASE" |
     awk -F '\x1f' -v base="$FILES_BASE/" -v dim="$dim" -v rst="$rst" '
       { path = $1; gsub(/\033\[[0-9;]*m/, "", path); line = $2; gsub(/\033\[[0-9;]*m/, "", line)

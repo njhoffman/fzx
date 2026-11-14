@@ -9,7 +9,7 @@
 # network::preview <id>
 network::preview() {
   local id="${1:-}" b=$'\e[1m' d=$'\e[38;5;244m' r=$'\e[0m' color=always
-  [[ -n "${NO_COLOR+x}" ]] && b="" d="" r="" color=never
+  [[ -n "${NO_COLOR:+x}" ]] && b="" d="" r="" color=never
   case "${FZX_MODE:-ports}" in
     ports | connections)
       local pid="${id%%/*}" proto port rest

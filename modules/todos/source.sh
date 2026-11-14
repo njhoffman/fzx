@@ -147,7 +147,7 @@ todos::source() {
   todos::files | while IFS= read -r file; do
     label="$(todos::label "$file")"
     todos::parse "$file" | awk -v file="$file" -v label="$label" '{ print file "\t" label "\t" $0 }'
-  done | awk -F'\t' -v order="${FZX_SORT:-urgency}" -v mode="${FZX_MODE:-here}" -v nocolor="${NO_COLOR+x}" '
+  done | awk -F'\t' -v order="${FZX_SORT:-urgency}" -v mode="${FZX_MODE:-here}" -v nocolor="${NO_COLOR:+x}" '
     BEGIN {
       R = "\033[0m"; RED = "\033[1;31m"; DIM = "\033[2m"; WHT = "\033[38;5;255m"; CYAN = "\033[36m"; BLUE = "\033[34m"; GREEN = "\033[32m"; WHITE = "\033[2;37m"
       if (nocolor != "") R = RED = DIM = WHT = CYAN = BLUE = GREEN = WHITE = ""

@@ -48,7 +48,7 @@ tmux::reference() {
     fzx::require header
     fzx::header_arrow arrow
     colors+=(FZX_TMUX_HEADER=1 "FZX_TMUX_HEADER_ARROW=$arrow")
-    [[ -n "${NO_COLOR+x}" ]] ||
+    [[ -n "${NO_COLOR:+x}" ]] ||
       colors+=("FZX_TMUX_HEADER_COLUMN=${FZX_COLORS[header_column]:-}" "FZX_TMUX_HEADER_SORTED=${FZX_COLORS[header_sorted]:-1}")
   fi
   command env "${colors[@]}" python3 "$(dirname "${BASH_SOURCE[0]}")/reference.py" "$@" \

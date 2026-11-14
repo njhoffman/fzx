@@ -3,6 +3,9 @@
 
 set -o pipefail
 
+# no-color.org: an empty NO_COLOR is no NO_COLOR. Unset here, so the tools fzx runs (bat, delta, ...) agree.
+[[ -n "${NO_COLOR-x}" ]] || unset NO_COLOR
+
 # called as $FZX_BIN (every callback fzf runs, FZX_ROOT exported) the checkout is known: no readlink and dirname
 # processes on each one. Any other path (a symlink in ~/.local/bin, another checkout) is resolved.
 if [[ -n "${FZX_ROOT:-}" && "${BASH_SOURCE[0]}" == "$FZX_ROOT/bin/fzx" ]]; then

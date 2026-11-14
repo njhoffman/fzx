@@ -69,7 +69,7 @@ keybindings::zsh_rows() {
   local m=$'\e['"${FZX_COLORS[keys_map]:-38;5;250}m" k=$'\e['"${FZX_COLORS[keys_key]:-1;38;5;255}m"
   local w=$'\e['"${FZX_COLORS[keys_widget]:-38;5;117}m" u=$'\e['"${FZX_COLORS[keys_user]:-38;5;147}m"
   local d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && m="" k="" w="" u="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && m="" k="" w="" u="" d="" r=""
   awk -F'\t' -v skip=" ${FZX_KEYBINDINGS_ZSH_SKIP[*]} " -v cm="$m" -v ck="$k" -v cw="$w" -v cu="$u" -v cd="$d" -v r="$r" '
     BEGIN {
       n = split("^[[200~ ^[[1;5A ^[[1;5B ^[[1;5C ^[[1;5D ^[[1;3A ^[[1;3B ^[[1;3C ^[[1;3D ^[[1~ ^[[4~ ^[[3~ ^[[2~ ^[[5~ ^[[6~ ^[[A ^[[B ^[[C ^[[D ^[OA ^[OB ^[OC ^[OD ^[[H ^[[F ^[OH ^[OF ^[[Z", seqs, " ")
@@ -150,7 +150,7 @@ keybindings::zsh_rows() {
 keybindings::fzf_rows() {
   local k=$'\e['"${FZX_COLORS[keys_key]:-1;38;5;255}m" y=$'\e['"${FZX_COLORS[help_global]:-1;38;5;110}m"
   local d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && k="" y="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && k="" y="" d="" r=""
   fzx::require keys
   awk -F'\t' -v ck="$k" -v cy="$y" -v cd="$d" -v r="$r" '
     NR == FNR { if ($1 != "" && !seen[$1]++) printf "%s\t%s%-14s%s %syours%s %s\tyours\n", $1, ck, $1, r, cy, r, $2; next }

@@ -17,7 +17,7 @@ firewall::_profile() {
 firewall::preview() {
   local id="${1:-}" out line
   local b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && b="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && b="" d="" r=""
   [[ -n "$id" ]] || return 0
   firewall::_sudo
   if [[ "$id" == - ]]; then

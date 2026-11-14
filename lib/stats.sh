@@ -131,15 +131,42 @@ fzx::stats() {
     }' "$FZX_STATS_FILE"
 }
 
-# keep the stats file bounded: once it exceeds 1 MiB, drop rows older than FZX_STATS_MAX_AGE_DAYS.
-# Rows appended while the file is rewritten can be lost; acceptable for usage statistics.
+# keep the stats file bounded: once it exceeds 1 MiB, drop rows older than FZX_STATS_MAX_AGE_DAYS. Writers
+# append with >> (fzx::stat opens the file per row), so the file is renamed aside first: rows appended while it
+# is filtered start a new file, which fzx::_stats_install folds back in. Only a row written through a descriptor
+# opened before the rename and written after the filter read it can be lost.
 fzx::stats_prune() {
-  local size cutoff tmp="$FZX_STATS_FILE.$BASHPID"
+  local size cutoff old="$FZX_STATS_FILE.old.$BASHPID" tmp="$FZX_STATS_FILE.$BASHPID"
   [[ -f "$FZX_STATS_FILE" ]] || return 0
   size="$(stat -c %s -- "$FZX_STATS_FILE")" || return 0
   ((size > 1048576)) || return 0
   cutoff=$(((EPOCHSECONDS - ${FZX_STATS_MAX_AGE_DAYS:-90} * 86400) * 1000))
-  # (a variable, not $BASHPID in the redirection: that would expand in the forked awk)
-  awk -F'\t' -v cutoff="$cutoff" '$1 >= cutoff' "$FZX_STATS_FILE" > "$tmp" && mv -f -- "$tmp" "$FZX_STATS_FILE"
-  fzx::log info "stats: pruned rows older than ${FZX_STATS_MAX_AGE_DAYS:-90} days"
+  mv -f -- "$FZX_STATS_FILE" "$old" || return 0
+  # (variables, not $BASHPID in the redirection: that would expand in the forked awk)
+  if awk -F'\t' -v cutoff="$cutoff" '$1 >= cutoff' "$old" > "$tmp"; then
+    rm -f -- "$old"
+    fzx::_stats_install "$tmp"
+    fzx::log info "stats: pruned rows older than ${FZX_STATS_MAX_AGE_DAYS:-90} days"
+  else
+    rm -f -- "$tmp"
+    fzx::_stats_install "$old"
+  fi
+}
+
+# fzx::_stats_install <file>: <file> becomes the stats file, followed by any rows written to a new stats file
+# meanwhile. ln never replaces an existing file, so a stats file made since is taken, appended and retried.
+fzx::_stats_install() {
+  local got="$FZX_STATS_FILE.got.$BASHPID"
+  until ln -- "$1" "$FZX_STATS_FILE" 2> /dev/null; do
+    if [[ -e "$FZX_STATS_FILE" ]]; then
+      mv -f -- "$FZX_STATS_FILE" "$got" 2> /dev/null || continue
+      cat -- "$got" >> "$1"
+      rm -f -- "$got"
+    else
+      # ln itself fails here (no hard links on this filesystem): replace, as before
+      mv -f -- "$1" "$FZX_STATS_FILE"
+      return
+    fi
+  done
+  rm -f -- "$1"
 }

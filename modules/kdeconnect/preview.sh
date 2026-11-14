@@ -76,7 +76,7 @@ kdeconnect::preview_sms() {
 # kdeconnect::preview <id> <name> <details>
 kdeconnect::preview() {
   local _B=$'\e[1m' _D=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" _R=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && _B="" _D="" _R=""
+  [[ -n "${NO_COLOR:+x}" ]] && _B="" _D="" _R=""
   if [[ -z "${1:-}" ]]; then
     printf '%s\n' "${2:-}"
     return 0

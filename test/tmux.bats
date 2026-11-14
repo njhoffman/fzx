@@ -557,6 +557,17 @@ wait_log() {
   [[ "$output" == *'after-bind-key'* ]]
 }
 
+@test "tmux: formats render in one tmux call, each row its own value, a trailing ; kept" {
+  tmux set-option -t first status-left 'L:#{session_name}'
+  tmux set-option -t first status-right '#(sleep 1)R:#{session_name}'
+  tmux set-option -t first @a-format 'A:#{session_name}'
+  rendered() { FZX_MODE=formats "$TMUX_MOD/source.sh" --pane "$PANE" --option-scope session |
+    while IFS=$'\t' read -r id _ metadata _; do printf '%s=%s\n' "$id" "$(jq -r .rendered <<< "$metadata")"; done | sort; }
+  [ "$(rendered)" = $'@a-format=A:first\nstatus-left=L:first\nstatus-right=R:first' ]
+  tmux set-option -t first @a-format 'A:#{session_name}\;'
+  [ "$(rendered)" = $'@a-format=A:first;\nstatus-left=L:first\nstatus-right=R:first' ]
+}
+
 @test "tmux: formats leave out keyword options named *-format" {
   tmux set-option -s extended-keys-format csi-u 2> /dev/null || skip "this tmux has no extended-keys-format"
   run src formats

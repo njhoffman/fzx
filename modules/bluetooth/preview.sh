@@ -7,7 +7,7 @@ bluetooth::preview() {
   local id="${1:-}" out
   local b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" on=$'\e['"${FZX_COLORS[bluetooth_connected]:-38;5;114}m"
   local off=$'\e['"${FZX_COLORS[bluetooth_off]:-38;5;203}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && b="" d="" on="" off="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && b="" d="" on="" off="" r=""
   [[ -n "$id" ]] || return 0
   if [[ "$id" == - ]]; then
     out="$(command bluetoothctl show 2>&1)" || { printf '%s\n' "$out"; return 0; }

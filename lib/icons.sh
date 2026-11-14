@@ -212,7 +212,7 @@ fzx::icon_vars() {
 fzx::icon_label() {
   local __fzx_glyph __fzx_out="" __fzx_ic="${FZX_COLORS[preview_icon]:-38;5;110}"
   fzx::icon "$1" __fzx_glyph
-  if [[ -n "${NO_COLOR+x}" || -z "$3" ]]; then
+  if [[ -n "${NO_COLOR:+x}" || -z "$3" ]]; then
     __fzx_out="${__fzx_glyph:+$__fzx_glyph }$2"
   else
     [[ -n "$__fzx_glyph" ]] && __fzx_out=$'\e['"${__fzx_ic}m$__fzx_glyph"$'\e[0m '

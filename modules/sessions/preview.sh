@@ -9,7 +9,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
 sessions::preview() {
   local sid="${1:-}" dir root rstate label v now started=0 f n
   local b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && b="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && b="" d="" r=""
   [[ -n "$sid" ]] || return 0
   fzx::require session
   dir="$FZX_SESSIONS_DIR/$sid"

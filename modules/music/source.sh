@@ -60,7 +60,7 @@ music::colors() {
   declare -g MC_R=$'\e[0m' MC_D=$'\e['"${FZX_COLORS[dim]:-38;5;244}m"
   declare -g MC_A=$'\e['"${FZX_COLORS[music_artist]:-38;5;180}m" MC_AL=$'\e['"${FZX_COLORS[music_album]:-38;5;111}m"
   declare -g MC_Y=$'\e['"${FZX_COLORS[music_year]:-38;5;244}m" MC_C=$'\e['"${FZX_COLORS[music_current]:-1;38;5;114}m"
-  if [[ -n "${NO_COLOR+x}" ]]; then MC_R="" MC_D="" MC_A="" MC_AL="" MC_Y="" MC_C=""; fi
+  if [[ -n "${NO_COLOR:+x}" ]]; then MC_R="" MC_D="" MC_A="" MC_AL="" MC_Y="" MC_C=""; fi
 }
 
 # music::artists: each artist with its album and song counts, by name

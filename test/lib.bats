@@ -503,3 +503,8 @@ STUB
   ED_DO=fail fzx::edit_text out < <(printf 'one') || :
   [ -z "$out" ]
 }
+
+@test "NO_COLOR counts only when non-empty (no-color.org): no check tests that it is merely set" {
+  run bash -c "cd '$FZX_REPO' && grep -rnE 'NO_COLOR\+|-v NO_COLOR' lib modules bin shell"
+  [ "$status" -eq 1 ]
+}

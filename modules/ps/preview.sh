@@ -21,7 +21,7 @@ ps::preview() {
   fi
 
   local P=$'\e[1;38;5;141m' W=$'\e[1;38;5;255m' C=$'\e[38;5;81m' B=$'\e[38;5;110m' G=$'\e[38;5;252m' R=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && P="" W="" C="" B="" G="" R=""
+  [[ -n "${NO_COLOR:+x}" ]] && P="" W="" C="" B="" G="" R=""
   local _pid ppid user etime cpu mem rss vsz nlwp stat lstart pcomm state word i
   # one ps call; lstart has spaces, so it comes last
   read -r _pid ppid user etime cpu mem rss vsz nlwp stat lstart < <(command ps -o pid=,ppid=,user=,etime=,%cpu=,%mem=,rss=,vsz=,nlwp=,stat=,lstart= -p "$pid")
@@ -33,7 +33,7 @@ ps::preview() {
   esac
   # labels with their icons (lib/icons.sh); lc is the label color
   local lc='38;5;244' l_pid l_parent l_user l_state l_threads l_started l_elapsed l_cpu l_mem l_rss l_vsz
-  [[ -n "${NO_COLOR+x}" ]] && lc=""
+  [[ -n "${NO_COLOR:+x}" ]] && lc=""
   fzx::require icons
   fzx::icon_label command pid "$lc" l_pid
   fzx::icon_label parent parent "$lc" l_parent

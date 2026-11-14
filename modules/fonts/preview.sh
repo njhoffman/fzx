@@ -39,7 +39,7 @@ fonts::sample() {
 fonts::preview() {
   local fam="${1:-}" file="${2:-}" rows="${FZX_FONTS_SAMPLE_ROWS:-10}" lines="${FZF_PREVIEW_LINES:-40}" out
   local b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && b="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && b="" d="" r=""
   [[ -n "$fam" ]] || return 0
   # the sample takes at most half the preview
   ((rows > lines / 2)) && rows=$((lines / 2))

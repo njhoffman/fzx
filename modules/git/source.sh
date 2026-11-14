@@ -235,7 +235,7 @@ git::source_commit() {
 git::source_grep() {
   local term="${FZF_QUERY:-}" args=(grep -n -I -E --full-name --color=never) dim=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" rst=$'\e[0m'
   [[ -n "$term" ]] || return 0
-  [[ -n "${NO_COLOR+x}" ]] && dim="" rst=""
+  [[ -n "${NO_COLOR:+x}" ]] && dim="" rst=""
   [[ "$term" == *[[:upper:]]* ]] || args+=(-i)
   args+=(-e "$term")
   [[ -n "$GIT_REV" ]] && args+=("$GIT_REV")
@@ -262,7 +262,7 @@ git::source_clean() {
   local args=(-c core.quotePath=false clean -n -d) red=$'\e[31m' rst=$'\e[0m'
   git::clean_allowed || return 0
   [[ " ${FZX_TOGGLES:-} " == *" ignored "* ]] && args+=(-x)
-  [[ -n "${NO_COLOR+x}" ]] && red="" rst=""
+  [[ -n "${NO_COLOR:+x}" ]] && red="" rst=""
   git::g "${args[@]}" | awk -v top="$GIT_TOP/" -v red="$red" -v rst="$rst" '
     /^Would remove / { p = substr($0, 14); id = p; sub(/\/$/, "", id); printf "%s%s\t%s??%s %s\n", top, id, red, rst, p }'
 }

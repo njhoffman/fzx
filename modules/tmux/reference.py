@@ -520,11 +520,16 @@ def swatches(value):
 NOT_TEMPLATES = {"extended-keys-format"}
 
 
+def format_argument(value):
+    """value as a tmux argument: a trailing ";" would end the command, so it is escaped"""
+    return value[:-1] + "\\;" if value.endswith(";") else value
+
+
 def expand_format(value, args):
     if not args.data_file:
-        return tmux("display-message", "-p", *target(args.pane), "--", value).rstrip(
-            "\n"
-        )
+        return tmux(
+            "display-message", "-p", *target(args.pane), "--", format_argument(value)
+        ).rstrip("\n")
     variables = assignments(args.data_file)
     aliases = {
         "#S": "session_name",
@@ -543,6 +548,16 @@ def expand_format(value, args):
     return re.sub(
         r"#[SWIPTHhDF]", lambda m: variables.get(aliases[m[0]], m[0]), rendered
     )
+
+
+def expand_formats(values, args):
+    """expand_format for each value, from the live server in one tmux call (tmux_sequence)"""
+    if args.data_file or len(values) < 2:
+        return [expand_format(value, args) for value in values]
+    outputs = tmux_sequence(
+        [["display-message", "-p", *target(args.pane), "--", format_argument(value)] for value in values]
+    )
+    return [output.rstrip("\n") for output in outputs]
 
 
 def options(args, mode):
@@ -584,7 +599,7 @@ def options(args, mode):
                 continue
             selected.append((scope, name, raw, inherited, override, changed))
     rendered_all = (
-        [expand_format(unquote(item[2]), args) for item in selected]
+        expand_formats([unquote(item[2]) for item in selected], args)
         if mode in ("formats", "status")
         else []
     )

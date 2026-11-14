@@ -187,7 +187,7 @@ capture::source() {
   case "$mode" in lines | urls | paths | words | hashes | ips) ;; *) printf 'capture: unknown mode: %s\n' "$mode" >&2; return 2 ;; esac
   capture::args "$@" || return
   vis=$'\e['"${FZX_COLORS[capture_visible]:-38;5;81}m" off=$'\e['"${FZX_COLORS[capture_offscreen]:-38;5;244}m"
-  [[ -n "${NO_COLOR+x}" ]] && vis="" off="" rst=""
+  [[ -n "${NO_COLOR:+x}" ]] && vis="" off="" rst=""
   capture::read "$CAPTURE_PANE" | capture::extract "$mode" |
     awk -F'\t' -v vis="$vis" -v off="$off" -v rst="$rst" '
       # padded by hand: the arrow is one cell but several bytes, which some awks and locales count

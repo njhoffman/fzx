@@ -8,7 +8,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
 # audio::preview <id> <kind>
 audio::preview() {
   local id="${1:-}" b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && b="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && b="" d="" r=""
   [[ -n "$id" ]] || return 0
   case "${FZX_MODE:-sinks}" in
     sinks | sources)

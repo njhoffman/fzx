@@ -40,7 +40,7 @@ logs::colorizer() {
   else
     _cz=(ccze -A)
   fi
-  [[ -z "${NO_COLOR+x}" && ${#_cz[@]} -gt 0 ]] && command -v "${_cz[0]}" > /dev/null
+  [[ -z "${NO_COLOR:+x}" && ${#_cz[@]} -gt 0 ]] && command -v "${_cz[0]}" > /dev/null
 }
 
 # logs::colorize: stdin through the colorizer, line by line so a followed log shows each line as it comes

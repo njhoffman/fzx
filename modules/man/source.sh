@@ -50,7 +50,7 @@ man::tldr() {
 # the list's order (--tiebreak=begin,index) puts the exact name first
 man::format() {
   local kind="$1" n=$'\e['"${FZX_COLORS[man_name]:-1;38;5;117}m" s=$'\e['"${FZX_COLORS[man_section]:-38;5;244}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && n="" s="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && n="" s="" r=""
   awk -F'\t' '{ print length($1) "\t" $0 }' | LC_ALL=C sort -t$'\t' -k1,1n -k2,2 -k3,3 | cut -f2- |
     awk -F'\t' -v kind="$kind" -v n="$n" -v s="$s" -v r="$r" '{
       id = kind == "tldr" ? $1 : $1 "(" $2 ")"

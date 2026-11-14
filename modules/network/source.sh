@@ -46,7 +46,7 @@ AWK
 network::_vars() {
   fzx::require header
   fzx::header_vars
-  NETWORK_VARS=("${FZX_HEADER_VARS[@]}" -v "nocolor=${NO_COLOR+x}" -v "hl=${FZX_COLORS[sorted]:-4}" -v "dim=${FZX_COLORS[dim]:-38;5;244}"
+  NETWORK_VARS=("${FZX_HEADER_VARS[@]}" -v "nocolor=${NO_COLOR:+x}" -v "hl=${FZX_COLORS[sorted]:-4}" -v "dim=${FZX_COLORS[dim]:-38;5;244}"
     -v "name=${FZX_COLORS[network_name]:-1;38;5;255}" -v "up=${FZX_COLORS[network_up]:-38;5;114}"
     -v "down=${FZX_COLORS[network_down]:-38;5;203}" -v "port=${FZX_COLORS[network_port]:-1;38;5;141}"
     -v "addr=${FZX_COLORS[network_addr]:-38;5;152}" -v "me=${USER:-$(id -un)}")

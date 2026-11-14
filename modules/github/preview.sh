@@ -24,7 +24,7 @@ github::limits() {
 # github::preview_repo <search file> <index>
 github::preview_repo() {
   local b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m' repo pushed readme emojis
-  [[ -n "${NO_COLOR+x}" ]] && b="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && b="" d="" r=""
   github::emojis emojis
   command jq -r --argjson i "$2" --arg b "$b" --arg d "$d" --arg r "$r" --argjson e "$emojis" '.[$i] |
     def row(k; v): if (v // "") == "" then empty else "\($d)\(k)\($r)  \(v)" end;
@@ -50,7 +50,7 @@ github::preview_repo() {
 github::preview_code() {
   local hl=$'\e['"${FZX_COLORS[github_match]:-1;38;5;195;48;5;23}m" b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
   local repo path sha blob lines=() n
-  [[ -n "${NO_COLOR+x}" ]] && hl="" b="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && hl="" b="" d="" r=""
   IFS=$'\t' read -r repo path sha < <(command jq -r --argjson i "$2" '.[$i] | [.repository.nameWithOwner, .path, .sha] | join("\t")' -- "$1")
   printf '%s%s%s  %s\n' "$b" "$repo" "$r" "$path"
   # jq slices strings by code point, as GitHub's match indices count
@@ -71,7 +71,7 @@ github::preview_code() {
 # github::preview_blob <owner/name> <sha:size> <path>
 github::preview_blob() {
   local sha="${2%%:*}" size="${2#*:}" blob d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && d="" r=""
   if [[ "$size" =~ ^[0-9]+$ ]] && ((size > ${FZX_GITHUB_PREVIEW_MAX:-1000000})); then
     printf '%s%s: %s bytes, not previewed (FZX_GITHUB_PREVIEW_MAX)%s\n' "$d" "$3" "$size" "$r"
     return 0
@@ -87,7 +87,7 @@ github::preview_blob() {
 # github::preview_tree <url> <owner/name> <path>: the directory's entries, from the cached tree
 github::preview_tree() {
   local sha file d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && d="" r=""
   sha="${1#*/tree/}" sha="${sha%%/*}"
   file="$FZX_CACHE_DIR/github/tree/${2/\//__}@$sha.json"
   [[ -f "$file" ]] || return 0
@@ -103,7 +103,7 @@ github::preview_issue() {
   local g=$'\e['"${FZX_COLORS[github_open]:-38;5;114}m" red=$'\e['"${FZX_COLORS[github_closed]:-38;5;203}m"
   local m=$'\e['"${FZX_COLORS[github_merged]:-38;5;141}m" dr=$'\e['"${FZX_COLORS[github_draft]:-38;5;244}m"
   local url repo num updated i_open i_closed i_pr i_merged i_prclosed i_draft
-  [[ -n "${NO_COLOR+x}" ]] && b="" d="" r="" g="" red="" m="" dr="" nc=true
+  [[ -n "${NO_COLOR:+x}" ]] && b="" d="" r="" g="" red="" m="" dr="" nc=true
   IFS=$'\t' read -r url repo num updated < <(command jq -r --argjson i "$2" '.[$i] | [.url, .repo, .number, .updatedAt] | @tsv' -- "$1")
   [[ -n "$url" ]] || return 0
   fzx::require icons
@@ -157,7 +157,7 @@ github::item_details() {
   local g=$'\e['"${FZX_COLORS[github_open]:-38;5;114}m" red=$'\e['"${FZX_COLORS[github_closed]:-38;5;203}m"
   local i_ok i_failed i_review n
   local -A re=()
-  [[ -n "${NO_COLOR+x}" ]] && d="" r="" y="" g="" red=""
+  [[ -n "${NO_COLOR:+x}" ]] && d="" r="" y="" g="" red=""
   kind=issue fields=body,comments,reactionGroups
   if [[ "$url" == */pull/* ]]; then
     kind=pr fields+=,reviews,headRefName,baseRefName,changedFiles,additions,deletions,reviewDecision,statusCheckRollup
@@ -238,7 +238,7 @@ github::timeline_heads() {
   local d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m' b=$'\e['"${FZX_COLORS[github_author]:-1;38;5;75}m"
   local g=$'\e['"${FZX_COLORS[github_open]:-38;5;114}m" red=$'\e['"${FZX_COLORS[github_closed]:-38;5;203}m"
   local y=$'\e['"${FZX_COLORS[github_running]:-38;5;180}m"
-  [[ -n "${NO_COLOR+x}" ]] && d="" r="" b="" g="" red="" y=""
+  [[ -n "${NO_COLOR:+x}" ]] && d="" r="" b="" g="" red="" y=""
   # "n<TAB>header" per entry; jq counts the width in characters, so · and ─ are one column each
   lines="$(command jq -r --argjson w "${FZF_PREVIEW_COLUMNS:-80}" --arg d "$d" --arg r "$r" --arg b "$b" --arg g "$g" \
     --arg red "$red" --arg y "$y" '
@@ -271,7 +271,7 @@ github::timeline_heads() {
 github::preview_notification() {
   local b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m' u=$'\e['"${FZX_COLORS[github_unread]:-38;5;75}m"
   local url repo updated
-  [[ -n "${NO_COLOR+x}" ]] && b="" d="" r="" u=""
+  [[ -n "${NO_COLOR:+x}" ]] && b="" d="" r="" u=""
   IFS=$'\t' read -r url repo updated < <(command jq -r --argjson i "$2" '.[$i] | [.url, .repo, .updatedAt] | @tsv' -- "$1")
   [[ -n "$url" ]] || return 0
   command jq -r --argjson i "$2" --arg b "$b" --arg d "$d" --arg r "$r" --arg u "$u" '.[$i] |
@@ -287,7 +287,7 @@ github::preview_notification() {
 # and prs: the first open ones; runs: the latest runs (the lists the rows open, cached for them)
 github::preview_hub() {
   local repo="$1" b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m' info file pushed readme
-  [[ -n "${NO_COLOR+x}" ]] && b="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && b="" d="" r=""
   info="$FZX_CACHE_DIR/github/issues/repo-${repo/\//__}.json"
   case "$2" in
     tree)
@@ -329,7 +329,7 @@ github::preview_run() {
   local b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
   local g=$'\e['"${FZX_COLORS[github_open]:-38;5;114}m" red=$'\e['"${FZX_COLORS[github_closed]:-38;5;203}m"
   local y=$'\e['"${FZX_COLORS[github_running]:-38;5;180}m" id repo updated view
-  [[ -n "${NO_COLOR+x}" ]] && b="" d="" r="" g="" red="" y=""
+  [[ -n "${NO_COLOR:+x}" ]] && b="" d="" r="" g="" red="" y=""
   IFS='|' read -r id repo updated < <(command jq -r --argjson i "$2" '.[$i] |
     [.id, (.url | capture("github.com/(?<r>[^/]+/[^/]+)/").r), .updatedAt] | map(tostring) | join("|")' -- "$1")
   [[ -n "$id" ]] || return 0
@@ -370,7 +370,7 @@ github::debug() {
 # github::preview <url|query|text> <kind> [repo] [field 4] [field 5]
 github::preview() {
   local b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m' file
-  [[ -n "${NO_COLOR+x}" ]] && b="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && b="" d="" r=""
   case "${2:-}" in
     repo) github::preview_repo "$4" "$5" ;;
     code) github::preview_code "$4" "$5" ;;

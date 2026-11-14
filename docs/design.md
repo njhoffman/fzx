@@ -818,7 +818,9 @@ where they happened. `--raw` prints the matching rows with a header. Needs an aw
 or mawk 1.3.4+).
 
 `fzx gc` keeps the file bounded: once it passes 1 MiB it drops rows older than `FZX_STATS_MAX_AGE_DAYS`
-(default 90). Rows appended during that rewrite can be lost.
+(default 90). The file is renamed aside and filtered; rows appended meanwhile land in a new file, which is
+appended to the filtered rows before they are put back with `ln` (it never replaces a file, so a newer one is
+taken and the install retried).
 
 ## Menu
 

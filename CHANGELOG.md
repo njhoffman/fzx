@@ -6,6 +6,21 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.114.2] - 2026-11-13
+
+### Changed
+
+- The tmux formats and status screens expand every template in one tmux call instead of one call each (about
+  240ms down to 160ms here).
+
+### Fixed
+
+- An empty `NO_COLOR` no longer turns color off: like no-color.org asks, only a non-empty one does, everywhere in
+  fzx and for the tools it runs (`bin/fzx` unsets an empty one).
+- firewall: with ufw off, the header says "rules added, not in effect" only when some are.
+- `fzx gc` no longer loses stats rows written while it prunes the stats file.
+- tmux formats: a template ending in `;` keeps it in the rendered sample (tmux read it as a command separator).
+
 ## [0.114.1] - 2026-11-13
 
 ### Changed

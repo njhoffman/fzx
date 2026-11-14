@@ -250,7 +250,7 @@ github::repo_rows() {
   local o=$'\e['"${FZX_COLORS[github_owner]:-38;5;244}m" n=$'\e['"${FZX_COLORS[github_name]:-1;38;5;75}m"
   local s=$'\e['"${FZX_COLORS[github_star]:-38;5;220}m" c=$'\e['"${FZX_COLORS[github_count]:-38;5;250}m"
   local d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m' langs=()
-  [[ -n "${NO_COLOR+x}" ]] && o="" n="" s="" c="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && o="" n="" s="" c="" d="" r=""
   fzx::require icons
   fzx::icon_vars star fork issue archived repo folder
   mapfile -t langs < <(github::language_icons)
@@ -326,7 +326,7 @@ github::repo_header() {
 github::code_rows() {
   local o=$'\e['"${FZX_COLORS[github_owner]:-38;5;244}m" n=$'\e['"${FZX_COLORS[github_name]:-1;38;5;75}m"
   local d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" b=$'\e[1m' r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && o="" n="" d="" b="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && o="" n="" d="" b="" r=""
   command jq -r --arg file "$1" 'to_entries[] | .key as $i | .value |
     [.url, "code", .repository.nameWithOwner, $file, $i, .path, ([.textMatches[]?.matches[]?] | length)]
     | map(tostring | gsub("[\t\r\n]+"; " ")) | join("\t")' -- "$1" |
@@ -358,7 +358,7 @@ github::tree_file() {
 # GitHub truncated (over 100k entries) is logged
 github::tree_rows() {
   local sha file d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && d="" r=""
   github::resolve "$GITHUB_REPO" "$GITHUB_REF" sha || { printf 'github: cannot resolve %s@%s\n' "$GITHUB_REPO" "$GITHUB_REF" >&2; return 1; }
   github::tree_file "$GITHUB_REPO" "$sha" file || { printf 'github: cannot list %s@%s\n' "$GITHUB_REPO" "$sha" >&2; return 1; }
   [[ "$(command jq -r .truncated -- "$file")" == true ]] && printf 'github: the tree of %s is truncated\n' "$GITHUB_REPO" >&2
@@ -436,7 +436,7 @@ github::search_header() {
 # github::recent <mode>: the mode's recent searches
 github::recent() {
   local file d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && d="" r=""
   file="$(github::history_file "$1")"
   [[ -f "$file" ]] || return 0
   awk -v mode="$1" -v d="$d" -v r="$r" '{ printf "%s\tsearch\t%s\t-\t-\t%s  recent%s  %s\n", $0, mode, d, r, $0 }' "$file"
@@ -445,7 +445,7 @@ github::recent() {
 # github::source [--repo OWNER/REPO] [--ref REF] [--]
 github::source() {
   local mode="${FZX_MODE:-repos}" query file red=$'\e[31m' r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && red="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && red="" r=""
   case "$mode" in
     tree)
       github::args "$@" || return

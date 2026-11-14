@@ -133,7 +133,7 @@ github::issue_rows() {
   local c_merged=$'\e['"${FZX_COLORS[github_merged]:-38;5;141}m" c_draft=$'\e['"${FZX_COLORS[github_draft]:-38;5;244}m"
   local o=$'\e['"${FZX_COLORS[github_owner]:-38;5;244}m" n=$'\e['"${FZX_COLORS[github_name]:-1;38;5;75}m"
   local d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" b=$'\e[1m'
-  [[ -n "${NO_COLOR+x}" ]] && r="" c_open="" c_closed="" c_merged="" c_draft="" o="" n="" d="" b="" nc=true
+  [[ -n "${NO_COLOR:+x}" ]] && r="" c_open="" c_closed="" c_merged="" c_draft="" o="" n="" d="" b="" nc=true
   local i_open i_closed i_pr i_merged i_prclosed i_draft i_ok i_failed
   fzx::require icons
   fzx::icon issue_open i_open
@@ -181,7 +181,7 @@ github::issue_rows() {
 # github::issue_source <issues|prs>: the mode's rows, or a row with gh's message when listing fails
 github::issue_source() {
   local scope file red=$'\e[31m' r=$'\e[0m' what="$1"
-  [[ -n "${NO_COLOR+x}" ]] && red="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && red="" r=""
   [[ "$what" == prs ]] && what="pull requests"
   github::issues_scope scope
   if ! github::issues "$1" "$scope" file; then

@@ -131,7 +131,7 @@ browser::_bookmarks() {
 browser::rows() {
   local lw="${1:-20}" mode="${FZX_MODE:-history}" c=$'\e['"${FZX_COLORS[browser_chrome]:-38;5;75}m"
   local f=$'\e['"${FZX_COLORS[browser_firefox]:-38;5;209}m" d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && c="" f="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && c="" f="" d="" r=""
   awk -F'\t' -v OFS='\t' -v lw="$lw" -v mode="$mode" -v c="$c" -v f="$f" -v d="$d" -v r="$r" '
     function pad(t, w) { return length(t) > w ? substr(t, 1, w - 1) "…" : sprintf("%-" w "s", t) }
     {

@@ -59,7 +59,7 @@ sessions::source() {
   local own="" sid depth dir root rstate=dead mode module query cwd label args now current started
   local k=$'\e['"${FZX_COLORS[sessions_kept]:-38;5;114}m" l=$'\e['"${FZX_COLORS[sessions_live]:-38;5;75}m"
   local d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" b=$'\e[1m' r=$'\e[0m' c
-  [[ -n "${NO_COLOR+x}" ]] && k="" l="" d="" b="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && k="" l="" d="" b="" r=""
   fzx::require session
   # this list's own tree is left out: resuming it would be the screen already on
   if [[ -n "${FZX_SESSION:-}" && -d "$FZX_SESSIONS_DIR/$FZX_SESSION/meta" ]]; then

@@ -52,7 +52,7 @@ shell::unquote() {
 
 shell::preview_command() {
   local name="$1" kind="$2" b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m' p t line
-  [[ -n "${NO_COLOR+x}" ]] && b="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && b="" d="" r=""
   case "$kind" in
     builtin)
       printf '%s%s%s  %szsh builtin%s\n\n' "$b" "$name" "$r" "$d" "$r"
@@ -80,7 +80,7 @@ shell::preview_command() {
 
 shell::preview_alias() {
   local name="$1" kind line value first _k _n b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m' p
-  [[ -n "${NO_COLOR+x}" ]] && b="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && b="" d="" r=""
   line="$(shell::dump_line alias "$name")" || return 0
   shell::split "$line" _k kind _n value
   value="$(shell::unquote "$value")"
@@ -107,7 +107,7 @@ shell::preview_alias() {
 
 shell::preview_function() {
   local name="$1" line file auto dir body _k _n d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && d="" r=""
   line="$(shell::dump_line function "$name")" || return 0
   shell::split "$line" _k _n file auto
   [[ -n "$file" ]] && printf '%s%s%s%s\n\n' "$d" "${file/#$HOME/\~}" "$([[ "$auto" == 1 ]] && echo '  (autoload, not loaded yet)')" "$r"
@@ -179,7 +179,7 @@ shell::param_code() {
 shell::preview_param() {
   local name="$1" b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m' type value hidden base _n flags
   local rows row size="" other from=dump
-  [[ -n "${NO_COLOR+x}" ]] && b="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && b="" d="" r=""
   rows="$(shell::param_rows)"
   row="$(awk -F'\t' -v n="$name" '$1 == n { print; exit }' <<< "$rows")"
   shell::split "$row" _n type value hidden
@@ -219,7 +219,7 @@ shell::preview_param() {
 # file, upstream and revision), then the main function's file
 shell::preview_completion() {
   local file b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m' main="" k c src fn path up rev
-  [[ -n "${NO_COLOR+x}" ]] && b="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && b="" d="" r=""
   shell::completions_file file
   printf '%s%s%s\n\n' "$b" "$1" "$r"
   while IFS=$'\t' read -r k c src fn path up rev; do

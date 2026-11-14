@@ -44,7 +44,7 @@ actions::argv() {
 # actions::sgr <color name> <default> <text> <var>: the text in FZX_COLORS[name] (plain with NO_COLOR)
 actions::sgr() {
   local _c="${FZX_COLORS[$1]:-$2}"
-  if [[ -n "${NO_COLOR+x}" || -z "$_c" || -z "$3" ]]; then
+  if [[ -n "${NO_COLOR:+x}" || -z "$_c" || -z "$3" ]]; then
     printf -v "$4" '%s' "$3"
   else
     printf -v "$4" '\e[%sm%s\e[0m' "$_c" "$3"

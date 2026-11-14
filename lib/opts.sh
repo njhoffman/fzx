@@ -306,7 +306,7 @@ fzx::title_paint() {
   fzx::icon breadcrumb __tp_sep
   [[ -n "$__tp_sep" ]] || __tp_sep=">"
   local __tp_from="${FZX_COLORS[title]:-}" __tp_cur="${FZX_COLORS[title_current]:-}"
-  [[ -n "${NO_COLOR+x}" ]] && __tp_from="" __tp_cur=""
+  [[ -n "${NO_COLOR:+x}" ]] && __tp_from="" __tp_cur=""
   [[ -n "$__tp_from" ]] && __tp_from=$'\e['"${__tp_from}m"
   [[ -n "$__tp_cur" ]] && __tp_cur=$'\e['"${__tp_cur}m"
   [[ -n "$__tp_from$__tp_cur" ]] || __tp_r=""

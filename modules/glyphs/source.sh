@@ -100,7 +100,7 @@ glyphs::_build_emoji() {
 # glyphs::nerd: the Nerd Font rows: the glyph, its name with the set dimmed, the code point
 glyphs::nerd() {
   local file n=$'\e[38;5;180m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && n="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && n="" d="" r=""
   file="$(glyphs::cached nerd.tsv "$(glyphs::nerd_json)" glyphs::_build_nerd "$(glyphs::nerd_json)")" || return
   awk -F'\t' -v OFS='\t' -v n="$n" -v d="$d" -v r="$r" '
     { rest = substr($3, length($4) + 5)
@@ -111,7 +111,7 @@ glyphs::nerd() {
 # mark is shown on a dotted circle
 glyphs::unicode() {
   local data blocks file n=$'\e[38;5;152m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && n="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && n="" d="" r=""
   data="$(glyphs::_unicode_file UnicodeData.txt)" && blocks="$(glyphs::_unicode_file Blocks.txt)" || return 2
   file="$(glyphs::cached unicode.tsv "$data" glyphs::_build_unicode "$data" "$blocks")" || return
   awk -F'\t' -v OFS='\t' -v n="$n" -v d="$d" -v r="$r" -v block="${GLYPHS_BLOCK:-}" '
@@ -124,7 +124,7 @@ glyphs::unicode() {
 # characters each has
 glyphs::blocks() {
   local data blocks file n=$'\e[38;5;152m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && n="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && n="" d="" r=""
   data="$(glyphs::_unicode_file UnicodeData.txt)" && blocks="$(glyphs::_unicode_file Blocks.txt)" || return 2
   file="$(glyphs::cached unicode.tsv "$data" glyphs::_build_unicode "$data" "$blocks")" || return
   awk -F'\t' -v OFS='\t' -v n="$n" -v d="$d" -v r="$r" '
@@ -138,7 +138,7 @@ glyphs::blocks() {
 # glyphs::emoji: the fully-qualified emoji with their group and subgroup
 glyphs::emoji() {
   local test file n=$'\e[38;5;223m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && n="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && n="" d="" r=""
   test="$(glyphs::_unicode_file emoji/emoji-test.txt)" || return 2
   file="$(glyphs::cached emoji.tsv "$test" glyphs::_build_emoji "$test")" || return
   awk -F'\t' -v OFS='\t' -v n="$n" -v d="$d" -v r="$r" '

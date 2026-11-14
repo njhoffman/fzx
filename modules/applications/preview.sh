@@ -92,7 +92,7 @@ applications::_action_field() {
 applications::preview() {
   local file="${1:-}" id="${2:-}" icon img="" rows="${FZX_APPLICATIONS_ICON_ROWS:-8}" v key
   local b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && b="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && b="" d="" r=""
   [[ "$file" != - ]] || return 0
   if [[ "$file" == *"#action:"* ]]; then
     local action="${file##*#action:}"

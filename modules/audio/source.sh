@@ -36,7 +36,7 @@ audio::devices() {
   local kind="$1" def monitors=false current=""
   local a=$'\e['"${FZX_COLORS[audio_default]:-1;38;5;114}m" m=$'\e['"${FZX_COLORS[audio_muted]:-38;5;203}m"
   local d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && a="" m="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && a="" m="" d="" r=""
   [[ " ${FZX_TOGGLES:-} " == *" monitors "* ]] && monitors=true
   def="$(command pactl "get-default-${kind%s}" 2> /dev/null)"
   if [[ -n "$AUDIO_MOVE" && "$kind" == sinks ]]; then
@@ -58,7 +58,7 @@ audio::devices() {
 audio::streams() {
   local m=$'\e['"${FZX_COLORS[audio_muted]:-38;5;203}m" n=$'\e['"${FZX_COLORS[audio_app]:-1;38;5;180}m"
   local d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && m="" n="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && m="" n="" d="" r=""
   command jq -r -n --arg m "$m" --arg n "$n" --arg d "$d" --arg r "$r" \
     --slurpfile sinks <(audio::json sinks) --slurpfile inputs <(audio::json sink-inputs) "$AUDIO_JQ"'
     ($sinks[0] | map({key: (.index | tostring), value: (.description // .name)}) | from_entries) as $out |
@@ -74,7 +74,7 @@ audio::streams() {
 audio::players() {
   local p status artist title icon a=$'\e['"${FZX_COLORS[audio_default]:-1;38;5;114}m"
   local d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m' i_play i_pause i_stop
-  [[ -n "${NO_COLOR+x}" ]] && a="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && a="" d="" r=""
   command -v playerctl > /dev/null || { printf 'audio: players need playerctl\n' >&2; return 2; }
   fzx::require icons
   fzx::icon running i_play

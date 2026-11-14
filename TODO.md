@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.111.0): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
+Status (0.114.1): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
 docker, files, firewall, fonts, git, github, glyphs, history, kdeconnect, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
 add what you find, and tick items off (`- [x]`) as they land, never delete them; once every item of a section
@@ -220,22 +220,21 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       class hit test/modules.bats's applicability test (the 2s FZX_APPLICABLE_TIMEOUT, fixed in 0.77.1 with a
       longer one), and menu.bats's "modules are listed at once" (0.79.0: a 6s timeout); look for other tests that
       run the menu's summary or applicable timeouts and raise theirs.
-- [ ] **firewall: header with nothing added** (p3) [bug]: with ufw off the header says "rules added, not in
+- [x] **firewall: header with nothing added** (p3) [bug]: with ufw off the header says "rules added, not in
       effect" even when `ufw show added` lists none; say it only when there are some.
-- [ ] **Zellij popups untested** (p3) [test]: popups are only checked on tmux; zellij is not installed here.
 - [x] **Undocumented fzf behaviour we depend on** (p3) [test]: `become()` inside a `--popup` runs in the original
       terminal, so every launch re-requests the popup (`fzx::_placement`). Observed on fzf 0.74 (devel);
       re-check on every fzf upgrade with the popup test in design.md's popout notes.
 - [ ] **grep mode stats noise** (p3) [bug]: every keystroke in `files:grep` records a `source reload` row;
       record live-search reloads as their own event or not at all.
-- [ ] **tmux formats screen is slow** (p3) [perf]: `fzx -m tmux:formats` takes 1-7s on the main server: one
+- [x] **tmux formats screen is slow** (p3) [perf]: `fzx -m tmux:formats` takes 1-7s on the main server: one
       `display-message` per template (21 here), each running the status line's `#(...)` jobs. Joining the
       templates into one `display-message` mis-splits (tmux's parser runs across them), and a `;` command
       sequence of display-messages also came back short; find out why (modules/tmux/reference.py
       `tmux_sequence`), or skip `#(...)` when rendering samples.
 - [ ] **`files` alt-up** (p3) [bug]: each parent directory becomes a new child session instead of reusing an
       existing ancestor in the tree; harmless (cleaned on exit) but deep trees and long labels.
-- [ ] **Stats prune** (p3) [bug] can drop rows appended while the file is being rewritten.
+- [x] **Stats prune** (p3) [bug] can drop rows appended while the file is being rewritten.
 - [ ] **nvcat is slow for previews** (p3) [perf]: about 300-1200ms per focus change (it starts Neovim), for
       markdown and every filetype `nvcat-dispatch` claims (any *.conf, systemd units, ...); files over
       FZX_PREVIEW_NVCAT_MAX_LINES already go to bat. Cache its output under $FZX_CACHE_DIR keyed by path,
@@ -262,8 +261,9 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [ ] **Focus guard misses fzf started outside the function** (p3) [bug]: the `fzf` function can't reach scripts a
       widget runs that start fzf themselves, widgets using `$commands[fzf]` or `fzf-tmux`, or
       `ftb-tmux-popup` (popup mode was never tested for this bug). They would get the same I or O in the query
-      if focus reports reach them. Fix per case when one shows it.
-- [ ] **An empty NO_COLOR turns color off in most of fzx** (p3) [bug]: 100 checks in lib/ and modules/ (54
+      if focus reports reach them. Fix per case when one shows it. Checked 2026-11-13: none is in use in
+      ~/.shell (fzf-tab's fzf-command is plain fzf; fzf completion takes fzf-tmux only with FZF_TMUX set).
+- [x] **An empty NO_COLOR turns color off in most of fzx** (p3) [bug]: 100 checks in lib/ and modules/ (54
       files, recounted 2026-11-11) test `${NO_COLOR+x}`, so `NO_COLOR=` (set, empty) drops color, while bin/fzx (`${NO_COLOR:-}`)
       and prettypath treat an empty one as unset, as no-color.org asks ("present and not an empty string").
       One helper (fzx::no_color) used everywhere would make them agree; the fix is mechanical but touches

@@ -82,7 +82,7 @@ github::run_rows() {
   local c_ok=$'\e['"${FZX_COLORS[github_open]:-38;5;114}m" c_fail=$'\e['"${FZX_COLORS[github_closed]:-38;5;203}m"
   local c_run=$'\e['"${FZX_COLORS[github_running]:-38;5;180}m" c_dim=$'\e['"${FZX_COLORS[github_draft]:-38;5;244}m"
   local n=$'\e['"${FZX_COLORS[github_name]:-1;38;5;75}m" d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m"
-  [[ -n "${NO_COLOR+x}" ]] && r="" c_ok="" c_fail="" c_run="" c_dim="" n="" d=""
+  [[ -n "${NO_COLOR:+x}" ]] && r="" c_ok="" c_fail="" c_run="" c_dim="" n="" d=""
   local i_ok i_failed i_running i_stopped i_paused
   fzx::require icons
   fzx::icon ok i_ok
@@ -122,7 +122,7 @@ github::run_rows() {
 # github::runs_source: the runs mode's rows, or a row with gh's message when listing fails
 github::runs_source() {
   local repo file red=$'\e[31m' r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && red="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && red="" r=""
   github::scope_repo repo || return
   if ! github::runs "$repo" file; then
     printf 'github: cannot list the runs of %s: %s\n' "$repo" "$GITHUB_ERROR" >&2
@@ -140,7 +140,7 @@ github::runs_source() {
 # prs and runs, each with its count or the last run's state. The run list is fetched alongside the counts
 github::hub_source() {
   local repo info runs="" red=$'\e[31m' r=$'\e[0m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" b=$'\e[1m'
-  [[ -n "${NO_COLOR+x}" ]] && red="" r="" d="" b=""
+  [[ -n "${NO_COLOR:+x}" ]] && red="" r="" d="" b=""
   github::scope_repo repo || return
   # the runs in the background: a failure only leaves the row without its state
   (github::runs "$repo" runs > /dev/null 2>&1) &

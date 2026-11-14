@@ -76,7 +76,7 @@ music::tag_rows() {
   local json="$1" songs="$2"
   shift 2
   local d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" f=$'\e['"${FZX_COLORS[music_field]:-38;5;111}m" r=$'\e[0m'
-  [[ -n "${NO_COLOR+x}" ]] && d="" f="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && d="" f="" r=""
   printf '%s\n' "$@" | command jq -rR --slurp --argjson v "$json" --argjson songs "$songs" \
     --arg d "$d" --arg f "$f" --arg r "$r" '
     (split("\n") | map(select(. != "") | split("\t") | {key: .[0], value: (.[1] | tonumber)}) | from_entries) as $have |

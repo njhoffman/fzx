@@ -12,7 +12,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
 glyphs::grid() {
   local first="$1" last="$2" mark="${3:--1}" d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m' on=$'\e[7m' off=$'\e[0m'
   local known="$FZX_CACHE_DIR/glyphs/unicode.tsv"
-  [[ -n "${NO_COLOR+x}" ]] && d="" r="" on="[" off="]"
+  [[ -n "${NO_COLOR:+x}" ]] && d="" r="" on="[" off="]"
   [[ -s "$known" ]] || known=/dev/null
   LC_ALL=C awk -F'\t' -v first="$first" -v last="$last" -v mark="$mark" -v d="$d" -v r="$r" -v on="$on" -v off="$off" \
     -v all="$([[ "$known" == /dev/null ]] && echo 1 || echo 0)" "$GLYPHS_AWK_UTF8"'
@@ -34,7 +34,7 @@ glyphs::grid() {
 glyphs::preview() {
   local g="${1:-}" cps="${2:-}" name="${3:-}" group="${4:-}" b=$'\e[1m' d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
   local c bytes esc="" u="" html="" cp first last
-  [[ -n "${NO_COLOR+x}" ]] && b="" d="" r=""
+  [[ -n "${NO_COLOR:+x}" ]] && b="" d="" r=""
   [[ -n "$g" ]] || return 0
   if [[ "${FZX_MODE:-}" == blocks ]]; then
     first="${cps%%..*}" last="${cps##*..}"
@@ -44,7 +44,7 @@ glyphs::preview() {
     glyphs::grid "$first" "$last"
     return 0
   fi
-  if [[ -z "${NO_COLOR+x}" ]]; then
+  if [[ -z "${NO_COLOR:+x}" ]]; then
     printf '\n   %s   \e[38;5;203m%s\e[0m   \e[38;5;114m%s\e[0m   \e[38;5;75m%s\e[0m   \e[30;48;5;254m %s \e[0m   \e[97;48;5;236m %s \e[0m\n\n' \
       "$g" "$g" "$g" "$g" "$g" "$g"
   else
