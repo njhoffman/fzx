@@ -36,6 +36,13 @@ setup_fzx() {
     printf '#!/bin/sh\nexit 1\n' > "$BATS_TEST_TMPDIR/norender/$t"
     chmod +x "$BATS_TEST_TMPDIR/norender/$t"
   done
+  # the clipboard tools write to $BATS_TEST_TMPDIR/clipboard: a copy in a test never reaches the desktop's
+  # clipboard, and no xclip stays behind serving it (it held bats' output open until something else took the
+  # clipboard)
+  for t in wl-copy xclip xsel pbcopy; do
+    printf '#!/bin/sh\ncat > "%s/clipboard"\n' "$BATS_TEST_TMPDIR" > "$BATS_TEST_TMPDIR/norender/$t"
+    chmod +x "$BATS_TEST_TMPDIR/norender/$t"
+  done
   export PATH="$BATS_TEST_TMPDIR/norender:$PATH"
 }
 

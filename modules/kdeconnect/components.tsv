@@ -4,6 +4,7 @@ mode    devices        -       paired and nearby devices, connected first       
 mode    notifications  -       the notifications on the connected devices                 -
 mode    commands       -       the commands the connected devices offer to run            -
 mode    sms            -       SMS conversations on the connected devices                 -
+mode    chat           -       one SMS conversation (--thread DEVICE/THREAD): what you type is the reply  hidden,nopersist
 sort    state          -       devices: connected first                                   default
 sort    recent         -       sms: newest first                                          default,desc
 sort    name           -       devices, sms: by name                                      -

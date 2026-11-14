@@ -94,6 +94,74 @@ kdeconnect::_sms() {
   kdeconnect::cli -d "$1" --destination "$number" "--send-sms=$message"
 }
 
+# kdeconnect::reply <device> <thread>: send stdin as a message in the thread (replyToConversation, which takes
+# groups too). The text goes to python on stdin, never on a command line, where any user here could read it
+kdeconnect::reply() {
+  timeout "${FZX_KDECONNECT_TIMEOUT:-15}" python3 -c '
+import sys
+import dbus
+device = dbus.SessionBus().get_object("org.kde.kdeconnect", "/modules/kdeconnect/devices/" + sys.argv[1])
+conversations = dbus.Interface(device, "org.kde.kdeconnect.device.conversations")
+conversations.replyToConversation(dbus.Int64(int(sys.argv[2])), sys.stdin.read(), dbus.Array([], signature="v"))
+' "$1" "$2"
+}
+
+# kdeconnect::transform <chat DEVICE/THREAD | send | chat-watch>
+#   chat        enter in the sms list: the thread's chat screen, a child session (esc returns to the list)
+#   send        enter in the chat: the first press asks in the header, a second one on the same text sends it
+#   chat-watch  the chat's watcher (kdeconnect::chat_watch_start runs it in a process group of its own)
+kdeconnect::transform() {
+  case "${1:-}" in
+    chat) kdeconnect::_transform_chat "${2:-}" ;;
+    send) kdeconnect::_transform_send ;;
+    chat-watch)
+      fzx::session_args
+      kdeconnect::chat_args "${FZX_ARGS[@]}" || return
+      kdeconnect::chat_watch "$KDECONNECT_DEV" "$KDECONNECT_THREAD" "$FZX_SESSION_DIR/fzf.sock"
+      ;;
+    *)
+      printf 'kdeconnect: unknown transform: %s\n' "${1:-}" >&2
+      return 2
+      ;;
+  esac
+}
+
+kdeconnect::_transform_chat() {
+  local dev thread
+  # a row explaining an empty list has no thread
+  kdeconnect::chat_id "$1" dev thread || { printf 'bell'; return 0; }
+  fzx::require nav
+  fzx::nav goto kdeconnect:chat --thread "$1"
+}
+
+# kdeconnect::_transform_send: the query, FZF_QUERY (never an argument). state/chat_pending holds a checksum of the
+# text the header asked about, not the text
+kdeconnect::_transform_send() {
+  local text="${FZF_QUERY:-}" sum pending="" who err
+  fzx::session_args
+  kdeconnect::chat_args "${FZX_ARGS[@]}" || return
+  [[ -n "${text//[[:space:]]/}" ]] || { printf 'bell'; return 0; }
+  sum="$(printf '%s' "$text" | md5sum)"
+  sum="${sum%% *}"
+  fzx::state_get chat_pending pending || pending=""
+  who="$(kdeconnect::thread_who "$KDECONNECT_DEV" "$KDECONNECT_THREAD")"
+  who="${who:-thread $KDECONNECT_THREAD}"
+  if [[ "$pending" != "$sum" ]]; then
+    fzx::state_set chat_pending "$sum"
+    printf 'change-header:%s' "$(printf 'send to %s: "%s"?  enter sends it, typing cancels' "$who" "$text" | fzx::glyphs_plain)"
+    return 0
+  fi
+  fzx::state_set chat_pending ""
+  # (printf, not a here-string, which would add a newline to the message)
+  if err="$(kdeconnect::_ready "$KDECONNECT_DEV" sms 2>&1 &&
+    printf '%s' "$text" | kdeconnect::reply "$KDECONNECT_DEV" "$KDECONNECT_THREAD" 2>&1)"; then
+    printf 'clear-query+change-header:%s' "sent to $who; it shows here when the phone reports it"
+  else
+    err="${err//$'\n'/ }"
+    printf 'bell+change-header:%s' "not sent: ${err:-the phone did not take it}"
+  fi
+}
+
 # kdeconnect::action <action> <id...>
 kdeconnect::action() {
   local action="${1:-}" mode="${FZX_MODE:-devices}" id ids=() rc=0 line

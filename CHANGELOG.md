@@ -6,6 +6,23 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.114.0] - 2026-11-13
+
+### Added
+
+- kdeconnect: enter on an SMS conversation opens it as a chat. Its latest messages (`FZX_KDECONNECT_CHAT_MESSAGES`, 50)
+  are listed newest first, next to the prompt, and what you type is the reply: enter shows "send to NAME: TEXT?" in the
+  header, enter again sends it (group conversations too), typing again cancels. New messages, yours included, appear on
+  their own while the chat is open (`FZX_KDECONNECT_CHAT_LIVE=0` turns that off; ctrl-r reloads). Esc returns to the list.
+  The text goes to the phone without passing through a command line, a file or the log.
+
+### Fixed
+
+- A conversation's preview no longer takes 6 seconds with phones that never say a conversation is loaded: it ends once
+  as many messages as asked for came, or a second after the last one.
+- The tests no longer copy to the desktop's clipboard: a test that copied left xclip running, which kept the
+  kdeconnect test file from ending until something else took the clipboard.
+
 ## [0.113.1] - 2026-11-13
 
 ### Fixed

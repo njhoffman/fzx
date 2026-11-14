@@ -132,6 +132,7 @@ kdeconnect::source() {
     notifications) kdeconnect::_source_notifications ;;
     commands) kdeconnect::_source_commands ;;
     sms) kdeconnect::_source_sms ;;
+    chat) kdeconnect::_source_chat "$@" ;;
     *)
       printf 'kdeconnect: unknown mode: %s\n' "$FZX_MODE" >&2
       return 2
@@ -253,14 +254,148 @@ kdeconnect::_source_sms() {
   done < <(kdeconnect::connected) | LC_ALL=C sort -s -t $'\t' -k1,1 | cut -f2- | fzx::glyphs_plain 2 | kdeconnect::_or_note
 }
 
+# kdeconnect::thread_messages <device> <thread> <limit>: busctl's JSON lines for the messages of a thread. They come as
+# signals after asking, so the monitor starts first; it says nothing when it is ready, hence the pause, and a second
+# request if nothing answers. Done at the thread's conversationLoaded, at <limit> messages, or once
+# FZX_KDECONNECT_SMS_IDLE seconds pass without another (phones that never send conversationLoaded: cached threads
+# come within a fraction of a second, others over a few seconds). In variables only, never a file. Fails when
+# nothing came
+kdeconnect::thread_messages() {
+  local dev="$1" thread="$2" limit="$3" path iface="$KDECONNECT_IFACE.conversations" fd pid line got=() asked=1 rc wait=3
+  path="$(kdeconnect::path "$dev")"
+  exec {fd}< <(exec timeout "${FZX_KDECONNECT_SMS_WAIT:-8}" busctl --user monitor --json=short --match="type='signal',interface='$iface',path='$path'" 2> /dev/null)
+  pid=$!
+  # fzf ends a preview when the cursor moves: the monitor goes with it
+  trap 'kill "$pid" 2> /dev/null' EXIT TERM
+  sleep 0.25
+  command busctl --user call "$KDECONNECT_BUS" "$path" "$iface" requestConversation xii "$thread" 0 "$limit" > /dev/null 2>&1
+  while :; do
+    IFS= read -r -t "$wait" -u "$fd" line
+    rc=$?
+    if ((rc > 128)); then
+      ((${#got[@]} == 0 && asked < 2)) || break
+      asked=2
+      command busctl --user call "$KDECONNECT_BUS" "$path" "$iface" requestConversation xii "$thread" 0 "$limit" > /dev/null 2>&1
+      continue
+    fi
+    ((rc == 0)) || break
+    case "$line" in
+      *'"member":"conversationLoaded"'*)
+        [[ "$(command jq -r '.payload.data[0]' <<< "$line")" == "$thread" ]] && break
+        ;;
+      *'"member":"conversationUpdated"'*)
+        got+=("$line") wait="${FZX_KDECONNECT_SMS_IDLE:-1}"
+        # as many as asked for: no need to wait for silence (another thread's news counts too; rare, and only
+        # ends the wait one message early)
+        ((${#got[@]} >= limit)) && break
+        ;;
+    esac
+  done
+  kill "$pid" 2> /dev/null
+  trap - EXIT TERM
+  exec {fd}<&-
+  ((${#got[@]})) || return 1
+  printf '%s\n' "${got[@]}"
+}
+
+# kdeconnect::chat_id <DEVICE/THREAD> <dev var> <thread var>: split a thread id; fails on anything else
+kdeconnect::chat_id() {
+  [[ "${1:-}" =~ ^([A-Za-z0-9_-]+)/([0-9]+)$ ]] || return 1
+  printf -v "$2" '%s' "${BASH_REMATCH[1]}"
+  printf -v "$3" '%s' "${BASH_REMATCH[2]}"
+}
+
+# kdeconnect::chat_args <args...>: the chat mode's --thread DEVICE/THREAD into KDECONNECT_DEV, KDECONNECT_THREAD
+kdeconnect::chat_args() {
+  KDECONNECT_DEV="" KDECONNECT_THREAD=""
+  while (($#)); do
+    case "$1" in
+      --thread) kdeconnect::chat_id "${2:-}" KDECONNECT_DEV KDECONNECT_THREAD || break; shift 2 ;;
+      *) shift ;;
+    esac
+  done
+  [[ -n "$KDECONNECT_THREAD" ]] || { printf 'kdeconnect: chat needs --thread DEVICE/THREAD\n' >&2; return 2; }
+}
+
+# kdeconnect::thread_who <device> <thread>: who a thread is with, as the sms list names it (contacts, else numbers)
+kdeconnect::thread_who() {
+  kdeconnect::conversations "$1" |
+    command jq -r --slurpfile contacts <(kdeconnect::_contacts_json "$1") --argjson thread "$2" "$KDECONNECT_JQ"'
+      [.data[0][]?.data | select(.[6] == $thread)][0] // empty | .[2] | people'
+}
+
+# kdeconnect::_source_chat <args...>: a header row naming the thread, then its latest FZX_KDECONNECT_CHAT_MESSAGES
+# messages, newest first (next to the prompt), "uid<TAB>display": the date, who wrote (you, or the sender in a group)
+# and the text on one line.
+# Starts the watcher that reloads the list when the thread changes (kdeconnect::chat_watch_start)
+kdeconnect::_source_chat() {
+  local lines name you dim who
+  name="$(kdeconnect::color kdeconnect_name '1;38;5;111')" you="$(kdeconnect::color kdeconnect_you '38;5;114')"
+  dim="$(kdeconnect::color dim '38;5;244')"
+  kdeconnect::chat_args "$@" || return
+  kdeconnect::chat_watch_start
+  # the first row is the header (--header-lines=1): who the thread is with stays off fzf's command line
+  who="$(kdeconnect::thread_who "$KDECONNECT_DEV" "$KDECONNECT_THREAD")"
+  printf '\t%s%s\e[0m  %stype a reply: enter asks, enter again sends\e[0m\n' "$name" "${who:-thread $KDECONNECT_THREAD}" "$dim" |
+    fzx::glyphs_plain 2
+  if ! lines="$(kdeconnect::thread_messages "$KDECONNECT_DEV" "$KDECONNECT_THREAD" "${FZX_KDECONNECT_CHAT_MESSAGES:-50}")"; then
+    kdeconnect::note "no messages came back from the phone"
+    return 0
+  fi
+  command jq -rs --slurpfile contacts <(kdeconnect::_contacts_json "$KDECONNECT_DEV") --argjson thread "$KDECONNECT_THREAD" \
+    --arg name "$name" --arg you "$you" --arg dim "$dim" --arg r $'\e[0m' "$KDECONNECT_JQ"'
+    [.[].payload.data[0].data | select(.[6] == $thread)] | unique_by(.[7]) | sort_by(-.[3], -.[7]) | .[] |
+    (if .[4] == 2 then "\($you)you\($r)" elif (.[2] | length) > 1 then "\($name)\(.[2][0][0] | who | flat)\($r)" else "" end) as $who |
+    ((.[1] | flat) as $b | if $b != "" then $b else "" end) as $text |
+    (if (.[9] | length) > 0 then "\($dim)(\(.[9] | length) attachment\(if (.[9] | length) == 1 then "" else "s" end))\($r)" else "" end) as $att |
+    ["\(.[7])", "\($dim)\(when)\($r)  \(if $who != "" then $who + ": " else "" end)\($text)\(if $text != "" and $att != "" then " " else "" end)\($att)"] | @tsv' \
+    <<< "$lines" | sed 's/\\\\/\\/g' | fzx::glyphs_plain 2
+}
+
+# kdeconnect::chat_watch_start: in a session, the watcher for the chat's thread, unless one runs already: a process
+# group of its own (setsid) recorded in state/bg_pgid, which leaving the screen ends (fzx::bg_stop).
+# FZX_KDECONNECT_CHAT_LIVE=0: none, the list follows only reloads
+kdeconnect::chat_watch_start() {
+  [[ "${FZX_KDECONNECT_CHAT_LIVE:-1}" == 1 && -n "${FZX_SESSION_DIR:-}" && -d "$FZX_SESSION_DIR" ]] || return 0
+  local pgid=""
+  fzx::_kv_get "$FZX_SESSION_DIR/state/bg_pgid" pgid 2> /dev/null && [[ "$pgid" =~ ^[0-9]+$ ]] &&
+    kill -0 -- "-$pgid" 2> /dev/null && return 0
+  setsid "$FZX_BIN" _cb transform chat-watch < /dev/null > /dev/null 2>&1 &
+  printf '%s' "$!" > "$FZX_SESSION_DIR/state/bg_pgid"
+}
+
+# kdeconnect::chat_watch <device> <thread> <fzf socket> [since ms]: until the socket goes, reload the list when a
+# message newer than any seen comes in or goes out in the thread. Asking for a thread (each load does) makes the
+# phone announce its messages again: those are older and pass, or every load would set off the next. Since: 30s
+# before now by default, for a phone clock a little behind this one. What the signals carry is read and dropped
+kdeconnect::chat_watch() {
+  local dev="$1" thread="$2" sock="$3" since="${4:-}" path iface="$KDECONNECT_IFACE.conversations" line act t d
+  path="$(kdeconnect::path "$dev")"
+  [[ -n "$since" ]] || since=$(((${EPOCHREALTIME/./} / 1000) - 30000))
+  fzx::require opts
+  fzx::reload_action "$(fzx::cb source)" act
+  while IFS= read -r line; do
+    [[ -S "$sock" ]] || break
+    case "$line" in
+      *'"member":"conversationUpdated"'*) ;;
+      *) continue ;;
+    esac
+    read -r t d < <(command jq -r '.payload.data[0].data | "\(.[6]) \(.[3])"' <<< "$line" 2> /dev/null) || continue
+    [[ "$t" == "$thread" && "$d" =~ ^[0-9]+$ ]] || continue
+    ((d > since)) || continue
+    since="$d"
+    command curl -s -m 2 --unix-socket "$sock" -X POST http://localhost --data-binary "$act" > /dev/null 2>&1 || break
+  done < <(exec busctl --user monitor --json=short --match="type='signal',interface='$iface',path='$path'" 2> /dev/null)
+}
+
 # kdeconnect::_or_note: stdin, or a row saying why the sms list is empty
 kdeconnect::_or_note() {
-  local line got=0
+  local line any=0
   while IFS= read -r line; do
-    got=1
+    any=1
     printf '%s\n' "$line"
   done
-  ((got)) && return 0
+  ((any)) && return 0
   if [[ -n "$(kdeconnect::connected)" ]]; then
     kdeconnect::note "no conversations yet: the phone may still be syncing (ctrl-r reads again)"
   else

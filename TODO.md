@@ -208,7 +208,7 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       (lib/core.sh), a test refuses a bare one, and real errors still reach the log.
 - [x] **kdeconnect: read SMS conversations** (p3) [feature]: `fzx -m kdeconnect:sms`, read-only: threads with contacts'
       names, messages in the preview by D-Bus signal, kept in memory only.
-- [ ] **kdeconnect: reply to a conversation** (p3) [feature]: the sms mode reads only. `replyToConversation` (xsav) on
+- [x] **kdeconnect: reply to a conversation** (p3) [feature]: the sms mode reads only. `replyToConversation` (xsav) on
       the conversations interface handles groups, which `--send-sms` does not; confirm like the SMS action.
 - [ ] **The flag `off` cannot remove alt-y** (p3) [bug]: docs/design.md says it removes a built-in, and the menu and actions
       modules set it for copy-line, but lib/opts.sh:478 binds alt-y whenever no row has it, so `fzx -m menu` still copies

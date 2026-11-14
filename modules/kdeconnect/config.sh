@@ -18,6 +18,8 @@ FZX_COLORS[kdeconnect_icon_sms]="38;5;117"
 
 FZX_COLORS[kdeconnect_name]='1;38;5;111'
 FZX_COLORS[kdeconnect_connected]='38;5;114'
+# in the chat screen, your own messages
+FZX_COLORS[kdeconnect_you]='38;5;114'
 FZX_COLORS[kdeconnect_away]='38;5;250'
 FZX_COLORS[kdeconnect_low]='38;5;203'
 
@@ -30,6 +32,13 @@ FZX_KDECONNECT_TIMEOUT="${FZX_KDECONNECT_TIMEOUT:-15}"
 FZX_KDECONNECT_SMS_MESSAGES="${FZX_KDECONNECT_SMS_MESSAGES:-30}"
 # seconds to wait for the phone: a conversation's messages, or the first sync of the list
 FZX_KDECONNECT_SMS_WAIT="${FZX_KDECONNECT_SMS_WAIT:-8}"
+# once messages arrive, the seconds without another that end the wait (phones that never say they are done)
+FZX_KDECONNECT_SMS_IDLE="${FZX_KDECONNECT_SMS_IDLE:-1}"
+
+# the chat screen (enter on a conversation): messages it shows, newest next to the prompt; 1 reloads it when a
+# message comes in or goes out (a D-Bus watcher, stopped when you leave), 0 only on ctrl-r and after sending
+FZX_KDECONNECT_CHAT_MESSAGES="${FZX_KDECONNECT_CHAT_MESSAGES:-50}"
+FZX_KDECONNECT_CHAT_LIVE="${FZX_KDECONNECT_CHAT_LIVE:-1}"
 
 # devices come and go, and notifications and messages are private: read on every load, kept nowhere
 FZX_PERSIST=none

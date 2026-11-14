@@ -275,6 +275,167 @@ JSON
   [[ "$output" == *'no messages came back'* ]]
 }
 
+# python3 for kdeconnect::reply: records its arguments and what it read (STUB_PY_FAIL: fails saying so)
+stub_reply() {
+  cat > "$BATS_TEST_TMPDIR/bin/python3" << 'STUB'
+#!/usr/bin/env bash
+printf '%s\n' "${@:3}" > "$BATS_TEST_TMPDIR/py.args"
+cat > "$BATS_TEST_TMPDIR/py.in"
+[[ -z "${STUB_PY_FAIL:-}" ]] || { echo "$STUB_PY_FAIL" >&2; exit 1; }
+STUB
+  chmod +x "$BATS_TEST_TMPDIR/bin/python3"
+}
+
+# a kept chat session for phone1/11, its id in $sid
+chat_session() {
+  stub_fzf
+  run "$FZX" -m kdeconnect:chat --keep -- --thread phone1/11
+  [ "$status" -eq 0 ]
+  sid="$(basename "$(session_dirs)")"
+}
+
+@test "sms: enter opens the thread's chat, a child screen; a row without a thread rings the bell" {
+  stub_fzf
+  run "$FZX" -m kdeconnect:sms --keep
+  [ "$(fzf_bind enter)" = "enter:transform:$FZX _cb transform chat {1}" ]
+  local sid child
+  sid="$(basename "$(session_dirs)")"
+  FZX_SESSION="$sid" run "$FZX" _cb transform chat phone1/11
+  [[ "$output" == "become:$FZX --resume "*" -m :chat" ]]
+  child="${output#*--resume }" child="${child%% *}"
+  [ "$(tr '\0' ' ' < "$FZX_RUNTIME_DIR/sessions/$child/meta/args")" = "--thread phone1/11 " ]
+  [ "$(cat "$FZX_RUNTIME_DIR/sessions/$child/meta/parent")" = "$sid" ]
+  FZX_SESSION="$sid" run "$FZX" _cb transform chat ''
+  [ "$output" = bell ]
+  FZX_SESSION="$sid" run "$FZX" _cb transform chat 'phone1/11; rm -rf /'
+  [ "$output" = bell ]
+}
+
+@test "chat: the header row names the thread; messages newest first, yours marked, attachments counted" {
+  FZX_KDECONNECT_CHAT_LIVE=0 FZX_MODE=chat run bash -c "'$KC/source.sh' --thread phone1/11 | sed 's/\x1b\[[0-9;:]*m//g'"
+  [ "$status" -eq 0 ]
+  [ "${#lines[@]}" -eq 4 ]
+  [[ "${lines[0]}" == $'\tSam Lee  type a reply: enter asks, enter again sends' ]]
+  [[ "${lines[1]}" == 11$'\t'*'2026-01-02 00:00  late one' ]]
+  [[ "${lines[2]}" == 9$'\t'*'2026-01-01 00:00  you: from me (1 attachment)' ]]
+  [[ "${lines[3]}" == 8$'\t'*'older second line' ]]
+  # nothing from another thread, nor what came after the phone said it was done
+  [[ "$output" != *'another thread'* && "$output" != *'after it was loaded'* && "$output" != *'[2J'* ]]
+  grep -q 'requestConversation xii 11 0 50' "$CALLS"
+  # a thread id it cannot read, and a phone that sends nothing back
+  FZX_MODE=chat run "$KC/source.sh" --thread nope
+  [ "$status" -eq 2 ]
+  STUB_SILENT=1 FZX_KDECONNECT_CHAT_LIVE=0 FZX_MODE=chat run bash -c "'$KC/source.sh' --thread phone1/11 | sed 's/\x1b\[[0-9;:]*m//g'"
+  [[ "$output" == *'no messages came back from the phone'* ]]
+}
+
+@test "chat: the query is the reply: enter asks, enter again on the same text sends it on stdin, then clears" {
+  chat_session
+  [ "$(fzf_bind enter)" = "enter:transform:$FZX _cb transform send" ]
+  read_fzf_args
+  [[ " ${FZF_ARGS[*]} " == *' --disabled '* && " ${FZF_ARGS[*]} " == *' --header-lines=1 '* ]]
+  [ "$(fzf_bind change)" = "change:change-header:" ]
+  # no preview: none by the terminal's width either
+  [[ " ${FZF_ARGS[*]} " != *'_cb layout start'* ]]
+  stub_reply
+  FZF_QUERY='see you at 6' FZX_SESSION="$sid" run "$FZX" _cb transform send
+  [ "$output" = 'change-header:send to Sam Lee: "see you at 6"?  enter sends it, typing cancels' ]
+  [ ! -e "$BATS_TEST_TMPDIR/py.in" ]
+  # other text: asked about again
+  FZF_QUERY='see you at 7' FZX_SESSION="$sid" run "$FZX" _cb transform send
+  [[ "$output" == 'change-header:send to Sam Lee: "see you at 7"?'* ]]
+  FZF_QUERY='see you at 7' FZX_SESSION="$sid" run "$FZX" _cb transform send
+  [ "$output" = 'clear-query+change-header:sent to Sam Lee; it shows here when the phone reports it' ]
+  [ "$(cat "$BATS_TEST_TMPDIR/py.args")" = $'phone1\n11' ]
+  # the text exactly, no newline added
+  [ "$(od -An -c "$BATS_TEST_TMPDIR/py.in" | tr -s ' ')" = ' s e e y o u a t 7' ]
+  # sent once: the next enter asks again
+  FZF_QUERY='see you at 7' FZX_SESSION="$sid" run "$FZX" _cb transform send
+  [[ "$output" == 'change-header:send to'* ]]
+  # nothing typed: the bell
+  FZF_QUERY='   ' FZX_SESSION="$sid" run "$FZX" _cb transform send
+  [ "$output" = bell ]
+  # what was typed is in no file and not in the log
+  run grep -rl 'see you' "$FZX_STATE_DIR" "$FZX_CACHE_DIR" "$FZX_RUNTIME_DIR"
+  [ "$status" -ne 0 ]
+}
+
+@test "chat: a reply the phone does not take says why and keeps the text" {
+  chat_session
+  stub_reply
+  FZF_QUERY='hi' FZX_SESSION="$sid" "$FZX" _cb transform send > /dev/null
+  STUB_PY_FAIL='org.freedesktop.DBus.Error.NoReply' FZF_QUERY='hi' FZX_SESSION="$sid" run "$FZX" _cb transform send
+  [ "$output" = 'bell+change-header:not sent: org.freedesktop.DBus.Error.NoReply' ]
+  # a device that went away is named, nothing sent
+  rm -f "$BATS_TEST_TMPDIR/py.in"
+  sed -i "s|'/phone1 org.kde.kdeconnect.device isReachable name '\*) printf 'b true|'/phone1 org.kde.kdeconnect.device isReachable name '*) printf 'b false|" "$BATS_TEST_TMPDIR/bin/busctl"
+  FZF_QUERY='hi' FZX_SESSION="$sid" "$FZX" _cb transform send > /dev/null
+  FZF_QUERY='hi' FZX_SESSION="$sid" run "$FZX" _cb transform send
+  [ "$output" = 'bell+change-header:not sent: kdeconnect: Fold is not connected' ]
+  [ ! -e "$BATS_TEST_TMPDIR/py.in" ]
+}
+
+@test "chat watcher: a reload for each change in its thread, none for others; started once, stopped on leaving" {
+  # curl records what it would post to fzf
+  printf '#!/usr/bin/env bash\nprintf "%%s\\n" "${@: -1}" >> "%s/posts"\n' "$BATS_TEST_TMPDIR" > "$BATS_TEST_TMPDIR/bin/curl"
+  chmod +x "$BATS_TEST_TMPDIR/bin/curl"
+  local sock="$BATS_TEST_TMPDIR/s.sock"
+  /usr/bin/python3 -c 'import socket, sys; socket.socket(socket.AF_UNIX).bind(sys.argv[1])' "$sock"
+  # the monitor's lines (2026-01-01 to 01-04) as news: thread 11 four times, each newer, thread 99 once
+  run timeout 3 bash -c 'source "$1/lib/core.sh"; fzx::require log; source "$2/source.sh"; kdeconnect::chat_watch phone1 11 "$3" 0' _ \
+    "$FZX_REPO" "$KC" "$sock"
+  [ "$(wc -l < "$BATS_TEST_TMPDIR/posts")" -eq 4 ]
+  # the reload ctrl-r does (with the loading prompt, when there is one)
+  [[ "$(sort -u "$BATS_TEST_TMPDIR/posts")" == *"reload($FZX _cb source)" ]]
+  [ "$(sort -u "$BATS_TEST_TMPDIR/posts" | wc -l)" -eq 1 ]
+  # what a load's own request brings back is older than the watcher's start: no reload, so no reload loop;
+  # one message newer than the rest, announced twice (sent, then delivered), reloads once
+  rm -f "$BATS_TEST_TMPDIR/posts"
+  run timeout 3 bash -c 'source "$1/lib/core.sh"; fzx::require log; source "$2/source.sh"; kdeconnect::chat_watch phone1 11 "$3"' _ \
+    "$FZX_REPO" "$KC" "$sock"
+  [ ! -e "$BATS_TEST_TMPDIR/posts" ]
+  local now=$(( ${EPOCHREALTIME/./} / 1000 + 5000 )) news="$BATS_TEST_TMPDIR/news"
+  { cat "$STUB_MONITOR"
+    printf '{"member":"conversationUpdated","payload":{"type":"v","data":[{"type":"(isa(s)xiixixa(xsss))","data":[1,"new",[["5551230001"]],%s,1,0,11,20,1,[]]}]}}\n' "$now" "$now"
+  } > "$news"
+  STUB_MONITOR="$news" run timeout 3 bash -c 'source "$1/lib/core.sh"; fzx::require log; source "$2/source.sh"; kdeconnect::chat_watch phone1 11 "$3"' _ \
+    "$FZX_REPO" "$KC" "$sock"
+  [ "$(wc -l < "$BATS_TEST_TMPDIR/posts")" -eq 1 ]
+  # in a session: the source starts it in a group of its own, once
+  chat_session
+  local dir="$FZX_RUNTIME_DIR/sessions/$sid" pgid
+  /usr/bin/python3 -c 'import socket, sys; socket.socket(socket.AF_UNIX).bind(sys.argv[1])' "$dir/fzf.sock"
+  FZX_SESSION="$sid" "$FZX" _cb source > /dev/null
+  pgid="$(cat "$dir/state/bg_pgid")"
+  kill -0 -- "-$pgid"
+  FZX_SESSION="$sid" "$FZX" _cb source > /dev/null
+  [ "$(cat "$dir/state/bg_pgid")" = "$pgid" ]
+  # leaving the screen ends it
+  FZX_SESSION="$sid" run "$FZX" _cb nav escape
+  local i
+  for i in $(seq 30); do kill -0 -- "-$pgid" 2> /dev/null || break; sleep 0.1; done
+  ! kill -0 -- "-$pgid" 2> /dev/null
+  # FZX_KDECONNECT_CHAT_LIVE=0: none
+  rm -f "$dir/state/bg_pgid"
+  FZX_KDECONNECT_CHAT_LIVE=0 FZX_SESSION="$sid" "$FZX" _cb source > /dev/null
+  [ ! -e "$dir/state/bg_pgid" ]
+}
+
+@test "sms preview: a phone that never says it is done still answers once its messages stop or are all there" {
+  # the monitor's lines without conversationLoaded: done after a quiet second, asked once (waiting for the signal,
+  # it used to ask again after 3s, then wait 3s more)
+  sed -i '/conversationLoaded/d' "$STUB_MONITOR"
+  run prev sms phone1/11 'Sam Lee'
+  [[ "$output" == *'late one'* ]]
+  [ "$(grep -c 'requestConversation' "$CALLS")" -eq 1 ]
+  # nor waits once it has as many as it asked for, however long the quiet would be: the two first only
+  : > "$CALLS"
+  FZX_KDECONNECT_SMS_IDLE=60 FZX_KDECONNECT_SMS_MESSAGES=2 run timeout 30 bash -c "FZX_MODE=sms '$KC/preview.sh' phone1/11 'Sam Lee'"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'from me'*'older'* && "$output" != *'late one'* ]]
+  [ "$(grep -c 'requestConversation' "$CALLS")" -eq 1 ]
+}
+
 @test "sms: what contacts and messages hold is never on a command line, in a file or in the log" {
   grep -vq -- '--argjson contacts' "$KC/source.sh"
   run grep -c -- '--argjson contacts\|--arg contacts' "$KC/source.sh" "$KC/preview.sh"
