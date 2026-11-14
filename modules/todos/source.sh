@@ -4,7 +4,7 @@
 # Rows are "id<TAB>display<TAB>line<TAB>title": id is "file\x1fstart line\x1ftitle" (the done action checks
 # the title is still on that line), line the printable "TODO.md:LINE ☐  (Pn) [category] Title" and title
 # the plain title.
-# Modes: here (the nearest TODO.md in this format, up to the repository's top), all (the TODO.md
+# Modes: here (the nearest TODO.md in this format, up through the parents to ~), all (the TODO.md
 # at the top of every repository under ghq, under FZX_TODOS_ROOTS and directly under ~, the ones the
 # dotbare repository tracks, plus FZX_TODOS_FILES). Toggle done: completed
 # items too. Sort: urgency (open first, overdue, priority, due date, file order) or file (file order).
@@ -14,12 +14,14 @@ todos::fits() {
   [[ -r "$1" ]] && awk '/^## / { h = 1 } /^- \[[ xX]\] / { i = 1 } END { exit !(h && i) }' "$1"
 }
 
-# todos::here [dir]: the nearest TODO.md in this format from <dir> (default: the current directory) up to
-# the repository's top (outside a repository, that directory only), as todo-status picks it
+# todos::here [dir]: the nearest TODO.md in this format from <dir> (default: the current directory) up
+# through its parents to ~ (outside ~, to /); files in another format are passed over. todo-status stops at the
+# project's top instead: the session hook must not take a parent's list for a project without one
 todos::here() {
-  local dir top
+  local dir top home
   dir="$(cd -- "${1:-.}" 2> /dev/null && pwd -P)" || return 1
-  top="$(git -C "$dir" rev-parse --show-toplevel 2> /dev/null)" || top="$dir"
+  home="$(cd -- "$HOME" 2> /dev/null && pwd -P)" || home=""
+  if [[ -n "$home" && ("$dir" == "$home" || "$dir" == "$home"/*) ]]; then top="$home"; else top=/; fi
   while :; do
     todos::fits "$dir/TODO.md" && { printf '%s\n' "$dir/TODO.md"; return; }
     [[ "$dir" == "$top" || "$dir" == / ]] && return 1
@@ -139,6 +141,15 @@ todos::args() {
     esac
     shift
   done
+}
+
+# todos::start_mode <mode> <var>: the mode a launch that names none starts in (lib/run.sh): all when
+# here would find no TODO.md; not with --dir, which asks for that directory's
+todos::start_mode() {
+  local _m="$1"
+  todos::args "${FZX_ARGS[@]}"
+  [[ "$_m" == here && -z "$TODOS_DIR" ]] && ! todos::here > /dev/null && _m=all
+  printf -v "$2" '%s' "$_m"
 }
 
 todos::source() {

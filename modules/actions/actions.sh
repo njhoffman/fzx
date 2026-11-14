@@ -12,8 +12,10 @@ actions::transform() {
     printf 'actions: unknown transform: %s\n' "${1:-}" >&2
     return 2
   }
-  actions::row "${2:-}" row || return
   fzx::require opts
+  # the enter row only says what enter does on the screen: back to it
+  [[ "${2:-}" == :enter ]] && { printf 'transform(%s)' "$(fzx::cb nav back)"; return 0; }
+  actions::row "${2:-}" row || return
   flags=",${row##*$'\t'},"
   cmd="$(fzx::cb action run "$2")"
   if [[ "$flags" == *,become,* || "$flags" == *,print,* ]]; then

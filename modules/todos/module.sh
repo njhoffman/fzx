@@ -3,7 +3,7 @@
 # item's card in the preview; todo-fzf's picker. `fzx -m todos[:all] [--dir DIR] [--paste PANE] [QUERY...]`.
 # Enter prints "TODO.md:LINE ☐  (Pn) [category] Title" per selected item; with --paste PANE it pastes
 # those lines into that tmux pane instead (bracketed: nothing is submitted). Files are read on every load:
-# ctrl-r rescans.
+# ctrl-r rescans. With no mode named and no TODO.md here or above, it starts in all.
 
 FZX_MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../lib/core.sh

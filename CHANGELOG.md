@@ -6,6 +6,27 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.115.0] - 2026-11-14
+
+### Added
+
+- The actions menu says what enter does when it is not a default action: a first `enter` row names the module's
+  own enter (todos `--paste`: paste into the pane) or what fzf's accept prints (repos: the repository's path,
+  `FZX_ENTER_DESC`), and carries the ⏎ mark.
+- An action flag `background`: the action runs in a bg-transform, so the list stays usable, and the footer says
+  when it is done; with `reload` the list reloads then.
+- An action row may take fzx's reload key with `reload` in its key column (`FZX_KEYS[reload_hard]`, ctrl-r): it
+  replaces the plain reload on that screen, listed once in the help.
+- A module hook `<module>::start_mode`: a launch that names no mode may start in another.
+
+### Changed
+
+- repos: ctrl-r rescans every repository in the background and reloads when the scan is done (it only re-read
+  the last scan before); the rescan action is listed with its key. A rescan during the start's scan waits for it.
+- todos: here mode finds the nearest TODO.md through every parent directory up to ~ (it stopped at the
+  repository's top, and outside a repository looked in the current directory only), and `fzx -m todos` (alt-i)
+  starts in all when there is none. `todos:here` and `--dir` stay in here mode.
+
 ## [0.114.4] - 2026-11-14
 
 ### Fixed

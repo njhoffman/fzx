@@ -47,6 +47,18 @@ repos::rescan() {
   repos::unlock "$cache"
 }
 
+# repos::scanning: a scan is running (the start's refresh): wait for it, since it is the rescan asked for
+# (one older than 10 minutes is a dead scan's, which repos::lock clears)
+repos::scanning() {
+  local lock since
+  lock="$(repos::cache_file)"
+  lock="${lock%/*}/scan.lock"
+  since="$(stat -c %Y "$lock" 2> /dev/null)" || return 1
+  (($(date +%s) - since <= 600)) || return 1
+  while [[ -d "$lock" ]] && (($(date +%s) - since <= 600)); do sleep 0.2; done
+  [[ ! -d "$lock" ]]
+}
+
 # repos::url <dir>: the origin remote as a web address
 repos::url() {
   local url
@@ -138,6 +150,7 @@ repos::action() {
       ;;
     rescan)
       printf 'scanning every repository...\n'
+      repos::scanning && return 0
       repos::refresh force || :
       ;;
     *)

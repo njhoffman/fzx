@@ -170,6 +170,39 @@ repos_fn() {
   [ "$(fzf_bind ctrl-o)" = "ctrl-o:transform:$FZX _cb nav goto git {1}" ]
 }
 
+@test "under fzx: ctrl-r rescans in the background, then reloads; the actions menu says what enter does" {
+  stub_fzf
+  "$FZX" --keep -m repos
+  local sid bind
+  sid="$(basename "$(session_dirs)")"
+  bind="$(fzf_binds ctrl-r | tail -1)"
+  [[ "$bind" == "ctrl-r:"*"bg-transform($FZX _cb notify rescan {+1})" ]]
+  [ "$(< "$FZX_RUNTIME_DIR/sessions/$sid/meta/enter")" = "print the repository's path (the zsh widget cds there)" ]
+  # the notify callback scans, then reloads the list and says so in the footer
+  FZX_SESSION="$sid" run "$FZX" _cb notify rescan "$A"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"reload($FZX _cb source)+change-footer("*"scan every repository again"* ]]
+  [ "$(wc -l < "$FZX_CACHE_DIR/repos/status")" -eq 3 ]
+}
+
+@test "rescan during a running scan waits for it instead of scanning again" {
+  mkdir -p "$FZX_CACHE_DIR/repos/scan.lock"
+  repos_fn repos::action rescan > /dev/null &
+  local pid=$! i
+  # still waiting while the scan holds the lock
+  sleep 2
+  kill -0 "$pid"
+  rmdir "$FZX_CACHE_DIR/repos/scan.lock"
+  # done once it is released, without a scan of its own
+  for ((i = 0; i < 100; i++)); do kill -0 "$pid" 2> /dev/null || break; sleep 0.1; done
+  ! kill -0 "$pid" 2> /dev/null
+  wait "$pid"
+  [ ! -f "$FZX_CACHE_DIR/repos/status" ]
+  # no scan running: it scans
+  run repos_fn repos::action rescan
+  [ "$(wc -l < "$FZX_CACHE_DIR/repos/status")" -eq 3 ]
+}
+
 @test "refresh transform: through fzx's callback, a reload of the source when the scan changed the cache" {
   stub_fzf
   "$FZX" --keep -m repos

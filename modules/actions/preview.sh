@@ -18,15 +18,30 @@ actions::flag_meaning() {
     confirm) _m="asks on the terminal first" ;;
     asks) _m="asks on the terminal itself, a question per kind of target" ;;
     default) _m="bound to enter as well" ;;
+    background) _m="runs in the background; the list stays usable and the footer says when it is done" ;;
+    reload-key) _m="takes fzx's reload key (FZX_KEYS[reload_hard]) on this screen" ;;
     builtin) _m="one of fzx's own, not the module's" ;;
     *) _m="" ;;
   esac
   printf -v "$2" '%s' "$_m"
 }
 
+# actions::preview_enter: the enter row's preview (meta/enter, lib/actions.sh)
+actions::preview_enter() {
+  local dir desc="" icon out
+  actions::parent dir || return
+  [[ -f "$dir/meta/enter" ]] && desc="$(< "$dir/meta/enter")"
+  actions::how_icon become icon
+  actions::sgr actions_enter '1;38;5;114' enter out
+  printf '%s%s  %s\n\n' "$icon" "$out" "$desc"
+  actions::sgr dim '38;5;244' "what enter does on the screen the menu was opened from; enter here goes back to it" out
+  printf '%s\n' "$out"
+}
+
 # actions::preview <name>
 actions::preview() {
   local row k n key desc flags how a f icon label out cap mean
+  [[ "${1:-}" == :enter ]] && { actions::preview_enter; return; }
   actions::row "${1:-}" row || return
   IFS=$'\t' read -r k n key desc flags <<< "$row"
   fzx::session_args
@@ -49,7 +64,7 @@ actions::preview() {
     case "$f" in
       confirm | asks) how=actions_confirm ;;
       become | print) how=actions_become ;;
-      silent | notify) how=actions_silent ;;
+      silent | notify | background) how=actions_silent ;;
       reload | restart) how=actions_reload ;;
       default) how=actions_default ;;
       builtin) how=actions_builtin ;;

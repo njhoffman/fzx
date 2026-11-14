@@ -43,6 +43,10 @@ Reviewed: 2026-11-11
       or plain backspace for it, and binding those would stop backspace deleting query characters.
 - [ ] **All keys list** (p3) [feature]: a mode of the keybindings module listing fzf's `--keys` names (every
       key fzf knows), marking the bound ones with their action.
+- [ ] **shift-enter and ctrl-enter** (p3) [feature]: fzf 0.74 rejects both as bind keys ("unsupported key";
+      alt-enter is the only modified enter it takes), although tmux tells them apart here (extended-keys
+      csi-u). Watch fzf's releases for them; until then a tmux `bind -n S-Enter` that sends a key fzf knows
+      while fzf has the pane is possible but fragile (popups report the pane underneath).
 
 ## 4. Core features
 
@@ -96,6 +100,15 @@ Reviewed: 2026-11-11
       (20k paths in 0.26s)", measured on prettypath under lua 5.1 before 0.1.0. Under luajit (prettypath
       0.3.0's launcher) `make bench` there shows about 3-4µs per path for the default format. Update the
       figure or drop it in favor of pointing at prettypath's `make bench`.
+- [x] **Actions menu: what enter does** (p2) [feature]: without a default action row (repos: enter prints the
+      path) or with the module's own enter (todos --paste) the menu did not say what enter runs; a first
+      `enter` row now does (`meta/enter`, `FZX_ENTER_DESC`).
+- [x] **repos: ctrl-r rescans** (p2) [feature]: ctrl-r only re-read the scan cache and the rescan action had no
+      key; the row takes the reload key (`reload` in the key column) and runs in the background (new
+      `background` flag), reloading when the ~10s scan is done.
+- [x] **todos: parents and a fallback to all** (p2) [feature]: here mode walks the parents up to ~ (it stopped
+      at the repository's top, or at the directory itself outside one), and a launch naming no mode starts
+      in all when there is no TODO.md (`<module>::start_mode`), so alt-i always shows something.
 
 ## 6. New modules
 
@@ -271,6 +284,10 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       and prettypath treat an empty one as unset, as no-color.org asks ("present and not an empty string").
       One helper (fzx::no_color) used everywhere would make them agree; the fix is mechanical but touches
       every module, so it wants the full suite and a look at each preview.
+- [ ] **The reserved-keys test holds up the suite** (p3) [test]: test/fzx.bats "no shipped module binds a reserved
+      key in any of its modes" launches every module in every mode in turn (~150 launches, 7+ minutes under
+      parallel load); GNU parallel's --keep-order holds every later file's results behind it, so progress
+      looks stalled at ~300. Split it per module (a test each, run in parallel) or use --dry-run launches.
 
 ## Completed
 

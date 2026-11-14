@@ -147,7 +147,8 @@ lines_of() { (cd "$1" && FZX_MODE="${2:-here}" "$TODOS/source.sh") | cut -f3; }
   [ "$(fzf_bind enter)" = "enter:become:$FZX _cb action paste %7 {+3}" ]
 }
 
-@test "here: the nearest TODO.md in the format up to the repository's top; others passed over" {
+@test "here: the nearest TODO.md in the format, up through the parents to ~; others passed over" {
+  export HOME="$BATS_TEST_TMPDIR"
   # a subdirectory's own list wins over the top's
   mkdir -p "$P/sub/deep"
   printf '## Sub\n\n- [ ] **Sub item.** (p1) [bug] x\n' > "$P/sub/TODO.md"
@@ -157,13 +158,48 @@ lines_of() { (cd "$1" && FZX_MODE="${2:-here}" "$TODOS/source.sh") | cut -f3; }
   printf '# notes\n\n* something\n' > "$P/sub/TODO.md"
   run lines_of "$P/sub/deep"
   [ "${#lines[@]}" -eq 5 ]
-  # outside a repository: the current directory only, never its parents
+  # outside a repository the parents count too
   mkdir -p "$BATS_TEST_TMPDIR/plain/inner"
   printf '## Plain\n\n- [ ] **Up.** (p1) [bug] x\n' > "$BATS_TEST_TMPDIR/plain/TODO.md"
   run lines_of "$BATS_TEST_TMPDIR/plain/inner"
-  [ -z "$output" ]
-  run lines_of "$BATS_TEST_TMPDIR/plain"
   [ "$output" = 'TODO.md:3 ☐  (P1) [bug] Up' ]
+  # and past a repository's top: ~'s own list, for a repository without one
+  printf '## Home\n\n- [ ] **Home item.** (p2) [chore] x\n' > "$HOME/TODO.md"
+  git init -q "$BATS_TEST_TMPDIR/bare-repo"
+  mkdir -p "$BATS_TEST_TMPDIR/bare-repo/src"
+  run lines_of "$BATS_TEST_TMPDIR/bare-repo/src"
+  [ "$output" = 'TODO.md:3 ☐  (P2) [chore] Home item' ]
+  # never above ~
+  export HOME="$BATS_TEST_TMPDIR/plain"
+  run lines_of "$BATS_TEST_TMPDIR/plain/inner"
+  [ "$output" = 'TODO.md:3 ☐  (P1) [bug] Up' ]
+  mkdir -p "$BATS_TEST_TMPDIR/plain/inner/x"
+  HOME="$BATS_TEST_TMPDIR/plain/inner" run lines_of "$BATS_TEST_TMPDIR/plain/inner/x"
+  [ -z "$output" ]
+}
+
+@test "start mode: no TODO.md here starts in all; a mode or --dir named keeps here" {
+  export HOME="$BATS_TEST_TMPDIR/home"
+  mkdir -p "$HOME/empty"
+  stub_fzf
+  cd "$HOME/empty"
+  run "$FZX" -m todos
+  [ "$status" -eq 0 ]
+  [ "$(< "$BATS_TEST_TMPDIR/fzf.mode")" = all ]
+  run "$FZX" -m todos:here
+  [ "$(< "$BATS_TEST_TMPDIR/fzf.mode")" = here ]
+  run "$FZX" -m todos -- --dir "$HOME/empty"
+  [ "$(< "$BATS_TEST_TMPDIR/fzf.mode")" = here ]
+  # a TODO.md up the tree: here
+  cd "$P/sub"
+  run "$FZX" -m todos
+  [ "$(< "$BATS_TEST_TMPDIR/fzf.mode")" = here ]
+  # standalone too, unless FZX_MODE names one
+  cd "$HOME/empty"
+  run "$TODOS/module.sh"
+  [ "$(< "$BATS_TEST_TMPDIR/fzf.mode")" = all ]
+  FZX_MODE=here run "$TODOS/module.sh"
+  [ "$(< "$BATS_TEST_TMPDIR/fzf.mode")" = here ]
 }
 
 @test "here with --dir: the nearest TODO.md from that directory, wherever fzx runs; --paste and words ignored" {

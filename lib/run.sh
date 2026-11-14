@@ -114,12 +114,30 @@ fzx::run_standalone() {
   fzx::require components
   fzx::comp_load "$FZX_MODULE_DIR" "$FZX_MODULE"
   local mode="${FZX_MODE:-$FZX_MODE_DEFAULT}"
+  [[ -n "${FZX_MODE:-}" ]] || fzx::_start_mode mode
   fzx::_mode_valid "$mode" || fzx::die 2 "unknown mode for $FZX_MODULE: $mode (modes: ${FZX_MODES[*]})"
   fzx::_mode_hidden "$mode" && FZX_MODES=("$mode")
   export FZX_MODE="$mode"
   fzx::comp_current
   fzx::opts_build "$FZX_MODULE" || fzx::die 1 "$FZX_MODULE::opts failed"
   fzx::_fzf
+}
+
+# fzx::_start_mode <var>: a launch that names no mode lets the module's <module>::start_mode <mode> <var>
+# pick another (todos: all when there is no TODO.md here); an unknown answer keeps the mode
+fzx::_start_mode() {
+  local -n __sm_mode="$1"
+  local __sm_new
+  declare -F "$FZX_MODULE::start_mode" > /dev/null || return 0
+  "$FZX_MODULE::start_mode" "$__sm_mode" __sm_new || return 0
+  if [[ -n "$__sm_new" && "$__sm_new" != "$__sm_mode" ]]; then
+    if fzx::_mode_valid "$__sm_new"; then
+      fzx::log debug "$FZX_MODULE::start_mode: $__sm_mode -> $__sm_new"
+      __sm_mode="$__sm_new"
+    else
+      fzx::log warn "$FZX_MODULE::start_mode picked an unknown mode: $__sm_new"
+    fi
+  fi
 }
 
 # fzx::_launch <dry_run> <requested mode or "">
@@ -151,6 +169,7 @@ fzx::_launch() {
       fzx::log warn "saved mode '$mode' no longer exists, using $FZX_MODE_DEFAULT"
       mode="$FZX_MODE_DEFAULT"
     fi
+    fzx::_start_mode mode
   fi
   # a hidden mode is the session's only one: the mode keys and the component line leave it alone
   fzx::_mode_hidden "$mode" && FZX_MODES=("$mode")

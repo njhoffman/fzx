@@ -57,7 +57,22 @@ fzx::comp_load() {
                 if ((order[i] in builtin) != b) continue
                 split(row[order[i]], f, "\t"); if (("," f[5] ",") !~ /,off,/) print row[order[i]] } }'
   )
+  fzx::_comp_reload_key
   fzx::_comp_modes
+}
+
+# fzx::_comp_reload_key: an action row whose key is "reload" takes fzx's reload key (FZX_KEYS[reload_hard],
+# ctrl-r): the key is resolved and the row flagged reload-key, so lib/actions.sh binds it in place of
+# fzx's plain reload (a module whose source reads a cache: repos' rescan)
+fzx::_comp_reload_key() {
+  local _i _k _n _key _d _f
+  for _i in "${!FZX_COMP[@]}"; do
+    IFS=$'\t' read -r _k _n _key _d _f <<< "${FZX_COMP[_i]}"
+    [[ "$_k" == action && "$_key" == reload ]] || continue
+    _key="${FZX_KEYS[reload_hard]:-ctrl-r}"
+    [[ "$_f" == - ]] && _f=reload-key || _f+=",reload-key"
+    FZX_COMP[_i]="$_k"$'\t'"$_n"$'\t'"$_key"$'\t'"$_d"$'\t'"$_f"
+  done
 }
 
 # fzx::comp_load_session: the table stored at launch (callbacks); resolved from the module when a

@@ -57,7 +57,7 @@ actions::how() {
   local _f=",$1,"
   if [[ "$_f" == *,confirm,* || "$_f" == *,asks,* ]]; then printf -v "$2" confirm
   elif [[ "$_f" == *,become,* || "$_f" == *,print,* ]]; then printf -v "$2" become
-  elif [[ "$_f" == *,silent,* || "$_f" == *,notify,* ]]; then printf -v "$2" silent
+  elif [[ "$_f" == *,silent,* || "$_f" == *,notify,* || "$_f" == *,background,* ]]; then printf -v "$2" silent
   else printf -v "$2" run; fi
 }
 
@@ -82,14 +82,15 @@ actions::how_icon() {
 }
 
 # actions::source [menu args...]: "name<TAB>display" per action: how it runs, the name (fzx's own
-# built-ins dimmer), the key as a keycap, a mark on the default (enter) one unless the parent's module bound
-# enter itself (meta/enter_owned, lib/actions.sh), the description
+# built-ins dimmer), the key as a keycap, a mark on the default (enter) one, the description. When enter is
+# not a default action (the module bound it itself, or it is fzf's accept: meta/enter, lib/actions.sh), a
+# first row ":enter" says what it does instead and no row carries the mark
 # an action whose description is scoped by mode (lib/components.sh, fzx::mode_desc) is listed with the
 # parent's mode's part, and left out when no part names that mode
 actions::source() {
-  local dir k n key desc flags mode="" modes=() rows=() w=0 nw=12 i icon name cap def dsc owned=0
+  local dir k n key desc flags mode="" modes=() rows=() w=0 nw=12 i icon name cap def dsc owned=0 enter=""
   actions::parent dir || return
-  [[ -f "$dir/meta/enter_owned" ]] && owned=1
+  [[ -f "$dir/meta/enter" ]] && { owned=1; enter="$(< "$dir/meta/enter")"; }
   fzx::require components
   [[ -f "$dir/state/mode" ]] && mode="$(< "$dir/state/mode")"
   while IFS=$'\t' read -r k n _; do
@@ -107,13 +108,17 @@ actions::source() {
     [[ "$key" != - ]] && ((${#key} > w)) && w=${#key}
     ((${#n} > nw)) && nw=${#n}
   done < "$dir/meta/components"
+  # fzf's accept and a module's enter binding (todos --paste) both end the screen with a result
+  ((owned)) && rows=(":enter"$'\t'"-"$'\t'"${enter:--}"$'\t'"become,enter" "${rows[@]}")
   for i in "${rows[@]}"; do
     IFS=$'\t' read -r n key desc flags <<< "$i"
     [[ "$key" == - ]] && key=""
     [[ "$desc" == - ]] && desc=""
     actions::how_icon "$flags" icon
-    printf -v name "%-${nw}s" "$n"
-    if [[ ",$flags," == *,builtin,* ]]; then
+    printf -v name "%-${nw}s" "${n#:}"
+    if [[ ",$flags," == *,enter,* ]]; then
+      actions::sgr actions_enter '1;38;5;114' "$name" name
+    elif [[ ",$flags," == *,builtin,* ]]; then
       actions::sgr actions_builtin '38;5;248' "$name" name
     else
       actions::sgr actions_name '1' "$name" name
@@ -130,7 +135,9 @@ actions::source() {
       cap=""
     fi
     def=" "
-    [[ ",$flags," == *,default,* ]] && ((!owned)) && actions::sgr actions_default '38;5;114' "⏎" def
+    if [[ ",$flags," == *,enter,* ]] || { [[ ",$flags," == *,default,* ]] && ((!owned)); }; then
+      actions::sgr actions_default '38;5;114' "⏎" def
+    fi
     actions::sgr dim '38;5;244' "$desc" dsc
     printf '%s\t%s%s %s %s %s\n' "$n" "$icon" "$name" "$cap" "$def" "$dsc"
   done

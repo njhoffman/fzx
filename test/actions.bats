@@ -26,6 +26,16 @@ kept() {
   DIR="$FZX_SESSION_DIR"
 }
 
+# fzf_bind_last <key>: the key's last --bind, the one fzf keeps
+fzf_bind_last() {
+  local i out=""
+  read_fzf_args
+  for ((i = 0; i < ${#FZF_ARGS[@]} - 1; i++)); do
+    [[ "${FZF_ARGS[i]}" == --bind && "${FZF_ARGS[i + 1]}" == "$1:"* ]] && out="${FZF_ARGS[i + 1]}"
+  done
+  [[ -n "$out" ]] && printf '%s\n' "$out"
+}
+
 # a fake clipboard: wl-copy writes what it gets to $BATS_TEST_TMPDIR/clip
 fake_clipboard() {
   printf '#!/usr/bin/env bash\ncat > "%s/clip"\n' "$BATS_TEST_TMPDIR" > "$BATS_TEST_TMPDIR/bin/wl-copy"
@@ -264,12 +274,38 @@ menu_open() {
   # one kept session at a time: kept finds it by listing them
   "$FZX" gc --all > /dev/null
   COUNTER_BIND_ENTER=1 kept
-  [ "$(< "$DIR/meta/enter_owned")" = 1 ]
+  [ "$(< "$DIR/meta/enter")" = "the module's own enter" ]
   local out
   out="$(FZX_SESSION="$SID" "$FZX" _cb nav goto actions mark,open a --fzx--)"
   CHILD="${out#become:"$FZX" --resume }"
   NO_COLOR=1 FZX_ICONS=unicode FZX_SESSION="$CHILD" run "$FZX" _cb source
-  [[ "${lines[1]}" == $'open\t'* && "${lines[1]}" != *⏎* ]]
+  # the enter row first says what the module's enter does, and carries the mark instead
+  [ "${lines[0]}" = $':enter\t⇥   enter                ⏎ the module\'s own enter' ]
+  [[ "${lines[2]}" == $'open\t'* && "${lines[2]}" != *⏎* ]]
+}
+
+@test "actions menu: without a default action the enter row says enter prints the selection" {
+  menu_open
+  sed -i '/^action\topen\t/s/become,default/become/' "$DIR/meta/components"
+  # as lib/actions.sh records it for a module with no default row and no enter of its own
+  printf 'print the selection' > "$DIR/meta/enter"
+  NO_COLOR=1 FZX_ICONS=unicode FZX_SESSION="$CHILD" run "$FZX" _cb source
+  [ "${lines[0]}" = $':enter\t⇥   enter                ⏎ print the selection' ]
+  [ "$(printf '%s\n' "$output" | grep -c ⏎)" -eq 1 ]
+  NO_COLOR=1 FZX_SESSION="$CHILD" run "$FZX" _cb preview :enter
+  [[ "$output" == *"enter  print the selection"* && "$output" == *"enter here goes back to it"* ]]
+  # enter on it goes back to the screen
+  FZX_SESSION="$CHILD" run "$FZX" _cb transform run :enter
+  [ "$output" = "transform($FZX _cb nav back)" ]
+}
+
+@test "actions menu: a module without a default action records enter's description" {
+  kept
+  [ -f "$DIR/meta/enter" ] && false
+  "$FZX" gc --all > /dev/null
+  echo 'action  open  -  =  become' >> "$FZX_CONFIG_DIR/modules/counter/components.tsv"
+  FZX_ENTER_DESC="print the counter" kept
+  [ "$(< "$DIR/meta/enter")" = "print the counter" ]
 }
 
 @test "actions menu: colors from FZX_COLORS[actions_*]; built-ins dimmer; NO_COLOR draws none" {
@@ -358,4 +394,38 @@ SCRIPT
 @test "fzx::tty_read without a terminal still reads, for scripts and tests" {
   run bash -c "source '$FZX_REPO/lib/core.sh'; printf 'hello there\n' | setsid bash -c 'source \"$FZX_REPO/lib/core.sh\"; fzx::tty_read -r -p \"no terminal: \" v; echo \"got=\$v\"'"
   [[ "$output" == *'got=hello there'* ]]
+}
+
+@test "background: bg-transform through the notify callback, the loading prompt first with reload; standalone silent" {
+  echo 'action  scan  alt-s  scan it all  background,reload' >> "$FZX_CONFIG_DIR/modules/counter/components.tsv"
+  run "$FZX" -m counter
+  [ "$(fzf_bind alt-s)" = "alt-s:bg-transform($FZX _cb notify scan {+1})" ]
+  echo 'FZX_ICON=x' > "$FZX_CONFIG_DIR/config.sh"
+  run "$FZX" -m counter
+  [[ "$(fzf_bind alt-s)" == "alt-s:change-prompt("*"x"*")+bg-transform($FZX _cb notify scan {+1})" ]]
+  rm -- "$FZX_CONFIG_DIR/config.sh"
+  run "$FZX_REPO/test/fixtures/modules/counter/module.sh"
+  local dir="$FZX_REPO/test/fixtures/modules/counter"
+  [ "$(fzf_bind alt-s)" = "alt-s:execute-silent($dir/actions.sh scan {+1})+reload($dir/source.sh)" ]
+}
+
+@test "background: the notify callback reloads once the action is done" {
+  echo 'action  mark  -  =  background,reload' >> "$FZX_CONFIG_DIR/modules/counter/components.tsv"
+  kept
+  FZX_SESSION="$SID" run "$FZX" _cb notify mark a
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"reload($FZX _cb source)+change-footer("*"mark the items"* ]]
+}
+
+@test "a reload key: the row takes FZX_KEYS[reload_hard] in place of fzx's reload, listed once, no warning" {
+  echo 'action  mark  reload  =  =' >> "$FZX_CONFIG_DIR/modules/counter/components.tsv"
+  kept
+  [ "$(fzf_bind_last ctrl-r)" = "ctrl-r:execute-silent($FZX _cb action mark {+1})+reload($FZX _cb source)" ]
+  grep -q $'^action\tmark\tctrl-r\tmark the items\tsilent,reload,reload-key$' "$DIR/meta/components"
+  ! grep -q "ctrl-r is bound twice" "$LOG"
+  # the user's reload key goes with it
+  "$FZX" gc --all > /dev/null
+  echo 'FZX_KEYS[reload_hard]=f5' > "$FZX_CONFIG_DIR/config.sh"
+  kept
+  [ "$(fzf_bind_last f5)" = "f5:execute-silent($FZX _cb action mark {+1})+reload($FZX _cb source)" ]
 }

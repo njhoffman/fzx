@@ -18,6 +18,8 @@ repos::opts() {
     --preview "$(fzx::cb preview '{1}')"
     "--preview-window=right,45%,nohidden"
   )
+  # shellcheck disable=SC2034  # read by lib/actions.sh (the actions menu's enter row)
+  FZX_ENTER_DESC="print the repository's path (the zsh widget cds there)"
   if fzx::in_session; then
     fzx::bind "${FZX_KEYS[repos.git]}" "transform:$(fzx::cb nav goto git '{1}')" "the git module on the repository"
     fzx::bind "${FZX_KEYS[repos.files]}" "transform:$(fzx::cb nav goto files '{1}')" "browse the repository's files"

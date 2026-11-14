@@ -1,5 +1,5 @@
 # kind  name  key  description  flags
-mode    here     -  the TODO.md of this repository                        default
+mode    here     -  the nearest TODO.md, here or a parent up to ~           default
 mode    all      -  every TODO.md: ghq's repositories, repositories under ~, dotbare's config directories (ctrl-r rescans)  -
 toggle  done     alt-d  completed items too                               -
 sort    urgency  -  open first, then overdue, priority, due date, file order  default

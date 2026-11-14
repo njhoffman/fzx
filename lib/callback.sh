@@ -405,7 +405,18 @@ fzx::_cb_notify() {
   [[ -n "$color" && -z "${NO_COLOR:+x}" ]] && msg=$'\e['"${color}m$msg"$'\e[0m'
   fzx::require opts
   fzx::action_arg change-footer "$msg" act || act="change-footer(${msg//[()]/})"
-  printf '%s+bg-cancel+bg-transform-footer(sleep %s; %s)' "$act" "${FZX_NOTIFY_SECONDS:-2}" "$(fzx::cb footer)"
+  # a background action (lib/actions.sh) reloads or restarts only now that it is done
+  local flags="" pre="" post=""
+  fzx::comp_field action "$name" flags flags 2> /dev/null || flags=""
+  if [[ ",$flags," == *,background,* ]]; then
+    if [[ ",$flags," == *,restart,* ]]; then
+      post="+transform($(fzx::cb nav restart))"
+    elif [[ ",$flags," == *,reload,* ]]; then
+      fzx::reload_action "$(fzx::cb source)" pre
+      pre+="+"
+    fi
+  fi
+  printf '%s%s+bg-cancel+bg-transform-footer(sleep %s; %s)%s' "$pre" "$act" "${FZX_NOTIFY_SECONDS:-2}" "$(fzx::cb footer)" "$post"
 }
 
 # fzx::_cb_call <script> <function> [args...]
