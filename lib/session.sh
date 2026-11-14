@@ -123,6 +123,12 @@ fzx::bg_stop() {
   return 0
 }
 
+# fzx::session_goto_args <args...>: the args `nav goto --ancestor` matches this session by, when its own differ
+# in form (files: none, or a relative or symlinked directory, where goto passes the resolved one)
+fzx::session_goto_args() {
+  printf '%s\0' "$@" > "$FZX_SESSION_DIR/meta/goto_args"
+}
+
 # module arguments stored at creation, into the FZX_ARGS array
 # shellcheck disable=SC2034  # FZX_ARGS is the output, read by callers
 fzx::session_args() {

@@ -184,6 +184,15 @@ STUB
   [ "$output" = "unbind(change)+enable-search+change-query()+change-header[~${B#"$HOME"}  grep: needle  (ctrl-t greps again)]" ] ||
     [ "$output" = "unbind(change)+enable-search+change-query()+change-header[$B  grep: needle  (ctrl-t greps again)]" ]
   [ "$(cat "$FZX_SESSION_DIR/state/files_grep_term")" = needle ]
+  # alt-a's rg flags lead the header, so a long path cannot push them off the edge
+  if command -v rg > /dev/null; then
+    fzx::state_set files_flags_rg '-uu'
+    fzx::state_set files_grep_filter ""
+    FZF_QUERY="needle" run "$FZX" _cb transform filter
+    [[ "$output" == *"change-header[rg: -uu  "*"  grep: needle  (ctrl-t greps again)]" ]]
+    fzx::state_set files_flags_rg ''
+    fzx::state_set files_grep_filter 1
+  fi
   # filtering: the source greps the frozen term, whatever fzf's query
   run bash -c "source '$FZX_REPO/lib/core.sh'; fzx::require log session; source '$FILES/source.sh'; FZX_MODE=grep FZF_QUERY=x files::source '$B' | cut -f1 | sed 's:^$B/::' | sort"
   [ "${lines[0]}" = .dot ] && [[ "$output" == *top* ]]
@@ -449,7 +458,7 @@ srcs() { bash -c "source '$FZX_REPO/lib/core.sh'; fzx::require log session; sour
   fzx::state_set files_flags_fd '-E a'
   run "$FZX" --resume "$FZX_SESSION"
   read_fzf_args
-  [[ " ${FZF_ARGS[*]} " == *"  fd: -E a "* ]]
+  [[ " ${FZF_ARGS[*]} " == *" --header=fd: -E a  ${B/#$HOME/\~}"* ]]
   [[ "$(< "$FZX_SESSION_DIR/meta/view")" == fd[0-9]* ]]
 }
 
@@ -486,4 +495,26 @@ srcs() { bash -c "source '$FZX_REPO/lib/core.sh'; fzx::require log session; sour
   [ "$(< "$FZX_SESSIONS_DIR/$parent/state/files_flags_fd")" = "-d 2 -e sh" ]
   FZF_QUERY="" run "$FZX" _cb transform flags-apply
   [ -z "$(< "$FZX_SESSIONS_DIR/$parent/state/files_flags_fd")" ]
+}
+
+@test "files: alt-up and ctrl-o go back to a session above with that directory instead of stacking a new one" {
+  stub_fzf
+  local bp root child up other plain
+  bp="$(cd "$B" && pwd -P)"
+  # started with no directory: matched by the one it resolved to
+  (cd "$B" && "$FZX" --keep -m files)
+  root="$(< "$BATS_TEST_TMPDIR/fzf.session")"
+  [[ "$(fzf_bind alt-up)" == "alt-up:transform:$FZX _cb nav goto --ancestor files:files "* ]]
+  [[ "$(fzf_bind ctrl-o)" == "ctrl-o:transform:$FZX _cb nav goto --ancestor files:files {1}" ]]
+  child="$(FZX_SESSION="$root" "$FZX" _cb nav goto --ancestor files:files "$bp/a")"
+  child="${child#become:$FZX --resume }" child="${child%% *}"
+  [ -n "$child" ] && [ "$child" != "$root" ]
+  up="$(FZX_SESSION="$child" "$FZX" _cb nav goto --ancestor files:files "$bp")"
+  [ "$up" = "become:$FZX --resume $root -m :files" ]
+  # no session above holds the parent: a new one; without --ancestor always a child
+  other="$(FZX_SESSION="$child" "$FZX" _cb nav goto --ancestor files:files "${bp%/*}")"
+  other="${other#become:$FZX --resume }" other="${other%% *}"
+  [ "$other" != "$root" ] && [ "$other" != "$child" ]
+  plain="$(FZX_SESSION="$child" "$FZX" _cb nav goto files:files "$bp")"
+  [ "$plain" != "become:$FZX --resume $root -m :files" ]
 }

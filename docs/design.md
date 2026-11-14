@@ -799,6 +799,7 @@ Append-only `$XDG_STATE_HOME/fzx/stats.tsv`, one row per event:
 | `start` | owner, first launch | - | module and args |
 | `exit` | owner, when the tree ends, also from its EXIT trap when the terminal hangs up or it is killed (not SIGKILL); duration is the whole run; sid/module/mode are where the user ended (`state/current` on the root) | - | `rc:<n> accept\|nomatch\|error\|abort\|hangup\|term\|rc` (hangup and term count as aborts in `fzx stats`) |
 | `source` | load miss or hard reload | lines (`persist=none` streams to fzf through `tee`, a copy counted by `wc -l`) | `miss`, `reload`, `fail:<rc>` |
+| `search` | a live search's reload (`fzx::cb search` in a `change:reload` bind: once per keystroke), kept out of the source stats | lines | `-`, `fail:<rc>` |
 | `cache` | load served from cache | lines | `session`, `persistent` |
 | `action` | module action | items | `<action>:<rc>` |
 | `mode` | mode switch; mode column is the mode switched from | - | `<from>><to>[:restart]` |

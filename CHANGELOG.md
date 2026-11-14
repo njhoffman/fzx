@@ -6,6 +6,19 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.114.3] - 2026-11-13
+
+### Changed
+
+- Live searches (files grep and locate, git grep, github, youtube, packages) record each keystroke's reload as a
+  `search` stats event, so `fzx stats` and the menu's source times count real loads only.
+- files: the rg/fd flags label (alt-a) leads the header, before the path, so a long path no longer hides it.
+
+### Fixed
+
+- files: alt-up and ctrl-o return to a session already above in the tree for that directory instead of opening a
+  new one each time, so walking up and down no longer stacks sessions.
+
 ## [0.114.2] - 2026-11-13
 
 ### Changed

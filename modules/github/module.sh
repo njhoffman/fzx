@@ -103,7 +103,7 @@ github::opts() {
       "repos, code: filter the results with fzf instead of searching, and back"
   elif [[ "${FZX_MODE:-repos}" == repos || "${FZX_MODE:-repos}" == code ]]; then
     # standalone has no transform callback: search once typing pauses (GitHub allows 30 searches a minute)
-    FZX_OPTS+=(--bind "change:reload:sleep 1; $(fzx::cb source)")
+    FZX_OPTS+=(--bind "change:reload:sleep 1; $(fzx::cb search)")
   fi
 }
 

@@ -231,7 +231,7 @@ fzx::nav_sort() {
   fzx::_nav_apply sort "$sort"
 }
 
-# fzx::nav <resume | restart | back | escape | placement [next|prev|popup-toggle|P] | goto <module[:mode]> [module args...] | entry <module>#<n>>
+# fzx::nav <resume | restart | back | escape | placement [next|prev|popup-toggle|P] | goto [--ancestor] <module[:mode]> [module args...] | entry <module>#<n>>
 # Saves the query, cursor position and a hand-hidden preview of the current session, then prints become()
 # into the target.
 fzx::nav() {
@@ -420,7 +420,36 @@ fzx::_nav_entry() {
 }
 
 # go to a child session for <module> with these args, reusing it when one already exists
+# fzx::_nav_ancestor <module> <var> [module args...]: the nearest session above this one running <module> with
+# these args (its goto_args when it recorded them, see fzx::session_goto_args), into <var>; false for none
+fzx::_nav_ancestor() {
+  local _module="$1" _var="$2" _dir="$FZX_SESSION_DIR" _sid _m _depth=0 _args
+  shift 2
+  while fzx::_kv_get "$_dir/meta/parent" _sid && ((_depth++ < 32)); do
+    _dir="$FZX_SESSIONS_DIR/$_sid"
+    [[ -d "$_dir/meta" ]] || return 1
+    _m=""
+    fzx::_kv_get "$_dir/meta/module" _m || :
+    [[ "$_m" == "$_module" ]] || continue
+    _args="$_dir/meta/goto_args"
+    [[ -e "$_args" ]] || _args="$_dir/meta/args"
+    if (($#)); then
+      cmp -s -- "$_args" <(printf '%s\0' "$@") || continue
+    else
+      [[ ! -s "$_args" ]] || continue
+    fi
+    printf -v "$_var" '%s' "$_sid"
+    return 0
+  done
+  return 1
+}
+
+# fzx::_nav_goto [--ancestor] <module[:mode]> [module args...]: to the child session for these args, made on
+# first use. --ancestor: to a session above this one with the same module and args when there is one (files'
+# alt-up into a directory the tree came down through), so a walk up and down does not stack new sessions.
 fzx::_nav_goto() {
+  local ancestor=0
+  [[ "${1:-}" == --ancestor ]] && { ancestor=1; shift; }
   local target="${1:-}" module mode="" dir key child="" parent="$FZX_SESSION"
   shift
   module="${target%%:*}"
@@ -436,6 +465,12 @@ fzx::_nav_goto() {
   local keyed="$module"
   if [[ -n "$mode" ]] && (fzx::comp_load "$dir" "$module" && [[ " ${FZX_MODES_HIDDEN[*]} " == *" $mode "* ]]); then
     keyed="$target"
+  fi
+  if ((ancestor)) && [[ "$keyed" == "$module" ]] && fzx::_nav_ancestor "$module" child "$@"; then
+    fzx::log info "nav goto $target $* -> ancestor $child"
+    _FZX_STAT=(nav - "goto:$target")
+    fzx::_nav_become "$child" "$mode"
+    return
   fi
   key="$(printf '%s\0' "$keyed" "$@" | md5sum)"
   key="${key%% *}"

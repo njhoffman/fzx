@@ -29,11 +29,13 @@ files::opts() {
   if fzx::in_session; then
     [[ -n "$flags" ]] && view="$tool$(printf '%s' "$flags" | cksum | cut -d' ' -f1)"
     fzx::meta_set view "$view"
+    # alt-up and into find this session again by its resolved directory (fzx::_nav_goto --ancestor)
+    fzx::session_goto_args "$FILES_BASE"
   fi
   FZX_OPTS+=(
     --delimiter=$'\t'
     "--preview-window=right,55%,nohidden"
-    "--header=${FILES_BASE/#$HOME/\~}$label"
+    "--header=$label${FILES_BASE/#$HOME/\~}"
   )
   if [[ "$FZX_MODE" == replace ]]; then
     # the query is the replacement: rows and preview follow it, enter applies it
@@ -42,9 +44,9 @@ files::opts() {
       --accept-nth='{1}:{2}'
       --disabled
       --multi
-      --bind "change:reload:sleep 0.1; $(fzx::cb source)"
+      --bind "change:reload:sleep 0.1; $(fzx::cb search)"
       --preview "$(fzx::cb preview '{1}' '{2}' '{q}')"
-      "--header=${FILES_BASE/#$HOME/\~}$label  replace: $FILES_TERM  (type the replacement; \$1 is a group, \$\$ a dollar; enter applies to the selected or every match)"
+      "--header=$label${FILES_BASE/#$HOME/\~}  replace: $FILES_TERM  (type the replacement; \$1 is a group, \$\$ a dollar; enter applies to the selected or every match)"
     )
     FZX_ACTION_ARGS_FOR['apply']='{q} {+1} -- {+2}'
     FZX_ACTION_ARGS_FOR['edit']='{1} {2}'
@@ -62,7 +64,7 @@ files::opts() {
       --with-nth=3
       --accept-nth='{1}:{2}'
       --disabled
-      --bind "change:reload:sleep 0.1; $(fzx::cb source)"
+      --bind "change:reload:sleep 0.1; $(fzx::cb search)"
       --preview "$(fzx::cb preview '{1}' '{2}')"
     )
     FZX_ACTION_ARGS='{1} {2}'
@@ -80,8 +82,8 @@ files::opts() {
       # the query is locate's words: the database answers, fzf does not filter
       local db="" age=""
       files::locate_db db && files::_age "$db" age
-      FZX_OPTS+=(--disabled --bind "change:reload:sleep 0.1; $(fzx::cb source)"
-        "--header=${FILES_BASE/#$HOME/\~}$label  locate${age:+ (database $age old: updatedb refreshes it)}")
+      FZX_OPTS+=(--disabled --bind "change:reload:sleep 0.1; $(fzx::cb search)"
+        "--header=$label${FILES_BASE/#$HOME/\~}  locate${age:+ (database $age old: updatedb refreshes it)}")
     fi
   fi
   if [[ "$FZX_MODE" == grep ]] && fzx::in_session; then
@@ -99,16 +101,11 @@ files::opts() {
   fi
   if fzx::in_session; then
     local parent="${FILES_BASE%/*}"
-    fzx::bind "${FZX_KEYS[files.into]}" "transform:$(fzx::cb nav goto "files:$FZX_MODE" '{1}')" \
+    fzx::bind "${FZX_KEYS[files.into]}" "transform:$(fzx::cb nav goto --ancestor "files:$FZX_MODE" '{1}')" \
       "browse the directory under the cursor"
-    fzx::bind "${FZX_KEYS[files.up]}" "transform:$(fzx::cb nav goto "files:$FZX_MODE" "$(printf '%q' "${parent:-/}")")" \
+    fzx::bind "${FZX_KEYS[files.up]}" "transform:$(fzx::cb nav goto --ancestor "files:$FZX_MODE" "$(printf '%q' "${parent:-/}")")" \
       "browse the parent directory"
   fi
-}
-
-# files::flags_label <tool> <flags> <var>: "  rg: FLAGS" for the header, empty without flags
-files::flags_label() {
-  if [[ -n "$2" ]]; then printf -v "$3" '  %s: %s' "$1" "$2"; else printf -v "$3" ''; fi
 }
 
 # files::opts_flags: the args screen (alt-a, a child of the screen it edits): the rows list the flags allowed,

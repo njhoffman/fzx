@@ -43,7 +43,7 @@ youtube::opts() {
       "the video's formats, to download one"
   else
     # standalone has no transform callback: search as you type, once typing pauses
-    FZX_OPTS+=(--bind "change:reload:sleep 0.5; $(fzx::cb source)")
+    FZX_OPTS+=(--bind "change:reload:sleep 0.5; $(fzx::cb search)")
   fi
 }
 

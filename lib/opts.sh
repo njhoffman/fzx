@@ -10,7 +10,7 @@ fzx::cb() {
   shift
   if [[ -n "${FZX_STANDALONE:-}" ]]; then
     case "$verb" in
-      load | source) printf -v cmd '%q ' "$FZX_MODULE_DIR/source.sh" "${FZX_ARGS[@]}" ;;
+      load | source | search) printf -v cmd '%q ' "$FZX_MODULE_DIR/source.sh" "${FZX_ARGS[@]}" ;;
       preview) printf -v cmd '%q ' "$FZX_MODULE_DIR/preview.sh" ;;
       action) printf -v cmd '%q ' "$FZX_MODULE_DIR/actions.sh" ;;
       *)

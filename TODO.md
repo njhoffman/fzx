@@ -165,6 +165,9 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       CLI's own startup (modules/aws/preview.sh). Answers are kept in the session for FZX_AWS_PREVIEW_TTL seconds.
 - [x] **kdeconnect** (p3) [module]: `fzx -m kdeconnect[:notifications|:commands]`: devices with their battery,
       notifications, remote commands; ping, ring, share, text, clipboard, keys, SMS, lock, pair.
+- [ ] **kdeconnect: the chat watcher test fails under load** (p3) [test]: test/kdeconnect.bats "chat watcher: a
+      reload for each change in its thread" saw fewer than 4 posts in a full parallel run at load ~30 (passes
+      alone, even at load 43). Wait for the posts with a bounded poll instead of a fixed sleep.
 - [ ] **kdeconnect: actions unchecked on a real device** (p3) [test]: ping, shared text and the lists ran against a
       Galaxy Z Fold7 (2026-11-03). Only stubbed: ring, clipboard, share of a file, keys, sending an SMS, dismiss, pair
       and unpair, which reach the phone or a person. Lock, unlock and commands need a device with lockdevice and
@@ -225,21 +228,21 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [x] **Undocumented fzf behaviour we depend on** (p3) [test]: `become()` inside a `--popup` runs in the original
       terminal, so every launch re-requests the popup (`fzx::_placement`). Observed on fzf 0.74 (devel);
       re-check on every fzf upgrade with the popup test in design.md's popout notes.
-- [ ] **grep mode stats noise** (p3) [bug]: every keystroke in `files:grep` records a `source reload` row;
+- [x] **grep mode stats noise** (p3) [bug]: every keystroke in `files:grep` records a `source reload` row;
       record live-search reloads as their own event or not at all.
 - [x] **tmux formats screen is slow** (p3) [perf]: `fzx -m tmux:formats` takes 1-7s on the main server: one
       `display-message` per template (21 here), each running the status line's `#(...)` jobs. Joining the
       templates into one `display-message` mis-splits (tmux's parser runs across them), and a `;` command
       sequence of display-messages also came back short; find out why (modules/tmux/reference.py
       `tmux_sequence`), or skip `#(...)` when rendering samples.
-- [ ] **`files` alt-up** (p3) [bug]: each parent directory becomes a new child session instead of reusing an
+- [x] **`files` alt-up** (p3) [bug]: each parent directory becomes a new child session instead of reusing an
       existing ancestor in the tree; harmless (cleaned on exit) but deep trees and long labels.
 - [x] **Stats prune** (p3) [bug] can drop rows appended while the file is being rewritten.
 - [ ] **nvcat is slow for previews** (p3) [perf]: about 300-1200ms per focus change (it starts Neovim), for
       markdown and every filetype `nvcat-dispatch` claims (any *.conf, systemd units, ...); files over
       FZX_PREVIEW_NVCAT_MAX_LINES already go to bat. Cache its output under $FZX_CACHE_DIR keyed by path,
       mtime and width (lib/render.sh, fzx::_render_nvcat), or keep one Neovim running.
-- [ ] **files: the flags label falls off long paths** (p3) [bug]: the header shows the extra rg/fd flags
+- [x] **files: the flags label falls off long paths** (p3) [bug]: the header shows the extra rg/fd flags
       (alt-a, 0.110.0) as "  rg: FLAGS" after the base path, so on a long path the label is cut off at the
       terminal's edge and the flags in effect are hidden. Put the label before the path, or shorten the
       path first.

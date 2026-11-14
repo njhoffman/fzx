@@ -543,7 +543,7 @@ subjects() { git log --format=%s "$@" | tr '\n' ' '; }
   run "$FZX" -m git:grep
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " == *" --with-nth=3 "* && " ${FZF_ARGS[*]} " == *" --disabled "* && " ${FZF_ARGS[*]} " == *" --accept-nth={1}:{2} "* ]]
-  [[ "$(fzf_bind change)" == "change:reload:sleep 0.1; $FZX _cb source"* ]]
+  [[ "$(fzf_bind change)" == "change:reload:sleep 0.1; $FZX _cb search"* ]]
 }
 
 @test "clean: lists what git clean would remove; alt-x asks, naming them, and removes only those; ignored with the toggle" {

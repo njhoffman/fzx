@@ -53,7 +53,7 @@ git::opts() {
       --with-nth=3
       --accept-nth='{1}:{2}'
       --disabled
-      --bind "change:reload:sleep 0.1; $(fzx::cb source)"
+      --bind "change:reload:sleep 0.1; $(fzx::cb search)"
       --preview "$(fzx::cb preview "$a" '{1}' '{2}')"
     )
   fi

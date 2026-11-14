@@ -271,10 +271,11 @@ files::transform() {
   fzx::session_args
   files::base "${FZX_ARGS[0]:-}" || return
   text="${FILES_BASE/#$HOME/\~}"
-  # alt-a's rg flags stay in the header
-  local flags=""
+  # alt-a's rg flags stay in the header, in front of the path (files::flags_label)
+  local flags="" label
   command -v rg > /dev/null && files::flags_get rg flags
-  [[ -n "$flags" ]] && text+="  rg: $flags"
+  files::flags_label rg "$flags" label
+  text="$label$text"
   fzx::require opts
   fzx::state_get files_grep_filter on 2> /dev/null || on=""
   if [[ -z "$on" ]]; then

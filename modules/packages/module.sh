@@ -31,10 +31,10 @@ packages::opts() {
   if fzx::in_session; then
     # every mode binds the search's reload, unbound outside search, so switching to or from it needs no
     # restart (packages::refresh rebinds or unbinds it)
-    FZX_OPTS+=(--bind "change:reload:sleep 0.3; $(fzx::cb source)")
+    FZX_OPTS+=(--bind "change:reload:sleep 0.3; $(fzx::cb search)")
     [[ "${FZX_MODE:-}" == search ]] || FZX_OPTS+=(--bind "start:+unbind(change)")
   elif [[ "${FZX_MODE:-}" == search ]]; then
-    FZX_OPTS+=(--bind "change:reload:sleep 0.3; $(fzx::cb source)")
+    FZX_OPTS+=(--bind "change:reload:sleep 0.3; $(fzx::cb search)")
   fi
   FZX_OPTS+=("--header=$header")
 }

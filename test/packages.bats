@@ -607,7 +607,7 @@ stub_registries() {
   [ "$status" -eq 0 ]
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " == *" --disabled "* ]]
-  [[ " ${FZF_ARGS[*]} " == *" change:reload:sleep 0.3; $FZX _cb source "* ]]
+  [[ " ${FZF_ARGS[*]} " == *" change:reload:sleep 0.3; $FZX _cb search "* ]]
   [[ " ${FZF_ARGS[*]} " == *" --header=type to search; "* ]]
 }
 

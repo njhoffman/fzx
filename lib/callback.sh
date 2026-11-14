@@ -2,7 +2,8 @@
 # callback: handlers behind `fzx _cb <verb>`, invoked by fzf binds. Keep the load path minimal:
 # preview runs on every focus change, so it loads only log and session.
 
-# fzx::callback <load|source|preview|action|transform|mode|nav|layout|prompt> [args...]
+# fzx::callback <load|source|search|preview|action|transform|mode|nav|layout|prompt> [args...]
+# search: source for a live search (a change:reload bind, once per keystroke), its stats row a search event
 # transform <name> [args]: <module>::transform from actions.sh, which prints fzf actions
 # Handlers describe their stats row in _FZX_STAT=(event count detail [mode]); preview never does.
 fzx::callback() {
@@ -18,6 +19,7 @@ fzx::callback() {
   case "$verb" in
     load) fzx::_cb_load ;;
     source) fzx::_cb_source reload ;;
+    search) fzx::_cb_source search ;;
     preview) fzx::_cb_call preview preview "$@" ;;
     action)
       fzx::_cb_action "$@" 2>> "$FZX_LOG_FILE"
@@ -264,10 +266,11 @@ fzx::freeze_rows() {
     }'
 }
 
-# fzx::_cb_source <miss|reload>: run the module source, streaming to fzf while writing the cache;
-# the cache is only replaced on success
+# fzx::_cb_source <miss|reload|search>: run the module source, streaming to fzf while writing the cache;
+# the cache is only replaced on success. A search's row is its own event, so the source stats count loads.
 fzx::_cb_source() {
-  local why="${1:-reload}" data tmp rc lines persist file view
+  local why="${1:-reload}" data tmp rc lines persist file view event=source
+  [[ "$why" == search ]] && event=search why=-
   fzx::_cb_import source source || return
   fzx::_cb_mode
   fzx::_cb_persist persist
@@ -282,7 +285,7 @@ fzx::_cb_source() {
     [[ -s "$count" ]] && read -r lines < "$count"
     rm -f -- "$count"
     ((rc == 0)) || fzx::log error "source failed mode=$FZX_MODE rc=$rc"
-    if ((rc == 0)); then _FZX_STAT=(source "${lines// /}" "$why"); else _FZX_STAT=(source - "fail:$rc"); fi
+    if ((rc == 0)); then _FZX_STAT=("$event" "${lines// /}" "$why"); else _FZX_STAT=("$event" - "fail:$rc"); fi
     return "$rc"
   fi
 
@@ -294,13 +297,13 @@ fzx::_cb_source() {
   if ((rc != 0)); then
     rm -f -- "$tmp"
     fzx::log error "source failed mode=$FZX_MODE rc=$rc, cache kept"
-    _FZX_STAT=(source - "fail:$rc")
+    _FZX_STAT=("$event" - "fail:$rc")
     return "$rc"
   fi
   mv -f -- "$tmp" "$data"
   lines="$(fzx::_cb_count < "$data")"
   fzx::log info "source: mode=$FZX_MODE ${lines// /} lines"
-  _FZX_STAT=(source "${lines// /}" "$why")
+  _FZX_STAT=("$event" "${lines// /}" "$why")
 
   if [[ "$persist" == cache:* ]] && fzx::_cb_persistent_path file; then
     if ! { mkdir -p -- "${file%/*}" && cp -f -- "$data" "$file.$BASHPID" && mv -f -- "$file.$BASHPID" "$file"; }; then

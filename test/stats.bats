@@ -89,6 +89,19 @@ kept_session() {
   [ "$(rows cache)" = "counter one 2 session" ]
 }
 
+@test "a live search (fzx _cb search) records search rows, not source ones; the summary counts only loads" {
+  kept_session
+  "$FZX" _cb load > /dev/null
+  "$FZX" _cb search > /dev/null
+  "$FZX" _cb search > /dev/null
+  COUNTER_FAIL=1 "$FZX" _cb search > /dev/null || true
+  [ "$(rows source)" = "counter one 2 miss" ]
+  [ "$(rows search | tr '\n' ',')" = "counter one 2 -,counter one 2 -,counter one - fail:3," ]
+  run "$FZX" stats
+  [[ "${lines[1]}" == counter*" 1 "* ]]
+  [[ "${lines[1]}" != *failed* ]]
+}
+
 @test "a persistent cache hit is recorded as such" {
   mkdir -p "$FZX_CONFIG_DIR/modules/counter"
   echo 'FZX_PERSIST=cache:1h' > "$FZX_CONFIG_DIR/modules/counter/config.sh"

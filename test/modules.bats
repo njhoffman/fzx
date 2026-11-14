@@ -92,12 +92,12 @@ need() { command -v "$1" > /dev/null || skip "$1 not installed"; }
   cd "$TREE"
   run "$FZX" -m files
   [ "$(fzf_bind ctrl-e)" = "ctrl-e:execute($FZX _cb action edit {+1})" ]
-  [ "$(fzf_bind alt-up)" = "alt-up:transform:$FZX _cb nav goto files:files $(cd "$BATS_TEST_TMPDIR" && pwd -P)" ]
+  [ "$(fzf_bind alt-up)" = "alt-up:transform:$FZX _cb nav goto --ancestor files:files $(cd "$BATS_TEST_TMPDIR" && pwd -P)" ]
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " == *" --accept-nth=1 "* && " ${FZF_ARGS[*]} " == *" --scheme=path "* ]]
   run "$FZX" -m files:grep
   [ "$(fzf_bind ctrl-e)" = "ctrl-e:execute($FZX _cb action edit {1} {2})" ]
-  [ "$(fzf_bind change)" = "change:reload:sleep 0.1; $FZX _cb source" ]
+  [ "$(fzf_bind change)" = "change:reload:sleep 0.1; $FZX _cb search" ]
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " == *" --disabled "* && " ${FZF_ARGS[*]} " == *" --accept-nth={1}:{2} "* ]]
   load_libs log session

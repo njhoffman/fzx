@@ -6,6 +6,7 @@
 #   exit    the tree ended                            duration: whole run, sid/module/mode: where it ended,
 #                                                     detail: rc:<n> <accept|nomatch|error|abort|hangup|term|rc>
 #   source  the module source ran                     count: lines, detail: miss|reload|fail:<rc>
+#   search  the source ran for a live search          count: lines, detail: -|fail:<rc> (a change:reload bind)
 #   cache   data served from cache                    count: lines, detail: session|persistent
 #   action  a module action ran                       count: items, detail: <action>:<rc>
 #   mode    mode switch                               detail: <from>><to>[:restart]

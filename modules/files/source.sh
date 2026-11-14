@@ -273,6 +273,12 @@ files::_flags_file() {
   printf -v "$2" '%s/%s/state/files_flags_%s' "$FZX_SESSIONS_DIR" "$_ff_root" "$1"
 }
 
+# files::flags_label <tool> <flags> <var>: "rg: FLAGS  " for the front of the header (before the path, so a long
+# path is what the terminal's edge cuts off, not the flags in effect), empty without flags
+files::flags_label() {
+  if [[ -n "$2" ]]; then printf -v "$3" '%s: %s  ' "$1" "$2"; else printf -v "$3" ''; fi
+}
+
 # files::flags_get <rg|fd> <var> / files::flags_set <rg|fd> <text>: the flags alt-a set in this session tree
 # (every files screen of it: they stay through into, up, alt-r and mode changes); empty outside a session
 files::flags_get() {
