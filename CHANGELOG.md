@@ -6,6 +6,13 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.113.1] - 2026-11-13
+
+### Fixed
+
+- A list cut short (fzf quitting while it loads, or `head` in a pipe) no longer adds "Broken pipe" from the emoji
+  filter to the output where SIGPIPE is ignored, as in CI: 0.113.0's history list failed its header-row test there.
+
 ## [0.113.0] - 2026-11-13
 
 ### Fixed

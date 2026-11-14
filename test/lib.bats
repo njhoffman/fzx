@@ -59,6 +59,11 @@ setup() {
     run env PATH="$BATS_TEST_TMPDIR/$awk:$PATH" bash -c 'source "$1/lib/core.sh"; fzx::glyphs_plain 2 3 <<< "$2"' _ "$FZX_REPO" "$row"
     [ "$output" = "id-$heart"$'\t'"shown $(printf '\u2764')"$'\t'"also $(printf '\U1F44D')"$'\t'"kept $skin" ]
   done
+  # a reader that stops early: nothing on stderr, even with SIGPIPE ignored (CI runners start jobs so)
+  # (the feeders' own complaints, seq's and sed's, are not the helper's)
+  run bash -c 'trap "" PIPE; source "$1/lib/core.sh"; seq 200000 2> /dev/null | fzx::glyphs_plain | head -c 10 > /dev/null;
+    { seq 200000 | sed "s/$/\t/"; } 2> /dev/null | fzx::glyphs_plain 2 | head -c 10 > /dev/null' _ "$FZX_REPO"
+  [ -z "$output" ]
   # a field past the end of a row adds nothing
   [ "$(fzx::glyphs_plain 9 <<< $'a\tb')" = $'a\tb' ]
   [ "$(printf '1\tx%s\ny\0002\tz\0' "$heart" | fzx::glyphs_plain -z | tr '\0' '|')" = "1"$'\t'"x$(printf '\u2764')"$'\n'"y|2"$'\t'"z|" ]

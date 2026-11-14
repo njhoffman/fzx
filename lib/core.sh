@@ -100,18 +100,20 @@ FZX_AWK_PLURAL='function plural(n, w, p) { n += 0; return n " " (n == 1 ? w : (p
 # the zero-width joiner (U+200D: a family emoji draws as its members) and the keycap mark (U+20E3). Zero-width
 # spaces, direction marks and plain wide emoji agree already and stay. With FIELD numbers only those tab-separated
 # fields change (a display column, never an id); -z takes NUL-separated records whole. FZX_GLYPHS_PLAIN=0 passes
-# everything through (a terminal that draws them as fzf counts them). Byte patterns, so any locale and awk do.
+# everything through (a terminal that draws them as fzf counts them). Byte patterns, so any locale and awk do. A
+# reader that stops early (fzf leaving, head) is no error worth a word: with SIGPIPE ignored, as CI runners start
+# jobs, sed and awk would say "Broken pipe" on stderr, which lands in the list.
 fzx::glyphs_plain() {
   if [[ "${FZX_GLYPHS_PLAIN:-1}" == 0 ]]; then
     command cat
   elif [[ "${1:-}" == -z || $# -eq 0 ]]; then
-    LC_ALL=C sed -u ${1:+-z} -e 's/\xef\xb8[\x8e\x8f]//g; s/\xe2\x80\x8d//g; s/\xf0\x9f\x8f[\xbb-\xbf]//g; s/\xe2\x83\xa3//g'
+    LC_ALL=C sed -u ${1:+-z} -e 's/\xef\xb8[\x8e\x8f]//g; s/\xe2\x80\x8d//g; s/\xf0\x9f\x8f[\xbb-\xbf]//g; s/\xe2\x83\xa3//g' 2> /dev/null
   else
     local IFS=,
     LC_ALL=C awk -F'\t' -v OFS='\t' -v fields="$*" 'BEGIN { n = split(fields, f, ",") }
       { for (i = 1; i <= n; i++) if (f[i] + 0 <= NF)
           gsub(/\357\270[\216\217]|\342\200\215|\360\237\217[\273-\277]|\342\203\243/, "", $(f[i]))
-        print; fflush() }'
+        print; fflush() }' 2> /dev/null
   fi
 }
 
