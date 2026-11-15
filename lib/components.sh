@@ -269,27 +269,35 @@ fzx::data_key() {
 
 # fzx::mode_desc <description> <mode> <var> <modes...>: the part of a mode-scoped description that names
 # the mode. A scoped description is "; "-separated parts, each "MODE[, MODE...]: text" with known modes
-# (the ones given): "status: stage the files; log, reflog: cherry-pick" in log gives "cherry-pick". Fails
-# when no part names the mode; any other description (or no mode) comes back whole.
+# (the ones given): "status: stage the files; log, reflog: cherry-pick" in log gives "cherry-pick". Only a
+# "; " followed by a scope (mode-shaped names, then ": ") starts a part: any other stays in the text
+# ("log: reset (asks soft or mixed; hard with ...)"). Fails when no part names the mode; a description
+# that does not start with a scope, or whose scopes name a mode not given, comes back whole (as does any
+# description without a mode).
 fzx::mode_desc() {
-  local __md_d="$1" __md_mode="$2" __md_var="$3" __md_rest __md_seg __md_n __md_hit="" __md_found=0
+  local __md_d="$1" __md_mode="$2" __md_var="$3" __md_rest __md_chunk __md_seg __md_n __md_hit="" __md_found=0
   local -a __md_segs=() __md_names=()
+  local __md_scope='^[A-Za-z0-9_-]+(, ?[A-Za-z0-9_-]+)*: '
   shift 3
-  if [[ -z "$__md_mode" || "$__md_d" != *": "* ]]; then
+  if [[ -z "$__md_mode" || ! "$__md_d" =~ $__md_scope ]]; then
     printf -v "$__md_var" '%s' "$__md_d"
     return 0
   fi
   __md_rest="$__md_d"
-  while [[ "$__md_rest" == *"; "* ]]; do
-    __md_segs+=("${__md_rest%%; *}")
-    __md_rest="${__md_rest#*; }"
-  done
-  __md_segs+=("$__md_rest")
-  for __md_seg in "${__md_segs[@]}"; do
-    if [[ "$__md_seg" != *": "* ]]; then
-      printf -v "$__md_var" '%s' "$__md_d"
-      return 0
+  while [[ -n "$__md_rest" ]]; do
+    if [[ "$__md_rest" == *"; "* ]]; then
+      __md_chunk="${__md_rest%%; *}" __md_rest="${__md_rest#*; }"
+    else
+      __md_chunk="$__md_rest" __md_rest=""
     fi
+    # text that is not a scope belongs to the part before it, its "; " kept
+    if ((${#__md_segs[@]})) && [[ ! "$__md_chunk" =~ $__md_scope ]]; then
+      __md_segs[-1]+="; $__md_chunk"
+    else
+      __md_segs+=("$__md_chunk")
+    fi
+  done
+  for __md_seg in "${__md_segs[@]}"; do
     IFS=, read -ra __md_names <<< "${__md_seg%%: *}"
     for __md_n in "${__md_names[@]}"; do
       __md_n="${__md_n# }"

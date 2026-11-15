@@ -609,3 +609,13 @@ back: Zero 7 - The Pageant)" ]
   music::applicable music:smart
   [ ! -s "$BATS_TEST_TMPDIR/musicman.calls" ]
 }
+
+@test "f1: rate and tags are listed in the queue and an album's or a playlist's songs only" {
+  run bash -c 'source "$1/lib/core.sh"; fzx::require log config components; FZX_MODULE=music FZX_MODULE_DIR="$2"
+    fzx::comp_load "$2" music; d="$(fzx::comp_rows action | awk -F"\t" "\$2 == \"rate\" { print \$4 }")"
+    modes=(); while IFS=$'"'"'\t'"'"' read -r _ n _; do modes+=("$n"); done < <(fzx::comp_rows mode)
+    for m in queue tracks artists albums playlists smart; do out=""; fzx::mode_desc "$d" "$m" out "${modes[@]}"; echo "$m=$out"; done' _ "$FZX_REPO" "$MUSIC"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"queue=rate the selected songs"* && "$output" == *"tracks=rate the selected songs"* ]]
+  [[ "$output" == *"artists="$'\n'* && "$output" == *"albums="$'\n'* && "$output" == *"playlists="$'\n'* ]]
+}

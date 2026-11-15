@@ -71,8 +71,41 @@ load_own() {
   [ "$out" = "$d" ]
   fzx::mode_desc "note: plain text" log out status log
   [ "$out" = "note: plain text" ]
-  fzx::mode_desc "status: x; and some prose" log out status log
-  [ "$out" = "status: x; and some prose" ]
+  fzx::mode_desc "your crontab: crontab -e; another user's: sudo" log out status log
+  [ "$out" = "your crontab: crontab -e; another user's: sudo" ]
+  # a scope naming a mode the table lacks: whole, in every mode
+  fzx::mode_desc "status: x; gone: y" log out status log
+  [ "$out" = "status: x; gone: y" ]
+}
+
+@test "mode_desc: a \"; \" not followed by a scope stays in the part's text" {
+  load_libs components
+  local d='log, reflog: reset (asks soft or mixed; hard with X=1); status: unstage; the index only' out
+  fzx::mode_desc "$d" reflog out status log reflog
+  [ "$out" = "reset (asks soft or mixed; hard with X=1)" ]
+  fzx::mode_desc "$d" status out status log reflog
+  [ "$out" = "unstage; the index only" ]
+  fzx::mode_desc "status: x; and some prose" status out status log
+  [ "$out" = "x; and some prose" ]
+  ! fzx::mode_desc "status: x; and some prose" log out status log
+}
+
+@test "every module's scoped descriptions name only modes its table has" {
+  local m bad=""
+  for m in "$FZX_REPO"/modules/*/; do
+    m="$(basename "$m")"
+    bad+="$(bash -c 'source "$1/lib/core.sh"; fzx::require log config components; FZX_MODULE="$2" FZX_MODULE_DIR="$1/modules/$2"
+      fzx::comp_load "$FZX_MODULE_DIR" "$2" 2> /dev/null
+      modes=(); while IFS=$'"'"'\t'"'"' read -r _ n _; do modes+=("$n"); done < <(fzx::comp_rows mode)
+      ((${#modes[@]})) || exit 0
+      re="^[A-Za-z0-9_-]+(, ?[A-Za-z0-9_-]+)*: "
+      while IFS=$'"'"'\t'"'"' read -r k n _ d _; do
+        [[ "$d" =~ $re ]] || continue
+        hit=0; for mode in "${modes[@]}"; do fzx::mode_desc "$d" "$mode" out "${modes[@]}" && [[ "$out" != "$d" ]] && hit=1; done
+        ((hit)) || echo "$2 $k $n: $d"
+      done < <(fzx::comp_rows action; fzx::comp_rows toggle; fzx::comp_rows sort)' _ "$FZX_REPO" "$m")"
+  done
+  [ -z "$bad" ]
 }
 
 @test "user rows replace by kind+name; '=' keeps a field, 'off' removes, new names are added" {

@@ -7,6 +7,6 @@ action  connect     alt-c   connect (the output stays on a failure)             
 action  disconnect  alt-d   disconnect                                                         notify,reload
 action  pair        alt-p   pair, trust and connect (asks for a PIN when the device wants one)  foreground,reload
 action  trust       alt-t   trust or untrust (each device flips)                               notify,reload
-action  remove      alt-x   remove: unpair and forget                                          foreground,confirm,reload
+action  remove      alt-x   unpair and forget the devices                                      foreground,confirm,reload
 action  power       alt-P   power the controller on or off                                     notify,reload
 action  copy        ctrl-y  copy the addresses                                                 silent,builtin

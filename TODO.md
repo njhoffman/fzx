@@ -129,10 +129,19 @@ Reviewed: 2026-11-11
         words; the preview has no grouping counts or songs without a Spotify id (`smart show` gives artist,
         title, rating and file); alt-B stays in f1 whenever musicman is there (the table is fixed at launch),
         and says so in the footer when there is no back point.
-- [ ] **music: rate and tags listed in modes without songs** (p3) [bug]: their descriptions are scoped
+- [x] **music: rate and tags listed in modes without songs** (p3) [bug]: their descriptions are scoped
       `queue, songs:`, and `songs` is not a mode, so `fzx::mode_desc` takes the whole description as
       unscoped and f1 lists them in artists, albums, playlists and smart, where they refuse. Scope them to
       `queue, tracks:` (modules/music/components.tsv).
+      Also its "(musicman; asks ...)": a "; " inside the text ends a part, and a part that names no mode
+      makes the whole description unscoped (the item below).
+- [x] **A "; " inside a scoped description unscopes it** (p2) [bug]: `fzx::mode_desc` (lib/components.sh)
+      splits on every "; ", so text like "(asks soft or mixed; hard with ...)" makes a part without
+      "MODE: ", and the whole description then applies in every mode: f1 and the actions menu list the row
+      everywhere, and a scoped toggle shows in every footer. Hit now: bluetooth scan (all:), docker run
+      (images:), files multiline (grep:), git reset (log, reflog:). Fix in the lib, splitting only at a
+      "; " followed by known modes and ": " (robust, one place), or reword the four rows (no lib change,
+      but the next description falls into it again); plus a test that scans every module's table.
 - [ ] **snippets and paste history** (p3) [feature]: both kinds: an automatic history of what capture and tmux
       buffers paste (newest first, under FZX_STATE_DIR), and named snippets saved on purpose (snippetdb's
       put/get/remove/list). Open: a capture mode, or a module of its own that the zsh widgets can use

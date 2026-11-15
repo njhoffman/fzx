@@ -279,7 +279,7 @@ gets a binding straight to that mode. A mode flagged `hidden` is left out of the
 name (`-m git:commit`, or `fzx::nav goto` from a drill-down key); a session opened in one has that mode alone.
 An action's description may be scoped by mode, "; "-separated parts of the form `MODE[, MODE]: text`
 (`status: stage the files; stash: pop the stash`): the f1 help and the actions menu show the current mode's
-part and leave the action out in modes no part names (`fzx::mode_desc`). One key then serves as a verb
+part and leave the action out in modes no part names (`fzx::mode_desc`). A part starts only at a "; " followed by mode names and ": "; any other "; " is part of the text (`(asks soft or mixed; hard with ...)`), and test/components.bats checks that every scoped row in the modules names modes its table has. One key then serves as a verb
 whose meaning follows the mode.
 
 The current mode is exported as `FZX_MODE` to the source, preview, action and opts hooks, so a script reads

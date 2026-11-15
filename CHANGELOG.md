@@ -6,6 +6,21 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.116.1] - 2026-11-15
+
+### Fixed
+
+- music: the rate and tags actions are listed in f1 and the actions menu only in the queue and in an
+  album's or a playlist's songs, where they work (they were listed in every mode, smart included).
+- A mode-scoped description with a "; " in its text (such as "(asks soft or mixed; hard with ...)") kept
+  its scope: only a "; " followed by mode names and ": " starts the next mode's part. Before, f1, the
+  actions menu and the footer listed such rows in every mode: git's reset, docker's run, the files grep
+  multiline toggle and bluetooth's scan toggle.
+
+### Changed
+
+- bluetooth: remove is described as "unpair and forget the devices" (it read "remove: ...", like a mode).
+
 ## [0.116.0] - 2026-11-14
 
 ### Added
