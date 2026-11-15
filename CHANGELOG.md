@@ -6,6 +6,19 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.117.0] - 2026-11-15
+
+### Added
+
+- workspaces: tmux workspaces (`fzx -m workspaces`, `~/.config/tmux/scripts/workspace`, tmux 0.36.0+): the
+  predefined sessions, the family's open sessions and the recent directories, with modes for each. The
+  preview shows an open session's windows and panes, a closed one's layout, and for claude and git
+  workspaces the branch, the changes and the open TODO items. Enter prints the key, so tmux's alt-w
+  (`workspace pick`) now opens this picker instead of plain fzf; alt-enter opens one from here, alt-R
+  resets an open session, alt-x kills one (its clients stay in the family) and alt-d forgets a recent
+  directory. `FZX_WORKSPACE_CMD` names the command.
+- repos, dirs: alt-O opens the row as a tmux workspace, where the workspace command is installed.
+
 ## [0.116.1] - 2026-11-15
 
 ### Fixed

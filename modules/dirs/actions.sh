@@ -62,6 +62,11 @@ dirs::action() {
       for path; do dirs::mark "$path" || rc=1; done
       ;;
     unmark) dirs::unmark "$@" || rc=1 ;;
+    workspace)
+      [[ -n "${1:-}" ]] || return 0
+      "$FZX_WORKSPACE_CMD" open ${WORKSPACE_CLIENT:+-c "$WORKSPACE_CLIENT"} "$1"
+      return
+      ;;
     *)
       printf 'dirs: unknown action: %s\n' "$action" >&2
       return 2

@@ -1,4 +1,11 @@
-# kind  name  key  description  flags
+#!/usr/bin/env bash
+# repos components, computed (see lib/components.sh for the table format): the workspace action only where
+# the tmux workspace command is (FZX_WORKSPACE_CMD)
+dir="$(dirname "$(readlink -f "$0")")"
+source "${FZX_ROOT:-$dir/../..}/lib/core.sh"
+fzx::require log config
+fzx::config_load "$dir" repos
+cat << 'ROWS'
 mode    all       -  every repository                                      default
 mode    mine      -  repositories you own (FZX_REPOS_OWNERS)               -
 mode    changed   -  with uncommitted changes                              -
@@ -12,3 +19,7 @@ action  pull      -       git pull --ff-only the selected repositories     foreg
 action  browse    alt-W   open the remote in the browser                   silent
 action  rescan    reload  scan every repository again                      background,reload
 action  links     -       link every ghq repository into FZX_REPOS_LINKS_DIR (~/git)  foreground
+ROWS
+[[ -x "${FZX_WORKSPACE_CMD:-}" ]] &&
+  printf 'action\tworkspace\talt-O\topen the repository as a tmux workspace (workspace open)\tbecome\n'
+exit 0

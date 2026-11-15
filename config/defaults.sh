@@ -216,6 +216,10 @@ export FZX_GLYPHS_PLAIN="${FZX_GLYPHS_PLAIN:-1}"
 # installed; an older one is ignored), 1 or 0
 FZX_PRETTY="${FZX_PRETTY:-auto}"
 
+# tmux workspaces (~/.config/tmux/scripts/workspace, tmux 0.36.0+): the command the workspaces module lists
+# and opens through, and that repos and dirs open a directory as a workspace with (their alt-O)
+FZX_WORKSPACE_CMD="${FZX_WORKSPACE_CMD:-$HOME/.config/tmux/scripts/workspace}"
+
 # icons in rows and previews (lib/icons.sh): nerd (Nerd Font glyphs), unicode (plain symbols, for terminals
 # without a Nerd Font) or none
 FZX_ICONS="${FZX_ICONS:-nerd}"

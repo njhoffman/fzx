@@ -1,8 +1,8 @@
 # fzx TODO
 
-Status (0.114.1): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
+Status (0.117.0): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
 docker, files, firewall, fonts, git, github, glyphs, history, kdeconnect, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
-todos, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
+todos, workspaces, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
 add what you find, and tick items off (`- [x]`) as they land, never delete them; once every item of a section
 is ticked, the section moves to `## Completed` at the end as a `### <heading> (completed YYYY-MM-DD)` block
 and its heading leaves the open part. Only items dropped undone are deleted.
@@ -175,7 +175,7 @@ Built from the reference repos in `resources/` (fzfmenu widgets, proto-widgets, 
 completers, the fzf attempt's modules, fzf-scripts) and checked against what is installed here
 (2026-10-20; tools rechecked 2026-11-03). "has" lists tools found on PATH, "missing" what the old code used that is not installed.
 
-- [ ] **workspaces** (p2) [module]: tmux workspaces (`~/.config/tmux/scripts/workspace`, tmux 0.33.0+):
+- [x] **workspaces** (p2) [module]: tmux workspaces (`~/.config/tmux/scripts/workspace`, tmux 0.33.0+):
       the picker tmux's alt-w opens. `workspace pick` uses this module when `fzx -m workspaces --dry-run`
       exits 0, runs `fzx -m workspaces` and opens the KEY it prints; until then it falls back to plain fzf.
       - **Source**: `workspace list` (the command from `FZX_WORKSPACE_CMD`, default that path): tab-separated
@@ -201,6 +201,11 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       - **Tests**: `test/workspaces.bats` with a stub workspace command printing fixed rows: rows and modes,
         the preview for open and closed rows, enter printing KEY, the actions' commands, and
         `--dry-run` exiting 0. **Docs**: a Modules paragraph, CHANGELOG, the status line.
+      - **Landed** (0.117.0). Keys the spec left open: alt-R reset, alt-x kill, alt-d forget, alt-O open as a
+        workspace in repos and dirs (alt-o is fzx's menu key). The preview counts TODO.md's open items itself
+        (as repos does) instead of running todo-status, and shows git state for open claude and git
+        sessions too. Not checked live: enter through `workspace pick` itself, and the open, reset and kill
+        actions (each would switch or rebuild a real session).
 - [ ] **repl** (p2) [module]: live jq/awk/sed/grep/sh filter over a file with the result in the preview
       (`change:reload`). Refs: ref/mods/repl.sh + repl-data, development/fzr-*, fzf/_scratch/repl.*.
       Has: jq, awk, sed. Missing: yq (fzr-yq mode).

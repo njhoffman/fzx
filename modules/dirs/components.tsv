@@ -13,4 +13,6 @@ printf 'sort\tname\t-\tbookmarks: by name\tdefault\n'
 printf 'sort\tpath\t-\tbookmarks: by path\t-\n'
 printf 'action\tmark\talt-m\tbookmark the directories (asks each a name)\tforeground,reload\n'
 printf 'action\tunmark\talt-x\tbookmarks: remove the bookmarks (not the directories)\tnotify,reload\n'
+[[ -x "${FZX_WORKSPACE_CMD:-}" ]] &&
+  printf 'action\tworkspace\talt-O\topen the directory as a tmux workspace (workspace open)\tbecome\n'
 exit 0

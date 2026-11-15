@@ -1,0 +1,11 @@
+# workspaces components: kind  name  key  description  flags (see lib/components.sh)
+# Rows are "key<TAB>state<TAB>type<TAB>root<TAB>display". Enter prints the key, which `workspace pick` opens.
+mode    all         -          predefined sessions, the family's open sessions, recent directories  default
+mode    open        -          the family's open sessions                                    -
+mode    recent      -          recent directories without a session                          -
+mode    predefined  -          predefined sessions (layouts/NAME.sh)                         -
+action  open        alt-enter  open the workspace here (workspace open)                      become
+action  reset       alt-R      kill the open sessions and build them again from their layout  confirm,reload
+action  kill        alt-x      kill the open sessions (their clients stay in the family)    confirm,reload
+action  forget      alt-d      drop the recent directories from the list                     notify,reload
+action  copy        ctrl-y     copy the keys (session names, directories)                    silent,builtin

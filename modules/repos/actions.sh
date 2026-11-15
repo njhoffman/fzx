@@ -121,6 +121,10 @@ repos::action() {
       [[ -n "${1:-}" ]] || return 0
       (cd -- "$1" && ${EDITOR:-nvim} .)
       ;;
+    workspace)
+      [[ -n "${1:-}" ]] || return 0
+      "$FZX_WORKSPACE_CMD" open ${WORKSPACE_CLIENT:+-c "$WORKSPACE_CLIENT"} "$1"
+      ;;
     fetch)
       local out
       # stdout: the action's stderr goes to fzx's log
