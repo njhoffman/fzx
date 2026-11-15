@@ -6,6 +6,15 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.117.1] - 2026-11-15
+
+### Fixed
+
+- Tests: the reserved-keys check is a test per module, so the parallel suite no longer stalls behind it for
+  minutes, and it now checks every mode of the modules whose tables are computed (music, repos, dirs, files,
+  git, packages, recent), not only their default one. The kdeconnect chat watcher test waits for its posts
+  instead of a fixed three seconds, which lost some under load.
+
 ## [0.117.0] - 2026-11-15
 
 ### Added

@@ -268,9 +268,11 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       CLI's own startup (modules/aws/preview.sh). Answers are kept in the session for FZX_AWS_PREVIEW_TTL seconds.
 - [x] **kdeconnect** (p3) [module]: `fzx -m kdeconnect[:notifications|:commands]`: devices with their battery,
       notifications, remote commands; ping, ring, share, text, clipboard, keys, SMS, lock, pair.
-- [ ] **kdeconnect: the chat watcher test fails under load** (p3) [test]: test/kdeconnect.bats "chat watcher: a
+- [x] **kdeconnect: the chat watcher test fails under load** (p3) [test]: test/kdeconnect.bats "chat watcher: a
       reload for each change in its thread" saw fewer than 4 posts in a full parallel run at load ~30 (passes
       alone, even at load 43). Wait for the posts with a bounded poll instead of a fixed sleep.
+      Done (0.117.1): the watcher runs in a process group of its own until the posts are in (30s at most),
+      then half a second for extras; 6 of 6 passed at load 31.
 - [ ] **kdeconnect: actions unchecked on a real device** (p3) [test]: ping, shared text and the lists ran against a
       Galaxy Z Fold7 (2026-11-03). Only stubbed: ring, clipboard, share of a file, keys, sending an SMS, dismiss, pair
       and unpair, which reach the phone or a person. Lock, unlock and commands need a device with lockdevice and
@@ -374,10 +376,13 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       and prettypath treat an empty one as unset, as no-color.org asks ("present and not an empty string").
       One helper (fzx::no_color) used everywhere would make them agree; the fix is mechanical but touches
       every module, so it wants the full suite and a look at each preview.
-- [ ] **The reserved-keys test holds up the suite** (p3) [test]: test/fzx.bats "no shipped module binds a reserved
+- [x] **The reserved-keys test holds up the suite** (p3) [test]: test/fzx.bats "no shipped module binds a reserved
       key in any of its modes" launches every module in every mode in turn (~150 launches, 7+ minutes under
       parallel load); GNU parallel's --keep-order holds every later file's results behind it, so progress
       looks stalled at ~300. Split it per module (a test each, run in parallel) or use --dry-run launches.
+      Done (0.117.1): test/reserved-keys.bats registers a test per module (bats_test_function), 37 in about
+      a minute at 8 jobs; modes come from the resolved table, so computed tables (music, repos, dirs, files,
+      git, packages, recent) are checked in every mode, not only the default.
 
 ## Completed
 

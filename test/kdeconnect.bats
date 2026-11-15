@@ -375,6 +375,24 @@ chat_session() {
   [ ! -e "$BATS_TEST_TMPDIR/py.in" ]
 }
 
+# chat_watch_until <posts> <watcher args...>: run the chat watcher in a process group of its own until it has
+# posted that many times to fzf (at most 30s: a fixed timeout lost posts under a loaded parallel suite),
+# half a second more for any extra post, then stop the group
+chat_watch_until() {
+  local want="$1" pid i
+  shift
+  setsid bash -c 'source "$1/lib/core.sh"; fzx::require log; source "$2/source.sh"; shift 2; kdeconnect::chat_watch "$@"' _ \
+    "$FZX_REPO" "$KC" "$@" 3>&- &
+  pid=$!
+  for ((i = 0; i < 300; i++)); do
+    (($(cat "$BATS_TEST_TMPDIR/posts" 2> /dev/null | wc -l) >= want)) && break
+    sleep 0.1
+  done
+  sleep 0.5
+  kill -- "-$pid" 2> /dev/null || kill "$pid" 2> /dev/null
+  wait "$pid" 2> /dev/null || :
+}
+
 @test "chat watcher: a reload for each change in its thread, none for others; started once, stopped on leaving" {
   # curl records what it would post to fzf
   printf '#!/usr/bin/env bash\nprintf "%%s\\n" "${@: -1}" >> "%s/posts"\n' "$BATS_TEST_TMPDIR" > "$BATS_TEST_TMPDIR/bin/curl"
@@ -382,8 +400,7 @@ chat_session() {
   local sock="$BATS_TEST_TMPDIR/s.sock"
   /usr/bin/python3 -c 'import socket, sys; socket.socket(socket.AF_UNIX).bind(sys.argv[1])' "$sock"
   # the monitor's lines (2026-01-01 to 01-04) as news: thread 11 four times, each newer, thread 99 once
-  run timeout 3 bash -c 'source "$1/lib/core.sh"; fzx::require log; source "$2/source.sh"; kdeconnect::chat_watch phone1 11 "$3" 0' _ \
-    "$FZX_REPO" "$KC" "$sock"
+  chat_watch_until 4 phone1 11 "$sock" 0
   [ "$(wc -l < "$BATS_TEST_TMPDIR/posts")" -eq 4 ]
   # the reload ctrl-r does (with the loading prompt, when there is one)
   [[ "$(sort -u "$BATS_TEST_TMPDIR/posts")" == *"reload($FZX _cb source)" ]]
@@ -398,8 +415,7 @@ chat_session() {
   { cat "$STUB_MONITOR"
     printf '{"member":"conversationUpdated","payload":{"type":"v","data":[{"type":"(isa(s)xiixixa(xsss))","data":[1,"new",[["5551230001"]],%s,1,0,11,20,1,[]]}]}}\n' "$now" "$now"
   } > "$news"
-  STUB_MONITOR="$news" run timeout 3 bash -c 'source "$1/lib/core.sh"; fzx::require log; source "$2/source.sh"; kdeconnect::chat_watch phone1 11 "$3"' _ \
-    "$FZX_REPO" "$KC" "$sock"
+  STUB_MONITOR="$news" chat_watch_until 1 phone1 11 "$sock"
   [ "$(wc -l < "$BATS_TEST_TMPDIR/posts")" -eq 1 ]
   # in a session: the source starts it in a group of its own, once
   chat_session
