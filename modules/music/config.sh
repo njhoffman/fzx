@@ -12,11 +12,13 @@ declare -gA FZX_ICON_MODES
 FZX_ICON_MODES[artists]="󰠃"
 FZX_ICON_MODES[albums]="󰀥"
 FZX_ICON_MODES[playlists]="󰲸"
+FZX_ICON_MODES[smart]="󰲹"
 # the icon's color in the menu
 FZX_COLORS[music_icon]="38;5;141"
 FZX_COLORS[music_icon_artists]="38;5;180"
 FZX_COLORS[music_icon_albums]="38;5;111"
 FZX_COLORS[music_icon_playlists]="38;5;114"
+FZX_COLORS[music_icon_smart]="38;5;176"
 
 # rows: artists, albums, years, the song playing; the preview's rating
 FZX_COLORS[music_artist]="38;5;180"
@@ -28,6 +30,8 @@ FZX_COLORS[music_rating]="38;5;179"
 # musicman (github.com/njhoffman/musicman) adds its library tags to a song's preview: auto (when it is
 # installed) or off. Its answers are cached per file until the file changes
 FZX_MUSIC_MUSICMAN="${FZX_MUSIC_MUSICMAN:-auto}"
+# smart playlists (the smart mode): how many of a preset's songs its preview lists
+FZX_MUSIC_SMART_SONGS="${FZX_MUSIC_SMART_SONGS:-30}"
 # the musicman fields shown, in this order
 FZX_MUSIC_TAGS=(rating grouping context mood picks type)
 # the multi value fields the tags action edits (musicman edit field=+a,-b), in this order

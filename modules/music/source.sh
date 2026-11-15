@@ -5,12 +5,16 @@
 #   albums     id: "artist<US>album" (US: \x1f); label: "artist - album"
 #   playlists  id: the playlist; label: the playlist
 #   tracks     id: the file; label: the file
+#   smart      id: the preset's name; label: its search terms (musicman, smart.sh)
 # Modes from $FZX_MODE: queue, artists, albums, playlists; artist (the albums of --artist A) and tracks
 # (an album's songs, --artist A --album B, or a playlist's, --playlist P) are the drill-downs.
 # Artists are album artists (MPD falls back to the artist when a song has none); the byartist toggle, or
 # --tag artist in a drill-down, lists them by the artist tag instead.
 
 MUSIC_US=$'\x1f'
+
+# shellcheck source=./smart.sh
+source "$(dirname "${BASH_SOURCE[0]}")/smart.sh"
 
 # music::args [--artist A] [--album B] [--playlist P] [--tag albumartist|artist] [--]
 music::args() {
@@ -181,8 +185,29 @@ music::playlists() {
   done < <(command mpc lsplaylists | LC_ALL=C command sort -f)
 }
 
+# music::header <var>: the module's header for the mode (a drill-down's artist, album or playlist)
+music::header() {
+  local -n _hd_out="$1"
+  _hd_out=""
+  case "${FZX_MODE:-queue}" in
+    artist) _hd_out="albums of $MUSIC_ARTIST" ;;
+    tracks)
+      if [[ -n "$MUSIC_PLAYLIST" ]]; then
+        _hd_out="playlist $MUSIC_PLAYLIST"
+      else
+        _hd_out="${MUSIC_ALBUM:-(no album)} by $MUSIC_ARTIST"
+      fi
+      ;;
+  esac
+}
+
 music::source() {
   music::args "$@" || return
+  if [[ "${FZX_MODE:-queue}" == smart ]]; then
+    music::mm_on || { printf 'music: smart playlists need musicman and jq\n' >&2; return 2; }
+    music::smart_rows
+    return
+  fi
   command -v mpc > /dev/null || { printf 'music: needs mpc\n' >&2; return 2; }
   case "${FZX_MODE:-queue}" in
     queue) music::queue ;;

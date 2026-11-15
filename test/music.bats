@@ -341,9 +341,9 @@ music_fn() {
 @test "rate drops the songs' cached musicman answers, so the preview reads the new rating" {
   edit_stubs
   FZX_MODE=queue "$MUSIC/preview.sh" -- 2 song ms/she/01.mp3 > /dev/null
-  [ "$(ls "$XDG_CACHE_HOME/fzx/music/tags" | wc -l)" -eq 1 ]
+  [ "$(ls "$FZX_CACHE_DIR/music/tags" | wc -l)" -eq 1 ]
   ANSWER=5 FZX_MODE=queue music_fn music::action rate -- ms/she/01.mp3
-  [ "$(ls "$XDG_CACHE_HOME/fzx/music/tags" | wc -l)" -eq 0 ]
+  [ "$(ls "$FZX_CACHE_DIR/music/tags" | wc -l)" -eq 0 ]
 }
 
 @test "tags: values marked by how many selected songs have them, every song's selected at the start" {
@@ -391,4 +391,221 @@ music_fn() {
   [ "$status" -eq 0 ]
   [[ "$(fzf_bind 'alt-*')" == *"_cb action rate -- {+3}"* ]]
   [[ "$(fzf_bind alt-t)" == *"_cb action tags -- {+3}"* ]]
+}
+
+# the smart playlist tests' musicman (1.86+): two presets, study's songs, a back point file under the test's
+# runtime dir; every call is logged with its words joined by "|" (and, for --files, what stdin held).
+# MM_OLD=1: a musicman before 1.86 (no --peek --path)
+smart_stubs() {
+  export XDG_CONFIG_HOME="$BATS_TEST_TMPDIR/xdg-config" XDG_STATE_HOME="$BATS_TEST_TMPDIR/xdg-state"
+  mkdir -p "$XDG_CONFIG_HOME/musicman" "$XDG_STATE_HOME/musicman" "$BATS_TEST_TMPDIR/mm-run"
+  printf 'study: context:Study mood:Upbeat rating:4.5\nmazzy: artist:"Mazzy Star"\n' > "$XDG_CONFIG_HOME/musicman/smart.yml"
+  : > "$BATS_TEST_TMPDIR/library.sqlite"
+  printf '{"version":1,"db":{"path":"%s"}}\n' "$BATS_TEST_TMPDIR/library.sqlite" > "$XDG_STATE_HOME/musicman/paths.json"
+  cat > "$BATS_TEST_TMPDIR/smart.json" << 'JSON'
+[{"name":"study","terms":["context:Study","mood:Upbeat","rating:4.5"],"text":"context:Study mood:Upbeat rating:4.5","songs":3,"spotify":2},
+ {"name":"mazzy","terms":["artist:Mazzy Star"],"text":"artist:\"Mazzy Star\"","songs":1,"spotify":0}]
+JSON
+  cat > "$BATS_TEST_TMPDIR/show.study.json" << 'JSON'
+{"name":"study","songs":3,"spotify":2,"tracks":[{"artist":"Zero 7","title":"The Pageant","rating":"4.5","file":"z7/garden/04.mp3"},
+ {"artist":"Mazzy Star","title":"Halah","rating":"5","file":"ms/she/01.mp3"},{"artist":"","title":"","rating":"","file":"loose/single.mp3"}]}
+JSON
+  cat > "$STUBS/musicman" << 'STUB'
+#!/usr/bin/env bash
+T="$BATS_TEST_TMPDIR"
+( IFS='|'; echo "$*" ) >> "$T/musicman.calls"
+[[ " $* " == *" --files - "* ]] && echo "files: $(cat | tr '\n' ' ')" >> "$T/musicman.calls"
+case "$1 ${2:-}" in
+  "player back")
+    if [[ "$*" == *"--peek --path"* ]]; then
+      [[ -n "${MM_OLD:-}" ]] && { echo "unknown switch --path" >&2; exit 1; }
+      echo "$T/mm-run/back"
+    fi
+    ;;
+  "smart --list") cat "$T/smart.json" ;;
+  "smart show") [[ -f "$T/show.$3.json" ]] && cat "$T/show.$3.json" || exit 1 ;;
+esac
+exit 0
+STUB
+  chmod +x "$STUBS/musicman"
+}
+# calls <pattern>: how many musicman calls match the pattern
+calls() { grep -c -- "$1" "$BATS_TEST_TMPDIR/musicman.calls" 2> /dev/null || true; }
+
+@test "smart: a row per preset with its counts and terms, cached until smart.yml or the database changes" {
+  smart_stubs
+  run src smart
+  [ "$status" -eq 0 ]
+  [ "${#lines[@]}" -eq 2 ]
+  IFS=$'\t' read -r id kind label display <<< "${lines[0]}"
+  [ "$id" = study ] && [ "$kind" = smart ] && [ "$label" = "context:Study mood:Upbeat rating:4.5" ]
+  [[ "$display" == "study      3 songs      2 on Spotify  context:Study mood:Upbeat rating:4.5" ]]
+  [[ "${lines[1]}" == *$'\t''mazzy      1 song       0 on Spotify  artist:"Mazzy Star"' ]]
+  [ "$(calls '^smart|--list|--format|json$')" -eq 1 ]
+  src smart > /dev/null
+  [ "$(calls '^smart|--list')" -eq 1 ]
+  # a rating changes which songs match: the database's mtime is in the key
+  touch -d '+1 min' "$BATS_TEST_TMPDIR/library.sqlite"
+  src smart > /dev/null
+  [ "$(calls '^smart|--list')" -eq 2 ]
+  touch -d '+2 min' "$XDG_CONFIG_HOME/musicman/smart.yml"
+  src smart > /dev/null
+  [ "$(calls '^smart|--list')" -eq 3 ]
+  # one key's directory at a time
+  [ "$(find "$FZX_CACHE_DIR/music/smart" -mindepth 1 -maxdepth 1 -type d | wc -l)" -eq 1 ]
+  FZX_MUSIC_MUSICMAN=off run src smart
+  [ "$status" -eq 2 ] && [[ "$output" == *"need musicman"* ]]
+}
+
+@test "split_terms: words, quoted values kept together without their quotes; an unclosed quote fails" {
+  run bash -c 'source "$1/smart.sh"; music::split_terms "$2" t || exit 9; printf "<%s>" "${t[@]}"' _ "$MUSIC" \
+    $'mood:Upbeat  artist:"Mazzy Star" \'free text\' title:\'say "hi"\'\t~genre:Rock'
+  [ "$output" = '<mood:Upbeat><artist:Mazzy Star><free text><title:say "hi"><~genre:Rock>' ]
+  run bash -c 'source "$1/smart.sh"; music::split_terms "artist:\"Mazzy" t' _ "$MUSIC"
+  [ "$status" -eq 1 ]
+}
+
+@test "smart preview: terms, counts, the ratings and the first songs; the songs listed once, in the background" {
+  smart_stubs
+  FZX_MUSIC_SMART_SONGS=2 FZX_MODE=smart run "$MUSIC/preview.sh" -- study smart "context:Study mood:Upbeat rating:4.5"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = study ]
+  [ "${lines[1]}" = "context:Study mood:Upbeat rating:4.5" ]
+  [ "${lines[2]}" = "3 songs, 2 on Spotify" ]
+  [ "${lines[3]}" = "5 1  4.5 1  unrated 1" ]
+  [ "${lines[4]}" = "Zero 7 - The Pageant  4.5" ]
+  [ "${lines[5]}" = "Mazzy Star - Halah  5" ]
+  [ "${lines[6]}" = "... 1 more" ]
+  FZX_MODE=smart run "$MUSIC/preview.sh" -- study smart x
+  [[ "$output" == *"single.mp3"* ]]
+  [ "$(calls '^smart|show|study|--format|json$')" -eq 1 ]
+  # musicman cannot list them: said once, not asked again
+  FZX_MODE=smart run "$MUSIC/preview.sh" -- mazzy smart x
+  [[ "$output" == *"did not list the songs"* ]]
+  FZX_MODE=smart "$MUSIC/preview.sh" -- mazzy smart x > /dev/null
+  [ "$(calls '^smart|show|mazzy')" -eq 1 ]
+  FZX_MODE=smart run "$MUSIC/preview.sh" -- gone smart x
+  [ "$output" = "no smart playlist gone" ]
+}
+
+@test "smart actions: a side trip (shuffled; ordered, mpd), add each, delete, save the query, edit the terms, back" {
+  smart_stubs
+  FZX_MODE=smart "$MUSIC/actions.sh" play -- study mazzy
+  FZX_MODE=smart FZX_TOGGLES="ordered mpd" "$MUSIC/actions.sh" play -- mazzy
+  FZX_MODE=smart "$MUSIC/actions.sh" add -- study mazzy
+  FZX_MODE=smart "$MUSIC/actions.sh" delete -- study mazzy
+  FZX_MODE=smart "$MUSIC/actions.sh" save -- 'mood:Upbeat artist:"Mazzy Star"' <<< "upbeat"
+  ANSWER='artist:"Mazzy Star" rating:4' FZX_MODE=smart music_fn music::action terms -- mazzy
+  FZX_MODE=smart "$MUSIC/actions.sh" back --
+  [ "$(grep -v -- '--list\|--peek' "$BATS_TEST_TMPDIR/musicman.calls")" = "player|play|--shuffle|context:Study|mood:Upbeat|rating:4.5
+player|mpd|play|artist:Mazzy Star
+player|add|--shuffle|context:Study|mood:Upbeat|rating:4.5
+player|add|--shuffle|artist:Mazzy Star
+smart|rm|study|mazzy
+smart|save|upbeat|mood:Upbeat|artist:Mazzy Star
+smart|save|mazzy|artist:Mazzy Star|rating:4
+player|back" ]
+  # no query, a bad name, an unclosed quote, a song action: refused
+  FZX_MODE=smart run "$MUSIC/actions.sh" save -- ""
+  [ "$status" -eq 1 ] && [[ "$output" == *"query first"* ]]
+  FZX_MODE=smart run "$MUSIC/actions.sh" save -- "mood:Upbeat" <<< "two words"
+  [ "$status" -eq 1 ] && [[ "$output" == *"letters, digits"* ]]
+  FZX_MODE=smart run "$MUSIC/actions.sh" save -- 'artist:"Mazzy' <<< "x"
+  [ "$status" -eq 1 ] && [[ "$output" == *"unclosed quote"* ]]
+  FZX_MODE=smart run "$MUSIC/actions.sh" insert -- study
+  [ "$status" -eq 1 ] && [[ "$output" == *"not smart playlists"* ]]
+  FZX_MODE=smart run "$MUSIC/actions.sh" play -- gone
+  [ "$status" -eq 1 ] && [[ "$output" == *"no smart playlist gone"* ]]
+}
+
+@test "side trips: the library modes play through musicman player mpd play --files; an older musicman keeps mpc" {
+  smart_stubs
+  FZX_MODE=albums "$MUSIC/actions.sh" play -- $'Mazzy Star\x1fAmong My Swan'
+  FZX_MODE=playlists "$MUSIC/actions.sh" play -- chill
+  [ "$(grep -v -- '--peek' "$BATS_TEST_TMPDIR/musicman.calls")" = "player|mpd|play|--files|-
+files: ms/swan/01.mp3 ms/swan/02.mp3 
+player|mpd|play|--files|-
+files: ms/she/01.mp3 z7/garden/10.mp3 " ]
+  [ ! -e "$BATS_TEST_TMPDIR/mpc.calls" ]
+  # the probe's answer is kept: asked once
+  [ "$(calls '--peek|--path')" -eq 1 ]
+  # the queue's play is the song, through mpc
+  FZX_MODE=queue "$MUSIC/actions.sh" play -- 2
+  [ "$(cat "$BATS_TEST_TMPDIR/mpc.calls")" = "play 2" ]
+  rm -rf "$FZX_CACHE_DIR/music/musicman" "$BATS_TEST_TMPDIR/mpc.calls"
+  MM_OLD=1 FZX_MODE=albums "$MUSIC/actions.sh" play -- $'Mazzy Star\x1fAmong My Swan'
+  [ "$(cat "$BATS_TEST_TMPDIR/mpc.calls")" = "clear
+add ms/swan/01.mp3 ms/swan/02.mp3
+play" ]
+  MM_OLD=1 FZX_MODE=queue run "$MUSIC/actions.sh" back --
+  [ "$status" -eq 1 ] && [[ "$output" == *"needs musicman 1.86+"* ]]
+}
+
+@test "back header: the back point under the module's header; without one the header alone; old musicman: nothing" {
+  smart_stubs
+  # the first answer is fetched in the background: nothing until it is in
+  FZX_MODE=queue music_fn music::transform header --
+  local i
+  for ((i = 0; i < 50; i++)); do [[ -s "$FZX_CACHE_DIR/music/musicman/back-path" ]] && break; sleep 0.1; done
+  FZX_MODE=queue run music_fn music::transform header --
+  [ "$output" = "change-header()" ]
+  printf 'mpd\nZero 7\nThe Pageant\n2026-11-14T22:00:00Z\n' > "$BATS_TEST_TMPDIR/mm-run/back"
+  FZX_MODE=queue run music_fn music::transform header --
+  [ "$output" = "change-header(back: Zero 7 - The Pageant)" ]
+  FZX_MODE=artist run music_fn music::transform header --artist 'Mazzy Star' --
+  [ "$output" = "change-header(albums of Mazzy Star
+back: Zero 7 - The Pageant)" ]
+  printf 'spotify\n\nSome Title\n\n' > "$BATS_TEST_TMPDIR/mm-run/back"
+  FZX_MODE=queue run music_fn music::transform header --
+  [ "$output" = "change-header(back: Some Title)" ]
+  printf '' > "$FZX_CACHE_DIR/music/musicman/back-path"
+  FZX_MODE=queue run music_fn music::transform header --
+  [ -z "$output" ]
+}
+
+@test "under fzx with musicman: the smart mode and its keys, the load bind for the header; enter plays the main list" {
+  smart_stubs
+  run "$MUSIC/components.tsv"
+  [[ "$output" == *$'mode\tsmart\t-\t'* ]]
+  [[ "$output" == *$'toggle\tordered\talt-2\tsmart: '* && "$output" == *$'toggle\tmpd\talt-3\tsmart: '* ]]
+  [[ "$output" == *$'action\tback\talt-B\t'* && "$output" == *$'action\tterms\talt-e\tsmart: '* ]]
+  stub_fzf
+  run "$FZX" -m music:smart
+  read_fzf_args
+  [[ "$(printf '%s\n' "${FZF_ARGS[@]}")" == *"load:+transform:"*"_cb transform header --"* ]]
+  [[ "$(fzf_bind alt-s)" == *"_cb action save -- {q}"* ]]
+  [[ "$(fzf_bind enter)" == *"_cb transform enter -- {1} {n}"* ]]
+  load_libs log session
+  fzx::session_create music "$MUSIC"
+  fzx::state_set mode smart
+  run "$FZX" _cb transform enter -- study 0
+  [[ "$output" == *"reload("*"_cb source)" ]]
+  grep -qx 'player|play|--main|--shuffle|context:Study|mood:Upbeat|rating:4.5' "$BATS_TEST_TMPDIR/musicman.calls"
+}
+
+@test "without musicman: no smart mode, keys or load bind; the library modes keep mpc's descriptions" {
+  smart_stubs
+  export FZX_MUSIC_MUSICMAN=off
+  run "$MUSIC/components.tsv"
+  [[ "$output" != *smart* && "$output" != *ordered* && "$output" != *$'\tback\t'* ]]
+  [[ "$output" == *$'action\tplay\talt-enter\treplace the queue with the selection and play it (queue: play the song)\tnotify,reload'* ]]
+  stub_fzf
+  run "$FZX" -m music
+  read_fzf_args
+  [[ "$(printf '%s\n' "${FZF_ARGS[@]}")" != *"transform header"* ]]
+}
+
+@test "menu: the smart entry where musicman is installed, also without MPD; the presets counted from smart.yml" {
+  smart_stubs
+  source "$MUSIC/manifest.sh"
+  music::applicable music:smart
+  [ "$(music::summary music:smart)" = "2 smart playlists" ]
+  FZX_MUSIC_MUSICMAN=off run music::applicable music:smart
+  [ "$status" -ne 0 ]
+  # no MPD: the other entries go, smart stays
+  printf '#!/bin/sh\nexit 1\n' > "$STUBS/mpc"
+  run music::applicable music
+  [ "$status" -ne 0 ]
+  music::applicable music:smart
+  [ ! -s "$BATS_TEST_TMPDIR/musicman.calls" ]
 }

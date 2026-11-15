@@ -1,23 +1,64 @@
-# music components: kind  name  key  description  flags (see lib/components.sh)
+#!/usr/bin/env bash
+# music components, computed (see lib/components.sh for the table format): with musicman (1.86+, and jq;
+# FZX_MUSIC_MUSICMAN not off) a smart mode, its toggles and actions, play as a side trip in the library
+# modes and back; without it the mpc rows alone.
 # Enter: queue: play the song; artists: their albums; albums, playlists: their songs; an album's or a
-# playlist's songs: play it from that song. Back (alt-left) returns from a drill-down.
-mode    queue      -          the play queue, the current song marked                                default
-mode    artists    -          album artists (the byartist toggle: by artist), with album and song counts   -
-mode    albums     -          every album, by artist then year                                       -
-mode    playlists  -          stored playlists                                                       -
-mode    artist     -          an artist's albums by year (--artist A)                                hidden
-mode    tracks     -          an album's songs (--artist A --album B) or a playlist's (--playlist P)  hidden
-toggle  byartist   alt-1      artists, albums: by the artist tag instead of the album artist          -
-action  play       alt-enter  replace the queue with the selection and play it (queue: play the song)  notify,reload
-action  add        alt-a      add the selection to the end of the queue                              notify
-action  insert     alt-i      play the selection next                                                notify
-action  remove     alt-x      queue: remove the selected songs                                       silent,reload
-action  delete     alt-X      playlists: delete the selected playlists                               confirm,reload
-action  clear      alt-c      clear the queue                                                        confirm,reload
-action  save       alt-s      save the queue as a playlist (asks for its name)                       foreground,reload
-action  rate       alt-*      queue, songs: rate the selected songs (musicman; asks for 0-5 in half steps)  foreground,reload
-action  tags       alt-t      queue, songs: pick their context, mood and picks values (musicman)       foreground,reload
-action  pause      alt-m      play or pause                                                          silent,reload
-action  next       alt-n      the next song                                                          silent,reload
-action  previous   alt-p      the previous song                                                      silent,reload
-action  copy       ctrl-y     copy the files (artists, playlists: names; albums: "artist - album")   silent,builtin
+# playlist's songs: play it from that song; smart: play it as the main list. Back (alt-left) returns from
+# a drill-down.
+dir="$(dirname "$(readlink -f "$0")")"
+source "${FZX_ROOT:-$dir/../..}/lib/core.sh"
+fzx::require log config
+fzx::config_load "$dir" music
+# shellcheck source=./source.sh
+source "$dir/source.sh"
+
+row() { local IFS=$'\t'; printf '%s\n' "$*"; }
+mm=0
+music::mm_on && mm=1
+lib="artists, albums, playlists, artist, tracks"
+
+row mode queue - "the play queue, the current song marked" default
+row mode artists - "album artists (the byartist toggle: by artist), with album and song counts" -
+row mode albums - "every album, by artist then year" -
+row mode playlists - "stored playlists" -
+((mm)) && row mode smart - "musicman's smart playlists (saved search terms), with their song counts" -
+row mode artist - "an artist's albums by year (--artist A)" hidden
+row mode tracks - "an album's songs (--artist A --album B) or a playlist's (--playlist P)" hidden
+row toggle byartist alt-1 "artists, albums: by the artist tag instead of the album artist" -
+if ((mm)); then
+  row toggle ordered alt-2 "smart: play in library order instead of shuffled" -
+  row toggle mpd alt-3 "smart: play on MPD even when Spotify plays" -
+  # a musicman too old for side trips leaves the library modes to mpc (actions.sh)
+  row action play alt-enter "queue: play the song; $lib: replace the queue with the selection and play it, a side trip the back action returns from; smart: play it as a side trip" notify,reload
+  row action add alt-a "$lib: add the selection to the end of the queue; smart: add its songs (shuffled unless ordered)" notify
+  row action insert alt-i "$lib: play the selection next" notify
+else
+  row action play alt-enter 'replace the queue with the selection and play it (queue: play the song)' notify,reload
+  row action add alt-a 'add the selection to the end of the queue' notify
+  row action insert alt-i 'play the selection next' notify
+fi
+row action remove alt-x 'queue: remove the selected songs' silent,reload
+if ((mm)); then
+  row action delete alt-X "playlists: delete the selected playlists; smart: delete the selected smart playlists" confirm,reload
+else
+  row action delete alt-X 'playlists: delete the selected playlists' confirm,reload
+fi
+row action clear alt-c 'clear the queue' confirm,reload
+if ((mm)); then
+  row action save alt-s "queue, $lib: save the queue as a playlist (asks for its name); smart: save the query as a smart playlist (asks for its name)" foreground,reload
+  row action terms alt-e "smart: edit its search terms (asks on the terminal)" foreground,reload
+  row action back alt-B "go back to what played before the last side trip (musicman player back)" notify,reload
+else
+  row action save alt-s 'save the queue as a playlist (asks for its name)' foreground,reload
+fi
+row action rate alt-* 'queue, songs: rate the selected songs (musicman; asks for 0-5 in half steps)' foreground,reload
+row action tags alt-t 'queue, songs: pick their context, mood and picks values (musicman)' foreground,reload
+row action pause alt-m 'play or pause' silent,reload
+row action next alt-n 'the next song' silent,reload
+row action previous alt-p 'the previous song' silent,reload
+if ((mm)); then
+  row action copy ctrl-y "copy the files (artists, playlists: names; albums: \"artist - album\"; smart: the search terms)" silent,builtin
+else
+  row action copy ctrl-y 'copy the files (artists, playlists: names; albums: "artist - album")' silent,builtin
+fi
+exit 0

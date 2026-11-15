@@ -1,14 +1,20 @@
 #!/usr/bin/env bash
-# music menu entries, where mpc reaches an MPD
+# music menu entries, where mpc reaches an MPD; the smart playlists where musicman is installed (no MPD
+# needed: they play on Spotify too)
 
 music::manifest() {
   fzx::entry music "Music: the play queue"
   fzx::entry music:artists "Music: artists"
   fzx::entry music:albums "Music: albums"
   fzx::entry music:playlists "Music: playlists"
+  fzx::entry music:smart "Music: smart playlists (musicman)"
 }
 
 music::applicable() {
+  if [[ "${1:-}" == music:smart ]]; then
+    [[ "${FZX_MUSIC_MUSICMAN:-auto}" != off ]] && command -v musicman > /dev/null && command -v jq > /dev/null
+    return
+  fi
   command -v mpc > /dev/null && command mpc status > /dev/null 2>&1
 }
 
@@ -19,5 +25,10 @@ music::summary() {
     music:artists) command mpc stats 2> /dev/null | command awk '/^Artists:/ { print $2 " artists" }' ;;
     music:albums) command mpc stats 2> /dev/null | command awk '/^Albums:/ { a = $2 } /^Songs:/ { s = $2 } END { print a " albums, " s " songs" }' ;;
     music:playlists) command mpc lsplaylists 2> /dev/null | command awk 'END { print NR " playlists" }' ;;
+    # the names in smart.yml (top-level keys), without starting musicman
+    music:smart)
+      command awk '/^[^[:space:]#-][^:]*:/ { n++ } END { print n + 0 " smart playlists" }' \
+        "${XDG_CONFIG_HOME:-$HOME/.config}/musicman/smart.yml" 2> /dev/null || echo "0 smart playlists"
+      ;;
   esac
 }

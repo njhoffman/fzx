@@ -83,6 +83,56 @@ Reviewed: 2026-11-11
       of untracked files with a dry-run preview. Refs: fzfmenu/proto-widgets/git/fzg-grep, fzg-reset, fzg-clean.
 - [x] **dirs: bookmark from the list** (p3) [feature]: add and remove bookmarks with keys (fzf-marks' mark/unmark),
       kept in a file under FZX_STATE_DIR instead of only FZX_DIRS_BOOKMARKS in config. Ref: fzf-marks.plugin.zsh.
+- [x] **music: smart playlists and side trips through musicman** (p2) [feature]: a `music:smart` mode over
+      musicman's saved presets (named filter sets that make a dynamic playlist), and playlist control
+      through `musicman player` so it reaches Spotify as well as MPD. Needs musicman (github.com/njhoffman/musicman)
+      with `musicman smart`, `player play --main`/`--shuffle`/`--files -`, `player back --peek` and the
+      runtime back-point file (musicman TODO.md section 9, the "fzx:" items); every part below is skipped,
+      not broken, without them.
+      - **Presets**: musicman owns them (`~/.config/musicman/smart.yml`, name to filter terms, e.g.
+        `study: context:Study mood:Upbeat rating:4.5`), so the CLI, the rofi menu and fzx share one list. fzx
+        stores none of its own.
+      - **Source**: `musicman smart --list --format tsv`: NAME TERMS SONGS SPOTIFY (the song count, and how
+        many have a Spotify id) per preset, in file order; rows show the name, the terms dimmed, and the
+        counts. musicman's CLI takes over a second to start (musicman TODO "CLI startup"), so the list is
+        cached under FZX_CACHE_DIR, keyed by the mtimes of smart.yml and the library database, and this mode
+        is not FZX_PERSIST=none like the rest of the module.
+      - **Preview**: from the row plus a cached `musicman smart show NAME --format tsv --limit 30` (the first
+        songs: artist, title, rating), written in the background on first focus; `fzx _cb preview` never
+        waits on musicman. Below them, the counts by rating and grouping, and the songs without a Spotify id.
+      - **Actions** (smart mode): enter plays the preset as the main list (`musicman player play --main
+        --shuffle <terms>`: replaces the queue and forgets the back point); alt-enter plays it as a side trip
+        (`musicman player play <terms>`: back returns to what played); alt-a adds it (`player add`); alt-e
+        edits its terms (asks on the terminal, `musicman smart save NAME TERMS`); alt-w saves the query as a
+        new preset (asks for the name; the query is the filter terms); alt-X deletes the selected presets
+        (confirm, `musicman smart rm`). Toggles: alt-2 `ordered` plays in library order instead of shuffled;
+        alt-3 `mpd` sends to MPD even when Spotify plays (`musicman player mpd ...`).
+      - **Back, in every music mode**: alt-b runs `musicman player back` (silent, reload); the header shows
+        the back point when there is one (`back: Artist - Title`, read from the runtime file whose path
+        `musicman player back --peek --path` prints, looked up once per session; `--peek` itself only when
+        that is missing), and alt-b is left out of f1 when there is none. enter in smart mode forgets the
+        back point (`--main`): its f1 description says so.
+      - **Side trips from the library modes**: artists, albums, playlists and tracks get alt-enter as a side
+        trip when musicman has `--files` (it remembers the queue first): the files fzx already lists
+        (`mpc -f %file%`) go to `musicman player mpd play --files -`, always MPD since they are library
+        files; without it they keep today's mpc replace.
+      - **Menu**: a `music:smart` entry where `command -v musicman` succeeds, with the preset count as its
+        summary; `music::applicable` passes for that entry without MPD (Spotify only).
+      - **Tests**: test/music.bats with a stub `musicman` that answers `smart --list`/`show` from fixtures and
+        records `player` calls: the rows, the preview without and with the cache, each action's command line,
+        the back header with and without a point, and the mode hidden without musicman.
+      - **Docs**: the module paragraph in docs/design.md, the components table (modes, toggles, actions), and
+        a CHANGELOG entry.
+      - **Landed** (0.116.0) with these differences: back is alt-B and saving the query is alt-s in smart
+        mode (alt-b and alt-w are in FZX_RESERVED_KEYS); musicman is read as JSON, not TSV (its global format
+        check refuses tsv, musicman TODO "smart --format tsv is refused"), which also gives the terms as
+        words; the preview has no grouping counts or songs without a Spotify id (`smart show` gives artist,
+        title, rating and file); alt-B stays in f1 whenever musicman is there (the table is fixed at launch),
+        and says so in the footer when there is no back point.
+- [ ] **music: rate and tags listed in modes without songs** (p3) [bug]: their descriptions are scoped
+      `queue, songs:`, and `songs` is not a mode, so `fzx::mode_desc` takes the whole description as
+      unscoped and f1 lists them in artists, albums, playlists and smart, where they refuse. Scope them to
+      `queue, tracks:` (modules/music/components.tsv).
 - [ ] **snippets and paste history** (p3) [feature]: both kinds: an automatic history of what capture and tmux
       buffers paste (newest first, under FZX_STATE_DIR), and named snippets saved on purpose (snippetdb's
       put/get/remove/list). Open: a capture mode, or a module of its own that the zsh widgets can use
@@ -116,6 +166,32 @@ Built from the reference repos in `resources/` (fzfmenu widgets, proto-widgets, 
 completers, the fzf attempt's modules, fzf-scripts) and checked against what is installed here
 (2026-10-20; tools rechecked 2026-11-03). "has" lists tools found on PATH, "missing" what the old code used that is not installed.
 
+- [ ] **workspaces** (p2) [module]: tmux workspaces (`~/.config/tmux/scripts/workspace`, tmux 0.33.0+):
+      the picker tmux's alt-w opens. `workspace pick` uses this module when `fzx -m workspaces --dry-run`
+      exits 0, runs `fzx -m workspaces` and opens the KEY it prints; until then it falls back to plain fzf.
+      - **Source**: `workspace list` (the command from `FZX_WORKSPACE_CMD`, default that path): tab-separated
+        KEY NAME TYPE ROOT STATE. KEY is what `workspace open` takes (a session name, or the root of a
+        closed recent directory); TYPE is claude, git, generic, a predefined session's name (main-nvim) or
+        `session` (made by hand); STATE is open or closed. Order as listed: predefined, then the family's
+        open sessions, then recent directories, newest first.
+      - **Rows**: a state mark (open / closed), NAME without the `main-` family prefix, TYPE with an icon
+        per type (`FZX_ICON_MODES`-style colors), ROOT shortened to `~`. Accept KEY (`--accept-nth=1`).
+      - **Modes**: all (default), open, recent (closed directories), predefined.
+      - **Preview**: `workspace type KEY` (name, type, root, state). Open sessions: their windows and
+        panes with each pane's current command (`tmux list-panes -s`). Closed ones: what would be built,
+        from the layout file's header comment (`layouts/NN-TYPE.sh`, `layouts/NAME.sh`), plus the root's
+        git branch and status for claude/git types, and open TODO.md counts (`todo-status`) for claude.
+      - **Enter**: print KEY (what `workspace pick` reads). An `open` action (alt-enter) runs `workspace
+        open -c "$WORKSPACE_CLIENT" KEY` itself, for use from the fzx menu outside `workspace pick`.
+      - **Actions**: reset (confirm; `workspace reset --yes NAME`, open sessions with a layout), kill the
+        session (confirm; through `~/.config/tmux/scripts/family-stay.sh kill` so clients stay in the
+        family), forget a recent directory (`workspace forget KEY`, tmux 0.36.0).
+      - **Elsewhere**: an "open as workspace" key in the repos and dirs modules (`workspace open {1}`; a
+        repository opens at its top level, typed claude or git by the engine).
+      - **applicable**: inside tmux, with the workspace command executable. **Summary**: open / recent counts.
+      - **Tests**: `test/workspaces.bats` with a stub workspace command printing fixed rows: rows and modes,
+        the preview for open and closed rows, enter printing KEY, the actions' commands, and
+        `--dry-run` exiting 0. **Docs**: a Modules paragraph, CHANGELOG, the status line.
 - [ ] **repl** (p2) [module]: live jq/awk/sed/grep/sh filter over a file with the result in the preview
       (`change:reload`). Refs: ref/mods/repl.sh + repl-data, development/fzr-*, fzf/_scratch/repl.*.
       Has: jq, awk, sed. Missing: yq (fzr-yq mode).

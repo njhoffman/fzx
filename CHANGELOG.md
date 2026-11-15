@@ -6,6 +6,28 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.116.0] - 2026-11-14
+
+### Added
+
+- music: a smart mode (`fzx -m music:smart`, and in the menu) over musicman's smart playlists, the named
+  search terms in `~/.config/musicman/smart.yml` that the CLI and the rofi menu share. Rows show each one's
+  song count and how many have a Spotify id; the preview lists its terms, how its songs are rated and the
+  first of them (`FZX_MUSIC_SMART_SONGS`, 30). Enter plays it as the main list, alt-enter as a side trip,
+  alt-a adds its songs, alt-e edits its terms, alt-s saves the query as a new one and alt-X deletes the
+  selected ones. Toggles: alt-2 `ordered` plays in library order instead of shuffled, alt-3 `mpd` plays on
+  MPD even when Spotify plays. Needs musicman 1.86+ and jq; it plays on Spotify too, so the menu lists it
+  without MPD.
+- music: side trips. With musicman 1.86+, alt-enter in artists, albums, playlists and an album's or a
+  playlist's songs plays them through musicman, which remembers what played; alt-B goes back to it, and
+  the header shows where back returns to. Without musicman, alt-enter replaces the queue through mpc as
+  before.
+
+### Fixed
+
+- music: covers and musicman answers are cached under `FZX_CACHE_DIR` (they ignored it and always used
+  `~/.cache/fzx`).
+
 ## [0.115.0] - 2026-11-14
 
 ### Added

@@ -3,7 +3,9 @@
 # `fzx -m music:artist --artist A`, `fzx -m music:tracks --artist A --album B | --playlist P`. Enter plays a
 # queued song, opens an artist's albums, an album's or a playlist's songs (each a child session: back
 # returns), or plays an album or playlist from the song under the cursor; alt-enter plays the selection,
-# alt-a adds it, alt-i plays it next.
+# alt-a adds it, alt-i plays it next. With musicman (smart.sh): `fzx -m music:smart`, its smart playlists, and
+# side trips: alt-enter in the library modes remembers what played, alt-B goes back, and the header shows
+# the back point.
 
 FZX_MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../lib/core.sh
@@ -31,19 +33,18 @@ music::opts() {
   # the songs' files, not the queue positions
   FZX_ACTION_ARGS_FOR['rate']="$a {+3}"
   FZX_ACTION_ARGS_FOR['tags']="$a {+3}"
-  case "${FZX_MODE:-queue}" in
-    artist) FZX_OPTS+=("--header=albums of $MUSIC_ARTIST") ;;
-    tracks)
-      if [[ -n "$MUSIC_PLAYLIST" ]]; then
-        FZX_OPTS+=("--header=playlist $MUSIC_PLAYLIST")
-      else
-        FZX_OPTS+=("--header=${MUSIC_ALBUM:-(no album)} by $MUSIC_ARTIST")
-      fi
-      ;;
-  esac
+  # smart: the query is the new preset's terms (the queue's save takes nothing)
+  FZX_ACTION_ARGS_FOR['save']="$a {q}"
+  local header enter="queue: play the song; artists: their albums; albums, playlists: their songs; songs: play from here"
+  music::header header
+  [[ -n "$header" ]] && FZX_OPTS+=("--header=$header")
   if fzx::in_session; then
-    fzx::bind enter "transform:$(fzx::cb transform enter "$a" '{1}' '{n}')" \
-      "queue: play the song; artists: their albums; albums, playlists: their songs; songs: play from here"
+    if music::mm_on; then
+      enter+="; smart: play it as the main list (forgets the back point)"
+      # the back point under the header, read again after every load (a play or back reloads)
+      FZX_OPTS+=(--bind "load:+transform:$(fzx::cb transform header "$a")")
+    fi
+    fzx::bind enter "transform:$(fzx::cb transform enter "$a" '{1}' '{n}')" "$enter"
   fi
 }
 

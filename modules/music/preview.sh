@@ -1,15 +1,10 @@
 #!/usr/bin/env bash
 # music preview: a song's cover, tags and musicman fields (the queue's first: the player's state); an
-# album's cover and songs; an artist's albums; a playlist's songs
+# album's cover and songs; an artist's albums; a playlist's songs; a smart playlist's terms, counts and
+# first songs
 
 # shellcheck source=./source.sh
 source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
-
-# music::cache_dir <sub>: the directory of cached covers or musicman answers
-music::cache_dir() {
-  local dir="${XDG_CACHE_HOME:-$HOME/.cache}/fzx/music/$1"
-  mkdir -p -- "$dir" 2> /dev/null && printf '%s' "$dir"
-}
 
 # music::cover <file> <rows>: the album art of a song (the folder's cover file, else the embedded one),
 # fetched through MPD and cached per directory, drawn with chafa in at most <rows> rows; nothing when
@@ -140,6 +135,36 @@ music::song() {
   printf '%s\n' "$text"
 }
 
+# music::smart_preview <name>: the preset's terms and counts, then (from the cached song list, built in
+# the background on first focus and waited for here: the preview streams, so the list stays usable) how
+# its songs are rated and the first FZX_MUSIC_SMART_SONGS of them
+music::smart_preview() {
+  local name="$1" row text songs spotify file max="${FZX_MUSIC_SMART_SONGS:-30}"
+  music::smart_row "$name" row || { printf 'no smart playlist %s\n' "$name"; return 0; }
+  IFS=$'\t' read -r _ text songs spotify _ <<< "$row"
+  printf '%s%s%s\n%s\n%s%d song%s, %d on Spotify%s\n\n' "$MP_B" "$name" "$MP_R" "$text" "$MP_D" "$songs" \
+    "$( ((songs == 1)) || echo s)" "$spotify" "$MP_R"
+  ((songs)) || return 0
+  if ! music::smart_songs "$name" file 20; then
+    printf '%s(musicman did not list the songs)%s\n' "$MP_D" "$MP_R"
+    return 0
+  fi
+  command awk -F'\t' -v d="$MP_D" -v r="$MP_R" -v rt="$MP_RT" '
+    { k = ($3 == "") ? "unrated" : $3; if (!(k in n)) order[++c] = k; n[k]++ }
+    END {
+      # the highest rating first, unrated last
+      for (i = 1; i <= c; i++) for (j = i + 1; j <= c; j++)
+        if (order[i] == "unrated" || (order[j] != "unrated" && order[j] + 0 > order[i] + 0)) { t = order[i]; order[i] = order[j]; order[j] = t }
+      line = ""
+      for (i = 1; i <= c; i++) line = line (i > 1 ? "  " : "") (order[i] == "unrated" ? d "unrated" r : rt order[i] r) " " n[order[i]]
+      if (c) print line "\n"
+    }' "$file"
+  command awk -F'\t' -v max="$max" -v d="$MP_D" -v r="$MP_R" -v ca="$MP_A" -v rt="$MP_RT" '
+    NR <= max { t = $2; if (t == "") { t = $4; sub(/.*\//, "", t) }
+      printf "%s%s%s%s%s%s\n", ca, $1, r, ($1 == "" ? "" : " - "), t, ($3 == "" ? "" : "  " rt $3 r) }
+    END { if (NR > max) printf "%s... %d more%s\n", d, NR - max, r }' "$file"
+}
+
 # music::preview [module args...] -- <id> <kind> <label>
 music::preview() {
   music::args "$@" 2> /dev/null || :
@@ -172,6 +197,7 @@ music::preview() {
       printf '%s%s%s\n\n' "$MP_B" "$id" "$MP_R"
       MUSIC_PLAYLIST="$id" music::tracks | command cut -f4
       ;;
+    smart) music::smart_preview "$id" ;;
   esac
 }
 

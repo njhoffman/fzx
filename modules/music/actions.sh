@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # music actions on the selected rows' ids (queue positions, artists, "artist<US>album" keys, playlists,
-# files), by mode, and the enter transform
+# files, smart playlist names), by mode, and the enter and header transforms
 
 # shellcheck source=./source.sh
 source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
@@ -31,12 +31,20 @@ music::files() {
 #   pause, next, previous: the player
 #   rate, tags: queue and tracks: the songs' rating, or their context, mood and picks (edit.sh); the ids
 #   are the files here (FZX_ACTION_ARGS_FOR)
+#   back:     musicman's player back: return to what played before the last side trip
+# With musicman 1.86+, play in the library modes is a side trip (musicman player mpd play --files: back
+# returns to what played). The smart mode (smart.sh): play, a side trip; add; delete; save, the query as
+# a preset (its one argument, FZX_ACTION_ARGS_FOR); terms, edit the preset's
 music::action() {
-  local action="${1:-}" files=() i name
+  local action="${1:-}" files=() i name mm text
   shift
   music::args "$@" 2> /dev/null || :
   while (($#)) && [[ "$1" != -- ]]; do shift; done
   (($#)) && shift
+  if [[ "${FZX_MODE:-queue}" == smart ]]; then
+    music::smart_action "$action" "$@"
+    return
+  fi
   case "$action" in
     play)
       if [[ "${FZX_MODE:-queue}" == queue ]]; then
@@ -46,8 +54,14 @@ music::action() {
       fi
       mapfile -t files < <(music::files "$@")
       ((${#files[@]})) || { printf 'music: nothing to play\n' >&2; return 1; }
-      command mpc -q clear && printf '%s\n' "${files[@]}" | command mpc -q add && command mpc -q play
+      if music::back_path mm wait; then
+        printf '%s\n' "${files[@]}" | command musicman player mpd play --files -
+      else
+        command mpc -q clear && printf '%s\n' "${files[@]}" | command mpc -q add && command mpc -q play
+      fi
       ;;
+    back) music::back ;;
+    terms) printf 'music: terms edits a smart playlist\n' >&2; return 1 ;;
     add | insert)
       [[ "${FZX_MODE:-queue}" == queue ]] && { printf 'music: already queued\n' >&2; return 1; }
       mapfile -t files < <(music::files "$@")
@@ -93,19 +107,97 @@ music::action() {
   esac
 }
 
+# music::back: musicman's player back, which says why when there is nowhere to go
+music::back() {
+  local mm
+  music::back_path mm wait || { printf 'music: going back needs musicman 1.86+\n' >&2; return 1; }
+  command musicman player back
+}
+
+# music::smart_action <action> <names...>: the smart mode's actions (save: the query instead of names)
+music::smart_action() {
+  local action="$1" name text row
+  shift
+  case "$action" in
+    play) music::smart_play side "$@" ;;
+    add) music::smart_play add "$@" ;;
+    back) music::back ;;
+    delete)
+      (($#)) || return 0
+      command musicman smart rm "$@"
+      ;;
+    save)
+      text="${1:-}"
+      [[ -n "$text" ]] || { printf 'music: type the search terms as the query first\n' >&2; return 1; }
+      fzx::tty_read -r -e -p "save \"$text\" as smart playlist: " name || return 0
+      [[ -n "$name" ]] || return 0
+      music::smart_save "$name" "$text"
+      ;;
+    terms)
+      name="${1:-}"
+      [[ -n "$name" ]] || return 0
+      music::smart_row "$name" row || { printf 'music: no smart playlist %s\n' "$name" >&2; return 1; }
+      text="$(printf '%s' "$row" | command cut -f2)"
+      music::ask text "$name: " "$text" || return 0
+      [[ -n "$text" ]] || return 0
+      music::smart_save "$name" "$text"
+      ;;
+    pause) command mpc -q toggle ;;
+    next) command mpc -q next ;;
+    previous) command mpc -q prev ;;
+    clear) command mpc -q clear ;;
+    *) printf 'music: %s works on songs, not smart playlists\n' "$action" >&2; return 1 ;;
+  esac
+}
+
+# music::header_action: the fzf action that shows the module's header with the back point under it
+# ("back: artist - title") or without one; nothing without musicman 1.86+. In the header position the
+# header goes to meta/header, which fzx's header callback draws under the component line
+music::header_action() {
+  # shellcheck disable=SC2034  # mm: set through a nameref
+  local header point action mm d=$'\e['"${FZX_COLORS[dim]:-38;5;244}m" r=$'\e[0m'
+  music::back_path mm || return 0
+  [[ -n "${NO_COLOR:+x}" ]] && d="" r=""
+  music::header header
+  if music::back_point point; then
+    point="${d}back: $point$r"
+    header+="${header:+$'\n'}$point"
+  fi
+  if [[ "${FZX_HEADER_POSITION:-footer}" == header ]] && fzx::in_session; then
+    fzx::meta_set header "$header"
+    printf 'transform-header(%s)' "$(fzx::cb header)"
+    return
+  fi
+  fzx::require opts
+  fzx::action_arg change-header "$header" action && printf '%s' "$action"
+}
+
 # music::transform enter [module args...] -- <id> <index>: queue: play the song; artists: a child session
 # with their albums; albums: one with the album's songs; playlists: one with its songs; songs of an album
-# or a playlist: the queue becomes the album or playlist, played from the song (index: fzf's {n})
+# or a playlist: the queue becomes the album or playlist, played from the song (index: fzf's {n}); smart:
+# play the preset as the main list (musicman forgets the back point), then reload.
+# music::transform header [module args...] --: the header with the back point (bound to load)
 music::transform() {
   local name="${1:-}" id n args=()
   shift
   music::args "$@" 2> /dev/null || :
   while (($#)) && [[ "$1" != -- ]]; do shift; done
   (($#)) && shift
+  if [[ "$name" == header ]]; then
+    music::header_action
+    return 0
+  fi
   id="${1:-}" n="${2:-0}"
   [[ "$name" == enter && -n "$id" ]] || return 0
   [[ "$MUSIC_TAG" == artist ]] && args=(--tag artist)
   case "${FZX_MODE:-queue}" in
+    smart)
+      music::smart_play main "$id" >&2 || return 0
+      fzx::require opts
+      local reload
+      fzx::reload_action "$(fzx::cb source)" reload
+      printf '%s' "$reload"
+      ;;
     queue)
       command mpc -q play "$id" || return 0
       fzx::require opts
