@@ -278,6 +278,16 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       and unpair, which reach the phone or a person. Lock, unlock and commands need a device with lockdevice and
       remotecommands (a desktop's KDE Connect): this phone has neither, and the commands' format is from memory of
       kdeconnect-cli's source.
+      Plan for a sitting with the phone on hand (one action at a time, watched; 2026-11-15):
+      - **ring**: rings until found. No risk.
+      - **clipboard**: a test string; overwrites the phone's clipboard.
+      - **share a file**: a small test file; lands in Downloads, delete it after.
+      - **keys**: a test string; goes into whatever field has focus (open a notes app first).
+      - **SMS**: to your own number only (it reaches a person otherwise).
+      - **dismiss**: needs a notification on the phone to dismiss.
+      - **pair / unpair**: left out unless wanted: re-pairing needs accepting on the phone.
+      - **lock, unlock, commands**: not on this phone (no lockdevice, remotecommands); need a desktop
+        running KDE Connect, and the commands' format checked against kdeconnect-cli then.
 - [ ] **llm** (p3) [module]: ollama models (list, pull, rm). Has: ollama.
 - [ ] **tasks-personal** (p3) [module]: taskwarrior tasks and calcurse appointments. Has: task, calcurse.
 - [ ] **web search** (p3) [module]: DuckDuckGo, GitHub, Stack Overflow queries opening in the browser.
