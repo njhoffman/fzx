@@ -1,6 +1,6 @@
 # fzx TODO
 
-Status (0.117.0): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
+Status (0.117.1): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs,
 docker, files, firewall, fonts, git, github, glyphs, history, kdeconnect, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
 todos, workspaces, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
 add what you find, and tick items off (`- [x]`) as they land, never delete them; once every item of a section
@@ -14,7 +14,7 @@ category: `[bug]` `[feature]` `[refactor]` `[docs]` `[test]` `[chore]` `[perf]`,
 
 Categories: module
 
-Reviewed: 2026-11-11
+Reviewed: 2026-11-25
 
 ## 1. Next up
 
@@ -393,6 +393,16 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       Done (0.117.1): test/reserved-keys.bats registers a test per module (bats_test_function), 37 in about
       a minute at 8 jobs; modes come from the resolved table, so computed tables (music, repos, dirs, files,
       git, packages, recent) are checked in every mode, not only the default.
+
+- [ ] **README's module table misses workspaces** (p2) [docs]: 0.117.0 added the workspaces module, but the
+      `## Modules` table in README.md has no row for it (every other module has one). Add "workspaces | tmux
+      workspaces: predefined sessions, the family's open sessions and recent directories".
+- [ ] **`just lint` dies without saying shellcheck is missing** (p3) [chore]: on minerva shellcheck is not
+      installed, and the recipe ends with "xargs: shellcheck: No such file or directory" and exit 127; charon
+      has shellcheck but no `just`. Check `command -v shellcheck` first in the Justfile and print what to
+      install, so a missing linter is not mistaken for a lint failure (CI installs it, so only local runs hit it).
+- [ ] **workspaces/actions.sh names a function that does not exist** (p3) [docs]: the comment above
+      `workspaces::state` calls it `workspaces::open_state`. Rename it in the comment.
 
 ## Completed
 
