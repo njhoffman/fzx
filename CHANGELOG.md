@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.118.1] - 2026-11-26
+
+### Fixed
+
+- CI installs bats-core 1.13.0 from its release instead of Ubuntu 24.04's older bats, which could not run
+  `test/reserved-keys.bats` (`bats_test_function --description`): the file ran as one broken test and the
+  suite failed on every push since 0.117.1.
+
 ## [0.118.0] - 2026-11-26
 
 ### Changed

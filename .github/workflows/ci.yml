@@ -10,6 +10,9 @@ env:
   JUST_VERSION: 1.59.0
   # test/pretty.bats's "real prettypath" cases run against this one (they skip without 0.2.0 or later)
   PRETTYPATH_VERSION: 0.8.1
+  # Ubuntu 24.04's bats is too old for test/reserved-keys.bats (bats_test_function --description), which
+  # then ran as one broken test and failed the suite; this is the version the suite is run with locally
+  BATS_VERSION: 1.13.0
 
 jobs:
   test:
@@ -19,11 +22,15 @@ jobs:
       - name: Install tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends shellcheck bats zsh jq fd-find ripgrep gawk procps psmisc git curl python3 tmux sqlite3
+          sudo apt-get install -y --no-install-recommends shellcheck zsh jq fd-find ripgrep gawk procps psmisc git curl python3 tmux sqlite3
           # fzf from its release: Ubuntu's is too old for fzx, and the live tests drive a real one
           curl -fsSL "https://github.com/junegunn/fzf/releases/download/v${FZF_VERSION}/fzf-${FZF_VERSION}-linux_amd64.tar.gz" | sudo tar -xz -C /usr/local/bin fzf
           # just from its release too: the tasks module's tests read [doc] attributes
           curl -fsSL "https://github.com/casey/just/releases/download/${JUST_VERSION}/just-${JUST_VERSION}-x86_64-unknown-linux-musl.tar.gz" | sudo tar -xz -C /usr/local/bin just
+          # bats-core from its release (see BATS_VERSION)
+          curl -fsSL "https://github.com/bats-core/bats-core/archive/refs/tags/v${BATS_VERSION}.tar.gz" | tar -xz -C "$RUNNER_TEMP"
+          sudo "$RUNNER_TEMP/bats-core-${BATS_VERSION}/install.sh" /usr/local
+          bats --version
           # Debian ships fd as fdfind; the files module handles both, the tests look for fd
           sudo ln -sf "$(command -v fdfind)" /usr/local/bin/fd
           git config --global user.name ci && git config --global user.email ci@example.com
