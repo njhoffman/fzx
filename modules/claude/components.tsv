@@ -4,8 +4,8 @@ mode    own     -  your projects with a CLAUDE.md                               
 mode    active  -  uncommitted, unpushed, or a session in FZX_CLAUDE_ACTIVE_DAYS days  -
 sort    recent  -  last session, newest first                                        default
 sort    name    -  by name                                                           -
-action  claude  ctrl-o  start Claude Code there (in tmux: a new window per project)  foreground
-action  resume  alt-O   continue the last session there (claude --continue)          foreground
+action  claude  ctrl-o  go to Claude Code there, or start it (tmux: its main-<name> session), then close  become
+action  resume  alt-O   the same, starting with claude --continue                     become
 action  edit    ctrl-e  open the project in $EDITOR                                  foreground
 action  card    alt-i   the full claude-projects card (tests, changelog) in $PAGER   foreground
 action  rescan  -       scan the projects again now                                  foreground,reload

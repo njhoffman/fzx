@@ -1,6 +1,8 @@
 #!/usr/bin/env bats
 # the claude module over a stubbed claude-projects, claude and tmux
 
+bats_require_minimum_version 1.5.0
+
 load test_helper
 
 CLAUDE="$(readlink -f "$BATS_TEST_DIRNAME/../modules/claude")"
@@ -146,7 +148,36 @@ claude_fn() {
   [ "$status" -eq 1 ]
 }
 
-@test "claude action in tmux: a window per project, named after it, in its directory" {
+# claude_config <line>: a user config for the module
+claude_config() {
+  mkdir -p "$FZX_CONFIG_DIR/modules/claude"
+  printf '%s\n' "$1" > "$FZX_CONFIG_DIR/modules/claude/config.sh"
+}
+
+@test "claude action in tmux: workspace claude per project, --continue for resume, nothing on stdout" {
+  cat > "$BATS_TEST_TMPDIR/workspace" << STUB
+#!/usr/bin/env bash
+printf 'workspace %s\n' "\$*" >> "$BATS_TEST_TMPDIR/calls"
+echo noise
+STUB
+  chmod +x "$BATS_TEST_TMPDIR/workspace"
+  claude_config "FZX_CLAUDE_WORKSPACE='$BATS_TEST_TMPDIR/workspace'"
+  TMUX=1 run --separate-stderr "$CLAUDE/actions.sh" claude "$P/alpha" "$P/beta"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  grep -qxF "workspace claude $P/alpha" "$BATS_TEST_TMPDIR/calls"
+  grep -qxF "workspace claude $P/beta" "$BATS_TEST_TMPDIR/calls"
+  TMUX=1 run --separate-stderr "$CLAUDE/actions.sh" resume "$P/alpha"
+  grep -qxF "workspace claude --continue $P/alpha" "$BATS_TEST_TMPDIR/calls"
+  ! grep -q '^tmux new-window' "$BATS_TEST_TMPDIR/calls"
+  # a failing workspace stops there, with its status
+  printf '#!/bin/sh\nexit 3\n' > "$BATS_TEST_TMPDIR/workspace"
+  TMUX=1 run "$CLAUDE/actions.sh" claude "$P/alpha"
+  [ "$status" -eq 3 ]
+}
+
+@test "claude action in tmux without workspace: a window per project, named after it, in its directory" {
+  claude_config 'FZX_CLAUDE_WORKSPACE=""'
   TMUX=1 run "$CLAUDE/actions.sh" claude "$P/alpha" "$P/beta"
   [ "$status" -eq 0 ]
   grep -qxF "tmux new-window -c $P/alpha -n alpha -- claude" "$BATS_TEST_TMPDIR/calls"
@@ -177,5 +208,6 @@ claude_fn() {
   fzf_binds start | grep -qxF "start:+bg-transform:$FZX _cb transform refresh"
   [ "$(fzf_bind alt-l)" = "alt-l:transform:$FZX _cb nav goto git {1}" ]
   [ "$(fzf_bind alt-t)" = "alt-t:transform:$FZX _cb nav goto todos --dir {1}" ]
-  [ "$(fzf_bind ctrl-o)" = "ctrl-o:execute($FZX _cb action claude {+1})" ]
+  [ "$(fzf_bind ctrl-o)" = "ctrl-o:become($FZX _cb action claude {+1})" ]
+  [ "$(fzf_bind alt-O)" = "alt-O:become($FZX _cb action resume {+1})" ]
 }

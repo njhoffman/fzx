@@ -16,6 +16,10 @@ FZX_KEYS[claude.todos]=alt-t # the todos module on the project's TODO.md
 
 # the command the claude and resume actions run (resume adds --continue)
 FZX_CLAUDE_CMD=claude
+# in tmux, the actions go through this `workspace claude` (tmux config 0.40.0+): the Claude already running
+# in the project, else a new one in its main-<name> session. It always runs plain claude, so with another
+# FZX_CLAUDE_CMD set this to "" (a new tmux window per project, running FZX_CLAUDE_CMD)
+FZX_CLAUDE_WORKSPACE="${XDG_CONFIG_HOME:-$HOME/.config}/tmux/scripts/workspace"
 # the background scan (claude-projects --tsv, a few seconds): at most once per FZX_CLAUDE_TTL seconds
 FZX_CLAUDE_TTL=120
 # the active mode: projects with a session in this many days (or uncommitted or unpushed work)

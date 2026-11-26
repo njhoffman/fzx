@@ -12,16 +12,28 @@ claude::wait() {
   read -rsn1 < /dev/tty || :
 }
 
-# claude::launch <claude args> <dir...>: Claude Code in each directory. In tmux, a new window per project
-# named after it; elsewhere in this terminal (fzf comes back when it exits), the first directory only.
+# claude::launch <claude args> <dir...>: Claude Code in each directory. The actions run through become(),
+# so fzf (and a popup around it) is gone once they return; nothing goes to stdout, which would be fzx's
+# result. In tmux with FZX_CLAUDE_WORKSPACE installed: `workspace claude [--continue] DIR` per project,
+# which goes to the Claude already running there (its terminal gets the focus) or starts one in the
+# project's main-<name> session, made when missing. In tmux without it: a new window per project named
+# after it. Elsewhere in this terminal, the first directory only.
 # <claude args> is one word list, split on spaces ("" for none, "--continue").
 claude::launch() {
-  local args="$1" dir cmd
+  local args="$1" dir cmd ws="${FZX_CLAUDE_WORKSPACE:-}"
   shift
   read -ra cmd <<< "${FZX_CLAUDE_CMD:-claude} $args"
   if [[ -n "${TMUX:-}" ]] && command -v tmux > /dev/null; then
+    if [[ -n "$ws" && -x "$ws" ]]; then
+      local opts=()
+      [[ " $args " == *" --continue "* ]] && opts=(--continue)
+      for dir in "$@"; do
+        "$ws" claude "${opts[@]}" "$dir" >&2 || return
+      done
+      return 0
+    fi
     for dir in "$@"; do
-      tmux new-window -c "$dir" -n "${dir##*/}" -- "${cmd[@]}"
+      tmux new-window -c "$dir" -n "${dir##*/}" -- "${cmd[@]}" >&2
     done
     return 0
   fi

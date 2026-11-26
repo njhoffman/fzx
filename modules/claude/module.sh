@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # claude: Claude Code projects (claude-projects from ~/.shell): yours with a CLAUDE.md and every directory
 # Claude has run in, with their git state, version, open TODO items and sessions. `fzx -m claude[:own
-# |:active]`. Enter prints the path (the zsh widget cds into it); ctrl-o starts Claude Code there.
+# |:active]`. Enter prints the path (the zsh widget cds into it); ctrl-o goes to the Claude Code running
+# there or starts one (in tmux through `workspace claude`), alt-O the same with --continue.
 
 FZX_MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../lib/core.sh

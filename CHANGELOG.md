@@ -6,6 +6,18 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.118.0] - 2026-11-26
+
+### Changed
+
+- claude: ctrl-o and alt-O close the picker once they run (they were foreground actions, so in a tmux
+  popup fzf stayed open behind the new window and kept the terminal's input: the session looked frozen).
+  In tmux they go through `workspace claude` (tmux config 0.40.0+, `FZX_CLAUDE_WORKSPACE`): the Claude
+  Code already running in the project is shown, its alacritty window focused when another terminal has
+  it, and only without one is a Claude started, in the project's `main-<name>` session (created and laid
+  out when missing; alt-O starts it with `--continue`). Without the workspace script, or with
+  `FZX_CLAUDE_WORKSPACE=""`, a new window per project as before.
+
 ## [0.117.1] - 2026-11-15
 
 ### Fixed
