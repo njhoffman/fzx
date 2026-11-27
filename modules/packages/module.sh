@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# packages: installed packages of apt, snap, flatpak, pipx, cargo, pnpm and gem, and apt's available and
-# upgradable ones, the snap and flatpak catalogs, and a search of crates.io, npm, rubygems.org and PyPI.
+# packages: installed packages of apt, snap, flatpak, uv, cargo, pnpm and gem, and apt's available and
+# upgradable ones, the snap and flatpak catalogs, every manager's outdated packages from audit, and a search
+# of crates.io, npm, rubygems.org and PyPI.
 # `fzx -m packages[:MODE]`: apt, available, upgradable, snap, snap-available, flatpak, flatpak-available,
-# pipx, cargo, pnpm, gem, search.
+# uv, cargo, pnpm, gem, updates, search.
 # Enter prints package names.
 
 FZX_MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

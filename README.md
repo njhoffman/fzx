@@ -86,7 +86,7 @@ Inside any module, f1 shows every key, mode, toggle and action. The common ones:
 | menu | every module's entries (what `fzx` opens) |
 | music | MPD's queue, artists, albums and playlists |
 | network | ports, connections, interfaces, routes, wifi and mDNS services |
-| packages | apt, snap, flatpak, pipx, cargo, pnpm and gem packages; registry search |
+| packages | apt, snap, flatpak, uv, cargo, pnpm and gem packages; every manager's updates (from audit); registry search |
 | ps | processes: user, all, top and tree |
 | recent | frecent files and directories |
 | repos | git repositories with their branch, changes, ahead/behind and open TODOs |

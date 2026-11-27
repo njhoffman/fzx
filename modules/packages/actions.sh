@@ -3,8 +3,9 @@
 # The selection is grouped by manager (and installation), one command per group, so several apt packages
 # install in one apt run. install takes rows of the catalogs and the search: snaps get --classic when the
 # store says they need it, flatpaks come from the row's remote, gems go to your user gem home. apt and snap run through sudo; flatpak's system installation asks through
-# polkit itself; gems through sudo when their gem home is not writable. A failure waits for a key, since
-# execute would wipe the output at once.
+# polkit itself; gems through sudo when their gem home is not writable. The updates mode's upgrade is one
+# audit packages update run, which asks itself. A failure waits for a key, since execute would wipe the
+# output at once.
 
 # shellcheck source=./source.sh
 source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
@@ -119,12 +120,12 @@ packages::_group() {
       ;;
     flatpak:upgrade) command flatpak update "--$scope" "${@%@*}" ;;
     flatpak:remove) command flatpak uninstall "--$scope" "${@%@*}" ;;
-    pipx:install | pipx:upgrade | pipx:remove)
+    uv:install | uv:upgrade | uv:remove)
       for name in "$@"; do
         case "$action" in
-          install) command pipx install "$name" ;;
-          upgrade) command pipx upgrade "$name" ;;
-          remove) command pipx uninstall "$name" ;;
+          install) command uv tool install "$name" ;;
+          upgrade) command uv tool upgrade "$name" ;;
+          remove) command uv tool uninstall "$name" ;;
         esac || rc=$?
       done
       return "$rc"
@@ -179,7 +180,25 @@ packages::_group() {
   esac
 }
 
-# packages::action <install|upgrade|remove|purge> <id...>
+# packages::_update_id <var> <manager:name>: the id the manager's own mode gives an outdated package of the
+# updates mode (audit's ref), so the other actions reach it as they would there: gems and flatpaks by the
+# installation that has them (user first). Fails for a manager fzx has no mode for (go, gh, bins)
+packages::_update_id() {
+  local _manager="${2%%:*}" _name="${2#*:}" _id
+  case "$_manager" in
+    uv | cargo | pnpm | apt | snap) _id="$_manager:$_name" ;;
+    gem) if packages::_gem_dir user "$_name" > /dev/null; then _id="gem:user:$_name"; else _id="gem:system:$_name"; fi ;;
+    flatpak)
+      if command flatpak info --user -- "$_name" > /dev/null 2>&1; then _id="flatpak:user:$_name"; else _id="flatpak:system:$_name"; fi
+      ;;
+    *) return 1 ;;
+  esac
+  printf -v "$1" '%s' "$_id"
+}
+
+# packages::action <install|upgrade|remove|purge> <id...>. The updates mode's ids (update:MANAGER:NAME):
+# upgrade hands them all to one audit packages update run (it prints its plan, asks, and rescans); the
+# other actions take them as the manager's own ids
 packages::action() {
   local action="${1:-}" id manager scope name key rc=0
   shift
@@ -194,10 +213,30 @@ packages::action() {
     printf 'packages: %s: no packages given\n' "$action" >&2
     return 2
   }
+  local -a refs=() ids=()
+  for id in "$@"; do
+    if [[ "$id" == update:* ]]; then
+      if [[ "$action" == upgrade ]]; then
+        refs+=("${id#update:}")
+        continue
+      fi
+      packages::_update_id id "${id#update:}" || {
+        # on stdout: the terminal shows it until packages::_report's key (stderr goes to the log)
+        name="${id#update:}"
+        printf 'packages: %s: no %s here for %s packages\n' "${name#*:}" "$action" "${name%%:*}"
+        rc=1
+        continue
+      }
+    fi
+    ids+=("$id")
+  done
+  if ((${#refs[@]})); then
+    command audit packages update "${refs[@]}" || rc=$?
+  fi
   # group by manager and scope, keeping the order they came in
   local -a order=()
   local -A names=()
-  for id in "$@"; do
+  for id in "${ids[@]}"; do
     manager="${id%%:*}"
     name="${id#*:}"
     scope=-

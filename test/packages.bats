@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
-# the packages module: apt (installed, available, upgradable), snap, flatpak, pipx, cargo, pnpm and gem,
-# every manager stubbed
+# the packages module: apt (installed, available, upgradable), snap, flatpak, uv, cargo, pnpm and gem, and
+# every manager's updates from audit; every manager stubbed
 
 load test_helper
 
@@ -12,7 +12,7 @@ setup() {
   setup_fzx
   export FZX_PACKAGES_APT_LISTS="$BATS_TEST_TMPDIR/lists" FZX_PACKAGES_DPKG_STATUS="$BATS_TEST_TMPDIR/status"
   export FZX_PACKAGES_EXTENDED_STATES="$BATS_TEST_TMPDIR/extended_states"
-  export PIPX_HOME="$BATS_TEST_TMPDIR/pipx" CARGO_HOME="$BATS_TEST_TMPDIR/cargo"
+  export UV_TOOLS="$BATS_TEST_TMPDIR/uv/tools" CARGO_HOME="$BATS_TEST_TMPDIR/cargo"
   export FZX_PACKAGES_SNAP_NAMES="$BATS_TEST_TMPDIR/snap-names" FZX_PACKAGES_FLATPAK_SYSTEM="$BATS_TEST_TMPDIR/flatpak-system"
   export FZX_PACKAGES_FLATPAK_USER="$BATS_TEST_TMPDIR/flatpak-user"
   mkdir -p "$FZX_PACKAGES_APT_LISTS"
@@ -38,6 +38,14 @@ only_stubs() {
 }
 
 plain() { sed 's/\x1b\[[0-9;:]*m//g'; }
+
+# stub_uv: uv's tool list (black with two apps, mcp installed with an extra) and its tool dir, $UV_TOOLS
+stub_uv() {
+  stub_cmd uv 'case "$1 $2" in
+    "tool list") printf "black v24.1.0\n- black\n- blackd\nmcp[cli] v2.3.0 [extras: cli]\n- mcp\n" ;;
+    "tool dir") echo "$UV_TOOLS" ;;
+  esac'
+}
 ids() { printf '%s\n' "${lines[@]}" | cut -f1 | tr '\n' ' '; }
 
 stub_apt() {
@@ -72,7 +80,7 @@ stub_apt() {
   run "$MODS/packages/components.tsv"
   [ "$(printf '%s\n' "${lines[@]}" | awk -F '\t' '$1 == "mode" { printf "%s:%s ", $2, $5 }')" = "apt:default available:- upgradable:- snap:- gem:- " ]
   [[ "$output" == *$'toggle\tmanual\talt-m'* && "$output" == *$'sort\tsize'* && "$output" == *$'action\tinstall\talt-i\tavailable: install'* ]]
-  # cargo needs its install record, pipx and pnpm jq
+  # cargo needs its install record, pnpm jq
   stub_cmd cargo :
   run "$MODS/packages/components.tsv"
   [[ "$output" != *$'mode\tcargo'* ]]
@@ -154,7 +162,7 @@ stub_apt() {
   [ "$(grep -c '^apt list' "$BATS_TEST_TMPDIR/calls")" -eq 2 ]
 }
 
-@test "packages: snap, flatpak (runtimes with the toggle), pipx, cargo, pnpm and gem" {
+@test "packages: snap, flatpak (runtimes with the toggle), uv, cargo, pnpm and gem" {
   stub_cmd snap 'printf "Name  Version  Rev  Tracking  Publisher  Notes\nyq  4.40  2  latest/stable  mikefarah*  -\ncore22  2024  1  latest/stable  canonical**  base\n"'
   FZX_MODE=snap run "$MODS/packages/source.sh"
   [ "$(ids)" = "snap:core22 snap:yq " ]
@@ -168,12 +176,11 @@ stub_apt() {
   FZX_MODE=flatpak FZX_TOGGLES=runtimes run "$MODS/packages/source.sh"
   [ "$(ids)" = "flatpak:system:org.a.App flatpak:user:org.gtk.Gtk3theme " ]
 
-  stub_cmd pipx :
-  mkdir -p "$PIPX_HOME/venvs/black"
-  echo '{"main_package":{"package":"black","package_version":"24.1","apps":["black","blackd"]}}' > "$PIPX_HOME/venvs/black/pipx_metadata.json"
-  FZX_MODE=pipx run "$MODS/packages/source.sh"
-  [ "$(ids)" = "pipx:black " ]
-  [[ "$(printf '%s\n' "${lines[0]}" | plain)" == *"black"*"24.1"*"black blackd"* ]]
+  stub_uv
+  FZX_MODE=uv run "$MODS/packages/source.sh"
+  [ "$(ids)" = "uv:black uv:mcp " ]
+  [[ "$(printf '%s\n' "${lines[0]}" | plain)" == *"● black"*"24.1.0"*"black blackd" ]]
+  [[ "$(printf '%s\n' "${lines[1]}" | plain)" == *"● mcp "*"2.3.0"*"mcp" ]]
 
   stub_cmd cargo :
   mkdir -p "$CARGO_HOME"
@@ -259,11 +266,20 @@ EOF
   grep -qx 'snap info --color=never --unicode=never -- yq' "$BATS_TEST_TMPDIR/calls"
   grep -qx 'flatpak info --user -- org.a.App' "$BATS_TEST_TMPDIR/calls"
 
-  mkdir -p "$PIPX_HOME/venvs/black/lib/python3.12/site-packages/Black-24.1.dist-info"
-  echo '{"main_package":{"package":"black","package_version":"24.1","apps":["black"]},"python_version":"Python 3.12"}' > "$PIPX_HOME/venvs/black/pipx_metadata.json"
-  printf 'Name: black\nSummary: The formatter\nHome-page: https://black\n\nlong text\n' > "$PIPX_HOME/venvs/black/lib/python3.12/site-packages/Black-24.1.dist-info/METADATA"
-  run "$MODS/packages/preview.sh" pipx:black
-  [[ "$(printf '%s\n' "$output" | plain)" == "black  24.1"*"apps         black"*"python       Python 3.12"*"summary      The formatter"*"home-page    https://black" ]]
+  stub_uv
+  mkdir -p "$UV_TOOLS/black/lib/python3.12/site-packages/Black-24.1.0.dist-info"
+  cat > "$UV_TOOLS/black/uv-receipt.toml" << 'EOF'
+[tool]
+requirements = [{ name = "black", extras = ["d", "jupyter"], specifier = ">=24" }, { name = "click" }]
+python = "3.12.4"
+entrypoints = [
+    { name = "black", install-path = "/home/me/.local/bin/black", from = "black" },
+    { name = "blackd", install-path = "/home/me/.local/bin/blackd", from = "black" },
+]
+EOF
+  printf 'Name: black\nSummary: The formatter\nHome-page: https://black\n\nlong text\n' > "$UV_TOOLS/black/lib/python3.12/site-packages/Black-24.1.0.dist-info/METADATA"
+  run "$MODS/packages/preview.sh" uv:black
+  [[ "$(printf '%s\n' "$output" | plain)" == "black  24.1.0"*"requirements black[d,jupyter]>=24, click"*"entrypoints  black blackd"*"python       3.12.4"*"dir          $UV_TOOLS/black"*"summary      The formatter"*"home-page    https://black" ]]
 
   mkdir -p "$CARGO_HOME/registry/src/index-1/ripgrep-14.1.0"
   echo '{"installs":{"ripgrep 14.1.0 (registry+https://x)":{"bins":["rg"],"features":["pcre2"],"profile":"release"}}}' > "$CARGO_HOME/.crates2.json"
@@ -314,11 +330,11 @@ EOF
 @test "packages: remove asks first, except apt's (apt asks itself); no keeps the packages" {
   stub_cmd sudo '"$@"'
   stub_cmd apt :
-  stub_cmd pipx :
+  stub_cmd uv :
   stub_cmd cargo :
-  run "$MODS/packages/actions.sh" remove pipx:black cargo:rg <<< ny
+  run "$MODS/packages/actions.sh" remove uv:black cargo:rg <<< ny
   [ "$status" -eq 0 ]
-  [[ "$(printf "%s\n" "$output" | plain)" == *"remove (pipx): black"*"[y/N]"*"remove (cargo): rg"* ]]
+  [[ "$(printf "%s\n" "$output" | plain)" == *"remove (uv): black"*"[y/N]"*"remove (cargo): rg"* ]]
   run "$MODS/packages/actions.sh" remove apt:zsh < /dev/null
   [ "$status" -eq 0 ]
   [[ "$output" != *"[y/N]"* ]]
@@ -500,7 +516,7 @@ stub_registries() {
     view) echo "{\"name\":\"fmt-js\",\"version\":\"2.0.0\",\"license\":\"MIT\",\"description\":\"js format\"}" ;;
   esac'
   stub_cmd gem :
-  stub_cmd pipx :
+  stub_cmd uv 'case "$1 $2" in "tool dir") echo "$UV_TOOLS" ;; esac'
   stub_cmd curl 'url="${@: -1}"; case "$url" in
     *rubygems.org/api/v1/search.json?query=fmt) echo "[{\"name\":\"fmt-rb\",\"version\":\"3.0\",\"info\":\"ruby\\nformat\"}]" ;;
     *rubygems.org/api/v1/gems/fmt-rb.json) echo "{\"name\":\"fmt-rb\",\"version\":\"3.0\",\"info\":\"ruby format\",\"licenses\":[\"MIT\"]}" ;;
@@ -513,15 +529,16 @@ stub_registries() {
   stub_registries
   FZX_MODE=search FZF_QUERY='  fmt ' run --separate-stderr "$MODS/packages/source.sh"
   [ "$status" -eq 0 ]
-  [ "$(ids)" = "cargo:fmtlib cargo:fmt2 pnpm:fmt-js gem:user:fmt-rb pipx:fmt " ]
+  [ "$(ids)" = "cargo:fmtlib cargo:fmt2 pnpm:fmt-js gem:user:fmt-rb uv:fmt " ]
   [[ "$(printf '%s\n' "${lines[0]}" | plain)" == *"○ fmtlib"*"1.0.0"*"cargo"*"formats things"* ]]
   [[ "$(printf '%s\n' "${lines[2]}" | plain)" == *"● fmt-js"*"pnpm"*"js format"* ]]
   [[ "$(printf '%s\n' "${lines[3]}" | plain)" == *"fmt-rb"*"3.0"*"gem"*"ruby format"* ]]
   grep -q 'search --color never --limit 20 -- fmt' "$BATS_TEST_TMPDIR/calls"
   # PyPI's answer is kept for the preview
-  [ "$(head -1 "$FZX_CACHE_DIR/packages/info/pipx/fmt")" = $'fmt\t0.9' ]
+  [[ "$(printf '%s\n' "${lines[4]}" | plain)" == *"○ fmt "*"0.9"*"uv "*"py format"* ]]
+  [ "$(head -1 "$FZX_CACHE_DIR/packages/info/uv/fmt")" = $'fmt\t0.9' ]
   FZX_MODE=search FZF_QUERY=fmt FZX_TOGGLES="npm pypi" run "$MODS/packages/source.sh"
-  [ "$(ids)" = "pnpm:fmt-js pipx:fmt " ]
+  [ "$(ids)" = "pnpm:fmt-js uv:fmt " ]
   # nothing to search for, and a query that is no package name skips PyPI
   FZX_MODE=search FZF_QUERY='  ' run "$MODS/packages/source.sh"
   [ "$status" -eq 0 ]
@@ -548,7 +565,7 @@ stub_registries() {
   [[ "$out" != *default* ]]
   run "$MODS/packages/preview.sh" gem:user:fmt-rb
   [[ "$(printf '%s\n' "$output" | plain)" == "fmt-rb  3.0"*"licenses     MIT"*"ruby format" ]]
-  run "$MODS/packages/preview.sh" pipx:fmt
+  run "$MODS/packages/preview.sh" uv:fmt
   [[ "$(printf '%s\n' "$output" | plain)" == "fmt  0.9"*"python       >=3.9"*"py format" ]]
   # the second look comes from the cache; an expired entry is fetched again
   run "$MODS/packages/preview.sh" cargo:fmtlib
@@ -578,9 +595,9 @@ stub_registries() {
   stub_cmd cargo :
   stub_cmd pnpm :
   stub_cmd gem :
-  stub_cmd pipx :
+  stub_cmd uv :
   run "$MODS/packages/actions.sh" install snap:yq snap:yazi flatpak:system:org.b.Bee@hub flatpak:user:org.c.Cee@other \
-    cargo:fmtlib pnpm:fmt-js gem:user:fmt-rb pipx:fmt
+    cargo:fmtlib pnpm:fmt-js gem:user:fmt-rb uv:fmt
   [ "$status" -eq 0 ]
   [[ "$output" == *"yazi uses classic confinement"* ]]
   run grep -v -e '^snap info' -e '^sudo ' "$BATS_TEST_TMPDIR/calls"
@@ -591,7 +608,7 @@ stub_registries() {
   [ "${lines[4]}" = "cargo install fmtlib" ]
   [ "${lines[5]}" = "pnpm add -g fmt-js" ]
   [ "${lines[6]}" = "gem install --user-install fmt-rb" ]
-  [ "${lines[7]}" = "pipx install fmt" ]
+  [ "${lines[7]}" = "uv tool install fmt" ]
   # catalog ids carry the remote; upgrade and remove drop it
   : > "$BATS_TEST_TMPDIR/calls"
   run "$MODS/packages/actions.sh" upgrade flatpak:system:org.b.Bee@hub
@@ -627,4 +644,140 @@ stub_registries() {
   run "$FZX" -m packages:apt --dry-run
   [[ "$output" == *"change:reload:sleep 0.3; "*"_cb source"* && "$output" == *"start:+unbind(change)"* ]]
   [[ "$output" != *"--disabled"* ]]
+}
+
+# stub_audit: audit's saved scan with four outdated packages, one per level, filtered by -g as audit does;
+# $BATS_TEST_TMPDIR/audit-fail makes the list fail as it does without a saved scan
+stub_audit() {
+  stub_cmd audit 'case "$2" in
+    list)
+      [[ -f "$BATS_TEST_TMPDIR/audit-fail" ]] && { echo "no saved packages scan: run audit packages -r" >&2; exit 1; }
+      g=patch,minor,major,update
+      while (($#)); do [[ "$1" == -g ]] && g="$2"; shift; done
+      printf "uv:ruff\tuv\truff\t0.4.0\t0.5.1\tminor\tc\ncargo:bottom\tcargo\tbottom\t0.9.0@abc1234\t1.0.0\tmajor\tc\napt:curl\tapt\tcurl\t8.5.0-2\t8.5.0-3\tupdate\tc\ngh:gh-dash\tgh\tgh-dash\tv4.1.0\tv4.1.2\tpatch\tc\n" |
+        awk -F "\t" -v g=",$g," "index(g, \",\" \$6 \",\")" ;;
+    info) printf "ruff  uv  pypi\ninstalled    0.4.0\nlatest       0.5.1  minor; released 3 days ago\n" ;;
+  esac'
+}
+
+@test "packages: updates only with audit on PATH: the mode, its level toggles, and upgrade and remove scoped to it" {
+  only_stubs
+  stub_cmd gem :
+  run "$MODS/packages/components.tsv"
+  [[ "$output" != *$'mode\tupdates'* && "$output" != *$'toggle\tmajor'* && "$output" != *"updates:"* ]]
+  [[ "$output" == *$'action\tupgrade\talt-u\tupgrade to the latest version'* ]]
+  stub_audit
+  run "$MODS/packages/components.tsv"
+  [ "$status" -eq 0 ]
+  [ "$(printf '%s\n' "${lines[@]}" | awk -F '\t' '$1 == "mode" { printf "%s:%s ", $2, $5 }')" = "gem:default updates:- " ]
+  [ "$(printf '%s\n' "${lines[@]}" | awk -F '\t' '$1 == "toggle" { printf "%s:%s:%s ", $2, $4, $5 }')" = \
+    "major:updates: major releases:on minor:updates: minor releases:on patch:updates: patch releases:on system:updates: system managers' newer builds (apt, snap, flatpak):on " ]
+  [[ "$output" == *$'sort\tname\t-\tgem, updates: by name'* ]]
+  [[ "$output" == *$'action\tupgrade\talt-u\tupdates: one audit packages update run for the marked packages (audit shows its plan and asks); gem: upgrade to the latest version'* ]]
+  [[ "$output" == *$'action\tremove\talt-x\tupdates: remove with the package\'s own manager'*"; gem: remove, asking first"* ]]
+}
+
+@test "packages: updates lists audit's outdated packages by name, the levels from the toggles" {
+  stub_audit
+  FZX_MODE=updates run --separate-stderr "$MODS/packages/source.sh"
+  [ "$status" -eq 0 ]
+  [ "$(ids)" = "update:cargo:bottom update:apt:curl update:gh:gh-dash update:uv:ruff " ]
+  [ "$(printf '%s\n' "${lines[@]}" | cut -f2 | tr '\n' ' ')" = "bottom curl gh-dash ruff " ]
+  [[ "$(printf '%s\n' "${lines[0]}" | cut -f3 | plain)" == "↑ bottom "*" cargo "*" 0.9.0@abc1234 "*"→ 1.0.0 "*" major" ]]
+  [[ "$(printf '%s\n' "${lines[1]}" | cut -f3 | plain)" == *" apt "*"8.5.0-2"*"→ 8.5.0-3"*" update" ]]
+  # the level's color on the mark and the gap
+  [[ "${lines[0]}" == *$'\e[38;5;167m↑'*$'\e[38;5;167mmajor'* ]]
+  grep -qx 'audit packages list -u -T -n -q -g major,minor,patch,update' "$BATS_TEST_TMPDIR/calls"
+  FZX_MODE=updates FZX_TOGGLES="manual major patch" run "$MODS/packages/source.sh"
+  [ "$(ids)" = "update:cargo:bottom update:gh:gh-dash " ]
+  grep -qx 'audit packages list -u -T -n -q -g major,patch' "$BATS_TEST_TMPDIR/calls"
+  FZX_MODE=updates FZX_TOGGLES="minor" run "$MODS/packages/source.sh"
+  [ "$(ids)" = "update:uv:ruff " ]
+  FZX_MODE=updates FZX_TOGGLES="system" run "$MODS/packages/source.sh"
+  [ "$(ids)" = "update:apt:curl " ]
+  # every level off: nothing, and audit is not asked
+  : > "$BATS_TEST_TMPDIR/calls"
+  FZX_MODE=updates FZX_TOGGLES="" run "$MODS/packages/source.sh"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  [ ! -s "$BATS_TEST_TMPDIR/calls" ]
+  # the header row over the columns
+  FZX_MODE=updates FZX_SORT_HEADER=1 run "$MODS/packages/source.sh"
+  [[ "$(printf '%s\n' "${lines[0]}" | plain)" == $'\t\t  NAME'*"MANAGER  VERSION"*"LATEST"*"GAP" ]]
+}
+
+@test "packages: updates without a saved scan shows audit's message as a row and fails; without audit, it is not installed" {
+  stub_audit
+  touch "$BATS_TEST_TMPDIR/audit-fail"
+  FZX_MODE=updates run --separate-stderr "$MODS/packages/source.sh"
+  [ "$status" -eq 1 ]
+  [ "$(ids)" = "audit:error " ]
+  [[ "$(printf '%s\n' "${lines[0]}" | plain)" == *"audit: no saved packages scan: run audit packages -r" ]]
+  [[ "$stderr" == *"audit packages list failed: no saved packages scan"* ]]
+  run "$MODS/packages/preview.sh" audit:error
+  [[ "$output" == *"no saved packages scan"* ]]
+  only_stubs
+  rm -f "$BATS_TEST_TMPDIR/bin/audit"
+  FZX_MODE=updates run --separate-stderr "$MODS/packages/source.sh"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "packages: audit is not installed" ]
+}
+
+@test "packages: an outdated package is previewed by audit packages info, its keys dim and its latest version in the level's color" {
+  stub_audit
+  run "$MODS/packages/preview.sh" update:uv:ruff
+  [ "$status" -eq 0 ]
+  grep -qx 'audit packages info -n -q -- uv:ruff' "$BATS_TEST_TMPDIR/calls"
+  [[ "$(printf '%s\n' "$output" | plain)" == "ruff  uv  pypi"$'\n'"installed    0.4.0"$'\n'"latest       0.5.1  minor; released 3 days ago" ]]
+  [[ "$output" == *$'\e[38;5;244minstalled    \e[0m0.4.0'* && "$output" == *$'\e[38;5;179m0.5.1  minor'* ]]
+}
+
+@test "packages: upgrade hands every marked update to one audit run; remove goes to the package's own manager" {
+  stub_audit
+  stub_cmd uv :
+  stub_cmd cargo :
+  run "$MODS/packages/actions.sh" upgrade update:uv:ruff update:apt:curl update:gh:gh-dash < /dev/null
+  [ "$status" -eq 0 ]
+  [ "$(grep '^audit' "$BATS_TEST_TMPDIR/calls")" = "audit packages update uv:ruff apt:curl gh:gh-dash" ]
+  # audit's own answer (no, a failure) is reported
+  stub_cmd audit 'exit 1'
+  run "$MODS/packages/actions.sh" upgrade update:uv:ruff < /dev/null
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"failed (exit 1)"* ]]
+  : > "$BATS_TEST_TMPDIR/calls"
+  run "$MODS/packages/actions.sh" remove update:uv:ruff update:gh:gh-dash update:cargo:bottom <<< yy
+  [ "$status" -eq 1 ]
+  [[ "$(printf '%s\n' "$output" | plain)" == *"packages: gh-dash: no remove here for gh packages"*"remove (uv): ruff"*"remove (cargo): bottom"*"failed (exit 1)"* ]]
+  [ "$(command cat "$BATS_TEST_TMPDIR/calls")" = $'uv tool uninstall ruff\ncargo uninstall bottom' ]
+}
+
+@test "packages: gems and flatpaks from updates are removed from the installation that has them" {
+  stub_cmd gem :
+  stub_cmd flatpak '[[ "$1" == info ]] && { [[ "$*" == *--user*org.u.App* ]] || exit 1; }; :'
+  local u="$BATS_TEST_TMPDIR/gems/user" s="$BATS_TEST_TMPDIR/gems/system"
+  mkdir -p "$u/specifications" "$s/specifications"
+  : > "$s/specifications/rake-13.0.gemspec"
+  run bash -c 'FZX_PACKAGES_GEM_DIRS=("user:$1" "system:$2"); source "$3"; packages::action remove update:gem:rake update:flatpak:org.u.App update:flatpak:org.s.App' \
+    _ "$u" "$s" "$MODS/packages/actions.sh" <<< yyy
+  [[ "$(printf '%s\n' "$output" | plain)" == *"remove (gem system): rake"*"remove (flatpak user): org.u.App"*"remove (flatpak system): org.s.App"* ]]
+  run grep -v -e '^flatpak info' -e '^sudo ' "$BATS_TEST_TMPDIR/calls"
+  [[ "$output" == *"gem uninstall -a -x -i $s rake"* ]]
+  [[ "$output" == *"flatpak uninstall --user org.u.App"*"flatpak uninstall --system org.s.App"* ]]
+}
+
+@test "packages: the updates menu entry only with audit; its summary counts audit's outdated packages" {
+  load_libs log config menu
+  only_stubs
+  fzx::menu_entries packages "$FZX_REPO/modules/packages"
+  [[ " ${FZX_ENTRY_TARGETS[*]} " == *" packages:updates "* && " ${FZX_ENTRY_DESCS[*]} " == *"Package updates (audit)"* ]]
+  run packages::applicable packages:updates
+  [ "$status" -ne 0 ]
+  stub_audit
+  packages::applicable packages:updates
+  [ "$(packages::summary packages:updates)" = "4 outdated" ]
+  grep -qx 'audit packages list -u -T -n -q' "$BATS_TEST_TMPDIR/calls"
+  touch "$BATS_TEST_TMPDIR/audit-fail"
+  run packages::summary packages:updates
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
 }

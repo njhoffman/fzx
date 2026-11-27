@@ -127,8 +127,8 @@ packages::_search_pypi() {
   local json name
   json="$(packages::_curl "https://pypi.org/pypi/$1/json")" || return 0
   name="$(command jq -r '.info.name // empty' <<< "$json")"
-  [[ -n "$name" ]] && packages::_info_write pipx "$name" packages::_pypi_info <<< "$json"
-  command jq -r '.info | ["pipx", .name, (.version // ""), ((.summary // "") | gsub("[\t\r\n]+"; " "))] | @tsv' <<< "$json"
+  [[ -n "$name" ]] && packages::_info_write uv "$name" packages::_pypi_info <<< "$json"
+  command jq -r '.info | ["uv", .name, (.version // ""), ((.summary // "") | gsub("[\t\r\n]+"; " "))] | @tsv' <<< "$json"
 }
 
 # packages::_installed_names <manager>: the names installed with it, one per line
@@ -137,7 +137,7 @@ packages::_installed_names() {
     cargo) [[ -f "$(packages::_crates)" ]] && packages::cargo_installs | cut -f1 ;;
     pnpm) command pnpm ls -g --depth=0 --json 2> /dev/null | command jq -r '.[] | .dependencies // {} | keys[]' ;;
     gem) FZX_SORT=name packages::gem 2> /dev/null | cut -f2 ;;
-    pipx) FZX_SORT=name packages::pipx 2> /dev/null | cut -f2 ;;
+    uv) FZX_SORT=name packages::uv 2> /dev/null | cut -f2 ;;
   esac
 }
 
@@ -146,7 +146,7 @@ packages::search_registries() {
   command -v cargo > /dev/null && printf 'crates\tcargo\n'
   command -v pnpm > /dev/null && command -v jq > /dev/null && printf 'npm\tpnpm\n'
   command -v gem > /dev/null && command -v curl > /dev/null && command -v jq > /dev/null && printf 'rubygems\tgem\n'
-  command -v pipx > /dev/null && command -v curl > /dev/null && command -v jq > /dev/null && printf 'pypi\tpipx\n'
+  command -v uv > /dev/null && command -v curl > /dev/null && command -v jq > /dev/null && printf 'pypi\tuv\n'
   return 0
 }
 
@@ -219,7 +219,7 @@ packages::remote_info() {
     cargo) packages::_info_write cargo "$2" packages::_crate_info ;;
     pnpm) packages::_info_write pnpm "$2" packages::_npm_info ;;
     gem) packages::_info_write gem "$2" packages::_gem_info ;;
-    pipx) packages::_curl "https://pypi.org/pypi/$2/json" | packages::_info_write pipx "$2" packages::_pypi_info ;;
+    uv) packages::_curl "https://pypi.org/pypi/$2/json" | packages::_info_write uv "$2" packages::_pypi_info ;;
     *) return 2 ;;
   esac || return 1
   cat -- "$file"

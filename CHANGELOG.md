@@ -6,6 +6,30 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.121.0] - 2026-11-26
+
+### Added
+
+- packages: a `uv` mode for uv tools (`uv tool list`: version and apps). The preview reads the tool's
+  `uv-receipt.toml` (requirements with extras, entrypoints, python) and its package's summary and links;
+  install, upgrade and remove run `uv tool install`, `uv tool upgrade` and `uv tool uninstall`.
+- packages: an `updates` mode when the `audit` CLI is on PATH: every manager's outdated packages from
+  audit's saved scan (`audit packages list -u -T`, no network), sorted by name, the mark and gap colored by
+  level (major red, minor amber, patch cyan, a system manager's newer build dim amber). Toggles major,
+  minor, patch and system pick the levels; typing a manager's name filters by it. The preview is
+  `audit packages info`. alt-u hands every marked row to one `audit packages update` run (audit prints
+  its plan and asks); alt-x removes through the package's own manager. Without a saved scan audit's
+  message shows as a row. A menu entry, "Package updates (audit)", counts them.
+
+### Changed
+
+- packages: the search's PyPI rows install with uv (`uv:NAME`), and its pypi toggle needs uv instead of
+  pipx.
+
+### Removed
+
+- packages: the pipx mode, its preview and actions; uv tools replace them.
+
 ## [0.120.0] - 2026-11-26
 
 ### Added

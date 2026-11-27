@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # packages preview by the row's id (see source.sh): apt's installed and candidate versions, the package's
 # fields and description, and the commands an installed one provides; snap info; flatpak info (an
-# application not installed: its appstream entry); a pipx venv's metadata and its package's summary; a
+# application not installed: its appstream entry); a uv tool's receipt and its package's summary; a
 # crate's source, binaries and features (its description from cargo's registry sources when they are still
-# there); a pnpm package's package.json; a gem's specification. A snap, crate, npm package, gem or PyPI
-# package that is not installed is described from the network, once a day per package (remote.sh).
+# there); a pnpm package's package.json; a gem's specification; an outdated package (updates) by audit
+# packages info. A snap, crate, npm package, gem or PyPI package that is not installed is described from
+# the network, once a day per package (remote.sh).
 
 [[ -n "${_FZX_CORE_LOADED:-}" ]] || source "${FZX_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}/lib/core.sh"
 # shellcheck source=./source.sh
@@ -171,32 +172,76 @@ packages::_flatpak() {
   return 0
 }
 
-# packages::_pipx <name>: the venv's metadata (version, apps, python, injected packages) and its package's
-# summary and links from the installed METADATA
-packages::_pipx() {
-  local name="$1" home venv meta md
-  home="$(packages::_pipx_home)"
-  venv="$home/venvs/$name"
-  meta="$venv/pipx_metadata.json"
-  [[ -f "$meta" ]] || {
-    packages::_remote pipx "$name"
+# packages::_uv_receipt <file>: "key<TAB>value" lines from a uv tool's uv-receipt.toml: its requirements
+# (with extras, version specifiers, git or path sources), entrypoints and python. uv writes each
+# requirement and entrypoint as an inline table on one line
+packages::_uv_receipt() {
+  LC_ALL=C awk '
+    function str(item, k) { return match(item, k " = \"[^\"]*\"") ? substr(item, RSTART + length(k) + 4, RLENGTH - length(k) - 5) : "" }
+    /^\[/ { next }
+    /^[a-z_-]+ = / { key = $1 }
+    key == "python" { py = str($0, "python") }
+    key == "requirements" || key == "entrypoints" {
+      line = $0
+      while (match(line, /\{[^}]*\}/)) {
+        item = substr(line, RSTART, RLENGTH); line = substr(line, RSTART + RLENGTH)
+        name = str(item, "name")
+        if (key == "entrypoints") { eps = eps (eps == "" ? "" : " ") name; continue }
+        ex = ""; if (match(item, /extras = \[[^]]*\]/)) { ex = substr(item, RSTART + 9, RLENGTH - 9); gsub(/[" ]/, "", ex) }
+        r = name ex str(item, "specifier")
+        if ((g = str(item, "git")) != "") r = r " (" g ")"
+        else if ((g = str(item, "directory")) != "" || (g = str(item, "path")) != "") r = r " (" g ")"
+        reqs = reqs (reqs == "" ? "" : ", ") r
+      }
+    }
+    END { print "requirements\t" reqs; print "entrypoints\t" eps; print "python\t" py }' "$1"
+}
+
+# packages::_uv <name>: the tool's receipt (requirements, entrypoints, python) and its package's summary
+# and links from the installed METADATA; a tool that is not installed from PyPI (remote.sh)
+packages::_uv() {
+  local name="$1" dir md ver="" info=""
+  dir="$(command uv tool dir 2> /dev/null)"
+  dir="${dir:+$dir/$name}"
+  [[ -n "$dir" && -f "$dir/uv-receipt.toml" ]] || {
+    packages::_remote uv "$name"
     return 0
   }
-  packages::_title "$name" "$(command jq -r '.main_package.package_version // ""' "$meta")"
-  packages::_kv apps "$(command jq -r '.main_package.apps // [] | join(" ")' "$meta")"
-  packages::_kv python "$(command jq -r '.python_version // ""' "$meta")"
-  packages::_kv injected "$(command jq -r '.injected_packages // {} | keys | join(" ")' "$meta")"
-  packages::_kv venv "$venv"
   local norm="${name//-/_}"
   shopt -s nullglob nocaseglob
-  for md in "$venv"/lib/python*/site-packages/"$norm"-*.dist-info/METADATA; do
-    printf '\n'
-    awk '/^$/ { exit } /^(Summary|Home-page|Project-URL|License|Author): / { k = tolower($1); sub(/:$/, "", k); v = $0; sub(/^[^:]*: /, "", v); print k "\t" v }' "$md" |
-      packages::_kvs
+  for md in "$dir"/lib/python*/site-packages/"$norm"-*.dist-info/METADATA; do
+    ver="${md%.dist-info/METADATA}"
+    ver="${ver##*/}"
+    ver="${ver#*-}"
+    info="$(awk '/^$/ { exit } /^(Summary|Home-page|Project-URL|License|Author): / { k = tolower($1); sub(/:$/, "", k); v = $0; sub(/^[^:]*: /, "", v); print k "\t" v }' "$md")"
     break
   done
   shopt -u nullglob nocaseglob
+  packages::_title "$name" "$ver"
+  packages::_uv_receipt "$dir/uv-receipt.toml" | packages::_kvs
+  packages::_kv dir "$dir"
+  [[ -n "$info" ]] && printf '\n%s\n' "$info" | packages::_kvs
   return 0
+}
+
+# packages::_update <manager:name>: audit's details of an outdated package (audit packages info, from its
+# saved scan), folded to the preview: the first line a title, the keys dim, the latest version in its
+# level's color. audit writes no colors into a pipe, so they are drawn here
+packages::_update() {
+  command audit packages info -n -q -- "$1" | fold -s -w "${FZF_PREVIEW_COLUMNS:-80}" | awk \
+    -v t="$(packages::_c title '1;38;5;255')" -v k="$(packages::_c key '38;5;244')" \
+    -v maj="$(packages::_c major '38;5;167')" -v min="$(packages::_c minor '38;5;179')" \
+    -v pat="$(packages::_c patch '38;5;80')" -v upd="$(packages::_c update '38;5;136')" '
+    NR == 1 { print t $0 "\033[0m"; next }
+    match($0, /^[a-z][a-z-]*  +/) {
+      key = substr($0, 1, RLENGTH); rest = substr($0, RLENGTH + 1)
+      if (key ~ /^latest /) {
+        c = rest ~ / major/ ? maj : rest ~ / minor/ ? min : rest ~ / patch/ ? pat : rest ~ / update/ ? upd : ""
+        if (c != "") rest = c rest "\033[0m"
+      }
+      print k key "\033[0m" rest; next
+    }
+    { print }'
 }
 
 # packages::_cargo <name>: the crate's install record and, from the registry's unpacked sources when they
@@ -295,10 +340,16 @@ packages::preview() {
     apt) packages::_apt "$rest" ;;
     snap) packages::_snap "$rest" ;;
     flatpak) packages::_flatpak "${rest%%:*}" "${rest#*:}" ;;
-    pipx) packages::_pipx "$rest" ;;
+    uv) packages::_uv "$rest" ;;
     cargo) packages::_cargo "$rest" ;;
     pnpm) packages::_pnpm "$rest" ;;
     gem) packages::_gem "${rest%%:*}" "${rest#*:}" ;;
+    update) packages::_update "$rest" ;;
+    # the updates mode's row for audit's failure: its message again
+    audit)
+      { command audit packages list -u -T -n -q > /dev/null; } 2>&1
+      printf '\nrun audit packages -r to scan the packages\n'
+      ;;
     *)
       printf 'unknown package manager: %s\n' "$manager"
       return 1

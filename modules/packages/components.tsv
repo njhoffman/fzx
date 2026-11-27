@@ -20,7 +20,7 @@ if packages::has apt; then
   modes=(apt available upgradable)
   default=-
 fi
-for m in snap snap-available flatpak flatpak-available pipx cargo pnpm gem; do
+for m in snap snap-available flatpak flatpak-available uv cargo pnpm gem updates; do
   case "$m" in
     snap) packages::has snap && row mode snap - 'snaps' "$default" ;;
     snap-available)
@@ -30,13 +30,17 @@ for m in snap snap-available flatpak flatpak-available pipx cargo pnpm gem; do
     flatpak-available)
       packages::has flatpak && [[ -n "$(packages::flatpak_remotes)" ]] &&
         row mode flatpak-available - "the remotes' applications (their appstream data)" - ;;
-    pipx) packages::has pipx && row mode pipx - 'pipx applications' "$default" ;;
+    uv) packages::has uv && row mode uv - 'uv tools' "$default" ;;
     cargo) packages::has cargo && row mode cargo - 'cargo install crates, with their source' "$default" ;;
     pnpm) packages::has pnpm && row mode pnpm - 'pnpm global packages' "$default" ;;
     gem) packages::has gem && row mode gem - 'gems you installed (user and system; the ones apt owns left out)' "$default" ;;
+    # never the default: it lists what the other modes have, from audit's saved scan
+    updates)
+      packages::has updates &&
+        row mode updates - "every manager's outdated packages, from audit, colored by level (type a manager's name to filter)" - ;;
   esac || continue
   modes+=("$m")
-  [[ "$m" == *-available ]] || default=-
+  [[ "$m" == *-available || "$m" == updates ]] || default=-
 done
 registries="$(packages::search_registries)"
 [[ -n "$registries" ]] &&
@@ -49,9 +53,16 @@ while IFS=$'\t' read -r toggle _; do
     crates) row toggle crates - 'search: crates.io (cargo)' on ;;
     npm) row toggle npm - 'search: the npm registry (pnpm)' on ;;
     rubygems) row toggle rubygems - 'search: rubygems.org' on ;;
-    pypi) row toggle pypi - 'search: PyPI, the query as an exact name (pipx)' on ;;
+    pypi) row toggle pypi - 'search: PyPI, the query as an exact name (uv)' on ;;
   esac
 done <<< "$registries"
+# the levels the updates mode asks audit for (after the older toggles, so their alt-digits stay)
+if packages::has updates; then
+  row toggle major - 'updates: major releases' on
+  row toggle minor - 'updates: minor releases' on
+  row toggle patch - 'updates: patch releases' on
+  row toggle system - "updates: system managers' newer builds (apt, snap, flatpak)" on
+fi
 
 # by name everywhere but search, whose order is the registries' relevance
 if ((${#modes[@]})); then
@@ -66,7 +77,18 @@ install=""
 [[ " ${modes[*]} " == *" flatpak-available "* ]] && install+="flatpak-available, "
 [[ -n "$registries" ]] && install+="search, "
 [[ -n "$install" ]] && row action install alt-i "${install%, }: install" 'foreground,reload'
-row action upgrade alt-u 'upgrade to the latest version (sudo for apt, snap and system gems)' 'foreground,reload'
-row action remove alt-x 'remove, asking first (apt asks itself; sudo for apt, snap and system gems)' 'foreground,reload'
+# updates hands upgrade to audit (one run for every marked package: it prints its plan and asks); remove goes
+# to the package's own manager
+upgrade='upgrade to the latest version (sudo for apt, snap and system gems)'
+remove='remove, asking first (apt asks itself; sudo for apt, snap and system gems)'
+if [[ " ${modes[*]} " == *" updates "* ]]; then
+  scope=""
+  for m in "${modes[@]}"; do [[ "$m" == updates ]] || scope+="${scope:+, }$m"; done
+  [[ -n "$registries" ]] && scope+="${scope:+, }search"
+  upgrade="updates: one audit packages update run for the marked packages (audit shows its plan and asks)${scope:+; $scope: $upgrade}"
+  remove="updates: remove with the package's own manager, asking first (not go, gh or bins packages)${scope:+; $scope: $remove}"
+fi
+row action upgrade alt-u "$upgrade" 'foreground,reload'
+row action remove alt-x "$remove" 'foreground,reload'
 ((apt)) && row action purge - 'apt, available, upgradable: remove with the configuration files (apt asks)' 'foreground,reload'
 exit 0

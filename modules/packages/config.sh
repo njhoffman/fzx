@@ -12,10 +12,11 @@ FZX_ICON_MODES[available]=$''
 FZX_ICON_MODES[upgradable]=$'\U000f0060'
 FZX_ICON_MODES[snap]=$''
 FZX_ICON_MODES[flatpak]=$''
-FZX_ICON_MODES[pipx]=$''
+FZX_ICON_MODES[uv]=$''
 FZX_ICON_MODES[cargo]=$''
 FZX_ICON_MODES[pnpm]=$''
 FZX_ICON_MODES[gem]=$''
+FZX_ICON_MODES[updates]=$'\U000f06b0'
 
 # the icons' colors in the menu
 FZX_COLORS[packages_icon]="38;5;137"
@@ -24,10 +25,11 @@ FZX_COLORS[packages_icon_available]="38;5;161"
 FZX_COLORS[packages_icon_upgradable]="38;5;179"
 FZX_COLORS[packages_icon_snap]="38;5;208"
 FZX_COLORS[packages_icon_flatpak]="38;5;74"
-FZX_COLORS[packages_icon_pipx]="38;5;67"
+FZX_COLORS[packages_icon_uv]="38;5;134"
 FZX_COLORS[packages_icon_cargo]="38;5;173"
 FZX_COLORS[packages_icon_pnpm]="38;5;178"
 FZX_COLORS[packages_icon_gem]="38;5;160"
+FZX_COLORS[packages_icon_updates]="38;5;80"
 
 # rows and previews
 FZX_COLORS[packages_name]='38;5;252'
@@ -38,6 +40,11 @@ FZX_COLORS[packages_key]='38;5;244'
 FZX_COLORS[packages_installed]='38;5;114'
 FZX_COLORS[packages_missing]='38;5;240'
 FZX_COLORS[packages_upgrade]='38;5;179'
+# the updates mode's levels: major, minor, patch, and a system manager's newer build (audit's "update")
+FZX_COLORS[packages_major]='38;5;167'
+FZX_COLORS[packages_minor]='38;5;179'
+FZX_COLORS[packages_patch]='38;5;80'
+FZX_COLORS[packages_update]='38;5;136'
 
 # gem homes listed in the gem mode, "scope:glob" (scope user or system); the gems apt installs under
 # /usr/lib/ruby and rubygems-integration belong to apt and are left out

@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # packages source. Lines are "id<TAB>name<TAB>display"; the id names the manager (and for flatpak and gem
 # the installation), so preview and actions dispatch on it rather than on the mode:
-#   apt:NAME  snap:NAME  flatpak:system|user:APP  pipx:NAME  cargo:NAME  pnpm:NAME  gem:user|system:NAME
-# Mode from $FZX_MODE: apt (installed), available, upgradable, snap, flatpak, pipx, cargo, pnpm, gem.
+#   apt:NAME  snap:NAME  flatpak:system|user:APP  uv:NAME  cargo:NAME  pnpm:NAME  gem:user|system:NAME
+#   update:MANAGER:NAME (the updates mode: audit's ref, MANAGER:NAME, behind "update:")
+# Mode from $FZX_MODE: apt (installed), available, upgradable, snap, flatpak, uv, cargo, pnpm, gem, updates.
 # available and upgradable take ~2s from apt, so their raw lists are cached in $FZX_CACHE_DIR/packages,
 # rebuilt when /var/lib/apt/lists (and for upgradable /var/lib/dpkg/status) changes; rows are formatted on
 # every run, so the installed marks stay current.
-# $FZX_TOGGLES: manual (apt: no dependencies), runtimes (flatpak). $FZX_SORT: name (default) or size (apt).
+# $FZX_TOGGLES: manual (apt: no dependencies), runtimes (flatpak), major, minor, patch and system (updates:
+# the levels audit is asked for). $FZX_SORT: name (default) or size (apt).
 # snap-available, flatpak-available and search are in remote.sh.
 
 declare -gA FZX_COLORS
@@ -14,21 +16,18 @@ declare -gA FZX_COLORS
 packages::_apt_lists() { printf '%s' "${FZX_PACKAGES_APT_LISTS:-/var/lib/apt/lists}"; }
 packages::_dpkg_status() { printf '%s' "${FZX_PACKAGES_DPKG_STATUS:-/var/lib/dpkg/status}"; }
 packages::_extended_states() { printf '%s' "${FZX_PACKAGES_EXTENDED_STATES:-/var/lib/apt/extended_states}"; }
-packages::_pipx_home() {
-  local home="${PIPX_HOME:-$HOME/.local/share/pipx}"
-  [[ -z "${PIPX_HOME:-}" && ! -d "$home/venvs" && -d "$HOME/.local/pipx/venvs" ]] && home="$HOME/.local/pipx"
-  printf '%s' "$home"
-}
 packages::_crates() { printf '%s' "${CARGO_HOME:-$HOME/.cargo}/.crates2.json"; }
 
 # packages::has <manager>: the manager's tools are on PATH (and what its list is read from exists)
 packages::has() {
   case "$1" in
     apt) command -v dpkg-query > /dev/null && command -v apt-cache > /dev/null ;;
-    snap | flatpak) command -v "$1" > /dev/null ;;
-    pipx | pnpm) command -v "$1" > /dev/null && command -v jq > /dev/null ;;
+    snap | flatpak | uv) command -v "$1" > /dev/null ;;
+    pnpm) command -v pnpm > /dev/null && command -v jq > /dev/null ;;
     cargo) command -v cargo > /dev/null && command -v jq > /dev/null && [[ -f "$(packages::_crates)" ]] ;;
     gem) command -v gem > /dev/null ;;
+    # the updates mode: the audit CLI's saved scan of every manager
+    updates) command -v audit > /dev/null ;;
     *) return 1 ;;
   esac
 }
@@ -47,7 +46,8 @@ packages::gem_dirs() {
 }
 
 # packages::_awk_lib: awk functions shared by the lists; colors come in as -v n (name), v (version),
-# d (dim), hl (the sorted column)
+# d (dim), hl (the sorted column), on/off (installed or not), up (upgrade), cmaj/cmin/cpat/cupd (the
+# updates mode's levels)
 packages::_awk_lib() {
   printf '%s' '
     function cell(color, text, w, on) { return color (on ? hl : "") text "\033[0m" sprintf("%" (w - length(text) > 0 ? w - length(text) : 0) "s", "") }
@@ -68,6 +68,8 @@ packages::_awk() {
     -v d=$'\e['"${FZX_COLORS[packages_dim]:-38;5;244}m" -v hl=$'\e['"${FZX_COLORS[sorted]:-4}m" \
     -v on=$'\e['"${FZX_COLORS[packages_installed]:-38;5;114}m" -v off=$'\e['"${FZX_COLORS[packages_missing]:-38;5;240}m" \
     -v up=$'\e['"${FZX_COLORS[packages_upgrade]:-38;5;179}m" \
+    -v cmaj=$'\e['"${FZX_COLORS[packages_major]:-38;5;167}m" -v cmin=$'\e['"${FZX_COLORS[packages_minor]:-38;5;179}m" \
+    -v cpat=$'\e['"${FZX_COLORS[packages_patch]:-38;5;80}m" -v cupd=$'\e['"${FZX_COLORS[packages_update]:-38;5;136}m" \
     "$(packages::_awk_lib)$prog" "$@"
 }
 
@@ -202,14 +204,20 @@ packages::flatpak() {
     }' | packages::_sorted
 }
 
-# packages::pipx: pipx venvs from their metadata: version and the applications they expose
-packages::pipx() {
-  local home
-  home="$(packages::_pipx_home)"
-  local -a meta=("$home"/venvs/*/pipx_metadata.json)
-  [[ -f "${meta[0]}" ]] || return 0
-  command jq -r '[.main_package.package, .main_package.package_version, (.main_package.apps // [] | join(" "))] | @tsv' "${meta[@]}" |
-    packages::_awk '{ row(tolower($1), "pipx:" $1, $1, on "●\033[0m", cell(v, $2, 20, 0) " " d $3 "\033[0m") }' | packages::_sorted
+# packages::uv: uv tools from uv tool list ("name vVERSION" lines, each followed by "- app" lines; a tool
+# installed with extras shows "name[extra]"): version and the applications they expose
+packages::uv() {
+  command uv tool list 2> /dev/null | packages::_awk '
+    /^- / { if (cur != "") apps[cur] = apps[cur] (apps[cur] == "" ? "" : " ") substr($0, 3); next }
+    {
+      split($0, f, " ")
+      if (f[2] !~ /^v[0-9]/) next
+      cur = f[1]; sub(/\[.*/, "", cur)
+      if (!(cur in ver)) order[++cnt] = cur
+      ver[cur] = substr(f[2], 2)
+    }
+    END { for (i = 1; i <= cnt; i++) { t = order[i]; row(tolower(t), "uv:" t, t, on "●\033[0m", cell(v, ver[t], 20, 0) " " d apps[t] "\033[0m") } }' |
+    packages::_sorted
 }
 
 # packages::cargo_installs: "name<TAB>version<TAB>source<TAB>binaries" from cargo's .crates2.json
@@ -272,6 +280,49 @@ packages::gem() {
     }' | LC_ALL=C sort -s -t $'\t' -k1,1 -k2,2 | cut -f3-
 }
 
+# packages::update_levels: the gap levels audit is asked for, comma-joined, from the toggles (system is
+# audit's "update": a system manager's newer build); empty with every level off. Unset FZX_TOGGLES (a
+# standalone run) turns them all on
+packages::update_levels() {
+  local t out="" toggles=" ${FZX_TOGGLES-major minor patch system} "
+  for t in major minor patch system; do
+    [[ "$toggles" == *" $t "* ]] || continue
+    [[ "$t" == system ]] && t=update
+    out+="${out:+,}$t"
+  done
+  printf '%s' "$out"
+}
+
+# packages::updates: every manager's outdated packages from audit's saved scan (audit packages list: no
+# network), at the levels the toggles leave on: a mark and the gap in the level's color, name, manager,
+# installed -> latest. Without a saved scan audit fails: its message becomes a row of its own (audit:error)
+packages::updates() {
+  local levels out err rc msg
+  levels="$(packages::update_levels)"
+  [[ -n "$levels" ]] || return 0
+  err="$(mktemp)"
+  # shellcheck disable=SC2064  # the path is fixed now
+  trap "rm -f -- '$err'" RETURN
+  out="$(command audit packages list -u -T -n -q -g "$levels" 2> "$err")"
+  rc=$?
+  if ((rc)); then
+    msg="$(tr '\n' ' ' < "$err")"
+    msg="${msg% }"
+    msg="${msg:-exit $rc}"
+    printf 'packages: audit packages list failed: %s\n' "$msg" >&2
+    printf 'audit:error\t\t\e[%sm✗ audit: %s\e[0m\n' "${FZX_COLORS[packages_major]:-38;5;167}" "$msg"
+    return 1
+  fi
+  [[ -n "$out" ]] || return 0
+  packages::_awk '
+    NF < 6 { next }
+    {
+      lv = $6; c = lv == "major" ? cmaj : lv == "minor" ? cmin : lv == "patch" ? cpat : cupd
+      row(tolower($3) "\t" $2, "update:" $2 ":" $3, $3, c "↑\033[0m", cell(d, $2, 8, 0) " " cell(v, $4, 20, 0) " " d "→\033[0m " cell(c, $5, 24, 0) " " c lv "\033[0m")
+    }' <<< "$out" |
+    LC_ALL=C sort -s -t $'\t' -k1,1 -k2,2 | cut -f3-
+}
+
 packages::source() {
   local mode="${FZX_MODE:-apt}"
   case "$mode" in
@@ -279,7 +330,11 @@ packages::source() {
       printf 'packages: apt is not installed\n' >&2
       return 1
     } ;;
-    snap | flatpak | pipx | cargo | pnpm | gem | snap-available | flatpak-available) packages::has "${mode%-available}" || {
+    updates) packages::has updates || {
+      printf 'packages: audit is not installed\n' >&2
+      return 1
+    } ;;
+    snap | flatpak | uv | cargo | pnpm | gem | snap-available | flatpak-available) packages::has "${mode%-available}" || {
       printf 'packages: %s is not installed\n' "${mode%-available}" >&2
       return 1
     } ;;
@@ -310,7 +365,8 @@ packages::header() {
     snap) rest=(VERSION 28 0 TRACKING 16 0 PUBLISHER 18 0 NOTES 0 0) ;;
     flatpak) rest=(VERSION 16 0 SCOPE 7 0 ID 0 0) ;;
     flatpak-available) rest=(VERSION 16 0 BRANCH 10 0 SUMMARY 0 0) ;;
-    pipx) rest=(VERSION 20 0 APPS 0 0) ;;
+    uv) rest=(VERSION 20 0 APPS 0 0) ;;
+    updates) rest=(MANAGER 8 0 VERSION 20 0 "" 1 0 LATEST 24 0 GAP 0 0) ;;
     cargo) rest=(VERSION 20 0 SOURCE 44 0 BINARIES 0 0) ;;
     pnpm) rest=(VERSION 0 0) ;;
     gem) rest=(VERSION 20 0 SCOPE 7 0 SUMMARY 0 0) ;;
