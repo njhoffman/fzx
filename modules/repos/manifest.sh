@@ -17,3 +17,7 @@ repos::summary() {
     repos:changed) awk -F'\t' '$3 > 0 { c++ } END { printf "%d changed\n", c }' "$cache" ;;
   esac
 }
+
+# the summaries are cached once for every directory: they count from the module's own scan cache, the same in
+# every directory
+repos::summary_global() { :; }

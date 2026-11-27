@@ -6,6 +6,22 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.120.0] - 2026-11-26
+
+### Added
+
+- `<module>::summary_global <target>`: a manifest hook for entries whose menu summary is the same in every
+  directory. Those are cached once (`summary/global`) instead of per directory, so opening the menu
+  somewhere new no longer runs them all again. 29 modules use it for every entry (aws, audio, docker,
+  systemd, tmux, ...), and github, todos and history for the entries that do not depend on the directory;
+  files, git, tasks, sessions and the directory's own github, todos and history entries stay per directory.
+
+### Changed
+
+- aws summaries refresh at most hourly and may take 15s: each starts the aws CLI (2-5s before its request),
+  so under the global 3s they timed out in every cold refresh. Its `config.sh` sets `FZX_SUMMARY_TTL` and
+  `FZX_SUMMARY_TIMEOUT` for the module; a module's own config.sh can set them for itself.
+
 ## [0.119.0] - 2026-11-26
 
 ### Added

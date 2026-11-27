@@ -27,3 +27,7 @@ history::summary() {
       "$(fzx::plural "$(command sqlite3 -readonly "$db" "select count(distinct host) from places" 2> /dev/null)" host)" ;;
   esac
 }
+
+# every host's and this machine's history are the same in every directory, cached once for all; the
+# directory's own is not
+history::summary_global() { [[ "$1" != history:directory ]]; }

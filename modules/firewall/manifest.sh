@@ -24,3 +24,6 @@ firewall::summary() {
       ;;
   esac
 }
+
+# the summaries are cached once for every directory: they describe the machine, not the directory
+firewall::summary_global() { :; }

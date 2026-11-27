@@ -52,3 +52,6 @@ tmux::summary_keys() {
   awk "$FZX_AWK_PLURAL"'{ for (i = 1; i < NF; i++) if ($i == "-T") { n++; if (!seen[$(i + 1)]++) t++; break } }
     END { print plural(n, "binding") " in " plural(t, "table") }'
 }
+
+# the summaries are cached once for every directory: they describe the machine, not the directory
+tmux::summary_global() { :; }

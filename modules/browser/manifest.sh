@@ -40,3 +40,6 @@ browser::summary() {
   local IFS=,
   printf '%s\n' "${names[*]}" | sed 's/,/, /g'
 }
+
+# the summaries are cached once for every directory: they describe the machine, not the directory
+browser::summary_global() { :; }

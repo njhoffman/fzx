@@ -15,3 +15,6 @@ youtube::summary() {
   n="$(wc -l < "$file")"
   printf '%s\n' "$(fzx::plural "$n" 'recent search' 'recent searches')"
 }
+
+# the summaries are cached once for every directory: they describe the machine, not the directory
+youtube::summary_global() { :; }

@@ -38,3 +38,6 @@ keybindings::summary() {
       ;;
   esac
 }
+
+# the summaries are cached once for every directory: they describe the machine, not the directory
+keybindings::summary_global() { :; }

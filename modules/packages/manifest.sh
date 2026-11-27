@@ -48,3 +48,6 @@ packages::summary() {
   esac
   return 0
 }
+
+# the summaries are cached once for every directory: they describe the machine, not the directory
+packages::summary_global() { :; }

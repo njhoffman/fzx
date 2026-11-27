@@ -47,3 +47,6 @@ recent::summary() {
     *) return 0 ;;
   esac
 }
+
+# the summaries are cached once for every directory: they describe the machine, not the directory
+recent::summary_global() { :; }

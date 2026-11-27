@@ -21,3 +21,6 @@ dirs::summary() {
   [[ "$1" == dirs:bookmarks ]] || return 0
   printf '%s\n' "$(fzx::plural "$(dirs::bookmarks | wc -l)" bookmark)"
 }
+
+# the summaries are cached once for every directory: they describe the machine, not the directory
+dirs::summary_global() { :; }

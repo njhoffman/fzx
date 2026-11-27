@@ -61,3 +61,7 @@ aws::summary() {
       ;;
   esac
 }
+
+# the summaries are cached once for every directory: they count the account's resources (the profile is in
+# summary_key), the same in every directory
+aws::summary_global() { :; }

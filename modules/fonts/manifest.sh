@@ -15,3 +15,6 @@ fonts::summary() {
   n="$(command fc-list --format '%{family[0]}\n' 2> /dev/null | sort -u | wc -l)"
   printf '%s\n' "$(fzx::plural "$((n))" family families)"
 }
+
+# the summaries are cached once for every directory: they describe the machine, not the directory
+fonts::summary_global() { :; }

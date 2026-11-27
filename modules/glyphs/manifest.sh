@@ -29,3 +29,6 @@ glyphs::summary() {
   esac
   printf '%s\n' "$(fzx::plural "$(FZX_MODE="$mode" glyphs::source 2> /dev/null | wc -l)" "$word" "$plural")"
 }
+
+# the summaries are cached once for every directory: they describe the machine, not the directory
+glyphs::summary_global() { :; }

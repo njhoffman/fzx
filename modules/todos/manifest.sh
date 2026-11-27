@@ -29,3 +29,6 @@ todos::summary() {
     awk -F'\t' -v files="${#files[@]}" -v mode="$mode" "$FZX_AWK_PLURAL"'{ n++; if ($7 == 1) u++; if ($6 == 1) o++ }
       END { printf "%d open%s, %d urgent, %d overdue\n", n, mode == "all" ? " in " plural(files, "file") : "", u, o }'
 }
+
+# every repository's items are the same wherever the menu opens, cached once for all; this repository's are not
+todos::summary_global() { [[ "$1" == todos:all ]]; }

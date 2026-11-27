@@ -16,3 +16,6 @@ workspaces::summary() {
     command awk -F'\t' '$5 == "open" { o++ } $5 == "closed" && $1 ~ /^\// { c++ }
       END { printf "%d open, %d recent\n", o, c }'
 }
+
+# the summaries are cached once for every directory: they describe the machine, not the directory
+workspaces::summary_global() { :; }

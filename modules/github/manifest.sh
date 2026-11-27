@@ -70,3 +70,12 @@ github::summary() {
       ;;
   esac
 }
+
+# code search's rate limit, your repositories, stars and notifications are the same in every directory, cached
+# once for all; the search entry ("here: N PRs"), issues and pull requests are of the repository here
+github::summary_global() {
+  case "$1" in
+    github:code | github:mine | github:starred | github:notifications) return 0 ;;
+  esac
+  return 1
+}

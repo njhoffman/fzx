@@ -248,6 +248,65 @@ EOF2
   [ "$e" != "$b" ]
 }
 
+@test "summary cache: an entry its module calls global has one path in every directory" {
+  load_libs menu
+  local a b c d
+  x::summary_global() { [[ "$1" == x:all ]]; }
+  FZX_ENTRY_TARGETS=(x:all x:here) FZX_ENTRY_ARGS=("" "")
+  fzx::summary_path a x 0
+  fzx::summary_path c x 1
+  cd "$BATS_TEST_TMPDIR"
+  _FZX_SUMMARY_KEYS=()
+  fzx::summary_path b x 0
+  fzx::summary_path d x 1
+  [ "$a" = "$b" ] && [[ "$a" == "$FZX_CACHE_DIR/summary/global/x@"* ]]
+  [ "$c" != "$d" ] && [[ "$c" != */summary/global/* ]]
+}
+
+@test "refresh: a global summary is not run again in another directory; the directory's own is" {
+  mkdir -p "$BATS_TEST_TMPDIR/mods/mix" "$BATS_TEST_TMPDIR/mix" "$BATS_TEST_TMPDIR/elsewhere"
+  cat > "$BATS_TEST_TMPDIR/mods/mix/manifest.sh" << 'EOF2'
+mix::manifest() { fzx::entry mix "everywhere"; fzx::entry mix:here "this directory"; }
+mix::summary() { printf '%s\n' "$1" >> "$MIX_DIR/runs"; printf 'about %s\n' "$1"; }
+mix::summary_global() { [[ "$1" == mix ]]; }
+EOF2
+  export FZX_MODULE_PATH="$BATS_TEST_TMPDIR/mods" MIX_DIR="$BATS_TEST_TMPDIR/mix"
+  menu_session
+  "$FZX" _cb transform refresh > /dev/null
+  [ "$(sort "$MIX_DIR/runs" | paste -sd' ')" = "mix mix:here" ]
+  cd "$BATS_TEST_TMPDIR/elsewhere"
+  run "$FZX" _cb transform refresh
+  [ "$output" = "reload:$FZX _cb source" ]
+  [ "$(sort "$MIX_DIR/runs" | paste -sd' ')" = "mix mix:here mix:here" ]
+  # and the global one shows here too
+  run plain_lines
+  [[ "${lines[0]}" == "mix#0|"*"about mix" ]]
+}
+
+@test "summary scope of the real modules: aws and github's account entries are global, the directory's are not" {
+  load_libs menu config
+  local p q
+  ( fzx::menu_entries aws "$FZX_REPO/modules/aws"
+    [ "$FZX_SUMMARY_TTL" -eq 3600 ] && [ "$FZX_SUMMARY_TIMEOUT" -eq 15 ]
+    for i in "${!FZX_ENTRY_TARGETS[@]}"; do
+      fzx::summary_path p aws "$i"
+      [[ "$p" == */summary/global/* ]]
+    done )
+  ( fzx::menu_entries github "$FZX_REPO/modules/github"
+    for i in "${!FZX_ENTRY_TARGETS[@]}"; do
+      fzx::summary_path p github "$i"
+      case "${FZX_ENTRY_TARGETS[i]}" in
+        github:code | github:mine | github:starred | github:notifications) [[ "$p" == */summary/global/* ]] ;;
+        *) [[ "$p" != */summary/global/* ]] ;;
+      esac
+    done )
+  ( fzx::menu_entries history "$FZX_REPO/modules/history"
+    for i in "${!FZX_ENTRY_TARGETS[@]}"; do
+      fzx::summary_path q history "$i"
+      if [[ "${FZX_ENTRY_TARGETS[i]}" == history:directory ]]; then [[ "$q" != */global/* ]]; else [[ "$q" == */global/* ]]; fi
+    done )
+}
+
 @test "refresh: summaries are per directory" {
   fixture_modules
   menu_session

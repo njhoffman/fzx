@@ -33,3 +33,7 @@ capture::summary() {
     *) printf '%s\n' "$n" ;;
   esac
 }
+
+# the summaries are cached once for every directory: they count what the active pane holds (summary_key),
+# wherever the menu was opened
+capture::summary_global() { :; }

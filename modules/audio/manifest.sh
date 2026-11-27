@@ -24,3 +24,6 @@ audio::summary() {
     audio:players) command playerctl metadata --format '{{status}}: {{artist}} - {{title}}' 2> /dev/null ;;
   esac
 }
+
+# the summaries are cached once for every directory: they describe the machine, not the directory
+audio::summary_global() { :; }

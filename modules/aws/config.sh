@@ -41,6 +41,11 @@ FZX_AWS_ATTEMPTS="${FZX_AWS_ATTEMPTS:-2}"
 FZX_AWS_VAULT="${FZX_AWS_VAULT:-auto}"
 # describe-cluster requests at a time, for the EKS list
 FZX_AWS_JOBS="${FZX_AWS_JOBS:-8}"
+# the menu's summaries, for this module: an hour between refreshes (the counts change slowly, and each entry
+# starts the CLI, 2-5s of it with the request), and long enough for one CLI run. Set plainly, over the
+# global defaults; ~/.config/fzx/modules/aws/config.sh can set its own
+FZX_SUMMARY_TTL=3600
+FZX_SUMMARY_TIMEOUT=15
 # seconds a preview's request (log events, ECS services, EKS node groups) is kept in the session; 0: not kept
 FZX_AWS_PREVIEW_TTL="${FZX_AWS_PREVIEW_TTL:-60}"
 # events of the latest stream in a log group's preview

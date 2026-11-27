@@ -12,6 +12,9 @@
 #   <module>::summary_key                     optional, fast: more to key that cache on (the state the
 #                                             summaries depend on beyond the directory), asked once per
 #                                             module and listing
+#   <module>::summary_global <target>         optional, fast: succeeds for an entry whose summary does not
+#                                             depend on the directory (counts of the machine, a server, an
+#                                             account): cached once for every directory instead of per one
 
 # fzx::entry <target> <description> [args...]: called from <module>::manifest
 fzx::entry() {
@@ -61,7 +64,8 @@ fzx::menu_entry_args() {
 }
 
 # fzx::summary_path <var> <module> <n>: summary cache file for the module's entry n (FZX_ENTRY_* loaded) in
-# the current directory. Keyed by what the entry opens (target and args), not its position, so a manifest
+# the current directory, or in summary/global when <module>::summary_global says the entry's summary is the
+# same everywhere (a new directory then reuses it instead of running it again). Keyed by what the entry opens (target and args), not its position, so a manifest
 # that gains, drops or reorders entries never shows one entry's summary on another; plus what the module's
 # <module>::summary_key prints, when it has one (git: HEAD and the index; capture: the pane), so a change
 # it can see makes a new entry at once instead of after FZX_SUMMARY_TTL. Old entries go with `fzx gc`
@@ -70,7 +74,10 @@ fzx::menu_entry_args() {
 declare -gA _FZX_SUMMARY_KEYS=()
 fzx::summary_path() {
   local _key _dir="${_FZX_SUMMARY_KEYS[/$PWD]:-}" _extra=""
-  if [[ -z "$_dir" ]]; then
+  if declare -F "$2::summary_global" > /dev/null &&
+    "$2::summary_global" "${FZX_ENTRY_TARGETS[$3]}" 2>> "${FZX_LOG_FILE:-/dev/null}"; then
+    _dir=global
+  elif [[ -z "$_dir" ]]; then
     _dir="$(printf '%s' "$PWD" | md5sum)"
     _dir="${_dir%% *}"
     _FZX_SUMMARY_KEYS[/$PWD]="$_dir"

@@ -28,3 +28,6 @@ docker::summary() {
     docker:compose) printf '%s\n' "$(fzx::plural "$(command docker compose ls -aq 2> /dev/null | wc -l)" project)" ;;
   esac
 }
+
+# the summaries are cached once for every directory: they describe the machine, not the directory
+docker::summary_global() { :; }

@@ -21,3 +21,6 @@ bluetooth::summary() {
       elif ($c | length) == 0 then "nothing connected"
       else "\($c | length) connected: \($c | join(", "))" end'
 }
+
+# the summaries are cached once for every directory: they describe the machine, not the directory
+bluetooth::summary_global() { :; }

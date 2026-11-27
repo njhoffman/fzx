@@ -22,3 +22,7 @@ claude::summary() {
       else printf "%d in use\n", act
     }' "$cache"
 }
+
+# the summaries are cached once for every directory: they count from the module's own scan cache, the same in
+# every directory
+claude::summary_global() { :; }

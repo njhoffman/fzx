@@ -249,7 +249,11 @@ What a module ships with, beyond the scripts above:
 - **Menu**: `manifest.sh` with an entry per mode worth listing, `<module>::applicable` when the module
   needs a tool or a place (a git repository), and `<module>::summary` lines that stay within
   `FZX_SUMMARY_TIMEOUT` (and the manifest within `FZX_APPLICABLE_TIMEOUT`); slow counts belong in the
-  cache, not in the summary. `FZX_MENU_GROUP` in config.sh, one of the menu's `FZX_MENU_GROUPS`
+  cache, not in the summary. `<module>::summary_global <target>` succeeds for entries whose summary is the
+  same in every directory (most modules: the machine, a server, an account), so it is cached once for all;
+  leave it out where the directory matters (files, git, this repository's issues). A module whose summaries
+  are slow by nature sets its own `FZX_SUMMARY_TTL` / `FZX_SUMMARY_TIMEOUT` in config.sh (aws: 3600 / 15).
+  `FZX_MENU_GROUP` in config.sh, one of the menu's `FZX_MENU_GROUPS`
   (files, shell, development, system, terminal, other; test/menu.bats checks it).
 - **Tests**: `test/<module>.bats` through `setup_fzx`: the source per mode and toggle (with stubbed tools
   where the real ones are not on every machine), the preview, the actions, and the bindings under fzx.
@@ -880,7 +884,10 @@ manifest, then goes to the entry as a child of the menu (`nav goto`), so `alt-le
 menu. Entries with the same module and args share one child session, so `ps` and `ps:tree` reuse one
 session and its per-mode cache.
 
-**Summaries** are cached per directory in `$XDG_CACHE_HOME/fzx/summary/<hash(cwd)>/<id>` and shown
+**Summaries** are cached per directory in `$XDG_CACHE_HOME/fzx/summary/<hash(cwd)>/<id>`, or in
+`summary/global/<id>` for an entry its module's `<module>::summary_global <target>` calls the same everywhere
+(29 modules whole, github, todos and history per entry: a new directory reuses those instead of running
+them again; files, git, tasks and sessions stay per directory), and shown
 immediately. `load:+bg-transform:fzx _cb transform refresh` then computes the stale ones (older than
 `FZX_SUMMARY_TTL`, default 300s) and answers with a single `reload` when anything changed. It is bound to
 `load`, not `start`: started beside the listing, its summaries starved the listing's applicable checks, and

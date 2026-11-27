@@ -415,12 +415,18 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       now starts on `load`, reuses the listing's applicable ids, runs `FZX_SUMMARY_JOBS` (nproc) summaries at
       a time, keeps a summary's last value on failure, and its reload redraws without checking again. Cold
       under 16 busy loops: listing 4s, no module left out, the redraw keeps all 139 lines.
-- [ ] **aws summaries time out even with a slot of their own** (p3) [perf]: in every cold refresh measured
+- [x] **aws summaries time out even with a slot of their own** (p3) [perf]: in every cold refresh measured
       on 2026-11-26 (load 2 to 20) most of the 12 aws entries' summaries hit `FZX_SUMMARY_TIMEOUT` (3s):
       each starts the aws CLI (Python start-up plus an API call). With 0.119.0 a failure keeps the last
       value, so only a first run or a cold cache shows them empty, but they hold 12 of the `nproc` slots for
       3s each. Look at one `aws` call shared by the module's entries (`summary_key`-style, or a module-wide
       cache the entries read), or summaries from the module's own data cache only.
+      Done (0.120.0): `aws --version` alone took 2.4-5s (1.8s of CPU), over the 3s timeout before any
+      request, and boto3 is not installed for a one-process client. aws now sets `FZX_SUMMARY_TTL=3600` and
+      `FZX_SUMMARY_TIMEOUT=15` in its config.sh, and its summaries (with 28 other modules' and github's,
+      todos' and history's account-wide entries) are cached once for every directory
+      (`<module>::summary_global`) instead of once per directory, which had run all 12 CLI calls again in
+      each new directory.
 
 ## Completed
 

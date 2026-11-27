@@ -17,3 +17,6 @@ applications::summary() {
   done
   printf '%s\n' "$(fzx::plural "$n" entry entries)"
 }
+
+# the summaries are cached once for every directory: they describe the machine, not the directory
+applications::summary_global() { :; }

@@ -44,3 +44,6 @@ systemd::summary() {
   f="$(SYSTEMD_COLORS=0 systemctl "--$manager" list-units --type=service --state=failed --no-legend --plain --no-pager | wc -l)"
   printf '%s running, %s failed\n' "${n// /}" "${f// /}"
 }
+
+# the summaries are cached once for every directory: they describe the machine, not the directory
+systemd::summary_global() { :; }
