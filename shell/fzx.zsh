@@ -224,9 +224,10 @@ if [[ "${FZX_ZSH_NO_JUMP:-0}" != 1 ]]; then
 fi
 
 # fzf: with no options and nothing piped in, the files module (prettypath icons when installed) instead
-# of fzf's own walker; prints what it prints. Anything else is the real fzf. From a widget (fzf-tab, a history
-# widget) focus reporting goes off around it; that test is ZLE_STATE, since `zle` fails in the $(...) widgets run
-# fzf in. Scripts that start fzf themselves are out of reach here.
+# of fzf's own walker; prints what it prints. Anything else is the real fzf. From a widget (a history widget)
+# focus reporting goes off around it; that test is ZLE_STATE, since `zle` fails in the $(...) widgets run fzf in.
+# Scripts that start fzf themselves are out of reach here, and so is fzf-tab (it runs $commands[fzf]; since
+# 1.3.0+nj.17 it turns focus reporting off itself).
 if [[ "${FZX_ZSH_NO_FZF:-0}" != 1 ]]; then
   fzf() {
     local rc widget=${+ZLE_STATE}

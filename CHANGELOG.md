@@ -6,6 +6,13 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.124.1] - 2026-11-26
+
+### Changed
+
+- `shell/fzx.zsh`'s notes no longer list fzf-tab among the widgets whose fzf gets focus reporting turned off:
+  fzf-tab runs the fzf binary past the `fzf` function, and since fzf-tab 1.3.0+nj.17 handles this itself.
+
 ## [0.124.0] - 2026-11-26
 
 ### Changed

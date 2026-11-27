@@ -378,9 +378,12 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       the plain display. Strip the slash from the join key (as recent does with `sub(/\/$/, "", path)`).
 - [ ] **Focus guard misses fzf started outside the function** (p3) [bug]: the `fzf` function can't reach scripts a
       widget runs that start fzf themselves, widgets using `$commands[fzf]` or `fzf-tmux`, or
-      `ftb-tmux-popup` (popup mode was never tested for this bug). They would get the same I or O in the query
-      if focus reports reach them. Fix per case when one shows it. Checked 2026-11-13: none is in use in
-      ~/.shell (fzf-tab's fzf-command is plain fzf; fzf completion takes fzf-tmux only with FZF_TMUX set).
+      `ftb-tmux-popup`. They would get the same I or O in the query if focus reports reach them. Fix per case
+      when one shows it. fzf-tab was one (2026-11-26): since its 1.3.0+nj.9 `ftb-fzf` runs `$commands[fzf]`,
+      past this function, so the 2026-11-13 check below missed it; fzf-tab 1.3.0+nj.17 now turns focus
+      reporting off around fzf itself, inline and in the popup (`focus-reporting restore` in ~/.shell's
+      fzf-tab config turns it back on after). Checked 2026-11-13: no other case is in use in ~/.shell (fzf
+      completion takes fzf-tmux only with FZF_TMUX set).
 - [x] **An empty NO_COLOR turns color off in most of fzx** (p3) [bug]: 100 checks in lib/ and modules/ (54
       files, recounted 2026-11-11) test `${NO_COLOR+x}`, so `NO_COLOR=` (set, empty) drops color, while bin/fzx (`${NO_COLOR:-}`)
       and prettypath treat an empty one as unset, as no-color.org asks ("present and not an empty string").
