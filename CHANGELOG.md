@@ -6,6 +6,17 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.129.0] - 2026-11-27
+
+### Added
+
+- gpg, a new module (`fzx -m gpg[:secret]`): the keys in your keyring with their owner trust, primary user
+  id, algorithm, created and expiry dates, and a mark for the ones whose secret key is here; sort by name or
+  newest first. The preview is gpg's listing of the key (offline). ctrl-y copies fingerprints, alt-e the
+  armored public keys (never a secret key), alt-t sets the trust, ctrl-e runs `gpg --edit-key`, alt-x
+  deletes public keys after asking (a key whose secret key is here is refused); refresh is in the actions
+  menu.
+
 ## [0.128.0] - 2026-11-27
 
 ### Added

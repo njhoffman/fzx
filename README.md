@@ -81,6 +81,7 @@ Inside any module, f1 shows every key, mode, toggle and action. The common ones:
 | git | status, log, branches, tags, stash, reflog and work trees |
 | github | repository and code search, your repositories and stars, issues, pull requests, runs, notifications |
 | glyphs | Nerd Font glyphs, Unicode characters and blocks, emoji |
+| gpg | the keys in your keyring: copy fingerprints, export, trust, edit, delete |
 | history | zsh-histdb commands |
 | kdeconnect | KDE Connect devices and their battery: ping, ring, share, SMS, lock; their notifications, commands and SMS conversations |
 | keybindings | zsh and tmux key bindings, and fzf's own |

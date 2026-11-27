@@ -1,0 +1,12 @@
+# gpg components: kind  name  key  description  flags (see lib/components.sh)
+# Rows are "fingerprint<TAB>display".
+mode    keys     -       every public key in the keyring                                    default
+mode    secret   -       the keys whose secret key is here                                  -
+sort    name     -       by the primary user id                                             default
+sort    created  -       newest first                                                       desc
+action  export   alt-e   copy the armored public keys to the clipboard (never a secret key)  notify
+action  trust    alt-t   set the owner trust (gpg --edit-key trust, on the terminal)        foreground,reload
+action  edit     ctrl-e  gpg --edit-key on the terminal                                     foreground,reload
+action  delete   alt-x   delete the public keys (one whose secret key is here is refused)   confirm,reload
+action  refresh  -       refresh the keys from the keyserver                                foreground,reload
+action  copy     ctrl-y  copy the fingerprints                                              silent,builtin

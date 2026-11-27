@@ -1,7 +1,7 @@
 # fzx TODO
 
 Status (0.117.1): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs, displays,
-docker, files, firewall, fonts, git, github, glyphs, history, kdeconnect, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, snippets, ssh, systemd, tasks, tmux,
+docker, files, firewall, fonts, git, github, glyphs, gpg, history, kdeconnect, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, snippets, ssh, systemd, tasks, tmux,
 todos, workspaces, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
 add what you find, and tick items off (`- [x]`) as they land, never delete them; once every item of a section
 is ticked, the section moves to `## Completed` at the end as a `### <heading> (completed YYYY-MM-DD)` block
@@ -222,7 +222,7 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [x] **applications** (p3) [module]: desktop entries (/usr/share/applications and ~/.local/share/applications,
       489 here) by name with their icon and categories, launched detached (`gtk-launch` or the Exec line); for
       launching from a tmux popup bound in i3. Ref: zaw's applications.
-- [ ] **gpg keys** (p3) [module]: public and secret keys (`gpg --list-keys --with-colons`, 44 here): copy the
+- [x] **gpg keys** (p3) [module]: public and secret keys (`gpg --list-keys --with-colons`, 44 here): copy the
       fingerprint, export armored, edit trust, delete (confirm). Ref: fzfmenu list.md "pgp". Has: gpg.
 - [x] **fonts** (p3) [module]: fc-list families with a sample preview. Has: fc-list.
 - [x] **displays** (p3) [module]: xrandr outputs and modes. Has: xrandr. Done with displayd's profiles and
@@ -377,7 +377,7 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       with a trailing "/" (so prettypath shows the folder icon) and joins the result back by that key, but
       prettypath's `%path%` drops the slash, so `key in shown` never matches a tree and every directory keeps
       the plain display. Strip the slash from the join key (as recent does with `sub(/\/$/, "", path)`).
-- [ ] **Focus guard misses fzf started outside the function** (p3) [bug]: the `fzf` function can't reach scripts a
+- [x] **Focus guard misses fzf started outside the function** (p3) [bug]: the `fzf` function can't reach scripts a
       widget runs that start fzf themselves, widgets using `$commands[fzf]` or `fzf-tmux`, or
       `ftb-tmux-popup`. They would get the same I or O in the query if focus reports reach them. Fix per case
       when one shows it. fzf-tab was one (2026-11-26): since its 1.3.0+nj.9 `ftb-fzf` runs `$commands[fzf]`,
@@ -385,6 +385,12 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       reporting off around fzf itself, inline and in the popup (`focus-reporting restore` in ~/.shell's
       fzf-tab config turns it back on after). Checked 2026-11-13: no other case is in use in ~/.shell (fzf
       completion takes fzf-tmux only with FZF_TMUX set).
+      Closed 2026-11-27 after a scan of ~/.shell: the widgets that start fzf (fzf-history-widget-unique on alt-W,
+      fzf completion's __fzf_comprun on tab) call `fzf` by name and reach the function, whose ZLE_STATE test
+      holds in their `$(...)`; FZF_TMUX and FZF_TMUX_OPTS are unset, no _fzf_comprun is defined and fzf's own
+      key-binding widgets are not loaded; nothing runs `command fzf` or `$commands[fzf]`. fzf-last-word-widget
+      starts no fzf. Every other fzf (scripts/, dotfiles/fzf.zsh, zii) is a typed command, after preexec has
+      turned focus reporting off, and tmux popups run in a fresh pty.
 - [x] **An empty NO_COLOR turns color off in most of fzx** (p3) [bug]: 100 checks in lib/ and modules/ (54
       files, recounted 2026-11-11) test `${NO_COLOR+x}`, so `NO_COLOR=` (set, empty) drops color, while bin/fzx (`${NO_COLOR:-}`)
       and prettypath treat an empty one as unset, as no-color.org asks ("present and not an empty string").
