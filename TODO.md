@@ -394,15 +394,22 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       a minute at 8 jobs; modes come from the resolved table, so computed tables (music, repos, dirs, files,
       git, packages, recent) are checked in every mode, not only the default.
 
-- [ ] **README's module table misses workspaces** (p2) [docs]: 0.117.0 added the workspaces module, but the
+- [x] **README's module table misses workspaces** (p2) [docs]: 0.117.0 added the workspaces module, but the
       `## Modules` table in README.md has no row for it (every other module has one). Add "workspaces | tmux
       workspaces: predefined sessions, the family's open sessions and recent directories".
-- [ ] **`just lint` dies without saying shellcheck is missing** (p3) [chore]: on minerva shellcheck is not
+- [x] **`just lint` dies without saying shellcheck is missing** (p3) [chore]: on minerva shellcheck is not
       installed, and the recipe ends with "xargs: shellcheck: No such file or directory" and exit 127; charon
       has shellcheck but no `just`. Check `command -v shellcheck` first in the Justfile and print what to
       install, so a missing linter is not mistaken for a lint failure (CI installs it, so only local runs hit it).
-- [ ] **workspaces/actions.sh names a function that does not exist** (p3) [docs]: the comment above
+- [x] **workspaces/actions.sh names a function that does not exist** (p3) [docs]: the comment above
       `workspaces::state` calls it `workspaces::open_state`. Rename it in the comment.
+- [ ] **The menu loads in 6-8s under load, with most summaries timed out** (p3) [perf]: on 2026-11-26 with
+      load average ~10, four menu launches (18:24-18:25 in fzx.log) took 5.7-7.8s for `cb load`; aws, docker,
+      git, github, network, packages, systemd and tmux "took over 2s, left out", and dozens of
+      "summary of <module>#N failed or timed out rc=143" followed (the same load took ~3s with lighter load).
+      The list does arrive and keys work meanwhile, but the summaries column is mostly empty on a busy
+      machine. Look at running fewer summaries at once (a job cap scaled to nproc and load), or serving
+      them from the cache first and refreshing in the background as `transform refresh` already does.
 
 ## Completed
 

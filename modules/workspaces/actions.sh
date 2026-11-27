@@ -8,7 +8,7 @@
 # shellcheck source=./source.sh
 source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
 
-# workspaces::open_state <key>: the state `workspace type` gives the key (open or closed)
+# workspaces::state <key>: the state `workspace type` gives the key (open or closed)
 workspaces::state() {
   local cmd line
   cmd="$(workspaces::cmd)" || return 1

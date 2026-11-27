@@ -96,6 +96,7 @@ Inside any module, f1 shows every key, mode, toggle and action. The common ones:
 | tasks | project scripts: make, just, npm, Taskfile, cargo aliases, pdm/poe/hatch |
 | tmux | sessions, windows, panes and buffers; reference browsers for keys, options, formats and more |
 | todos | open items of TODO.md files |
+| workspaces | tmux workspaces: predefined sessions, the family's open sessions and recent directories |
 | youtube | YouTube search: play, open or save as mp3 |
 
 Your own modules go in `~/.config/fzx/modules/<name>/` (`FZX_MODULE_PATH`). Configuration layers from

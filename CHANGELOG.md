@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.118.2] - 2026-11-26
+
+### Fixed
+
+- `just lint` without shellcheck installed says so and what to install (exit 2), instead of ending in
+  "xargs: shellcheck: No such file or directory" with exit 127, which read like a lint failure.
+- README's module table lists the workspaces module.
+
 ## [0.118.1] - 2026-11-26
 
 ### Fixed

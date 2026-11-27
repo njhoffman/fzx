@@ -22,6 +22,11 @@ test-live *ARGS:
 lint:
     #!/usr/bin/env bash
     set -euo pipefail
+    # a missing linter is not a lint failure: say what to install instead of xargs' exit 127
+    if ! command -v shellcheck > /dev/null; then
+      echo "just lint: shellcheck is not installed (apt install shellcheck, or https://github.com/koalaman/shellcheck)" >&2
+      exit 2
+    fi
     files=()
     while IFS= read -r -d '' f; do
       case "$f" in
