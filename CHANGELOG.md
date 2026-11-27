@@ -6,6 +6,18 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.126.0] - 2026-11-27
+
+### Added
+
+- displays, a new module (`fzx -m displays[:profiles]`): xrandr's outputs, on first, with displayd's monitor
+  names, the mode, rate and position on screen. Enter lists an output's modes and enter there sets one;
+  alt-s turns an output on (right of one that is on) or off (never the last one on), alt-p makes it
+  primary, alt-m places it next to another (asks where), alt-R rotates it (asks which way), alt-a shows the
+  disconnected ones. With displayd installed: a profiles mode (enter applies one, alt-D makes it the default
+  for the connected monitors), alt-S saves the layout on screen as a profile, and rescue and the daemon's
+  stop or start in the actions menu; the header shows the applied profile and whether the daemon runs.
+
 ## [0.125.0] - 2026-11-27
 
 ### Added

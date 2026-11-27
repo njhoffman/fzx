@@ -73,6 +73,7 @@ Inside any module, f1 shows every key, mode, toggle and action. The common ones:
 | colors | the 256-color palette, the terminal's 16 colors, X11 names and fzx's own colors |
 | cron | crontab and system cron entries with their next runs, anacron jobs and cron scripts |
 | dirs | directories under ~, and bookmarks |
+| displays | xrandr outputs and modes: on, off, primary, place, rotate; displayd's profiles |
 | docker | containers, images, volumes, networks and compose projects |
 | files | files and directories, or a grep of their contents |
 | firewall | ufw rules and application profiles |

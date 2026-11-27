@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# displays components, computed: the profiles mode and displayd's actions only with displayd on PATH.
+# Rows: outputs "name<TAB>state<TAB>display", modes "WxH<TAB>rate<TAB>display", profiles "name<TAB>kind<TAB>display".
+cat << 'EOF'
+mode    outputs   -      the outputs xrandr sees, on first (enter: the output's modes)            default
+mode    modes     -      an output's modes and rates (--output NAME; enter on an output)          hidden
+EOF
+command -v "${FZX_DISPLAYS_DISPLAYD:-displayd}" > /dev/null &&
+  printf 'mode\tprofiles\t-\tdisplayd'"'"'s profiles: the ones that fit what is connected, the default here marked\t-\n'
+cat << 'EOF'
+toggle  all       alt-a  outputs: the disconnected ones too                                       -
+action  power     alt-s  outputs: turn on (its preferred mode, right of one that is on) or off; the last one on stays on  notify,reload
+action  primary   alt-p  outputs: make it the primary output                                      notify,reload
+action  place     alt-m  outputs: place it next to another output that is on (asks where, and next to which)  foreground,asks,reload
+action  rotate    alt-R  outputs: rotate it (asks: normal, left, right, inverted)                 foreground,asks,reload
+action  set       -      modes: use this mode and rate (enter)                                    notify,reload
+action  copy      ctrl-y  copy the names                                                         silent,builtin
+EOF
+command -v "${FZX_DISPLAYS_DISPLAYD:-displayd}" > /dev/null || exit 0
+cat << 'EOF'
+action  apply     -      profiles: apply the profile (displayd apply; enter)                      notify,reload
+action  default   alt-D  profiles: make it the default for the monitors connected now (displayd default)  notify,reload
+action  save      alt-S  save the layout on screen as a displayd profile (asks a name, and whether to make it the default)  foreground,asks,reload
+action  rescue    -      displayd rescue: the laptop panel alone, held until the monitors change  notify,reload
+action  daemon    -      stop the displayd daemon when it runs, else start it                     notify
+EOF
+exit 0
