@@ -331,6 +331,10 @@ fzx::session_title() {
   done
   _parts+=("$_plain")
   fzx::title_paint "$1" "${_parts[@]}"
+  # --loop and --to's marks (lib/output.sh: fzx::output_title), as the screen's launch worked them out
+  local _marks=""
+  fzx::meta_get title_marks _marks 2> /dev/null && [[ -n "$_marks" ]] && printf -v "$1" '%s%s' "${!1}" "$_marks"
+  return 0
 }
 
 # fzx::_freeze_opts: --freeze-left, unless the module sets it. Where the display is a single field of

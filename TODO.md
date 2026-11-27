@@ -65,10 +65,12 @@ Reviewed: 2026-11-25
 - [x] **Output to a pane, and a list that stays open** (p2) [feature]: `--to PANE|left|right|up|down` pastes
       the selection into a tmux pane found once at launch (`--submit`: and Enter), `--loop` keeps the list
       open and reloads after each enter (lib/output.sh, 0.131.0).
-- [ ] **tasks --paste through --to** (p3) [refactor]: tasks binds its own enter for `--paste`, so `--to`,
+- [x] **tasks --paste through --to** (p3) [refactor]: tasks binds its own enter for `--paste`, so `--to`,
       `--loop` and `--submit` leave it alone (lib/output.sh skips a module's own enter). It pastes a command
       line (`cd DIR && CMD`) rather than what it prints; an output hook (`<module>::output LINES...`) that
       turns the accepted rows into the text to send would let it use the shared path and gain `--loop`.
+      Done (0.132.0): the opts hook names an action in `FZX_OUTPUT_ACTION` (tasks' new `line`) and sets
+      `FZX_OUTPUT_NEWLINE=0`; `--paste PANE` is `--to PANE`.
 - [ ] **Piping** (p3) [feature]: when stdin is not a tty and no module is given, match each manifest's `detect`
       against the first lines and pick the module (design.md, "Piping").
 - [ ] **Completion integration** (p3) [feature]: `**<TAB>` completion (`_fzf_complete_<cmd>`) backed by fzx
@@ -305,12 +307,16 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 
 ## 7. Known issues
 
-- [ ] **Three tests fail on a clean tree** (p2) [test]: on 2026-11-27, at 0.130.2 with no changes,
+- [x] **Three tests fail on a clean tree** (p2) [test]: on 2026-11-27, at 0.130.2 with no changes,
       test/todos.bats "all: every repository's TODO.md" and "all: the TODO.md files dotbare tracks" list
       nothing in all mode (`todos::files` returns no paths although the ghq stub answers), and
       test/browser.bats "actions: each profile's URLs in one call" gets other firefox-devedition arguments.
       Likely something in this machine's environment changed (they passed at their last commits); find
       what, and make the tests independent of it.
+      Done (0.132.0): the machine's coreutils are uutils 0.10.0 now (GNU's kept as `gnurealpath`, `gnusort`).
+      uutils' realpath refuses the whole call when one argument is empty, which todos' file list passed
+      when `FZX_TODOS_FILES` was empty; and the locale's collation now sorts `firefox|` before
+      `firefox-devedition|`, so the browser test sorts in byte order.
 - [x] **test/tmux.bats left two tmux servers running** (p3) [test]: on 2026-11-12, two servers from a run about 32h
       earlier were still up (`tmux -S /tmp/bats-run-qc5pKA/test/983/tmux.sock` and `.../985/`, session `first`
       from `setup()`), their test directories already deleted. `teardown()` does run `tmux kill-server` through the

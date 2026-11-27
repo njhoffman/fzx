@@ -222,7 +222,7 @@ lines_of() { (cd "$1" && FZX_MODE="${2:-here}" "$TODOS/source.sh") | cut -f3; }
 }
 
 @test "paste: the lines go to a tmux buffer, the server pastes them into the pane a moment later" {
-  printf '#!/usr/bin/env bash\n{ printf "%%s|" "$@"; echo; if [[ "$1" == load-buffer ]]; then command cat; fi; } >> "%s/tmux.calls"\n' \
+  printf '#!/usr/bin/env bash\n{ printf "%%s|" "$@"; echo; if [[ "$1" == load-buffer ]]; then command cat; fi; } >> "%s/tmux.calls"; [[ "$1" == display-message ]] && echo "$4"; exit 0\n' \
     "$BATS_TEST_TMPDIR" > "$BATS_TEST_TMPDIR/bin/tmux"
   chmod +x "$BATS_TEST_TMPDIR/bin/tmux"
   run "$TODOS/actions.sh" paste %7 'TODO.md:8 ☐  (P1) [bug] Urgent bug' 'TODO.md:7 ☐  (P3) [chore] Low thing'

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tasks actions: run a task in its repository (with arguments asked first), pick tasks into the selected
-# mode, choose projects, open a definition in the editor, scan again, paste the command line into a tmux
-# pane (--paste).
+# mode, choose projects, open a definition in the editor, scan again, print the command line (line: what
+# --to / --paste paste into the pane).
 
 # shellcheck source=./source.sh
 declare -F tasks::scan > /dev/null || source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
@@ -118,12 +118,10 @@ tasks::action() {
     return 0
   fi
   [[ "$mode" == projects && ("$action" == run || "$action" == pick) ]] && action=choose
-  # paste <pane> <id...>: the command line into a tmux pane (--paste), bracketed: nothing is submitted.
-  # Projects: a cd into the repositories. The tmux server pastes 0.3s later, once the popup has closed.
-  if [[ "$action" == paste ]]; then
-    local pane="${1:-}" text=""
-    shift
-    [[ "$pane" =~ ^%[0-9]+$ ]] || { printf 'tasks: --paste needs a tmux pane id (%%N): %s\n' "$pane" >&2; return 2; }
+  # line <id...>: print the command line that runs the tasks from here (projects: a cd into the
+  # repository), what --to / --paste paste into the pane (lib/output.sh sends it)
+  if [[ "$action" == line ]]; then
+    local text=""
     for id in "$@"; do [[ "$id" == - ]] && return 0; done
     (($#)) || return 0
     if [[ "$mode" == projects ]]; then
@@ -131,10 +129,8 @@ tasks::action() {
     else
       tasks::paste_line text "$@"
     fi
-    [[ -n "$text" ]] || return 0
-    printf '%s' "$text" | tmux load-buffer -b fzx-tasks - &&
-      tmux run-shell -b -d 0.3 "tmux paste-buffer -p -d -b fzx-tasks -t $pane"
-    return
+    [[ -z "$text" ]] || printf '%s\n' "$text"
+    return 0
   fi
   for id in "$@"; do [[ "$id" == - ]] && return 0; done
   case "$action" in

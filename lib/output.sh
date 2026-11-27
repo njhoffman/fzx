@@ -6,7 +6,10 @@
 #   --loop        the list stays open (FZX_LOOP=1): enter sends the selection to the pane, or to fzx's
 #                 output, then clears the selection and reloads; ctrl-] sends and closes
 # Both make fzx a picker (FZX_PRINT=1). What goes out is what fzf's accept would print (--accept-nth), or
-# what a default action flagged print prints (history's and snippets' insert).
+# what a default action flagged print prints (history's and snippets' insert), or what the action the
+# module's opts hook names in FZX_OUTPUT_ACTION prints (tasks' command line for a pane). The text ends with
+# a newline unless the opts hook sets FZX_OUTPUT_NEWLINE=0 (a command line; kept in meta/output_newline for
+# the screen's callbacks) or --submit.
 
 # fzx::output_resolve <target> <placement> <var>: the pane id (%N) TARGET names: left, right, up or down,
 # the neighbour of the pane fzx starts in ($TMUX_PANE); anything else a tmux target (%N, SESSION:W.P,
@@ -66,7 +69,8 @@ fzx::_output_neighbour() {
 }
 
 # fzx::output_send_pane <pane> <delay> <line...>: the lines into the pane as a bracketed paste, so nothing
-# runs; with FZX_OUTPUT_SUBMIT=1 Enter follows (and the text has no newline at its end). A delay (seconds,
+# runs; with FZX_OUTPUT_SUBMIT=1 Enter follows. The text has no newline at its end then, nor with
+# FZX_OUTPUT_NEWLINE=0. A delay (seconds,
 # 0: none) hands the paste to the tmux server for later: when fzf closes with it (a popup, a pane of its
 # own in tmux 3.9), the target may still be running the command that opened it. Every send has a buffer
 # of its own, so sends close together cannot overwrite one another before tmux pastes them.
@@ -78,13 +82,14 @@ fzx::output_send_pane() {
     return 2
   fi
   (($#)) || return 0
-  if ! tmux display-message -p -t "$pane" '#{pane_id}' > /dev/null 2>&1; then
+  # display-message succeeds for a pane that is gone (empty output), so its answer is compared
+  if [[ "$(tmux display-message -p -t "$pane" '#{pane_id}' 2> /dev/null)" != "$pane" ]]; then
     printf 'pane %s is gone\n' "$pane" >&2
     return 1
   fi
   buf="fzx-out-$BASHPID-$RANDOM"
   printf -v text '%s\n' "$@"
-  [[ "${FZX_OUTPUT_SUBMIT:-0}" == 1 ]] && text="${text%$'\n'}"
+  [[ "${FZX_OUTPUT_SUBMIT:-0}" == 1 || "${FZX_OUTPUT_NEWLINE:-1}" == 0 ]] && text="${text%$'\n'}"
   printf '%s' "$text" | tmux load-buffer -b "$buf" - || return
   cmd="tmux paste-buffer -p -d -b $buf -t $pane"
   [[ "${FZX_OUTPUT_SUBMIT:-0}" == 1 ]] && cmd+=" && tmux send-keys -t $pane Enter"
@@ -172,20 +177,26 @@ fzx::_output_items() {
 
 # fzx::output_binds <module> <own enter>: with --to or --loop, enter (and FZX_KEYS[print]) send the selection
 # through `fzx _cb output`. Not in the menus, whose ids mean nothing outside fzx, nor where the module's opts
-# hook bound enter itself (tasks --paste); standalone there is no callback.
+# hook bound enter itself; standalone there is no callback.
 fzx::output_binds() {
   local module="$1" own_enter="$2" pane="${FZX_OUTPUT_PANE:-}" loop=0 args="" tpl ph desc enter_act close_act
   local _k _n _key _desc _flags __ob_a
   [[ "${FZX_LOOP:-0}" == 1 ]] && loop=1
-  ((loop)) || [[ -n "$pane" ]] || return 0
   fzx::in_session || return 0
+  # a launch of this session before may have left marks; a screen that sends nothing shows none
+  fzx::meta_set title_marks ""
+  ((loop)) || [[ -n "$pane" ]] || return 0
   [[ "$module" == menu || "$module" == actions ]] && return 0
   if ((own_enter)); then
     fzx::log info "output: $module binds enter itself; --to/--loop leave it"
     return 0
   fi
-  # a default action that prints a value: its output is what goes out
-  while IFS=$'\t' read -r _k _n _key _desc _flags; do
+  # the action the opts hook names, else a default action that prints a value: its output is what goes out
+  if [[ -n "${FZX_OUTPUT_ACTION:-}" ]]; then
+    fzx::action_args "$FZX_OUTPUT_ACTION" "" __ob_a
+    args="action $FZX_OUTPUT_ACTION $__ob_a"
+  fi
+  [[ -n "$args" ]] || while IFS=$'\t' read -r _k _n _key _desc _flags; do
     if [[ ",$_flags," == *,default,* && ",$_flags," == *,print,* ]]; then
       fzx::action_args "$_n" "$_flags" __ob_a
       args="action $_n $__ob_a"
@@ -222,6 +233,55 @@ fzx::output_binds() {
     fzx::bind "${FZX_KEYS[print]}" "$close_act" "$desc and close"
   fi
   fzx::meta_set enter "$desc"
+  # the screen's own, for its callbacks: not exported, so the next screen sets its own
+  fzx::meta_set output_newline "${FZX_OUTPUT_NEWLINE:-1}"
+  fzx::_output_title_set
+}
+
+# fzx::output_title <var>: the border title's mark with --loop: the loop icon (nf-fa-infinity; FZX_ICONS=none:
+# the word) in FZX_COLORS[title_loop]
+fzx::output_title() {
+  local _i="" _c="${FZX_COLORS[title_loop]:-}"
+  [[ "${FZX_LOOP:-0}" == 1 ]] || { printf -v "$1" '%s' "" && return 0; }
+  fzx::require icons
+  fzx::icon loop _i
+  _i="${_i:-loop}"
+  [[ -n "$_c" && -z "${NO_COLOR:+x}" ]] && _i=$'\e['"${_c}m$_i"$'\e[0m'
+  printf -v "$1" ' %s' "$_i"
+}
+
+# fzx::output_target <var>: the info line's mark with --to: the output icon (nf-md-bullseye; none: "to"), the
+# pane and the command it runs ("(gone)" when it is not there any more), in FZX_COLORS[output_target]
+fzx::output_target() {
+  local _i="" _cmd _m _c="${FZX_COLORS[output_target]:-}"
+  [[ -n "${FZX_OUTPUT_PANE:-}" ]] || { printf -v "$1" '%s' "" && return 0; }
+  fzx::require icons
+  fzx::icon output _i
+  _cmd="$(tmux display-message -p -t "$FZX_OUTPUT_PANE" '#{pane_id} #{pane_current_command}' 2> /dev/null)" || :
+  if [[ "$_cmd" == "$FZX_OUTPUT_PANE "* ]]; then _cmd="${_cmd#* }"; else _cmd="(gone)"; fi
+  _m="${_i:-to} $FZX_OUTPUT_PANE${_cmd:+ $_cmd}"
+  [[ -n "$_c" && -z "${NO_COLOR:+x}" ]] && _m=$'\e['"${_c}m$_m"$'\e[0m'
+  printf -v "$1" '%s' "$_m"
+}
+
+# fzx::_output_title_set: the loop mark into meta/title_marks (fzx::session_title appends it, here and on
+# the in-place refreshes after a mode or toggle change) and the launch's --border-label made again with it;
+# the target into meta/output_target and an --info-command that puts it after fzf's info. The command runs
+# on every info update, so it reads the file with builtins only: a failed send rewrites it (fzx::output_cb)
+fzx::_output_title_set() {
+  local _marks _label _i _target _cmd
+  fzx::output_title _marks
+  fzx::meta_set title_marks "$_marks"
+  fzx::session_title _label
+  for ((_i = 0; _i < ${#FZX_OPTS[@]}; _i++)); do
+    [[ "${FZX_OPTS[_i]}" == --border-label=* ]] && FZX_OPTS[_i]="--border-label= $_label "
+  done
+  fzx::output_target _target
+  fzx::meta_set output_target "$_target"
+  [[ -n "$_target" ]] || return 0
+  # shellcheck disable=SC2016  # $FZF_INFO and $m are the info command's, expanded when fzf runs it
+  printf -v _cmd 'IFS= read -r m < %q; printf %%s "$FZF_INFO  $m"' "$FZX_SESSION_DIR/meta/output_target"
+  FZX_OPTS+=("--info-command=$_cmd")
 }
 
 # fzx::output_cb <loop|once> <items TEMPLATE-ARGS... | action NAME ARGS...>: the callback behind those keys.
@@ -248,8 +308,9 @@ fzx::output_cb() {
   ((${#lines[@]})) || return 0
   err="$FZX_SESSION_DIR/output.$BASHPID"
   if [[ -n "${FZX_OUTPUT_PANE:-}" ]]; then
-    local delay=0.3
+    local delay=0.3 FZX_OUTPUT_NEWLINE=1
     [[ "$how" == loop ]] && delay=0
+    fzx::meta_get output_newline FZX_OUTPUT_NEWLINE || FZX_OUTPUT_NEWLINE=1
     fzx::output_send_pane "$FZX_OUTPUT_PANE" "$delay" "${lines[@]}" 2> "$err" || rc=$?
   else
     fzx::output_file f
@@ -278,6 +339,13 @@ fzx::output_cb() {
   if ((rc == 0)); then
     fzx::reload_action "$(fzx::cb source)" reload
     act+="+clear-selection+$reload"
+  elif [[ -n "${FZX_OUTPUT_PANE:-}" ]]; then
+    # the info line's pane and command are the launch's: say now that the pane is gone (or what runs there)
+    local target
+    fzx::output_target target
+    fzx::meta_set output_target "$target"
+    # fzf has no action that redraws the info line; a selection change does, and toggling twice leaves it
+    act+="+toggle+toggle"
   fi
   printf '%s' "$act"
 }

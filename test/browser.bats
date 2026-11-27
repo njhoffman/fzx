@@ -231,7 +231,8 @@ EOF2
   "$BR/actions.sh" open $'chrome:Profile 2\thttps://w/' $'firefox:wxyz.dev-edition-default\thttps://d/' \
     $'chrome:Profile 2\thttps://w2/' $'firefox:abcd.default\thttps://f/'
   calls_settle 3
-  run sort "$BATS_TEST_TMPDIR/calls"
+  # byte order: a locale's collation may put firefox| before or after firefox-devedition|
+  LC_ALL=C run sort "$BATS_TEST_TMPDIR/calls"
   [ "$output" = "firefox-devedition|--profile|$FF/wxyz.dev-edition-default|https://d/|
 firefox|--profile|$FF/abcd.default|https://f/|
 google-chrome|--profile-directory=Profile 2|https://w/|https://w2/|" ]

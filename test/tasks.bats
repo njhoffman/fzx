@@ -242,38 +242,46 @@ EOF2
   [ "$out" = "cd $ROOT/my\\ dir && make x" ]
 }
 
-@test "paste: into the pane through a tmux buffer; projects paste a cd; a bad pane fails" {
-  printf '#!/usr/bin/env bash\n{ printf "%%s|" "$@"; echo; if [[ "$1" == load-buffer ]]; then command cat; echo; fi; } >> "%s/tmux.calls"\n' \
-    "$BATS_TEST_TMPDIR" > "$STUBS/tmux"
-  chmod +x "$STUBS/tmux"
+@test "line: the command line; projects a cd; the - row of an empty list prints nothing" {
   cd "$A"
-  act all paste %7 "$A|npm|dev"
-  [ "$(cat "$BATS_TEST_TMPDIR/tmux.calls")" = "load-buffer|-b|fzx-tasks|-|
-pnpm run dev
-run-shell|-b|-d|0.3|tmux paste-buffer -p -d -b fzx-tasks -t %7|" ]
-  rm "$BATS_TEST_TMPDIR/tmux.calls"
-  act projects paste %7 "$B"
-  [ "$(sed -n 2p "$BATS_TEST_TMPDIR/tmux.calls")" = "cd $B" ]
-  rm "$BATS_TEST_TMPDIR/tmux.calls"
-  # the - row of an empty list pastes nothing
-  act all paste %7 -
-  [ ! -e "$BATS_TEST_TMPDIR/tmux.calls" ]
-  run act all paste nope "$A|npm|dev"
-  [ "$status" -eq 2 ]
-  [[ "$output" == *"needs a tmux pane id"* ]]
+  run act all line "$A|npm|dev"
+  [ "$output" = "pnpm run dev" ]
+  run act projects line "$B"
+  [ "$output" = "cd $B" ]
+  run act all line -
+  [ "$status" -eq 0 ] && [ -z "$output" ]
 }
 
-@test "under fzx with --paste: enter pastes into the pane, alt-x runs here; without it enter runs" {
+@test "under fzx with --paste or --to: enter pastes the command line (no newline), alt-x runs here; else enter runs" {
   stub_fzf
   cd "$A"
   run "$FZX" -m tasks -- --paste %3
-  [[ "$(fzf_bind enter)" == "enter:become:$FZX _cb action paste %3 {+1}" ]]
+  [ "$(fzf_binds enter | tail -1)" = "enter:become($FZX _cb output once action line {+1})" ]
   [[ "$(fzf_bind alt-x)" == *"_cb action run {+1}"* ]]
-  [ "$(grep -c -- '--bind=enter:\|^enter:' <<< "$(fzf_bind enter)")" -eq 1 ]
+  # fzx's own --to does the same, and --loop stays open
+  printf '#!/usr/bin/env bash\n[[ "$1" == display-message ]] && echo %%3\nexit 0\n' > "$STUBS/tmux"
+  chmod +x "$STUBS/tmux"
+  TMUX=x TMUX_PANE=%1 run "$FZX" -m tasks --to %3 --loop
+  [ "$(fzf_binds enter | tail -1)" = "enter:transform($FZX _cb output loop action line {+1})" ]
   run "$FZX" -m tasks
   [[ "$(fzf_bind enter)" == *"_cb action run {+1}"* ]]
   run fzf_bind alt-x
   [ "$status" -eq 1 ]
+}
+
+@test "under fzx with --paste: the callback pastes the line through a buffer of its own, no newline after it" {
+  printf '#!/usr/bin/env bash\n{ printf "%%s|" "$@"; echo; if [[ "$1" == load-buffer ]]; then command cat; echo "<END>"; fi; } >> "%s/tmux.calls"; [[ "$1" == display-message ]] && echo "$4"; exit 0\n' \
+    "$BATS_TEST_TMPDIR" > "$STUBS/tmux"
+  chmod +x "$STUBS/tmux"
+  stub_fzf
+  cd "$A"
+  export STUB_FZF_RUN="FZX_MODE=all '$FZX' _cb output once action line '$A|npm|dev'"
+  run "$FZX" -m tasks:all -- --paste %7
+  [ "$status" -eq 0 ]
+  # after the launch's lookups (the info line's pane and command): the buffer, then the paste
+  run sed -n '/^load-buffer/,$p' "$BATS_TEST_TMPDIR/tmux.calls"
+  [ "${lines[1]}" = "pnpm run dev<END>" ]
+  [[ "${lines[2]}" == "run-shell|-b|-d|0.3|tmux paste-buffer -p -d -b fzx-out-"*" -t %7|" ]]
 }
 
 @test "under fzx: enter runs, ctrl-t picks, alt-enter asks for arguments; menu summary" {

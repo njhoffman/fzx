@@ -68,7 +68,8 @@ todos::files() {
         todos::dotbare
         todos::home_repos
         printf '%s\n' "${FZX_TODOS_FILES[@]}"
-      } | xargs -r -d '\n' realpath -e -- 2> /dev/null | awk '!seen[$0]++'
+        # no empty lines for realpath: uutils' (Ubuntu's coreutils) refuses the whole call over one
+      } | awk 'NF' | xargs -r -d '\n' realpath -e -- 2> /dev/null | awk '!seen[$0]++'
       ;;
     *) return 1 ;;
   esac

@@ -21,7 +21,7 @@ case "$1" in
   list-panes) cat "$panes" ;;
   display-message)
     t="${4:-}"
-    awk -v t="$t" '$1 == t { print $1; f = 1 } END { exit !f }' "$panes"
+    awk -v t="$t" '$1 == t { print $1 }' "$panes"
     ;;
   load-buffer) { cat; printf '<END>\n'; } >> "$BATS_TEST_TMPDIR/tmux.calls" ;;
 esac
@@ -114,6 +114,14 @@ libs() {
   [[ "$(grep '^run-shell' "$CALLS")" == *" -t %2 && tmux send-keys -t %2 Enter|" ]]
 }
 
+@test "send: FZX_OUTPUT_NEWLINE=0 leaves the newline off without pressing Enter" {
+  libs
+  FZX_OUTPUT_NEWLINE=0 fzx::output_send_pane %2 0 'make test'
+  run cat "$CALLS"
+  [ "${lines[2]}" = 'make test<END>' ]
+  ! grep -q send-keys "$CALLS"
+}
+
 @test "send: a pane that is gone, or not an id, fails; nothing selected sends nothing" {
   libs
   run fzx::output_send_pane %9 0 x
@@ -196,6 +204,9 @@ libs() {
   FZX_OUTPUT_PANE=%9 run "$FZX" _cb output loop items 0 -- a
   [[ "$output" == "change-footer"*"pane %9 is gone"* ]]
   [[ "$output" != *clear-selection* ]]
+  # and the info line says so from now on
+  [[ "$(< "$FZX_SESSION_DIR/meta/output_target")" == *"%9 (gone)"* ]]
+  [[ "$output" == *"+toggle+toggle" ]]
 }
 
 @test "callback: without a pane the lines go to the root's out file; once prints nothing" {
@@ -214,4 +225,39 @@ libs() {
   run --separate-stderr "$FZX" -m counter --loop
   [ "$status" -eq 0 ]
   [ "$output" = $'first\nsecond\nthird' ]
+}
+
+@test "title and info: the loop icon in the title, the target pane and its command after fzf's info" {
+  # the stub answers #{pane_current_command} with zsh for a pane it knows
+  sed -i 's/^    awk -v t="\$t"/    [[ "${5:-}" == "#{pane_id} #{pane_current_command}" ]] \&\& { awk -v t="$t" '"'"'$1 == t { print $1 " zsh"; f = 1 } END { exit !f }'"'"' "$panes"; exit; }\n    awk -v t="$t"/' "$BATS_TEST_TMPDIR/bin/tmux"
+  export FZX_TITLE_CURRENT_COLOR="" FZX_ICONS=unicode NO_COLOR=1
+  "$FZX" -m counter --loop --to right > /dev/null
+  read_fzf_args
+  run grep '^--border-label=' < <(printf '%s\n' "${FZF_ARGS[@]}")
+  [ "$output" = "--border-label= counter:one ∞ " ]
+  run grep '^--info-command=' < <(printf '%s\n' "${FZF_ARGS[@]}")
+  [[ "$output" == "--info-command=IFS= read -r m < "*"/meta/output_target; printf %s \"\$FZF_INFO  \$m\"" ]]
+  # the command, as fzf runs it, over the file the launch wrote
+  local f="$BATS_TEST_TMPDIR/target"
+  printf '◎ %%2 zsh\n' > "$f"
+  [ "$(FZF_INFO='2/2 (0)' bash -c "IFS= read -r m < $f; printf %s \"\$FZF_INFO  \$m\"")" = '2/2 (0)  ◎ %2 zsh' ]
+  # an in-place refresh (lib/nav.sh) makes the title again from the session: the mark comes with it
+  libs
+  local m
+  fzx::session_create counter "$COUNTER_DIR"
+  fzx::meta_set title_marks " ∞"
+  fzx::session_title m
+  [ "$m" = "counter ∞" ]
+  # words without icons; a pane that is gone says so
+  FZX_ICONS=none FZX_LOOP=1 fzx::output_title m
+  [ "$m" = " loop" ]
+  FZX_ICONS=none FZX_OUTPUT_PANE=%2 fzx::output_target m
+  [ "$m" = "to %2 zsh" ]
+  FZX_OUTPUT_PANE=%9 fzx::output_target m
+  [ "$m" = "◎ %9 (gone)" ]
+  # no flags: no marks, no info command
+  "$FZX" -m counter > /dev/null
+  read_fzf_args
+  printf '%s\n' "${FZF_ARGS[@]}" | grep -qx -- '--border-label= counter:one '
+  ! printf '%s\n' "${FZF_ARGS[@]}" | grep -q -- '--info-command'
 }

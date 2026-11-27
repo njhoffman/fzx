@@ -6,6 +6,24 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.132.0] - 2026-11-27
+
+### Added
+- With `--loop` the border title ends in an infinity sign (`FZX_COLORS[title_loop]`, bold amber); with
+  `--to` the info line ends in a bullseye, the pane and the command running in it (`FZX_COLORS[output_target]`),
+  `(gone)` once the pane is closed. With `FZX_ICONS=unicode` they are ∞ and ◎, with `none` the words loop and
+  to.
+
+### Changed
+- tasks `--paste PANE` is fzx's `--to PANE`: `--loop` keeps the list open between pastes and `--submit`
+  runs the command line in the pane. `fzx -m tasks --to left` pastes command lines too.
+
+### Fixed
+- `--to` noticed a closed pane only when tmux refused the paste: tmux answers a lookup of a missing pane
+  without an error, so its answer is compared now.
+- todos' all mode listed nothing with uutils coreutils (Ubuntu's default), whose realpath refuses an empty
+  argument.
+
 ## [0.131.0] - 2026-11-27
 
 ### Added

@@ -176,7 +176,7 @@ fzx::actions_bind() {
     fi
     [[ -n "$_key" && "$_key" != - ]] &&
       _FZX_BIND_SCOPE="$module" fzx::bind "$_key" "$act" "action: ${_desc:-$_n}"
-    # a module whose opts hook bound enter itself keeps it (tasks --paste); the session records that, so
+    # a module whose opts hook bound enter itself keeps it; the session records that, so
     # the actions menu does not mark the default action as enter's. A picker (FZX_PRINT=1: --print, the zsh
     # widgets) wants enter to print: a default action that prints a value keeps it
     # (history's insert), any other leaves enter to fzf's accept
