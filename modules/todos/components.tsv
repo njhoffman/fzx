@@ -4,6 +4,7 @@ mode    all      -  every TODO.md: ghq's repositories, repositories under ~, dot
 toggle  done     alt-d  completed items too                               -
 sort    urgency  -  open first, then overdue, priority, due date, file order  default
 sort    file     -  file order                                            -
+action  go       -      go there: the item's file in $EDITOR at its line (from the tmux M-o popup: in the pane, else a new window)  default,become,builtin
 action  edit     ctrl-e  open the item in $EDITOR at its line             foreground,reload
 action  done     ctrl-d  mark the item done                               silent,reload
 action  paste    -       paste the lines into the tmux pane given by --paste  print

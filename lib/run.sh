@@ -42,6 +42,11 @@ fzx::run_new() {
     fzx::_launch 0 ""
     rc=$?
   done
+  # the go built-in left files and directories for this terminal (lib/go.sh)
+  if ((!dry_run && rc == 0)); then
+    fzx::require go
+    fzx::go_pending || rc=$?
+  fi
   ((dry_run)) || fzx::_stat_exit "$rc"
   _FZX_EXIT_STATED=1
   return "$rc"

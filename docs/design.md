@@ -412,6 +412,26 @@ prints, while one flagged `print` (history's insert) keeps it. Being an environm
 callbacks and every screen of the tree. The tmux `M-o` popup is not a picker: enter acts there, and ctrl-]
 hands the selection to the popup script, which pastes it into the pane.
 
+**Go.** The `go` built-in (lib/go.sh) is the default action of the screens whose rows are paths: files
+(grep: `{1}:{2}`, the focused match at its line), recent, dirs, repos and todos (its `todos::go_targets` hook
+turns an item id into `FILE<tab>LINE`). It is not in `config/components.tsv`: a module opts in with its own
+row, `action go - ... default,become,builtin`. A text file opens in `$VISUAL`/`$EDITOR` (several: all of
+them, at the first one's line), a directory becomes the shell's, anything else (a binary, a URL from a hook)
+is `xdg-open`ed at once, detached, so it outlives a popup. Files and directories need the terminal fzx was
+started from, which fzf in a popup, a split or a float does not have, so the action only records them in
+the root's `state/go` and the owner carries them out once fzf is gone (`fzx::go_pending`, after the
+relaunch loop in `fzx::run_new`; standalone, the action does it itself):
+
+- From the tmux `M-o` popup (`FZX_ORIGIN_PANE`, from fzx-popup.sh): when the pane runs zsh and has the pane
+  option `@fzx_zsh` (shell/fzx.zsh sets it to its go key in hex), the command line `builtin cd -- DIR &&
+  EDITOR +LINE -- FILE...` goes into the pane's `@fzx_go` and the key is sent: `fzx-go-widget` sets what
+  was typed aside (push-line), runs the line, and the typed text comes back. Any other pane (claude, nvim, a
+  shell without the integration) gets a new window after it, in the directory (or the first file's,
+  running the editor).
+- Inline: the editor runs on the terminal. A process cannot change its shell's directory: zsh's `fzx`
+  function (shell/fzx.zsh) passes `FZX_GO_FILE` and cds where fzx writes there; without it the directory is
+  printed, as enter printed it before.
+
 The key `reload` in an action row is fzx's reload key (`FZX_KEYS[reload_hard]`, ctrl-r): `lib/components.sh`
 resolves it and flags the row `reload-key`, and `lib/actions.sh` drops fzx's plain reload from the help, so
 the row takes the key without the bound-twice warning (a module whose source reads a cache: repos' rescan,
@@ -967,6 +987,12 @@ which prints the directory; `FZX_ZSH_NO_JUMP=1` leaves them undefined:
   `FZX_RECENT_JUMP_MAX` (10), listing them first; more open the picker over them; no words, the picker over
   every recent file; no match, the files picker on `$PWD` with the words as its query (`fzx --query`). A
   path given as is opens straight away.
+
+Go (lib/go.sh, see Actions), unless `FZX_ZSH_NO_GO=1`: `fzx` is a function that, at a terminal, runs fzx
+with `FZX_GO_FILE` and cds into the directory written there (in a command substitution it runs fzx as is,
+which prints the directory). `FZX_ZSH_GO_KEY` (default `\e[9271~`, no key sends it) is bound in every map
+to `fzx-go-widget`, which runs the pane's `@fzx_go` through push-line and accept-line; in tmux the pane's
+`@fzx_zsh` option holds that key in hex, for the `M-o` popup's go to send.
 
 They replace `g_func`/`gg_func`/`v_func` (~/.fzf/functions.sh, now removed), `fgo` and `_fzf_dirs`. Their fallback walked all of
 ~ (430k directories, 43s here); `dirs:all` stops at `FZX_DIRS_ALL_DEPTH` (6) and skips

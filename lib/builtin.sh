@@ -74,7 +74,7 @@ fzx::confirm() {
   [[ "$ans" == [yY] ]]
 }
 
-# fzx::builtin <copy|copy-line|view|confirm> [args...]
+# fzx::builtin <copy|copy-line|view|go|confirm> [args...]
 fzx::builtin() {
   local name="${1:-}"
   shift
@@ -103,6 +103,10 @@ fzx::builtin() {
       else
         printf '%s\n' "$@"
       fi | ${PAGER:-less -R}
+      ;;
+    go)
+      fzx::require go
+      fzx::go "$@"
       ;;
     confirm) fzx::confirm "$@" ;;
     *)

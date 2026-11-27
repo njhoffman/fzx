@@ -68,6 +68,8 @@ files::opts() {
       --preview "$(fzx::cb preview '{1}' '{2}')"
     )
     FZX_ACTION_ARGS='{1} {2}'
+    # go opens the focused match at its line
+    FZX_ACTION_ARGS_FOR['go']='{1}:{2}'
     # trash takes the files of every selected match
     FZX_ACTION_ARGS_FOR['trash']='{+1}'
   else

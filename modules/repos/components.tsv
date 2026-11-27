@@ -13,6 +13,7 @@ mode    unsynced  -  ahead of or behind the upstream                       -
 mode    todos     -  with open TODO.md items                               -
 sort    recent    -  last commit, newest first                             default
 sort    name      -  by name                                               -
+action  go        -       go there: the shell's directory (from the tmux M-o popup: the pane's, else a new window)  default,become,builtin
 action  edit      ctrl-e  open the repository in $EDITOR                   foreground
 action  fetch     -       git fetch the selected repositories              foreground,reload
 action  pull      -       git pull --ff-only the selected repositories     foreground,reload

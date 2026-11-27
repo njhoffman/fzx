@@ -26,7 +26,8 @@ fzx completion zsh > "${fpath[1]}/_fzx"
 
 `shell/fzx.zsh` binds alt-f (files), alt-d (dirs), alt-j (jump), alt-g (git), alt-p (ps), alt-m (the menu),
 alt-r (repos), alt-s (shell) and ctrl-r (history), each putting its result on the command line. It also
-adds `g`/`gg` (cd to a frecent directory) and `v` (open a frecent file). The top of the file lists the
+adds `g`/`gg` (cd to a frecent directory) and `v` (open a frecent file), and makes `fzx` a function so
+that enter on a directory changes the shell's directory. The top of the file lists the
 settings that change or turn off each part (`FZX_ZSH_KEYS`, `FZX_ZSH_NO_BIND`, ...).
 
 ## Use
@@ -45,7 +46,7 @@ Inside any module, f1 shows every key, mode, toggle and action. The common ones:
 | Key | Does |
 |---|---|
 | f1 | help: the keys in use, the module's components |
-| enter / ctrl-] | the module's default action (open, launch, run), else print the selection / always print it and close; `--print` (`FZX_PRINT=1`, the zsh widgets) makes enter print too |
+| enter / ctrl-] | the module's default action (open, launch, run; on paths: go there, a file in `$EDITOR`, a directory as the shell's), else print the selection / always print it and close; `--print` (`FZX_PRINT=1`, the zsh widgets) makes enter print too |
 | ctrl-\ | the actions menu |
 | ctrl-o / alt-left | into the row where a module has a level below (a branch's log, a directory) / back |
 | alt-9 / alt-0 | previous / next mode |

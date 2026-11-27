@@ -24,6 +24,15 @@ todos::done() {
   fi
 }
 
+# todos::go_targets <id...>: the go built-in's targets (lib/go.sh), "FILE<tab>LINE" for each item
+todos::go_targets() {
+  local id file start _title
+  for id in "$@"; do
+    IFS=$'\x1f' read -r file start _title <<< "$id"
+    [[ -n "$file" ]] && printf '%s\t%s\n' "$file" "$start"
+  done
+}
+
 # todos::action <edit|done|paste> <args...>
 todos::action() {
   local action="${1:-}" id file start _title pane editor

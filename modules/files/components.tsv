@@ -26,6 +26,7 @@ fi
 cat << 'ROWS'
 sort  path    -  by path                                     default
 sort  recent  -  newest first (modification time)            -
+action  go    -       go there: a text file in $EDITOR (grep: at the matching line), a directory as the shell's directory, anything else with xdg-open  default,become,builtin
 action  edit  ctrl-e  open in $EDITOR (grep: at the matching line)  foreground
 action  apply  -  replace: the replacement into the selected matches (all when none are selected), asking first  foreground,asks,restart
 action  undo   alt-u  grep, replace: put back the files the last replacement changed (unchanged since), asking first  foreground,asks,reload

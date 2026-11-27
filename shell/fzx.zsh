@@ -281,6 +281,53 @@ if [[ "${FZX_ZSH_NO_REPOS:-0}" != 1 ]]; then
   }
 fi
 
+# go (lib/go.sh: enter on a screen of paths), unless FZX_ZSH_NO_GO=1. A process cannot change its shell's
+# directory, so fzx is a function here: run at the prompt, it goes where fzx's go leaves (FZX_GO_FILE); in a
+# command substitution fzx prints that directory as before. In tmux the pane's @fzx_zsh option holds, in hex,
+# FZX_ZSH_GO_KEY, a key bound to fzx-go-widget: the M-o popup's go sets @fzx_go to a command line and sends
+# the key, and the widget runs it as a cd widget does (what was typed comes back after, push-line).
+: ${FZX_ZSH_GO_KEY=$'\e[9271~'}
+if [[ "${FZX_ZSH_NO_GO:-0}" != 1 ]]; then
+  function fzx {
+    emulate -L zsh
+    local go dir rc
+    if [[ ! -t 1 ]] || ! go="$(command mktemp "${TMPDIR:-/tmp}/fzx-go.XXXXXX")"; then
+      command "${FZX_ZSH_BIN:-fzx}" "$@"
+      return
+    fi
+    FZX_GO_FILE="$go" command "${FZX_ZSH_BIN:-fzx}" "$@"
+    rc=$?
+    dir="$(< "$go")"
+    command rm -f -- "$go"
+    [[ -n "$dir" && -d "$dir" ]] && builtin cd -- "$dir"
+    return $rc
+  }
+
+  fzx-go-widget() {
+    emulate -L zsh
+    local line
+    [[ -n "$TMUX_PANE" ]] || return 0
+    line="$(command tmux show-options -pqv -t "$TMUX_PANE" @fzx_go 2> /dev/null)"
+    command tmux set-option -pu -t "$TMUX_PANE" @fzx_go 2> /dev/null
+    [[ -n "$line" ]] || return 0
+    zle push-line
+    BUFFER="$line"
+    zle accept-line
+  }
+  zle -N fzx-go-widget
+  if [[ -n "$FZX_ZSH_GO_KEY" ]]; then
+    () {
+      local map c hex=()
+      for map in emacs viins vicmd; do
+        bindkey -M "$map" "$FZX_ZSH_GO_KEY" fzx-go-widget
+      done
+      [[ -n "$TMUX" && -n "$TMUX_PANE" ]] || return 0
+      for c in ${(s::)FZX_ZSH_GO_KEY}; do hex+=("$(printf '%02x' "'$c")"); done
+      { command tmux set-option -p -t "$TMUX_PANE" @fzx_zsh "${(j: :)hex}" 2> /dev/null } &!
+    }
+  fi
+fi
+
 () {
   local name
   for name in files dirs jump git ps menu menu-popup history repos claude shell; do

@@ -56,7 +56,49 @@ zsh_run() {
   [ "${lines[2]}" = '"^[d" fzx-dirs-widget' ]
   run zsh -f -i -c "FZX_ZSH_NO_BIND=1 source '$ZSH_INT'; bindkey -M viins '^[f'; zle -l | grep -c '^fzx-'" 2> /dev/null
   [[ "${lines[0]}" != *fzx-files-widget* ]]
-  [ "${lines[1]}" = 11 ]
+  # fzx-go-widget too (its key is fzx's own, for the M-o popup's go)
+  [ "${lines[1]}" = 12 ]
+}
+
+@test "go: FZX_ZSH_GO_KEY runs fzx-go-widget in every map, and in tmux the pane's @fzx_zsh holds it in hex" {
+  mkdir -p "$BATS_TEST_TMPDIR/bin"
+  printf '#!/bin/sh\necho "tmux $*" >> "%s/tmux.log"\n' "$BATS_TEST_TMPDIR" > "$BATS_TEST_TMPDIR/bin/tmux"
+  chmod +x "$BATS_TEST_TMPDIR/bin/tmux"
+  run zsh_run "PATH='$BATS_TEST_TMPDIR/bin':\$PATH; for m in viins vicmd emacs; do bindkey -M \$m \$'\\e[9271~'; done"
+  [ "${lines[0]}" = '"^[[9271~" fzx-go-widget' ]
+  [ "${lines[2]}" = '"^[[9271~" fzx-go-widget' ]
+  run zsh -f -i -c "PATH='$BATS_TEST_TMPDIR/bin':\$PATH; TMUX=x TMUX_PANE=%9; source '$ZSH_INT'; sleep 0.3" 2> /dev/null
+  [ "$(cat "$BATS_TEST_TMPDIR/tmux.log")" = "tmux set-option -p -t %9 @fzx_zsh 1b 5b 39 32 37 31 7e" ]
+  run zsh -f -i -c "FZX_ZSH_NO_GO=1; source '$ZSH_INT'; bindkey -M viins \$'\\e[9271~'; whence -w fzx" 2> /dev/null
+  [[ "${lines[0]}" != *fzx-go-widget* ]]
+  [[ "${lines[1]}" != *function* ]]
+}
+
+@test "go: fzx-go-widget sets the typed line aside and runs the pane's @fzx_go" {
+  mkdir -p "$BATS_TEST_TMPDIR/bin"
+  {
+    printf '#!/bin/sh\necho "tmux $*" >> "%s/tmux.log"\n' "$BATS_TEST_TMPDIR"
+    printf '[ "$1" = show-options ] && echo "builtin cd -- /tmp && nvim +3 -- /tmp/x"\nexit 0\n'
+  } > "$BATS_TEST_TMPDIR/bin/tmux"
+  chmod +x "$BATS_TEST_TMPDIR/bin/tmux"
+  run zsh_run "PATH='$BATS_TEST_TMPDIR/bin':\$PATH; TMUX_PANE=%9; zle() { print -r -- \"zle \$*\"; }; fzx-go-widget; print -r -- \"BUFFER=\$BUFFER\""
+  [ "${lines[0]}" = "zle push-line" ]
+  [ "${lines[1]}" = "zle accept-line" ]
+  [ "${lines[2]}" = "BUFFER=builtin cd -- /tmp && nvim +3 -- /tmp/x" ]
+  grep -q "set-option -pu -t %9 @fzx_go" "$BATS_TEST_TMPDIR/tmux.log"
+}
+
+@test "go: the fzx function cds where fzx's go leaves (FZX_GO_FILE), at a terminal only" {
+  mkdir -p "$BATS_TEST_TMPDIR/bin" "$BATS_TEST_TMPDIR/there"
+  printf '#!/usr/bin/env bash\n[ -n "$FZX_GO_FILE" ] && echo "%s/there" > "$FZX_GO_FILE"\necho "ran $*"\n' "$BATS_TEST_TMPDIR" > "$BATS_TEST_TMPDIR/bin/fakefzx"
+  chmod +x "$BATS_TEST_TMPDIR/bin/fakefzx"
+  local pre="FZX_ZSH_BIN='$BATS_TEST_TMPDIR/bin/fakefzx'; source '$ZSH_INT'"
+  run script -qec "zsh -f -i -c \"$pre; fzx -m dirs; print -r -- pwd=\\\$PWD\"" /dev/null
+  [[ "$output" == *"ran -m dirs"* ]]
+  [[ "$output" == *"pwd=$BATS_TEST_TMPDIR/there"* ]]
+  # in a command substitution nothing is written for it: fzx prints as before
+  run zsh -f -i -c "$pre; x=\$(fzx -m dirs); print -r -- \"\$x pwd=\$PWD\"" 2> /dev/null
+  [ "$output" = "ran -m dirs pwd=$PWD" ]
 }
 
 @test "claude widget: unbound by default, cds into the project the claude module prints" {

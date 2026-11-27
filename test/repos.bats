@@ -177,7 +177,13 @@ repos_fn() {
   sid="$(basename "$(session_dirs)")"
   bind="$(fzf_binds ctrl-r | tail -1)"
   [[ "$bind" == "ctrl-r:"*"bg-transform($FZX _cb notify rescan {+1})" ]]
-  [ "$(< "$FZX_RUNTIME_DIR/sessions/$sid/meta/enter")" = "print the repository's path (the zsh widget cds there)" ]
+  # enter is go, the default action's row says so; a picker (FZX_PRINT=1) prints, and the enter row says that
+  [ ! -e "$FZX_RUNTIME_DIR/sessions/$sid/meta/enter" ]
+  [ "$(fzf_bind enter)" = "enter:become($FZX _cb action go {+1})" ]
+  local psid
+  FZX_PRINT=1 "$FZX" --keep -m repos
+  psid="$(basename "$(ls -td "$FZX_RUNTIME_DIR"/sessions/*/ | head -1)")"
+  [ "$(< "$FZX_RUNTIME_DIR/sessions/$psid/meta/enter")" = "print the repository's path (the zsh widget cds there)" ]
   # the notify callback scans, then reloads the list and says so in the footer
   FZX_SESSION="$sid" run "$FZX" _cb notify rescan "$A"
   [ "$status" -eq 0 ]

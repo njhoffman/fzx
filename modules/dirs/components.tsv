@@ -11,6 +11,7 @@ dirs::has_fd && printf 'mode\tall\t-\tevery directory under ~ (fd)\tdefault\n'
 printf 'mode\tbookmarks\t-\tnamed directories (alt-m, FZX_DIRS_BOOKMARKS)\t-\n'
 printf 'sort\tname\t-\tbookmarks: by name\tdefault\n'
 printf 'sort\tpath\t-\tbookmarks: by path\t-\n'
+printf 'action\tgo\t-\tgo there: the shell'"'"'s directory (from the tmux M-o popup: the pane'"'"'s, else a new window)\tdefault,become,builtin\n'
 printf 'action\tmark\talt-m\tbookmark the directories (asks each a name)\tforeground,reload\n'
 printf 'action\tunmark\talt-x\tbookmarks: remove the bookmarks (not the directories)\tnotify,reload\n'
 [[ -x "${FZX_WORKSPACE_CMD:-}" ]] &&

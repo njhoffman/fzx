@@ -6,6 +6,27 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.123.0] - 2026-11-26
+
+### Added
+
+- go, the default action (enter) in files, recent, dirs, repos and todos: a text file opens in `$EDITOR`
+  (grep matches and todo items at their line; several files all at once), a directory becomes the shell's,
+  anything else (a binary, an image) opens with `xdg-open`, detached. Files and directories wait until fzf
+  has closed, so from a popup, a split or a float they open in the terminal fzx was started from.
+- From the tmux `M-o` popup, go acts on the pane it was opened from: a zsh at its prompt runs the `cd` or
+  the editor there (what was typed is set aside and comes back after); any other pane (claude, nvim) gets a
+  new window after it. This needs `shell/fzx.zsh` in that zsh and tmux's fzx-popup.sh passing the pane
+  (`FZX_ORIGIN_PANE`).
+- shell/fzx.zsh: `fzx` is a function that cds where go sends it (`FZX_GO_FILE`), and `fzx-go-widget`, bound
+  to a private key (`FZX_ZSH_GO_KEY`), runs what the popup's go hands the pane. `FZX_ZSH_NO_GO=1` leaves
+  both out.
+
+### Changed
+
+- Enter in files, recent, dirs, repos and todos no longer prints the selection: ctrl-] does, and
+  `--print` (the zsh widgets) keeps enter printing.
+
 ## [0.122.0] - 2026-11-26
 
 ### Added
