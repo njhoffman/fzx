@@ -361,7 +361,7 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       (alt-a, 0.110.0) as "  rg: FLAGS" after the base path, so on a long path the label is cut off at the
       terminal's edge and the flags in effect are hidden. Put the label before the path, or shorten the
       path first.
-- [ ] **files: a refused flag does not say why** (p3) [feature]: the flags screen (modules/files/actions.sh)
+- [x] **files: a refused flag does not say why** (p3) [feature]: the flags screen (modules/files/actions.sh)
       rings the bell and names the refused flag in the header, but not the reason (not on the FILES_FLAGS_RG
       or FILES_FLAGS_FD whitelist, which keeps out flags that change the output format fzx parses, or a
       value missing). Add the reason and, for an unknown flag, the nearest allowed one.

@@ -194,6 +194,133 @@ FILES_FLAGS_FD=(
   $'-o|--owner\t1\tby owner: user, :group, user:group'
 )
 
+# Why a flag left out of the lists above is refused, as "names<TAB>reason": a toggle's own flags name the toggle
+# (the reason is then "toggle NAME"), the others say what they would break
+# shellcheck disable=SC2034  # read through namerefs (FILES_FLAGS_OUT_${tool^^})
+FILES_FLAGS_OUT_RG=(
+  $'--hidden|-.\ttoggle hidden'
+  $'--no-ignore|-u|-uu|-uuu|--no-ignore-vcs\ttoggle ignored'
+  $'-L|--follow\ttoggle follow'
+  $'-U|--multiline|--multiline-dotall\ttoggle multiline'
+  $'-e|--regexp\tthe term is what you type in grep, not a flag (as a flag the term would be read as a path)'
+  $'-r|--replace\tthe replacement is what you type on the replace screen (alt-s)'
+  $'--json|-l|--files-with-matches|--files-without-match|-c|--count|--count-matches|--vimgrep|-o|--only-matching|-N|--no-line-number|--no-filename|-I|-0|--null|--null-data|-b|--byte-offset|--column|--heading|-p|--pretty|--files|--type-list|--stats\tit changes the rows rg prints, which fzx reads as path, line and text'
+  $'-A|--after-context|-B|--before-context|-C|--context|--passthru\tcontext lines are rows fzx would read as matches (the preview shows the context)'
+)
+# shellcheck disable=SC2034  # read through namerefs
+FILES_FLAGS_OUT_FD=(
+  $'-H|--hidden\ttoggle hidden'
+  $'-I|--no-ignore|-u|--unrestricted|--no-ignore-vcs\ttoggle ignored'
+  $'-L|--follow\ttoggle follow'
+  $'-t|--type\tthe type is the mode'"'"'s: files or dirs'
+  $'-g|--glob\tfd would read the "." pattern fzx passes as a glob (-E excludes by glob)'
+  $'-x|--exec|-X|--exec-batch\tit runs a command on every path'
+  $'-l|--list-details|-0|--print0|-a|--absolute-path|--format|-p|--full-path|--strip-cwd-prefix\tit changes the paths fd prints, which fzx reads'
+)
+
+# files::_flag_names <rg|fd> <array var>: every name the tool's list allows
+files::_flag_names() {
+  local -n _fn_rows="FILES_FLAGS_${1^^}" _fn_out="$2"
+  local _fn_row _fn_names
+  _fn_out=()
+  for _fn_row in "${_fn_rows[@]}"; do
+    IFS='|' read -ra _fn_names <<< "${_fn_row%%$'\t'*}"
+    _fn_out+=("${_fn_names[@]}")
+  done
+}
+
+# files::_distance <a> <b> <var>: the edit distance (insert, delete, substitute) between two words
+files::_distance() {
+  local _d_a="$1" _d_b="$2" _d_i _d_j _d_cost _d_prev=() _d_cur=() _d_m
+  for ((_d_j = 0; _d_j <= ${#_d_b}; _d_j++)); do _d_prev[_d_j]=$_d_j; done
+  for ((_d_i = 1; _d_i <= ${#_d_a}; _d_i++)); do
+    _d_cur=("$_d_i")
+    for ((_d_j = 1; _d_j <= ${#_d_b}; _d_j++)); do
+      _d_cost=1
+      [[ "${_d_a:_d_i-1:1}" == "${_d_b:_d_j-1:1}" ]] && _d_cost=0
+      _d_m=$((_d_prev[_d_j] + 1))
+      ((_d_cur[_d_j - 1] + 1 < _d_m)) && _d_m=$((_d_cur[_d_j - 1] + 1))
+      ((_d_prev[_d_j - 1] + _d_cost < _d_m)) && _d_m=$((_d_prev[_d_j - 1] + _d_cost))
+      _d_cur[_d_j]=$_d_m
+    done
+    _d_prev=("${_d_cur[@]}")
+  done
+  printf -v "$3" '%s' "${_d_prev[${#_d_b}]}"
+}
+
+# files::_flag_nearest <rg|fd> <flag> <var>: the allowed name closest to the flag, among names of its kind
+# (long or short), when it is close enough to be a typo (a third of its length, at least 2); empty otherwise
+files::_flag_nearest() {
+  local _nr_names=() _nr_n _nr_d _nr_best="" _nr_bd=99 _nr_max
+  files::_flag_names "$1" _nr_names
+  _nr_max=$((${#2} / 3))
+  ((_nr_max < 2)) && _nr_max=2
+  for _nr_n in "${_nr_names[@]}"; do
+    [[ "$2" == --* && "$_nr_n" != --* ]] && continue
+    [[ "$2" != --* && "$_nr_n" == --* ]] && continue
+    files::_distance "$2" "$_nr_n" _nr_d
+    ((_nr_d < _nr_bd)) && _nr_bd=$_nr_d _nr_best="$_nr_n"
+  done
+  ((_nr_bd <= _nr_max)) || _nr_best=""
+  printf -v "$3" '%s' "$_nr_best"
+}
+
+# files::_flag_refusal <rg|fd> <flag> <var>: why the flag is not taken: the reason it was left out, the toggle
+# that does it, or that alt-a does not know it (with the nearest name it knows)
+files::_flag_refusal() {
+  local -n _rf_rows="FILES_FLAGS_OUT_${1^^}"
+  local _rf_row _rf_why _rf_near _rf_key=""
+  for _rf_row in "${_rf_rows[@]}"; do
+    [[ "|${_rf_row%%$'\t'*}|" == *"|$2|"* ]] || continue
+    _rf_why="${_rf_row#*$'\t'}"
+    if [[ "$_rf_why" == "toggle "* ]]; then
+      _rf_why="${_rf_why#toggle }"
+      # the toggle's key: the session's components when loaded, else the module's own row
+      if ! { declare -F fzx::comp_field > /dev/null && fzx::comp_field toggle "$_rf_why" key _rf_key 2> /dev/null; }; then
+        _rf_key="$(awk -v n="$_rf_why" '$1 == "toggle" && $2 == n { print $3; exit }' \
+          "$(dirname "${BASH_SOURCE[0]}")/components.tsv" 2> /dev/null)"
+      fi
+      [[ "$_rf_key" == - ]] && _rf_key=""
+      printf -v "$3" '%s is the %s toggle%s' "$2" "$_rf_why" "${_rf_key:+ ($_rf_key)}"
+    else
+      printf -v "$3" '%s: %s' "$2" "$_rf_why"
+    fi
+    return 0
+  done
+  if [[ "$2" == --* ]]; then
+    files::_flag_nearest "$1" "$2" _rf_near
+    printf -v "$3" 'not a flag alt-a takes: %s%s' "$2" "${_rf_near:+ (did you mean $_rf_near?)}"
+    return 0
+  fi
+  # one letter is an edit from any other: the same letter in the other case, else the short ones it takes
+  local _rf_names=() _rf_n _rf_short=() _rf_other
+  files::_flag_names "$1" _rf_names
+  _rf_other="${2:1}"
+  [[ "$_rf_other" == [[:lower:]] ]] && _rf_other="${_rf_other^^}" || _rf_other="${_rf_other,,}"
+  for _rf_n in "${_rf_names[@]}"; do
+    [[ "$_rf_n" == --* ]] && continue
+    [[ "$_rf_n" == "-$_rf_other" ]] && _rf_near="$_rf_n"
+    _rf_short+=("$_rf_n")
+  done
+  if [[ -n "${_rf_near:-}" ]]; then
+    printf -v "$3" 'not a flag alt-a takes: %s (did you mean %s?)' "$2" "$_rf_near"
+  else
+    printf -v "$3" 'not a flag alt-a takes: %s (short ones: %s)' "$2" "${_rf_short[*]}"
+  fi
+}
+
+# files::_flag_desc <rg|fd> <flag> <var>: the flag's description in the tool's list
+files::_flag_desc() {
+  local -n _fd_rows="FILES_FLAGS_${1^^}"
+  local _fd_row
+  for _fd_row in "${_fd_rows[@]}"; do
+    [[ "|${_fd_row%%$'\t'*}|" == *"|$2|"* ]] || continue
+    printf -v "$3" '%s' "${_fd_row##*$'\t'}"
+    return 0
+  done
+  return 1
+}
+
 # files::_flag_spec <rg|fd> <flag> <var>: the flag's value column (0 or 1) into var; fails for one not allowed
 files::_flag_spec() {
   local -n _fs_rows="FILES_FLAGS_${1^^}"
@@ -222,8 +349,11 @@ files::flags_parse() {
     _fp_w="${_fp_words[_fp_i]}"
     if [[ "$_fp_w" == --*=* ]]; then
       _fp_name="${_fp_w%%=*}"
-      if ! files::_flag_spec "$1" "$_fp_name" _fp_takes || [[ "$_fp_takes" != 1 ]]; then
-        _fp_err="not a flag here: $_fp_w"
+      if ! files::_flag_spec "$1" "$_fp_name" _fp_takes; then
+        files::_flag_refusal "$1" "$_fp_name" _fp_err
+        break
+      elif [[ "$_fp_takes" != 1 ]]; then
+        _fp_err="$_fp_name takes no value (in $_fp_w)"
         break
       fi
       _fp_out+=("$_fp_name" "${_fp_w#*=}")
@@ -233,7 +363,12 @@ files::flags_parse() {
       while [[ -n "$_fp_rest" ]]; do
         _fp_name="-${_fp_rest:0:1}" _fp_rest="${_fp_rest:1}"
         files::_flag_spec "$1" "$_fp_name" _fp_takes || {
-          _fp_err="not a flag here: $_fp_name (in $_fp_w)"
+          # a whole word the out list names (-uu) says so; else the letter that is not allowed
+          if [[ "$_fp_name" != "$_fp_w" ]] && files::_flag_refusal "$1" "$_fp_w" _fp_err && [[ "$_fp_err" != "not a flag"* ]]; then
+            break 2
+          fi
+          files::_flag_refusal "$1" "$_fp_name" _fp_err
+          [[ "$_fp_name" != "$_fp_w" ]] && _fp_err+=" (in $_fp_w)"
           break 2
         }
         if [[ "$_fp_takes" == 1 ]]; then
@@ -244,13 +379,15 @@ files::flags_parse() {
         fi
       done
     elif ! files::_flag_spec "$1" "$_fp_w" _fp_takes; then
-      _fp_err="not a flag here: $_fp_w"
+      files::_flag_refusal "$1" "$_fp_w" _fp_err
       break
     else
       _fp_out+=("$_fp_w")
       if [[ "$_fp_takes" == 1 ]]; then
         ((_fp_i + 1 < ${#_fp_words[@]})) || {
-          _fp_err="$_fp_w needs a value"
+          local _fp_desc=""
+          files::_flag_desc "$1" "$_fp_w" _fp_desc
+          _fp_err="$_fp_w needs a value${_fp_desc:+: $_fp_desc}"
           break
         }
         _fp_out+=("${_fp_words[++_fp_i]}")

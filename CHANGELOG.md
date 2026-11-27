@@ -6,6 +6,16 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.124.2] - 2026-11-27
+
+### Changed
+
+- files: the flags screen (alt-a) says why it refuses a flag. A flag left out on purpose says what it would
+  break (rg's `--json`, `-l` and context lines change the rows fzx reads, `-e` would take the term as a path;
+  fd's `-t` is the mode's, `-x` runs commands); one a toggle covers names the toggle and its key (`--hidden`:
+  alt-h); an unknown one gets the nearest allowed name (`--fixd-strings`: `--fixed-strings`; a short one
+  its other case, or the list of short ones); a missing value repeats what the flag takes.
+
 ## [0.124.1] - 2026-11-26
 
 ### Changed

@@ -405,6 +405,42 @@ srcs() { bash -c "source '$FZX_REPO/lib/core.sh'; fzx::require log session; sour
   done
 }
 
+@test "flags: a refusal says why: what the flag would break, its toggle, the nearest allowed one, the value" {
+  source "$FILES/source.sh" || :
+  local w=() e
+  ref() { files::flags_parse "$1" "$2" w e || :; }
+  ref rg "--json"
+  [ "$e" = "rg: --json: it changes the rows rg prints, which fzx reads as path, line and text" ]
+  ref rg "-C 3"
+  [[ "$e" == "rg: -C: context lines are rows fzx would read as matches"* ]]
+  ref rg "-e foo"
+  [[ "$e" == "rg: -e: the term is what you type in grep"* ]]
+  ref rg "--hidden"
+  [ "$e" = "rg: --hidden is the hidden toggle (alt-h)" ]
+  ref rg "-uu"
+  [ "$e" = "rg: -uu is the ignored toggle (alt-i)" ]
+  ref fd "-L"
+  [ "$e" = "fd: -L is the follow toggle (alt-l)" ]
+  ref fd "-x ls"
+  [ "$e" = "fd: -x: it runs a command on every path" ]
+  ref rg "--fixd-strings"
+  [ "$e" = "rg: not a flag alt-a takes: --fixd-strings (did you mean --fixed-strings?)" ]
+  ref fd "--extention md"
+  [ "$e" = "fd: not a flag alt-a takes: --extention (did you mean --extension?)" ]
+  ref rg "--zzzzzzzzzz"
+  [ "$e" = "rg: not a flag alt-a takes: --zzzzzzzzzz" ]
+  ref rg "-W"
+  [ "$e" = "rg: not a flag alt-a takes: -W (did you mean -w?)" ]
+  ref fd "-q"
+  [ "$e" = "fd: not a flag alt-a takes: -q (short ones: -e -E -d -S -o)" ]
+  ref rg "-wq"
+  [[ "$e" == "rg: not a flag alt-a takes: -q (short ones: "*") (in -wq)" ]]
+  ref rg "-t"
+  [ "$e" = "rg: -t needs a value: only files of this type (rg --type-list)" ]
+  ref rg "--fixed-strings=1"
+  [ "$e" = "rg: --fixed-strings takes no value (in --fixed-strings=1)" ]
+}
+
 @test "flags: the session tree's saved flags reach rg and fd; nothing outside a session" {
   command -v rg > /dev/null || skip "ripgrep not installed"
   load_libs log session
@@ -488,7 +524,7 @@ srcs() { bash -c "source '$FZX_REPO/lib/core.sh'; fzx::require log session; sour
   run "$FZX" _cb preview "-t f"
   [[ "$output" == *"refused:"*"-t"* ]]
   FZF_QUERY="-t f" run "$FZX" _cb transform flags-apply
-  [[ "$output" == "bell+change-header"*"refused, fd: not a flag here: -t"* ]]
+  [[ "$output" == "bell+change-header"*"refused, fd: -t: the type is the mode's: files or dirs"* ]]
   [ "$(< "$FZX_SESSIONS_DIR/$parent/state/files_flags_fd")" = "-e md" ]
   FZF_QUERY="  -d   2  -e sh " run "$FZX" _cb transform flags-apply
   [ "$output" = "become:$FZX --resume $parent" ]
