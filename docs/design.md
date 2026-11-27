@@ -518,7 +518,7 @@ resolved config: the callback loads the layers just before the first module func
 | `FZX_READ0` | `0` | `1` (a module's opts hook may set it): the source's items end with NUL and may span lines; fzf gets `--read0 --highlight-line`, and the callbacks count items by NUL (`meta/read0`). history sets it unless `FZX_HISTORY_MULTILINE=0` |
 | `FZX_POPUP_LAYOUTS` | `0:center,100%` `140:center,90%,85%` `220:center,80%` | popup and float size by the tmux window's width, see "Popup geometry" |
 | `FZX_RESIZE_SETTLE_MS` | `300` | how long the window's size must hold before a popup is reopened at the new size |
-| `FZX_PERSIST`, `FZX_POPUP_OPTS`, `FZX_FLOAT_OPTS`, `FZX_STATS`, `FZX_SUMMARY_TTL`, `FZX_TRACE`, ... | | see their sections |
+| `FZX_PERSIST`, `FZX_POPUP_OPTS`, `FZX_FLOAT_OPTS`, `FZX_STATS`, `FZX_SUMMARY_TTL`, `FZX_SUMMARY_JOBS`, `FZX_TRACE`, ... | | see their sections |
 
 **Yanking.** ctrl-y and alt-y are global in the user's fzfrc (the first field, the whole line). Modules refine
 them, and both report in the footer rather than by fzfrc's notify-send: the built-in `copy` is ctrl-y everywhere
@@ -881,10 +881,19 @@ menu. Entries with the same module and args share one child session, so `ps` and
 session and its per-mode cache.
 
 **Summaries** are cached per directory in `$XDG_CACHE_HOME/fzx/summary/<hash(cwd)>/<id>` and shown
-immediately. `start:+bg-transform:fzx _cb transform refresh` then computes the stale ones (older than
-`FZX_SUMMARY_TTL`, default 300s) for applicable entries, all in parallel, each cut off after
-`FZX_SUMMARY_TIMEOUT` (default 3s), and answers with a single `reload` when anything changed. A
-failing or timed-out summary is cached empty, so it is not retried on every open. The timeout watcher
+immediately. `load:+bg-transform:fzx _cb transform refresh` then computes the stale ones (older than
+`FZX_SUMMARY_TTL`, default 300s) and answers with a single `reload` when anything changed. It is bound to
+`load`, not `start`: started beside the listing, its summaries starved the listing's applicable checks, and
+on a busy machine whole modules fell out of the menu over `FZX_APPLICABLE_TIMEOUT`. Which entries apply
+comes from that listing (it writes their ids to `state/menu_applicable` with its directory before its lines
+go out), so the refresh checks nothing again; with no listing from this directory it runs the checks
+itself. At most `FZX_SUMMARY_JOBS` summaries run at once (default `nproc`; slots are bytes in a pipe every
+summary shares), each cut off `FZX_SUMMARY_TIMEOUT` (default 3s) after it starts. The reload it asks for
+only redraws: it sets `state/menu_relist`, and the listing that consumes it (within 30s) takes its entries
+from `state/menu_applicable` without their applicable checks, so a busy moment cannot drop modules already
+on screen; ctrl-r, a mode and reopening check again. That reload fires `load` again, and the refresh finds
+nothing stale; a refresh still running (`fzx::bg_alive`) makes another return at once. A failing or timed-out summary keeps its last value and is made fresh again, so it is not
+retried until the TTL passes; one that never succeeded is cached empty. The timeout watcher
 must not hold the callback's stdout: fzf waits for every writer of a `bg-transform` to close it.
 The refresh runs under `setsid` (`refresh-run`): a session and process group of its own, no controlling
 terminal and stdin from /dev/null, so no summary can change the terminal's modes under fzf. The group is

@@ -111,16 +111,30 @@ fzx::session_destroy() {
 # group still led by a process of that session (FZX_SESSION in its environment) is signalled: a pid used
 # again since is left alone. Needs /proc; without it the job runs to its end as before.
 fzx::bg_stop() {
-  local _d="${1:-$FZX_SESSION_DIR}" _g="" _sid
-  fzx::_kv_get "$_d/state/bg_pgid" _g 2> /dev/null || return 0
+  local _d="${1:-$FZX_SESSION_DIR}" _g=""
+  _d="${_d%/}"
+  # in a condition, so a caller under errexit carries on when there is nothing to stop
+  local _alive=0
+  fzx::bg_alive "$_d" _g || _alive=1
   rm -f -- "$_d/state/bg_pgid"
-  [[ "$_g" =~ ^[0-9]+$ && -r "/proc/$_g/environ" ]] || return 0
-  _sid="${_d%/}"
-  _sid="${_sid##*/}"
-  tr '\0' '\n' < "/proc/$_g/environ" 2> /dev/null | grep -qxF "FZX_SESSION=$_sid" || return 0
+  ((_alive == 0)) || return 0
   kill -TERM -- "-$_g" 2> /dev/null
-  declare -F fzx::log > /dev/null && fzx::log info "background job $_g of ${_sid} stopped"
+  declare -F fzx::log > /dev/null && fzx::log info "background job $_g of ${_d##*/} stopped"
   return 0
+}
+
+# fzx::bg_alive [session dir] [var]: succeeds while the session's recorded background job (state/bg_pgid) is
+# still led by a process of that session (FZX_SESSION in its environment), its group id into var. Fails
+# with no record, a dead leader, a pid used again by another session, or no /proc
+fzx::bg_alive() {
+  # locals named apart from any caller's variable (bg_stop passes _g): printf -v would set the local instead
+  local _bga_dir="${1:-$FZX_SESSION_DIR}" _bga_pg="" _bga_sid
+  _bga_dir="${_bga_dir%/}"
+  fzx::_kv_get "$_bga_dir/state/bg_pgid" _bga_pg 2> /dev/null || return 1
+  [[ "$_bga_pg" =~ ^[0-9]+$ && -r "/proc/$_bga_pg/environ" ]] || return 1
+  _bga_sid="${_bga_dir##*/}"
+  tr '\0' '\n' < "/proc/$_bga_pg/environ" 2> /dev/null | grep -qxF "FZX_SESSION=$_bga_sid" || return 1
+  [[ -z "${2:-}" ]] || printf -v "$2" '%s' "$_bga_pg"
 }
 
 # fzx::session_goto_args <args...>: the args `nav goto --ancestor` matches this session by, when its own differ

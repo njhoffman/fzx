@@ -102,10 +102,22 @@ fzx::menu_lines() {
 # Every module runs at once, each in a subshell writing its own file (so a broken manifest only drops that
 # module), and the files are printed in module order. A module whose manifest and applicable checks take
 # longer than FZX_APPLICABLE_TIMEOUT seconds is left out of this listing and logged.
+# The reload a summary refresh asks for (state/menu_relist, set within the last 30s) only redraws the
+# summaries: it lists the entries the session's listing before it found here (state/menu_applicable),
+# without their applicable checks, so a busy moment cannot drop modules that were already shown. The flag is
+# used once; any other listing (ctrl-r, a mode, reopening) checks again.
 fzx::_menu_collect() {
-  local name dir n=0 tmp pids=() names=() watcher
+  local name dir n=0 tmp pids=() names=() watcher _menu_relist=0 _t=""
+  local -A _menu_known=()
+  if [[ -n "${FZX_SESSION_DIR:-}" && -f "$FZX_SESSION_DIR/state/menu_relist" ]]; then
+    _t="$(< "$FZX_SESSION_DIR/state/menu_relist")"
+    rm -f -- "$FZX_SESSION_DIR/state/menu_relist"
+    [[ "$_t" =~ ^[0-9]+$ ]] && ((EPOCHSECONDS - _t <= 30)) && fzx::_menu_applicable_load _menu_known && _menu_relist=1
+  fi
   tmp="$(mktemp -d "${FZX_SESSION_DIR:-${TMPDIR:-/tmp}}/menu.XXXXXX")" || return
   while IFS=$'\t' read -r name dir; do
+    # redrawing: a module the listing before showed nothing of stays out, unread
+    ((_menu_relist)) && [[ -z "${_menu_known[$name]:-}" ]] && continue
     names+=("$name")
     # its output goes to its file only: a check left running when it is cut off must not hold the
     # source's stdout, which fzf reads until every writer closes it
@@ -127,13 +139,47 @@ fzx::_menu_collect() {
   wait "$watcher" 2> /dev/null
   local i
   for i in "${!names[@]}"; do
-    if [[ -f "$tmp/$i" ]]; then
-      cat -- "$tmp/$i"
-    else
-      fzx::log warn "menu: ${names[i]} took over ${FZX_APPLICABLE_TIMEOUT:-2}s, left out"
-    fi
+    [[ -f "$tmp/$i" ]] || fzx::log warn "menu: ${names[i]} took over ${FZX_APPLICABLE_TIMEOUT:-2}s, left out"
+  done
+  # the entries that applied, for the summary refresh that follows (it reads them instead of checking
+  # again); written before the lines go out, so it is in place when fzf's load event starts the refresh
+  [[ -n "${FZX_SESSION_DIR:-}" && -d "$FZX_SESSION_DIR/state" ]] && fzx::_menu_applicable_save "$tmp" "${#names[@]}"
+  for i in "${!names[@]}"; do
+    [[ -f "$tmp/$i" ]] && cat -- "$tmp/$i"
   done
   rm -rf -- "$tmp"
+}
+
+# fzx::_menu_applicable_save <dir> <count>: state/menu_applicable from a listing's per-module files: the
+# directory it was made in, then one entry id (module#n) per line
+fzx::_menu_applicable_save() {
+  local f="$FZX_SESSION_DIR/state/menu_applicable" i
+  {
+    printf 'cwd\t%s\n' "$PWD"
+    for ((i = 0; i < $2; i++)); do
+      [[ -f "$1/$i" ]] && cut -f1 -- "$1/$i"
+    done
+  } > "$f.$BASHPID" && mv -- "$f.$BASHPID" "$f"
+}
+
+# fzx::_menu_applicable_load <var>: the entry ids of the session's last listing into the associative array
+# named var (id -> 1, and module -> 1 for each module with one). Fails when there is none, or it was made in
+# another directory: the refresh then checks applicable itself.
+fzx::_menu_applicable_load() {
+  local -n _set="$1"
+  local _f="${FZX_SESSION_DIR:-}/state/menu_applicable" _line _first=1
+  [[ -n "${FZX_SESSION_DIR:-}" && -f "$_f" ]] || return 1
+  while IFS= read -r _line; do
+    if ((_first)); then
+      [[ "$_line" == "cwd"$'\t'"$PWD" ]] || return 1
+      _first=0
+      continue
+    fi
+    [[ -n "$_line" ]] || continue
+    _set["$_line"]=1
+    _set["${_line%%#*}"]=1
+  done < "$_f"
+  ((!_first))
 }
 
 # fzx::_menu_module <module> <dir> <file>: one module's menu lines into <file>, which appears only once
@@ -148,7 +194,10 @@ fzx::_menu_module() {
     local i label summary file icon mode color desc group="${FZX_MENU_GROUP:-other}"
     for i in "${!FZX_ENTRY_TARGETS[@]}"; do
       fzx::menu_entry_args "$i"
-      if declare -F "$name::applicable" > /dev/null &&
+      # _menu_relist and _menu_known are fzx::_menu_collect's (a redraw after a refresh)
+      if ((${_menu_relist:-0})); then
+        [[ -n "${_menu_known[$name#$i]:-}" ]] || continue
+      elif declare -F "$name::applicable" > /dev/null &&
         ! "$name::applicable" "${FZX_ENTRY_TARGETS[i]}" "${FZX_ARGS[@]}" 2>> "$FZX_LOG_FILE"; then
         continue
       fi
@@ -266,39 +315,69 @@ fzx::_menu_arrange() {
   '
 }
 
-# compute stale summaries of applicable entries, all in parallel, each limited to FZX_SUMMARY_TIMEOUT
-# seconds. Returns 0 when at least one summary was written.
+# compute stale summaries of applicable entries, at most FZX_SUMMARY_JOBS (default: one per core) at a time,
+# each limited to FZX_SUMMARY_TIMEOUT seconds from when it starts. Which entries apply comes from the
+# session's last listing in this directory (state/menu_applicable), else from their applicable checks.
+# Returns 0 when at least one summary was written.
 fzx::menu_refresh() {
-  local name dir results="$FZX_SESSION_DIR/summaries.$BASHPID"
+  local name dir results="$FZX_SESSION_DIR/summaries.$BASHPID" jobs="${FZX_SUMMARY_JOBS:-}" sem
+  local -A listed=()
+  local known=0
+  fzx::_menu_applicable_load listed && known=1
+  [[ "$jobs" =~ ^[1-9][0-9]*$ ]] || jobs="$(nproc 2> /dev/null)"
+  [[ "$jobs" =~ ^[1-9][0-9]*$ ]] || jobs=4
   : > "$results"
+  # the slots: one byte each in a pipe every summary shares (read one to start, write it back when done);
+  # opened read-write, so neither end blocks on the other
+  sem="$FZX_SESSION_DIR/summaries.$BASHPID.sem"
+  rm -f -- "$sem"
+  mkfifo -- "$sem" || {
+    fzx::log error "menu: cannot make the summary slots ($sem)"
+    return 1
+  }
+  exec {_FZX_SUMMARY_SEM}<> "$sem"
+  rm -f -- "$sem"
+  printf "%${jobs}s" "" >&"$_FZX_SUMMARY_SEM"
   while IFS=$'\t' read -r name dir; do
+    # a module the listing showed nothing of has nothing to summarize here
+    ((known)) && [[ -z "${listed[$name]:-}" ]] && continue
     (
       fzx::menu_entries "$name" "$dir" 2>> "$FZX_LOG_FILE" || exit 0
       declare -F "$name::summary" > /dev/null || exit 0
-      local i file
+      local i file _slot
       for i in "${!FZX_ENTRY_TARGETS[@]}"; do
+        if ((known)); then
+          [[ -n "${listed[$name#$i]:-}" ]] || continue
+        fi
         fzx::summary_path file "$name" "$i"
         fzx::_summary_fresh "$file" && continue
         fzx::menu_entry_args "$i"
-        if declare -F "$name::applicable" > /dev/null &&
+        if ((!known)) && declare -F "$name::applicable" > /dev/null &&
           ! "$name::applicable" "${FZX_ENTRY_TARGETS[i]}" "${FZX_ARGS[@]}" 2>> "$FZX_LOG_FILE"; then
           continue
         fi
+        # wait for a slot; the summary gives it back when it ends
+        IFS= read -r -n 1 -d '' -u "$_FZX_SUMMARY_SEM" _slot
         fzx::_summary_run "$name" "$i" "$file" "$results" &
       done
       wait
     ) &
   done < <(fzx::menu_modules)
-  # every module at once: slow summaries of different modules overlap instead of adding up
+  # every module at once, their summaries sharing the slots: slow summaries of different modules overlap
+  # instead of adding up, without all of them competing for the machine at once
   wait
+  exec {_FZX_SUMMARY_SEM}>&-
+  unset _FZX_SUMMARY_SEM
   local n
   n="$(wc -l < "$results")"
   rm -f -- "$results"
   ((${n// /} > 0))
 }
 
-# fzx::_summary_run <module> <i> <file> <results>: one summary with a timeout; on failure or timeout an
-# empty summary is cached, so a slow or broken summary is not retried on every menu open
+# fzx::_summary_run <module> <i> <file> <results>: one summary with a timeout, in a slot of the refresh's
+# (given back when it ends). On failure or timeout the last summary is kept, and made fresh again, so it is
+# not retried until FZX_SUMMARY_TTL passes; one that never succeeded is cached empty. Only a written summary
+# counts toward the reload.
 fzx::_summary_run() {
   local name="$1" i="$2" file="$3" results="$4" out rc tmp
   tmp="$file.$BASHPID"
@@ -327,7 +406,12 @@ fzx::_summary_run() {
     fzx::log warn "menu: summary of $name#$i failed or timed out rc=$rc"
   fi
   rm -f -- "$tmp"
-  out="${out//[$'\t\r']/ }"
-  fzx::_kv_set "$file" "$out"
-  printf '%s\n' "$name#$i" >> "$results"
+  if ((rc != 0)) && [[ -s "$file" ]]; then
+    touch -- "$file"
+  else
+    out="${out//[$'\t\r']/ }"
+    fzx::_kv_set "$file" "$out"
+    printf '%s\n' "$name#$i" >> "$results"
+  fi
+  [[ -z "${_FZX_SUMMARY_SEM:-}" ]] || printf . >&"$_FZX_SUMMARY_SEM"
 }

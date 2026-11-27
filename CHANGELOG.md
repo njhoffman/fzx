@@ -6,6 +6,28 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.119.0] - 2026-11-26
+
+### Added
+
+- `FZX_SUMMARY_JOBS`: how many menu summaries run at once (default: one per CPU core). The rest wait their
+  turn, and each one's `FZX_SUMMARY_TIMEOUT` starts when it runs.
+
+### Changed
+
+- The menu's summary refresh starts once the list is in, not beside it. Started together, the refresh's
+  summaries (about 140 at once) starved the list's applicable checks: on a busy machine whole modules (aws,
+  docker, git, github, tmux, ...) went over `FZX_APPLICABLE_TIMEOUT` and were missing from the menu.
+- The refresh takes which entries apply from that list instead of running every applicable check again,
+  and the reload it asks for redraws the same entries without checking them, so a busy moment no longer
+  drops modules from a menu already on screen. ctrl-r, switching modes and reopening still check.
+- A summary that fails or times out keeps its last value (and is not retried until `FZX_SUMMARY_TTL`
+  passes) instead of being blanked for the TTL; one that never succeeded is still cached empty.
+
+### Fixed
+
+- A second refresh started while one was still running returns at once instead of doubling the work.
+
 ## [0.118.2] - 2026-11-26
 
 ### Fixed

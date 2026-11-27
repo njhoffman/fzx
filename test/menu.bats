@@ -288,6 +288,121 @@ EOF2
   [[ "${lines[0]}" =~ Counter\ in\ its\ first\ mode\ *$ ]]
 }
 
+@test "refresh: a summary that fails or times out keeps its last value, fresh again until the ttl" {
+  fixture_modules
+  menu_session
+  "$FZX" _cb transform refresh > /dev/null
+  find "$FZX_CACHE_DIR/summary" -name 'counter@*' -exec touch -d '10 minutes ago' {} +
+  COUNTER_SUMMARY_FAIL=1 run "$FZX" _cb transform refresh
+  # nothing new to show: no reload
+  [ -z "$output" ]
+  grep -q 'summary of counter#0 failed or timed out' "$LOG"
+  run plain_lines
+  [[ "${lines[0]}" == *"summary of counter" ]]
+  [[ "${lines[1]}" == *"summary of counter:two --x a b" ]]
+  # made fresh: the next refresh does not run them again
+  COUNTER_SUMMARY_FAIL=1 "$FZX" _cb transform refresh > /dev/null
+  [ "$(wc -l < "$COUNTER_FILE.summaries")" -eq 4 ]
+}
+
+@test "refresh: at most FZX_SUMMARY_JOBS summaries run at once, each timed from its own start" {
+  mkdir -p "$BATS_TEST_TMPDIR/mods/pool" "$BATS_TEST_TMPDIR/pool"
+  cat > "$BATS_TEST_TMPDIR/mods/pool/manifest.sh" << 'EOF2'
+pool::manifest() { local i; for i in 1 2 3 4 5 6 7 8; do fzx::entry "pool:m$i" "entry $i"; done; }
+pool::summary() {
+  touch "$POOL_DIR/run.${1#*:}"
+  find "$POOL_DIR" -name 'run.*' | wc -l >> "$POOL_DIR/seen"
+  sleep 1
+  rm -f "$POOL_DIR/run.${1#*:}"
+  printf 'done %s\n' "$1"
+}
+EOF2
+  export FZX_MODULE_PATH="$BATS_TEST_TMPDIR/mods" POOL_DIR="$BATS_TEST_TMPDIR/pool"
+  menu_session
+  # eight 1s summaries two at a time take about 4s, over the 3s timeout: each is timed from when it got
+  # its slot, so none is cut off
+  FZX_SUMMARY_JOBS=2 FZX_SUMMARY_TIMEOUT=3 run "$FZX" _cb transform refresh
+  [ "$output" = "reload:$FZX _cb source" ]
+  [ "$(wc -l < "$POOL_DIR/seen")" -eq 8 ]
+  [ "$(sort -n "$POOL_DIR/seen" | tail -1)" -le 2 ]
+  ! grep -q 'failed or timed out' "$LOG"
+  run plain_lines
+  [ "$(printf '%s\n' "${lines[@]}" | grep -c 'done pool:m')" -eq 8 ]
+}
+
+@test "refresh: takes which entries apply from the session's listing here; elsewhere it checks itself" {
+  mkdir -p "$BATS_TEST_TMPDIR/mods/probe" "$BATS_TEST_TMPDIR/probe"
+  cat > "$BATS_TEST_TMPDIR/mods/probe/manifest.sh" << 'EOF2'
+probe::manifest() { fzx::entry probe "one"; fzx::entry probe:two "two"; }
+probe::applicable() { printf '%s\n' "$1" >> "$PROBE_DIR/applicable"; [[ "$1" != probe:two ]]; }
+probe::summary() { printf '%s\n' "$1" >> "$PROBE_DIR/summaries"; printf 'about %s\n' "$1"; }
+EOF2
+  export FZX_MODULE_PATH="$BATS_TEST_TMPDIR/mods" PROBE_DIR="$BATS_TEST_TMPDIR/probe"
+  menu_session
+  # the listing checks both entries once and shows the first
+  run plain_lines
+  [ "${#lines[@]}" -eq 1 ] && [[ "${lines[0]}" == "probe#0|"* ]]
+  [ "$(wc -l < "$PROBE_DIR/applicable")" -eq 2 ]
+  # the refresh after it checks nothing again and summarizes only what was shown
+  run "$FZX" _cb transform refresh
+  [ "$output" = "reload:$FZX _cb source" ]
+  [ "$(wc -l < "$PROBE_DIR/applicable")" -eq 2 ]
+  [ "$(< "$PROBE_DIR/summaries")" = probe ]
+  # in another directory that listing does not hold: the refresh checks for itself
+  cd "$BATS_TEST_TMPDIR"
+  "$FZX" _cb transform refresh > /dev/null
+  [ "$(wc -l < "$PROBE_DIR/applicable")" -eq 4 ]
+  [ "$(wc -l < "$PROBE_DIR/summaries")" -eq 2 ]
+}
+
+@test "source: the reload a refresh asks for redraws the listed entries without checking them again, once" {
+  mkdir -p "$BATS_TEST_TMPDIR/mods/probe" "$BATS_TEST_TMPDIR/probe"
+  cat > "$BATS_TEST_TMPDIR/mods/probe/manifest.sh" << 'EOF2'
+probe::manifest() { fzx::entry probe "one"; fzx::entry probe:two "two"; }
+probe::applicable() { printf '%s\n' "$1" >> "$PROBE_DIR/applicable"; [[ "$1" != probe:two ]]; }
+probe::summary() { printf 'about %s\n' "$1"; }
+EOF2
+  export FZX_MODULE_PATH="$BATS_TEST_TMPDIR/mods" PROBE_DIR="$BATS_TEST_TMPDIR/probe"
+  menu_session
+  run plain_lines
+  [ "$(wc -l < "$PROBE_DIR/applicable")" -eq 2 ]
+  run "$FZX" _cb transform refresh
+  [ "$output" = "reload:$FZX _cb source" ]
+  # the reload: the new summary, the same entries, no checks
+  run plain_lines
+  [ "${#lines[@]}" -eq 1 ] && [[ "${lines[0]}" == "probe#0|"*"about probe" ]]
+  [ "$(wc -l < "$PROBE_DIR/applicable")" -eq 2 ]
+  [ ! -e "$FZX_SESSION_DIR/state/menu_relist" ]
+  # once: the next listing (ctrl-r, a mode) checks again
+  run plain_lines
+  [ "$(wc -l < "$PROBE_DIR/applicable")" -eq 4 ]
+  # a flag left from long ago (its reload never came) is not trusted
+  fzx::state_set menu_relist "$((EPOCHSECONDS - 120))"
+  run plain_lines
+  [ "$(wc -l < "$PROBE_DIR/applicable")" -eq 6 ]
+}
+
+@test "refresh: one still running makes the next return at once, without a reload" {
+  fixture_modules
+  menu_session
+  COUNTER_SUMMARY_SLEEP=60 FZX_SUMMARY_TIMEOUT=90 "$FZX" _cb transform refresh > /dev/null &
+  local job=$! i start before
+  # both of its summaries started (the second can follow the first by a moment), so any more are the next's
+  for i in $(seq 100); do [[ "$(wc -l < "$COUNTER_FILE.summaries" 2> /dev/null)" == 2 ]] && break; sleep 0.1; done
+  [ -s "$FZX_SESSION_DIR/state/bg_pgid" ]
+  before="$(wc -l < "$COUNTER_FILE.summaries")"
+  [ "$before" -eq 2 ]
+  start=$EPOCHSECONDS
+  run "$FZX" _cb transform refresh
+  [ -z "$output" ]
+  ((EPOCHSECONDS - start < 20))
+  [ "$(wc -l < "$COUNTER_FILE.summaries")" -eq "$before" ]
+  # the first is still the recorded one, and leaving stops it
+  "$FZX" _cb nav escape > /dev/null
+  wait "$job" || :
+  [ ! -e "$FZX_SESSION_DIR/state/bg_pgid" ]
+}
+
 @test "transform: unknown name fails with 2" {
   menu_session
   run "$FZX" _cb transform bogus
@@ -356,7 +471,9 @@ EOF2
   [ "$(fzf_bind enter)" = "enter:transform:$FZX _cb nav entry {1}" ]
   [ "$(fzf_bind start)" = "start:reload:$FZX _cb load" ]
   read_fzf_args
-  [[ " ${FZF_ARGS[*]} " == *" start:+bg-transform:$FZX _cb transform refresh "* ]]
+  # the summary refresh starts once the list is in, not beside it
+  [[ " ${FZF_ARGS[*]} " == *" load:+bg-transform:$FZX _cb transform refresh "* ]]
+  [[ " ${FZF_ARGS[*]} " != *" start:+bg-transform:$FZX _cb transform refresh "* ]]
   [[ " ${FZF_ARGS[*]} " == *" --border-label= menu:list "* ]]
 }
 

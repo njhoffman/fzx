@@ -403,13 +403,24 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       install, so a missing linter is not mistaken for a lint failure (CI installs it, so only local runs hit it).
 - [x] **workspaces/actions.sh names a function that does not exist** (p3) [docs]: the comment above
       `workspaces::state` calls it `workspaces::open_state`. Rename it in the comment.
-- [ ] **The menu loads in 6-8s under load, with most summaries timed out** (p3) [perf]: on 2026-11-26 with
+- [x] **The menu loads in 6-8s under load, with most summaries timed out** (p3) [perf]: on 2026-11-26 with
       load average ~10, four menu launches (18:24-18:25 in fzx.log) took 5.7-7.8s for `cb load`; aws, docker,
       git, github, network, packages, systemd and tmux "took over 2s, left out", and dozens of
       "summary of <module>#N failed or timed out rc=143" followed (the same load took ~3s with lighter load).
       The list does arrive and keys work meanwhile, but the summaries column is mostly empty on a busy
       machine. Look at running fewer summaries at once (a job cap scaled to nproc and load), or serving
       them from the cache first and refreshing in the background as `transform refresh` already does.
+      Done (0.119.0): the cause was the refresh starting beside the listing (all ~140 summaries at once,
+      load average 52 on 8 cores; the listing went from 0.5s to 6-7s and lost 14-15 modules). The refresh
+      now starts on `load`, reuses the listing's applicable ids, runs `FZX_SUMMARY_JOBS` (nproc) summaries at
+      a time, keeps a summary's last value on failure, and its reload redraws without checking again. Cold
+      under 16 busy loops: listing 4s, no module left out, the redraw keeps all 139 lines.
+- [ ] **aws summaries time out even with a slot of their own** (p3) [perf]: in every cold refresh measured
+      on 2026-11-26 (load 2 to 20) most of the 12 aws entries' summaries hit `FZX_SUMMARY_TIMEOUT` (3s):
+      each starts the aws CLI (Python start-up plus an API call). With 0.119.0 a failure keeps the last
+      value, so only a first run or a cold cache shows them empty, but they hold 12 of the `nproc` slots for
+      3s each. Look at one `aws` call shared by the module's entries (`summary_key`-style, or a module-wide
+      cache the entries read), or summaries from the module's own data cache only.
 
 ## Completed
 

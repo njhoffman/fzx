@@ -34,7 +34,8 @@ menu::opts() {
   fi
   if fzx::in_session; then
     fzx::bind enter "transform:$(fzx::cb nav entry '{1}')" "open the entry (alt-left comes back to the menu)"
-    FZX_OPTS+=(--bind "start:+bg-transform:$(fzx::cb transform refresh)")
+    # after the list is in, not beside it: see menu::transform refresh
+    FZX_OPTS+=(--bind "load:+bg-transform:$(fzx::cb transform refresh)")
   fi
 }
 

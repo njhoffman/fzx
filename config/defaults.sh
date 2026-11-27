@@ -86,12 +86,15 @@ FZX_LOG_ARGS=1
 
 # menu entry summaries are cached per directory for this many seconds, and each may run this long
 FZX_SUMMARY_TTL=300
+FZX_SUMMARY_TIMEOUT="${FZX_SUMMARY_TIMEOUT:-3}"
+# how many menu summaries run at once; the rest wait their turn (their timeout starts when they run).
+# Empty: one per CPU core (nproc)
+FZX_SUMMARY_JOBS="${FZX_SUMMARY_JOBS:-}"
 
 # a directory of links named after each ghq repository (~/git/fzx -> ~/ghq/github.com/njhoffman/fzx), kept
 # by the repos module's links action, the shell's `repos` and every clone fzx makes; empty: none. The
 # default is ~/git when that directory exists
 [[ -n "${FZX_REPOS_LINKS_DIR+x}" ]] || { FZX_REPOS_LINKS_DIR=""; [[ -d "$HOME/git" ]] && FZX_REPOS_LINKS_DIR="$HOME/git"; }
-FZX_SUMMARY_TIMEOUT="${FZX_SUMMARY_TIMEOUT:-3}"
 # a module whose menu entries (its manifest and applicable checks) take longer than this many seconds is
 # left out of that menu listing, so one slow check cannot hold up the menu
 FZX_APPLICABLE_TIMEOUT="${FZX_APPLICABLE_TIMEOUT:-2}"
