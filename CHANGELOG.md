@@ -6,6 +6,12 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.130.1] - 2026-11-27
+
+### Changed
+- The workspaces module's docs name i3's `$mod+p` (tmux 0.48.0's `workspace popup`) as the key that opens it,
+  in place of tmux's alt-w.
+
 ## [0.130.0] - 2026-11-27
 
 ### Added

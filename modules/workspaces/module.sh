@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # workspaces: tmux workspaces (~/.config/tmux/scripts/workspace): predefined sessions, the family's open
-# sessions and recent directories, the picker tmux's alt-w opens. `fzx -m workspaces[:open|:recent|
+# sessions and recent directories, the picker i3's $mod+p opens (`workspace popup`). `fzx -m workspaces[:open|:recent|
 # :predefined]`. Enter opens the workspace in the main terminal (workspace open --main), alt-enter
 # here; ctrl-] prints the KEY (what `workspace pick` reads and opens here); alt-R resets an open session, alt-x kills one, alt-d forgets a recent directory.
 
