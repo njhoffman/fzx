@@ -83,6 +83,7 @@ Inside any module, f1 shows every key, mode, toggle and action. The common ones:
 | glyphs | Nerd Font glyphs, Unicode characters and blocks, emoji |
 | gpg | the keys in your keyring: copy fingerprints, export, trust, edit, delete |
 | history | zsh-histdb commands |
+| i3 | windows, workspaces and the scratchpad: focus, switch, move, float, close |
 | kdeconnect | KDE Connect devices and their battery: ping, ring, share, SMS, lock; their notifications, commands and SMS conversations |
 | keybindings | zsh and tmux key bindings, and fzf's own |
 | logs | log files, systemd journals and docker container logs |

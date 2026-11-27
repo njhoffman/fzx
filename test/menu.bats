@@ -446,8 +446,9 @@ EOF2
   menu_session
   COUNTER_SUMMARY_SLEEP=60 FZX_SUMMARY_TIMEOUT=90 "$FZX" _cb transform refresh > /dev/null &
   local job=$! i start before
-  # both of its summaries started (the second can follow the first by a moment), so any more are the next's
-  for i in $(seq 100); do [[ "$(wc -l < "$COUNTER_FILE.summaries" 2> /dev/null)" == 2 ]] && break; sleep 0.1; done
+  # both of its summaries started (the second can follow the first by a moment), so any more are the next's;
+  # up to 30s: on a loaded machine (the parallel suite at load 23) 10s was not enough
+  for i in $(seq 300); do [[ "$(wc -l < "$COUNTER_FILE.summaries" 2> /dev/null)" == 2 ]] && break; sleep 0.1; done
   [ -s "$FZX_SESSION_DIR/state/bg_pgid" ]
   before="$(wc -l < "$COUNTER_FILE.summaries")"
   [ "$before" -eq 2 ]

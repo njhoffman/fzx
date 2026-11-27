@@ -6,6 +6,17 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.130.0] - 2026-11-27
+
+### Added
+
+- i3, a new module (`fzx -m i3[:workspaces|:scratchpad]`): every window with its workspace, output, class
+  and title (the focused, floating and urgent ones marked), the workspaces with their output and window
+  count, and the scratchpad's windows. Enter focuses a window, switches to a workspace or shows a scratchpad
+  window, then closes; alt-m moves windows to a workspace, alt-s sends them to the scratchpad, alt-t toggles
+  floating, alt-x closes them after asking; on workspaces alt-O moves one to another output and alt-R
+  renames it.
+
 ## [0.129.0] - 2026-11-27
 
 ### Added

@@ -1,0 +1,15 @@
+# i3 components: kind  name  key  description  flags (see lib/components.sh)
+# Rows are "con id<TAB>display" (windows, scratchpad) or "workspace name<TAB>display" (workspaces).
+mode    windows     -      every window of every workspace, the focused one marked                default
+mode    workspaces  -      the workspaces, their outputs and how many windows each holds          -
+mode    scratchpad  -      the windows on the scratchpad                                          -
+action  focus       -      windows: focus the window and close (enter)                            become
+action  show        -      scratchpad: show the window and close (enter)                          become
+action  switch      -      workspaces: switch to the workspace and close (enter)                  become
+action  move        alt-m  windows, scratchpad: move to a workspace (asks which)                  foreground,asks,reload
+action  scratch     alt-s  windows: send to the scratchpad                                        notify,reload
+action  float       alt-t  windows: toggle floating                                               notify,reload
+action  kill        alt-x  windows, scratchpad: close the windows                                 confirm,reload
+action  output      alt-O  workspaces: move to another output (asks which)                        foreground,asks,reload
+action  rename      alt-R  workspaces: rename (asks the name)                                     foreground,asks,reload
+action  copy        ctrl-y  copy the ids (windows: con ids, workspaces: names)                     silent,builtin

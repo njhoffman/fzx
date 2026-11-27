@@ -1,7 +1,7 @@
 # fzx TODO
 
 Status (0.117.1): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs, displays,
-docker, files, firewall, fonts, git, github, glyphs, gpg, history, kdeconnect, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, snippets, ssh, systemd, tasks, tmux,
+docker, files, firewall, fonts, git, github, glyphs, gpg, history, i3, kdeconnect, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, snippets, ssh, systemd, tasks, tmux,
 todos, workspaces, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
 add what you find, and tick items off (`- [x]`) as they land, never delete them; once every item of a section
 is ticked, the section moves to `## Completed` at the end as a `### <heading> (completed YYYY-MM-DD)` block
@@ -218,7 +218,7 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       Chrome only lists them through its remote debugging port (`--remote-debugging-port`, /json).
 - [x] **zsh docs** (p3) [module]: the zsh manual index (option, builtin, parameter) opening the right section;
       possibly a mode of the man module. Refs: fzfmenu system/zman*, zmandata.tsv.
-- [ ] **i3** (p3) [module]: windows and workspaces (focus, move), scratchpads. Refs: list.md "i3". Has: i3-msg.
+- [x] **i3** (p3) [module]: windows and workspaces (focus, move), scratchpads. Refs: list.md "i3". Has: i3-msg.
 - [x] **applications** (p3) [module]: desktop entries (/usr/share/applications and ~/.local/share/applications,
       489 here) by name with their icon and categories, launched detached (`gtk-launch` or the Exec line); for
       launching from a tmux popup bound in i3. Ref: zaw's applications.
