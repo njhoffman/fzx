@@ -201,13 +201,21 @@ STUB
   [[ "$output" == *"CARD $P/alpha"* ]]
 }
 
-@test "under fzx: the scan is bound to start, enter prints the path, alt-l opens git on the project" {
+@test "under fzx: the scan is bound to start, enter goes to Claude (alt-enter resumes), alt-l opens git on the project" {
   stub_fzf
   run "$FZX" -m claude
   [ "$status" -eq 0 ]
   fzf_binds start | grep -qxF "start:+bg-transform:$FZX _cb transform refresh"
   [ "$(fzf_bind alt-l)" = "alt-l:transform:$FZX _cb nav goto git {1}" ]
   [ "$(fzf_bind alt-t)" = "alt-t:transform:$FZX _cb nav goto todos --dir {1}" ]
-  [ "$(fzf_bind ctrl-o)" = "ctrl-o:become($FZX _cb action claude {+1})" ]
-  [ "$(fzf_bind alt-O)" = "alt-O:become($FZX _cb action resume {+1})" ]
+  [ "$(fzf_bind enter)" = "enter:become($FZX _cb action claude {+1})" ]
+  [ "$(fzf_bind alt-enter)" = "alt-enter:become($FZX _cb action resume {+1})" ]
+  run fzf_bind ctrl-o
+  [ "$status" -ne 0 ]
+  run fzf_bind alt-O
+  [ "$status" -ne 0 ]
+  # a picker (the zsh widget) prints the path on enter
+  FZX_PRINT=1 run "$FZX" -m claude
+  run fzf_bind enter
+  [ "$status" -ne 0 ]
 }

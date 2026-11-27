@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # workspaces actions on the selected keys (session names, or recent directories' roots)
+#   main:   workspace open --main KEY (the first): the main terminal shows it (a float terminal's pick)
 #   open:   workspace open KEY (the first), on WORKSPACE_CLIENT when set, else this client
 #   reset:  workspace reset --yes NAME, each open session (it is rebuilt from its layout)
 #   kill:   each open session, through family-stay.sh kill (its clients stay in the family)
@@ -22,9 +23,11 @@ workspaces::action() {
   [[ "${1:-}" == -- ]] && shift
   cmd="$(workspaces::cmd)" || { printf 'workspaces: no workspace command (FZX_WORKSPACE_CMD)\n' >&2; return 2; }
   case "$action" in
-    open)
+    main | open)
       [[ -n "${1:-}" ]] || return 0
-      "$cmd" open ${WORKSPACE_CLIENT:+-c "$WORKSPACE_CLIENT"} "$1"
+      local main=()
+      [[ "$action" == main ]] && main=(--main)
+      "$cmd" open ${WORKSPACE_CLIENT:+-c "$WORKSPACE_CLIENT"} "${main[@]}" "$1"
       ;;
     reset | kill)
       stay="$(dirname "$(readlink -f "$cmd")")/family-stay.sh"

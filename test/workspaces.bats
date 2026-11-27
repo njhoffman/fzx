@@ -89,13 +89,17 @@ src() { FZX_MODE="$1" "$WS/source.sh"; }
   [[ "$output" == *"20-git.sh"*"  git: any other git work tree."* ]]
 }
 
-@test "actions: open the first (on WORKSPACE_CLIENT), reset and kill open sessions, forget recent directories" {
+@test "actions: open the first (main: --main; on WORKSPACE_CLIENT), reset and kill open sessions, forget recent directories" {
+  "$WS/actions.sh" main -- main-shell main-fzx
+  WORKSPACE_CLIENT=/dev/pts/9 "$WS/actions.sh" main -- main-fzx
   "$WS/actions.sh" open -- main-shell main-fzx
   WORKSPACE_CLIENT=/dev/pts/9 "$WS/actions.sh" open -- "$HOME/notes"
   "$WS/actions.sh" reset -- main-fzx
   "$WS/actions.sh" kill -- main-fzx main-shell
   "$WS/actions.sh" forget -- "$HOME/notes"
-  [ "$(grep -v ' type ' "$WS_CALLS")" = "workspace open main-shell
+  [ "$(grep -v ' type ' "$WS_CALLS")" = "workspace open --main main-shell
+workspace open -c /dev/pts/9 --main main-fzx
+workspace open main-shell
 workspace open -c /dev/pts/9 $HOME/notes
 workspace reset --yes main-fzx
 family-stay kill main-fzx
@@ -114,7 +118,7 @@ workspace forget $HOME/notes" ]
   grep -qx 'tmux kill-session -t =main-shell' "$WS_CALLS"
 }
 
-@test "under fzx: --dry-run exits 0 (workspace pick's check), enter prints the key, the actions bound" {
+@test "under fzx: --dry-run exits 0 (workspace pick's check), enter opens in main, the actions bound" {
   run "$FZX" -m workspaces --dry-run
   [ "$status" -eq 0 ]
   stub_fzf
@@ -123,7 +127,11 @@ workspace forget $HOME/notes" ]
   [[ " ${FZF_ARGS[*]} " == *" --accept-nth=1 "* && " ${FZF_ARGS[*]} " == *" --with-nth=5 "* ]]
   [[ "$(fzf_bind alt-enter)" == *"open"* && "$(fzf_bind alt-enter)" == *"become"* ]]
   [[ "$(fzf_bind alt-x)" == *"kill"* && "$(fzf_bind alt-d)" == *"forget"* && "$(fzf_bind alt-R)" == *"reset"* ]]
-  [[ "$(fzf_bind enter)" != *"_cb"* ]]
+  [ "$(fzf_bind enter)" = "enter:become($FZX _cb action main {+1})" ]
+  # a picker prints the key on enter
+  FZX_PRINT=1 run "$FZX" -m workspaces
+  run fzf_bind enter
+  [ "$status" -ne 0 ]
 }
 
 @test "menu: applicable inside tmux with the command; summary counts open sessions and recent directories" {

@@ -68,7 +68,7 @@ Inside any module, f1 shows every key, mode, toggle and action. The common ones:
 | audio | outputs, inputs, playing streams and media players |
 | bluetooth | paired and nearby devices: connect, pair, trust, remove |
 | browser | Chrome, Chromium, Brave, Vivaldi and Firefox history and bookmarks, opened in their own profile |
-| claude | Claude Code projects: git state, version, open TODOs and sessions; start or resume Claude there |
+| claude | Claude Code projects: git state, version, open TODOs and sessions; enter goes to Claude there (or starts it), alt-enter resumes |
 | capture | URLs, paths, words, hashes, IPs or lines out of a tmux pane |
 | colors | the 256-color palette, the terminal's 16 colors, X11 names and fzx's own colors |
 | cron | crontab and system cron entries with their next runs, anacron jobs and cron scripts |
@@ -98,7 +98,7 @@ Inside any module, f1 shows every key, mode, toggle and action. The common ones:
 | tasks | project scripts: make, just, npm, Taskfile, cargo aliases, pdm/poe/hatch |
 | tmux | sessions, windows, panes and buffers; reference browsers for keys, options, formats and more |
 | todos | open items of TODO.md files |
-| workspaces | tmux workspaces: predefined sessions, the family's open sessions and recent directories |
+| workspaces | tmux workspaces: predefined sessions, the family's open sessions and recent directories; enter opens one in the main terminal, alt-enter here |
 | youtube | YouTube search: play, open or save as mp3 |
 
 Your own modules go in `~/.config/fzx/modules/<name>/` (`FZX_MODULE_PATH`). Configuration layers from

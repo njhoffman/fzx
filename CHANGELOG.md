@@ -6,6 +6,17 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.124.0] - 2026-11-26
+
+### Changed
+
+- claude: enter goes to the Claude Code running in the project, or starts one (was ctrl-o), and alt-enter
+  does the same with `--continue` (was alt-O). ctrl-] prints the path; the zsh widget, a picker, still cds
+  into it on enter.
+- workspaces: enter opens the workspace in the main terminal (`workspace open --main`, tmux 0.43.0), and
+  alt-enter still opens it here. ctrl-] prints the key. tmux's alt-w (`workspace pick`) runs the module as
+  it is, no longer a picker, with its client passed on, so these keys work there.
+
 ## [0.123.0] - 2026-11-26
 
 ### Added

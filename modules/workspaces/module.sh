@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # workspaces: tmux workspaces (~/.config/tmux/scripts/workspace): predefined sessions, the family's open
 # sessions and recent directories, the picker tmux's alt-w opens. `fzx -m workspaces[:open|:recent|
-# :predefined]`. Enter prints the KEY (what `workspace pick` reads and opens); alt-enter opens it from
-# here; alt-R resets an open session, alt-x kills one, alt-d forgets a recent directory.
+# :predefined]`. Enter opens the workspace in the main terminal (workspace open --main), alt-enter
+# here; ctrl-] prints the KEY (what `workspace pick` reads and opens here); alt-R resets an open session, alt-x kills one, alt-d forgets a recent directory.
 
 FZX_MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../lib/core.sh
