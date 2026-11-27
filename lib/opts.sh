@@ -463,10 +463,13 @@ fzx::opts_build() {
   FZX_ACTION_ARGS='{+1}'
   # shellcheck disable=SC2034
   declare -gA FZX_ACTION_ARGS_FOR=()
+  local own_enter=0
   if declare -F "$module::opts" > /dev/null; then
     _FZX_BIND_SCOPE="$module"
     "$module::opts" || return 1
     _FZX_BIND_SCOPE=fzx
+    fzx::require actions
+    fzx::_module_bound "$module" enter && own_enter=1
   fi
   # a view with a header row (lib/header.sh) shows the source's first line as fzf's header, unless the
   # module always has one
@@ -490,6 +493,9 @@ fzx::opts_build() {
     fzx::comp_field action copy-line key _ ||
       fzx::bind alt-y "transform($(fzx::cb notify copy-line '{+}'))" "copy the whole lines"
   fi
+  # --to / --loop: enter sends the selection (lib/output.sh)
+  fzx::require output
+  fzx::output_binds "$module" "$own_enter"
   fzx::_component_place
   # debug view in the preview; standalone has no session, so only the variables
   if fzx::in_session; then

@@ -38,6 +38,15 @@ fzx::callback() {
       fzx::require nav
       fzx::nav_footer
       ;;
+    output)
+      # --to / --loop (lib/output.sh): loop answers fzf actions, once runs in become() and prints nothing
+      fzx::require output
+      if [[ "${1:-}" == loop ]]; then
+        fzx::_cb_actions fzx::output_cb "$@"
+      else
+        fzx::output_cb "$@"
+      fi
+      ;;
     mode)
       fzx::require nav
       fzx::_cb_actions fzx::nav_mode "$@"
@@ -399,12 +408,7 @@ fzx::_cb_notify() {
   cat -- "$err" >> "$FZX_LOG_FILE" 2> /dev/null || :
   rm -f -- "$err"
   fzx::log info "notify $name rc=$_FZX_NOTIFY_RC: $msg"
-  # one line, short enough for the footer, no characters that end the action
-  msg="${msg//[$'\n\t\r']/ }"
-  ((${#msg} > 120)) && msg="${msg:0:119}…"
-  [[ -n "$color" && -z "${NO_COLOR:+x}" ]] && msg=$'\e['"${color}m$msg"$'\e[0m'
-  fzx::require opts
-  fzx::action_arg change-footer "$msg" act || act="change-footer(${msg//[()]/})"
+  fzx::footer_note "$msg" "$color" act
   # a background action (lib/actions.sh) reloads or restarts only now that it is done
   local flags="" pre="" post=""
   fzx::comp_field action "$name" flags flags 2> /dev/null || flags=""
@@ -416,7 +420,20 @@ fzx::_cb_notify() {
       pre+="+"
     fi
   fi
-  printf '%s%s+bg-cancel+bg-transform-footer(sleep %s; %s)%s' "$pre" "$act" "${FZX_NOTIFY_SECONDS:-2}" "$(fzx::cb footer)" "$post"
+  printf '%s%s%s' "$pre" "$act" "$post"
+}
+
+# fzx::footer_note <message> <color> <var>: the fzf actions that show MESSAGE in the footer for
+# FZX_NOTIFY_SECONDS, then put the component line back (`fzx _cb footer`, from the state then)
+fzx::footer_note() {
+  local _msg="$1" _color="$2" _act
+  # one line, short enough for the footer, no characters that end the action
+  _msg="${_msg//[$'\n\t\r']/ }"
+  ((${#_msg} > 120)) && _msg="${_msg:0:119}…"
+  [[ -n "$_color" && -z "${NO_COLOR:+x}" ]] && _msg=$'\e['"${_color}m$_msg"$'\e[0m'
+  fzx::require opts
+  fzx::action_arg change-footer "$_msg" _act || _act="change-footer(${_msg//[()]/})"
+  printf -v "$3" '%s+bg-cancel+bg-transform-footer(sleep %s; %s)' "$_act" "${FZX_NOTIFY_SECONDS:-2}" "$(fzx::cb footer)"
 }
 
 # fzx::_cb_call <script> <function> [args...]

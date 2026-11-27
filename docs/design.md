@@ -412,6 +412,33 @@ prints, while one flagged `print` (history's insert) keeps it. Being an environm
 callbacks and every screen of the tree. The tmux `M-o` popup is not a picker: enter acts there, and ctrl-]
 hands the selection to the popup script, which pastes it into the pane.
 
+**Output: --to and --loop** (lib/output.sh). Both make fzx a picker (`FZX_PRINT=1`) and bind enter and
+`FZX_KEYS[print]` to `fzx _cb output`, on every screen of the tree but the menus, and not where the module's
+opts hook bound enter itself (tasks `--paste`); standalone they do nothing.
+
+- `--to TARGET`: the selection goes into a tmux pane as a bracketed paste (nothing runs), `--submit`
+  (`FZX_OUTPUT_SUBMIT=1`) presses Enter after it, the text then without its last newline. TARGET is a pane
+  id, any tmux target (`SESSION:W.P`, `{last}`), or `left|right|up|down`: the neighbour of the pane fzx
+  starts in (`$TMUX_PANE`; from a popup or float the pane that opened it), the nearest pane sharing rows
+  (columns) with it, the one sharing most when several are as near; floating panes are left out. bin/fzx
+  resolves it once, into `FZX_OUTPUT_PANE` (an environment variable, so callbacks and later screens see it):
+  a pane id stays the pane's when it is moved, swapped or broken out, so the text follows it. Inline, fzx's
+  own pane is refused. Each send loads a buffer of its own (`fzx-out-PID-RANDOM`), so sends close together
+  cannot overwrite one another; a send that closes fzf (enter without `--loop`, ctrl-]) hands the paste to
+  the server 0.3s later, as todos `--paste` did, since a popup's caller may still be busy opening it.
+  todos `--paste PANE` is `--to PANE` now.
+- `--loop` (`FZX_LOOP=1`): enter is `transform(fzx _cb output loop ...)`: the selection goes out, the
+  footer says so ("✓ sent to %12 (3)", or why not, keeping the selection), then clear-selection and a
+  reload; ctrl-] sends and closes, esc quits. Without `--to` the lines go to the root's `out` file and the
+  owner prints them: streamed while fzf runs when its stdout is not a terminal (`tail --pid=OWNER -f`, which
+  prints the rest and exits once the owner is gone), else all at once when fzf closes, since lines on the
+  terminal would land on fzf's screen.
+
+What goes out is what accept would print: the `--accept-nth` fields, its template included (`{1}:{2}`), or
+the whole row. fzf's placeholders ignore `--accept-nth`, so `meta/accept` holds the template and the
+binding passes `{+n} -- {+E}...`, one placeholder per expression; the callback fills the template in per
+row. A default action flagged `print` (history's and snippets' insert) sends what it prints instead.
+
 **Go.** The `go` built-in (lib/go.sh) is the default action of the screens whose rows are paths: files
 (grep: `{1}:{2}`, the focused match at its line), recent, dirs, repos and todos (its `todos::go_targets` hook
 turns an item id into `FILE<tab>LINE`). It is not in `config/components.tsv`: a module opts in with its own
@@ -779,7 +806,7 @@ keeps a file snapshot for the same purpose), rewriting through a temporary file 
 The here mode picks the nearest TODO.md in that format (a `## ` heading and a checkbox item) from the
 current directory up to the repository's top, or the current directory only outside a repository, as
 todo-status does; `--dir DIR` starts that search from DIR instead (the claude module's alt-t, a child session
-per project, since module args are what `nav goto` passes on). `--paste PANE` hands the paste to the tmux server 0.3s after fzf exits (`run-shell -b -d`):
+per project, since module args are what `nav goto` passes on). `--paste PANE` is fzx's `--to PANE` (see Actions, "Output"); it hands the paste to the tmux server 0.3s after fzf exits (`run-shell -b -d`):
 in tmux 3.9 a popup is a pane of its own, and the target's shell or /todo-pop's hook may not be ready yet.
 /todo-pop, the `todo.pop` alias and tmux Alt-i open `fzx -m todos`, with todo-fzf kept as the fallback.
 `packages` reads apt without apt-cache, which takes over a second per call on a full archive: installed

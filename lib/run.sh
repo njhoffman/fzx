@@ -28,6 +28,11 @@ fzx::run_new() {
   # --query: the first launch restores it like a query saved before become()
   [[ -n "${_FZX_START_QUERY:-}" ]] && fzx::state_set query "$_FZX_START_QUERY"
   local rc current
+  # --loop without --to: what enter sends is collected for this terminal (lib/output.sh)
+  if ((!dry_run)); then
+    fzx::require output
+    fzx::output_owner_start
+  fi
   fzx::_launch "$dry_run" "$mode"
   rc=$?
   # a placement change that fzf cannot make with become() (into or out of a tmux pane) ends the fzf on
@@ -42,6 +47,7 @@ fzx::run_new() {
     fzx::_launch 0 ""
     rc=$?
   done
+  ((dry_run)) || fzx::output_owner_end
   # the go built-in left files and directories for this terminal (lib/go.sh)
   if ((!dry_run && rc == 0)); then
     fzx::require go

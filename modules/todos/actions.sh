@@ -53,12 +53,11 @@ todos::action() {
       pane="${1:-}"
       shift
       [[ "$pane" =~ ^%[0-9]+$ ]] || { printf 'todos: --paste needs a tmux pane id (%%N): %s\n' "$pane" >&2; return 2; }
-      (($#)) || return 0
       # bracketed paste: the lines arrive as typed text, nothing is submitted. The tmux server pastes 0.3s
       # later, not this process: in a popup (a pane of its own in tmux 3.9) the target's shell may still be
       # running the command that opened it, and /todo-pop's hook has not returned yet.
-      printf '%s\n' "$@" | tmux load-buffer -b fzx-todos - &&
-        tmux run-shell -b -d 0.3 "tmux paste-buffer -p -d -b fzx-todos -t $pane"
+      fzx::require output
+      fzx::output_send_pane "$pane" 0.3 "$@"
       ;;
     *)
       printf 'todos: unknown action: %s\n' "$action" >&2

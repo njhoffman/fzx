@@ -6,6 +6,21 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.131.0] - 2026-11-27
+
+### Added
+- `--to PANE|DIR` makes enter paste the selection into a tmux pane: a pane id or any tmux target, or the
+  pane `left`, `right`, `up` or `down` of the one fzx starts in. It is found once, at launch, so the text
+  keeps going to that pane when panes are moved or swapped. A bracketed paste, so nothing runs; `--submit`
+  presses Enter after it.
+- `--loop` keeps the list open: enter prints the selection (or with `--to` pastes it), clears it and
+  reloads, and the footer says what went out; ctrl-] does the same and closes. Piped, the lines come out
+  as you pick them; on a terminal, when fzx closes.
+
+### Changed
+- todos `--paste PANE` is `--to PANE`, so it works with `--loop` and `--submit`. Every paste uses a tmux
+  buffer of its own, so two quick ones no longer overwrite each other.
+
 ## [0.130.2] - 2026-11-27
 
 ### Fixed

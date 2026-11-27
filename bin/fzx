@@ -92,6 +92,9 @@ fzx completion zsh	print the zsh completion: fzx completion zsh > "${fpath[1]}/_
     --split[=DIR,SIZE]	start in a tmux split pane (DIR up|down|left|right, default down,40%)
     --query=QUERY	start with QUERY typed in
     --print	a picker: enter prints the selection instead of running a default action (FZX_PRINT=1)
+    --to PANE|DIR	a picker: enter pastes the selection into a tmux pane (%N, a tmux target, or the one left|right|up|down of this pane; found at launch, followed when it moves)
+    --submit	with --to: press Enter after the paste
+    --loop	a picker that stays open: enter prints (or with --to pastes) the selection, then reloads; ctrl-] does it and closes
     --dry-run	print the resolved fzf command instead of running it
     --keep	keep the session directory after exit (until fzx gc --all)
 -h, --help	show this help
@@ -183,7 +186,7 @@ main() {
       ;;
   esac
 
-  local module="" resume=0 sid="" dry_run=0 keep="${FZX_KEEP:-0}" placement="" args=()
+  local module="" resume=0 sid="" dry_run=0 keep="${FZX_KEEP:-0}" placement="" to="" args=()
   while (($#)); do
     case "$1" in
       -m | --mode)
@@ -228,6 +231,15 @@ main() {
       # a picker: enter prints the selection on every screen of the tree (an environment variable, so the
       # callbacks and the screens fzf becomes see it too)
       --print) export FZX_PRINT=1 && shift ;;
+      # --to, --submit, --loop (lib/output.sh): pickers too, and environment variables for the same reason
+      --to)
+        [[ -n "${2:-}" ]] || fzx::die 2 "--to requires a pane (%N, a tmux target, or left|right|up|down)"
+        to="$2"
+        shift 2
+        ;;
+      --to=*) to="${1#--to=}" && shift ;;
+      --submit) export FZX_OUTPUT_SUBMIT=1 && shift ;;
+      --loop) export FZX_LOOP=1 FZX_PRINT=1 && shift ;;
       --keep) keep=1 && shift ;;
       -h | --help)
         fzx::usage
@@ -243,11 +255,20 @@ main() {
   done
 
   fzx::require log session config opts run
+  ((resume)) || [[ -n "$placement" ]] || fzx::placement_from_fzf_tmux placement || :
+  if [[ -n "$to" ]]; then
+    # resolved once, here: a pane id stays the pane's wherever it moves
+    local pane=""
+    fzx::require output
+    fzx::output_resolve "$to" "$placement" pane || exit 2
+    export FZX_OUTPUT_PANE="$pane" FZX_PRINT=1
+  elif [[ "${FZX_OUTPUT_SUBMIT:-0}" == 1 && -z "${FZX_OUTPUT_PANE:-}" ]]; then
+    fzx::die 2 "--submit needs --to"
+  fi
   if ((resume)); then
     [[ -z "$module" || "$module" == :* ]] || fzx::die 2 "--resume takes only a mode (-m :MODE), not a module"
     fzx::run_resume "${sid:-${FZX_SESSION:-}}" "$dry_run" "${module#:}"
   else
-    [[ -n "$placement" ]] || fzx::placement_from_fzf_tmux placement || :
     fzx::run_new "${module:-menu}" "$dry_run" "$keep" "$placement" "${args[@]}"
   fi
 }

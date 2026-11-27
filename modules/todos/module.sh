@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # todos: open items of TODO.md files (todo-status's format) with priority, category, due date and the
 # item's card in the preview; todo-fzf's picker. `fzx -m todos[:all] [--dir DIR] [--paste PANE] [QUERY...]`.
-# Enter prints "TODO.md:LINE ☐  (Pn) [category] Title" per selected item; with --paste PANE it pastes
-# those lines into that tmux pane instead (bracketed: nothing is submitted). Files are read on every load:
+# Enter prints "TODO.md:LINE ☐  (Pn) [category] Title" per selected item; with --paste PANE (fzx's --to PANE)
+# it pastes those lines into that tmux pane instead (bracketed: nothing is submitted). Files are read on every load:
 # ctrl-r rescans. With no mode named and no TODO.md here or above, it starts in all.
 
 FZX_MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -37,9 +37,15 @@ todos::opts() {
   ((${#query[@]})) && FZX_OPTS+=("--query=${query[*]}")
   FZX_ACTION_ARGS_FOR['copy']='{+4}'
   FZX_ACTION_ARGS_FOR['copy-line']='{+3}'
+  # --paste PANE is fzx's --to PANE (lib/output.sh binds enter and ctrl-]), kept for /todo-pop and tmux's
+  # alt-i; the paste action row hands the same lines to the pane from the actions menu
   if [[ -n "$pane" ]]; then
     FZX_ACTION_ARGS_FOR['paste']="$(printf '%q' "$pane") {+3}"
-    fzx::bind enter "become:$(fzx::cb action paste "$(printf '%q' "$pane")" '{+3}')" "paste the lines into $pane"
+    if [[ "$pane" =~ ^%[0-9]+$ ]]; then
+      export FZX_OUTPUT_PANE="$pane"
+    else
+      fzx::log warn "todos: --paste needs a tmux pane id (%N): $pane"
+    fi
   fi
   return 0
 }

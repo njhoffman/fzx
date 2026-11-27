@@ -144,7 +144,8 @@ lines_of() { (cd "$1" && FZX_MODE="${2:-here}" "$TODOS/source.sh") | cut -f3; }
   [[ " ${FZF_ARGS[*]} " == *" --accept-nth=3 "* && " ${FZF_ARGS[*]} " == *" --query=p1 bug "* ]]
   [[ "$(fzf_bind ctrl-y)" == *'{+4}'* && "$(fzf_bind alt-y)" == *'{+3}'* ]]
   run "$FZX" -m todos -- --paste %7
-  [ "$(fzf_bind enter)" = "enter:become:$FZX _cb action paste %7 {+3}" ]
+  # --paste is fzx's --to: the output callback pastes the accepted lines (test/output.bats)
+  [ "$(fzf_binds enter | tail -1)" = "enter:become($FZX _cb output once items {+n} -- {+3})" ]
 }
 
 @test "here: the nearest TODO.md in the format, up through the parents to ~; others passed over" {
@@ -226,10 +227,13 @@ lines_of() { (cd "$1" && FZX_MODE="${2:-here}" "$TODOS/source.sh") | cut -f3; }
   chmod +x "$BATS_TEST_TMPDIR/bin/tmux"
   run "$TODOS/actions.sh" paste %7 'TODO.md:8 ☐  (P1) [bug] Urgent bug' 'TODO.md:7 ☐  (P3) [chore] Low thing'
   [ "$status" -eq 0 ]
-  [ "$(cat "$BATS_TEST_TMPDIR/tmux.calls")" = "load-buffer|-b|fzx-todos|-|
-TODO.md:8 ☐  (P1) [bug] Urgent bug
-TODO.md:7 ☐  (P3) [chore] Low thing
-run-shell|-b|-d|0.3|tmux paste-buffer -p -d -b fzx-todos -t %7|" ]
+  # a buffer of its own per paste (lib/output.sh), so two pastes close together cannot overwrite each other
+  run cat "$BATS_TEST_TMPDIR/tmux.calls"
+  [ "${lines[0]}" = "display-message|-p|-t|%7|#{pane_id}|" ]
+  [[ "${lines[1]}" =~ ^load-buffer\|-b\|fzx-out-[0-9]+-[0-9]+\|-\|$ ]]
+  [ "${lines[2]}" = 'TODO.md:8 ☐  (P1) [bug] Urgent bug' ]
+  [ "${lines[3]}" = 'TODO.md:7 ☐  (P3) [chore] Low thing' ]
+  [[ "${lines[4]}" =~ ^run-shell\|-b\|-d\|0.3\|tmux\ paste-buffer\ -p\ -d\ -b\ fzx-out-[0-9]+-[0-9]+\ -t\ %7\|$ ]]
   run "$TODOS/actions.sh" paste 'x; rm -rf /' line
   [ "$status" -eq 2 ]
 }

@@ -38,6 +38,7 @@ fzx -m git                     # a module
 fzx -m git:branches            # a module in one of its modes
 fzx -m files --popup -- ~/src  # in a tmux popup, with the module's own arguments
 fzx -m ps --dry-run            # print the fzf command instead of running it
+fzx -m todos --to left --loop  # stay open; enter pastes the picks into the pane on the left
 fzx config -m git              # the resolved config: layers, keys, colors, settings
 ```
 
@@ -46,7 +47,7 @@ Inside any module, f1 shows every key, mode, toggle and action. The common ones:
 | Key | Does |
 |---|---|
 | f1 | help: the keys in use, the module's components |
-| enter / ctrl-] | the module's default action (open, launch, run; on paths: go there, a file in `$EDITOR`, a directory as the shell's), else print the selection / always print it and close; `--print` (`FZX_PRINT=1`, the zsh widgets) makes enter print too |
+| enter / ctrl-] | the module's default action (open, launch, run; on paths: go there, a file in `$EDITOR`, a directory as the shell's), else print the selection / always print it and close; `--print` (`FZX_PRINT=1`, the zsh widgets) makes enter print too; `--to PANE` pastes it into a tmux pane instead (`--submit`: and presses Enter); `--loop` keeps the list open after enter, reloaded |
 | ctrl-\ | the actions menu |
 | ctrl-o / alt-left | into the row where a module has a level below (a branch's log, a directory) / back |
 | alt-9 / alt-0 | previous / next mode |
