@@ -5,11 +5,13 @@ man::manifest() {
   fzx::entry man "Man pages of commands"
   fzx::entry man:all "Every man page"
   fzx::entry man:tldr "tldr pages"
+  fzx::entry man:zsh "zsh manual: options, builtins, widgets"
 }
 
 man::applicable() {
   case "$1" in
     man:tldr) command -v tldr > /dev/null ;;
+    man:zsh) command -v man > /dev/null && command man -w zshoptions > /dev/null 2>&1 ;;
     *) command -v man > /dev/null ;;
   esac
 }
@@ -22,6 +24,7 @@ man::summary() {
   case "$1" in
     man) n="$(FZX_MODE=commands man::source | wc -l)" && printf '%s\n' "$(fzx::plural "$n" command)" ;;
     man:all) n="$(FZX_MODE=all man::source | wc -l)" && printf '%s\n' "$(fzx::plural "$n" page)" ;;
+    man:zsh) n="$(man::zsh_cached | wc -l)" && printf '%s\n' "$(fzx::plural "$n" entry entries)" ;;
     man:tldr)
       # the page names alone: reading every page for its description takes seconds
       local dir p names=()

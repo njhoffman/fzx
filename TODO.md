@@ -216,7 +216,7 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
       vendors/widgets/fzf-chrome-history.sh, fzf-bookmarks.{sh,rb}. Has: google-chrome, firefox, sqlite3.
       Missing: buku (chrome/buku*.sh, fzf-scripts/fzbuku). Open tabs too (fzfmenu list.md "chrome:tabs"):
       Chrome only lists them through its remote debugging port (`--remote-debugging-port`, /json).
-- [ ] **zsh docs** (p3) [module]: the zsh manual index (option, builtin, parameter) opening the right section;
+- [x] **zsh docs** (p3) [module]: the zsh manual index (option, builtin, parameter) opening the right section;
       possibly a mode of the man module. Refs: fzfmenu system/zman*, zmandata.tsv.
 - [ ] **i3** (p3) [module]: windows and workspaces (focus, move), scratchpads. Refs: list.md "i3". Has: i3-msg.
 - [x] **applications** (p3) [module]: desktop entries (/usr/share/applications and ~/.local/share/applications,

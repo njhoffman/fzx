@@ -23,6 +23,13 @@ if [[ "$1" == -k ]]; then
     'ls (1)               - list directory contents'
   exit 0
 fi
+# the zsh mode's pages: fixtures in $ZSHMAN (zsh_pages)
+[[ "$1" == -- ]] && shift
+if [[ "$1" == -w ]]; then
+  [[ -n "${ZSHMAN:-}" && -f "$ZSHMAN/$2" ]] && { printf '%s\n' "$ZSHMAN/$2"; exit 0; }
+  exit 16
+fi
+[[ -n "${ZSHMAN:-}" && -f "$ZSHMAN/${1:-}" ]] && { cat "$ZSHMAN/$1"; exit 0; }
 printf 'PAGE %s\n' "$*"
 STUB
   cat > "$BATS_TEST_TMPDIR/bin/tldr" << 'STUB'
@@ -103,4 +110,137 @@ src() { FZX_MODE="$1" "$MAN/source.sh"; }
   [[ "$(fzf_bind alt-n)" == *'_cb action nvim'* ]]
   read_fzf_args
   [[ " ${FZF_ARGS[*]} " == *" --tiebreak=begin,index "* ]]
+}
+
+# zsh_pages: fixture zsh manual pages as man prints them (7-column entries, text at 14) in $ZSHMAN
+zsh_pages() {
+  export ZSHMAN="$BATS_TEST_TMPDIR/zshman"
+  mkdir -p "$ZSHMAN"
+  cat > "$ZSHMAN/zshoptions" << 'PAGE'
+NAME
+       zshoptions - zsh options
+
+SPECIFYING OPTIONS
+       HISTSIZE is not an entry here: this section is not read.
+              Indented text.
+
+DESCRIPTION OF OPTIONS
+   Changing Directories
+       AUTO_CD (-J)
+              If a command is issued that can't be executed, perform the cd command.  More text.
+
+       CD_SILENT
+              Never print the working directory after a cd.
+
+   Zle
+       EMACS  If ZLE is loaded, turning on this option has the effect of `bindkey -e'.  More.
+
+       lowercase_name
+              Not an option name.
+
+OPTION ALIASES
+       BRACE_EXPAND
+              NO_IGNORE_BRACES (ksh and bash compatibility)
+PAGE
+  cat > "$ZSHMAN/zshbuiltins" << 'PAGE'
+SHELL BUILTIN COMMANDS
+       . file [ arg ... ]
+              Read commands from file and execute them.
+
+       bindkey
+              See the section `Zle Builtins' in zshzle(1).
+
+       sched  See the section `The zsh/sched Module' in zshmodules(1).
+
+       set [ {+|-}options | {+|-}o [ option_name ] ] ... [ {+|-}A [ name ] ]
+           [ arg ... ]
+              Set the options for the shell and/or set the positional parameters.  More.
+PAGE
+  cat > "$ZSHMAN/zshparam" << 'PAGE'
+PARAMETERS SET BY THE SHELL
+       status <S> <Z>
+              Same as ?.
+
+PARAMETERS USED BY THE SHELL
+       path <S> <Z> (PATH <S>)
+              An array (colon-separated list) of directories to search for commands.  When set.
+PAGE
+  cat > "$ZSHMAN/zshzle" << 'PAGE'
+ZLE BUILTINS
+       The ZLE module contains three related builtin commands.  The
+       bindkey command manipulates keymaps and key bindings.
+
+       bindkey [ options ] -l [ -L ] [ keymap ... ]
+       bindkey [ options ] -d
+              bindkey's options can be divided into three categories:
+
+STANDARD WIDGETS
+       accept-line (^J ^M) (^J ^M) (^J ^M)
+              Finish editing the buffer.  Normally this executes it.
+
+       vi-change-whole-line (unbound) (S) (unbound)
+              Kill the current line.
+PAGE
+}
+
+@test "zsh: the manual's entries with their kind and first sentence; inline tags, synopses, pointers" {
+  zsh_pages
+  run src zsh
+  [ "$status" -eq 0 ]
+  local ids
+  ids="$(printf '%s\n' "$output" | cut -f1 | sort | paste -sd' ')"
+  [ "$ids" = "zshbuiltins:. zshbuiltins:sched zshbuiltins:set zshoptions:AUTO_CD zshoptions:CD_SILENT zshoptions:EMACS zshparam:path zshparam:status zshzle:accept-line zshzle:bindkey zshzle:vi-change-whole-line" ]
+  [[ "$output" == *$'zshoptions:AUTO_CD\tAUTO_CD '*" option      If a command is issued that can't be executed, perform the cd command."* ]]
+  [[ "$output" == *$'zshoptions:EMACS\t'*"If ZLE is loaded, turning on this option has the effect of \`bindkey -e'."* ]]
+  [[ "$output" == *$'zshbuiltins:set\t'*"builtin     Set the options for the shell and/or set the positional parameters."* ]]
+  [[ "$output" == *$'zshzle:bindkey\t'*"zle builtin bindkey's options can be divided into three categories:"* ]]
+  [[ "$output" == *$'zshparam:status\t'*"parameter   Same as ?."* ]]
+}
+
+@test "zsh: the index is cached by the pages' files and times; a changed page builds it again" {
+  zsh_pages
+  src zsh > /dev/null
+  : > "$CALLS"
+  src zsh > /dev/null
+  run grep -cx 'man zshoptions' "$CALLS"
+  [ "$output" = 0 ]
+  [ "$(find "$FZX_CACHE_DIR/man" -name 'zsh-*.tsv' | wc -l)" -eq 1 ]
+  touch -d '2001-01-01' "$ZSHMAN/zshoptions"
+  src zsh > /dev/null
+  grep -qx 'man zshoptions' "$CALLS"
+  [ "$(find "$FZX_CACHE_DIR/man" -name 'zsh-*.tsv' | wc -l)" -eq 1 ]
+}
+
+@test "zsh: the preview is the entry's text alone; a sentence starting with the name is not the entry" {
+  zsh_pages
+  FZX_MODE=zsh run "$MAN/preview.sh" zshoptions:AUTO_CD
+  [ "${lines[0]}" = "AUTO_CD (-J)" ]
+  [[ "$output" == *"perform the cd command"* && "$output" != *CD_SILENT* ]]
+  FZX_MODE=zsh run "$MAN/preview.sh" zshzle:bindkey
+  [ "${lines[0]}" = "bindkey [ options ] -l [ -L ] [ keymap ... ]" ]
+  [[ "$output" != *"keymaps and key bindings"* && "$output" == *"three categories"* ]]
+  FZX_MODE=zsh run "$MAN/preview.sh" zshbuiltins:sched
+  [[ "${lines[0]}" == "sched  See the section"* ]]
+  [ "${#lines[@]}" -eq 1 ]
+}
+
+@test "zsh: open runs less at the entry's line (no \$ in the + command), nvim searches at VimEnter" {
+  zsh_pages
+  printf '#!/usr/bin/env bash\nprintf "less %%s\\n" "$*" >> "$CALLS"\ncat > /dev/null\n' > "$BATS_TEST_TMPDIR/bin/less"
+  chmod +x "$BATS_TEST_TMPDIR/bin/less"
+  FZX_MODE=zsh "$MAN/actions.sh" open zshoptions:AUTO_CD 'zshbuiltins:.'
+  grep -qxF 'less -R -j3 +/^ {7}AUTO_CD\b' "$CALLS"
+  grep -qxF 'less -R -j3 +/^ {7}\. ' "$CALLS"
+  FZX_MODE=zsh "$MAN/actions.sh" nvim zshoptions:CD_SILENT
+  grep -qxF "nvim -c Man zshoptions -c only -c autocmd VimEnter * ++once call search('^\\s\\{7}\\VCD_SILENT\\m\\>')" "$CALLS"
+}
+
+@test "zsh: in the menu where the zsh pages are installed, counting the entries" {
+  load_libs log
+  source "$MAN/manifest.sh"
+  run man::applicable man:zsh
+  [ "$status" -ne 0 ]
+  zsh_pages
+  man::applicable man:zsh
+  [ "$(man::summary man:zsh)" = "11 entries" ]
 }

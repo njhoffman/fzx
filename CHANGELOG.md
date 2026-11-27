@@ -6,6 +6,16 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.125.0] - 2026-11-27
+
+### Added
+
+- man: a `zsh` mode (`fzx -m man:zsh`, its own menu entry): the zsh manual's options, builtins, parameters
+  (set and used by the shell), standard widgets and zle builtins, about 600 entries read from the installed
+  man pages, each with its kind and first sentence. The preview shows the entry alone; enter opens the page
+  in less at the entry, alt-n in nvim's `:Man` at it. The index is built once (a couple of seconds) and kept
+  under the cache directory until the pages change.
+
 ## [0.124.2] - 2026-11-27
 
 ### Changed

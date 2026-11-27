@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# man: man pages (commands or every section) and tldr pages, rendered in the preview.
-# `fzx -m man[:all|:tldr]`. Enter opens the page in the pager; alt-n in nvim.
+# man: man pages (commands or every section), tldr pages and the zsh manual's entries (options, builtins,
+# parameters, widgets), rendered in the preview. `fzx -m man[:all|:tldr|:zsh]`. Enter opens the page in the
+# pager (zsh: less at the entry); alt-n in nvim.
 
 FZX_MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../lib/core.sh

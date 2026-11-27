@@ -84,7 +84,7 @@ Inside any module, f1 shows every key, mode, toggle and action. The common ones:
 | kdeconnect | KDE Connect devices and their battery: ping, ring, share, SMS, lock; their notifications, commands and SMS conversations |
 | keybindings | zsh and tmux key bindings, and fzf's own |
 | logs | log files, systemd journals and docker container logs |
-| man | man pages and tldr pages |
+| man | man pages, tldr pages and the zsh manual's options, builtins, parameters and widgets |
 | menu | every module's entries (what `fzx` opens) |
 | music | MPD's queue, artists, albums and playlists |
 | network | ports, connections, interfaces, routes, wifi and mDNS services |
