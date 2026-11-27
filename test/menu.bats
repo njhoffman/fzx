@@ -621,6 +621,24 @@ collected() {
   [ "$output" = "$(printf 'r#0\trecent dirs\t')" ]
 }
 
+@test "a query ranks a match in the name over one in the description, the shortest matching name first" {
+  local real
+  real="$(command -v fzf)" || skip "no fzf"
+  stub_fzf
+  run "$FZX"
+  read_fzf_args
+  local -a match=()
+  local a
+  for a in "${FZF_ARGS[@]}"; do
+    [[ "$a" == --delimiter=* || "$a" == --with-nth=* || "$a" == --nth=* || "$a" == --tiebreak=* ]] && match+=("$a")
+  done
+  # in menu order: a recent git mode first, an entry whose description says git, then git itself
+  run "$real" --filter=git "${match[@]}" < <(printf '%s\t%-12s %-26s\t\n' \
+    'g#1' 'git:log' 'Commits on this branch' 'r#0' 'repos' 'Git repositories' \
+    'g#0' 'git' 'Changed files' 'g#2' 'git:branches' 'Local and remote branches')
+  [ "$(printf '%s\n' "${lines[@]}" | cut -f1 | tr '\n' ' ')" = "g#0 g#1 g#2 r#0 " ]
+}
+
 @test "a header: enter moves down, the preview is empty" {
   menu_session
   run "$FZX" _cb nav entry @recent

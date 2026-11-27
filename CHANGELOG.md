@@ -6,6 +6,13 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.130.2] - 2026-11-27
+
+### Fixed
+- The menu ranks a query's match in an entry's name over an equal one in its description, and the shortest
+  matching name first: `git` lists git, then git --dotfiles and git's modes, then the entries whose description
+  says git (repos), instead of whichever came first in the menu.
+
 ## [0.130.1] - 2026-11-27
 
 ### Changed

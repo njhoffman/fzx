@@ -910,6 +910,9 @@ target, over the last `FZX_MENU_STATS_DAYS` (90). The `FZX_MENU_RECENT` (5) high
 groups in `FZX_MENU_GROUPS` order and any others by name, each most used first and otherwise in module
 order. A line is `id<TAB>display<TAB>header<TAB>target` (ctrl-y copies the target), shown with `--with-nth=2,3` and searched with `--nth=1`,
 so a header (id `@<group>`, `FZX_COLORS[menu_group]`) shows but never matches a query: typing hides them.
+The display is the name, then the description: `--tiebreak=begin,chunk` ranks a match in the name over an equal
+one in the description and, among names, the shortest matching word first (`git`, then `git --dotfiles`, its modes,
+then the entries whose description says git).
 fzf has no unselectable rows, so the grouped menu starts on the second row (`result-final:pos(2)` unless
 a saved position or query is restored), enter on a header returns `down`, and its preview is empty.
 

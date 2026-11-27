@@ -15,6 +15,9 @@ menu::opts() {
     "--with-nth=2,3"
     --nth=1
     --tabstop=1
+    # a match in the name outranks one in the description (begin), and the shortest matching word comes first
+    # (chunk), so "git" puts git, then its modes, then the entries whose description says git
+    "--tiebreak=begin,chunk"
     --accept-nth=1
     --no-multi
     --preview "$(fzx::cb preview '{1}')"
