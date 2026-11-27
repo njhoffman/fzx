@@ -11,8 +11,9 @@
 #   confirm     ask on the terminal first (so it runs in the foreground)
 #   asks        the action asks on the terminal itself (its own questions, e.g. one per kind of target):
 #               listed as asking first, runs in the foreground, and fzx asks nothing
-#   default     bound to enter as well (unless the module's opts hook binds enter itself); without one,
-#               enter prints the selection
+#   default     bound to enter as well (unless the module's opts hook binds enter itself, or fzx runs as a
+#               picker, FZX_PRINT=1, and the action does not print); without one, enter prints the selection.
+#               FZX_KEYS[print] (ctrl-]) prints it on every screen
 #   builtin     one of fzx's own (lib/builtin.sh, config/components.tsv), not the module's actions.sh
 #   notify      silent, and under fzx a message in the footer says it ran (or why it failed); the copy
 #               and copy-line built-ins always notify
@@ -176,8 +177,11 @@ fzx::actions_bind() {
     [[ -n "$_key" && "$_key" != - ]] &&
       _FZX_BIND_SCOPE="$module" fzx::bind "$_key" "$act" "action: ${_desc:-$_n}"
     # a module whose opts hook bound enter itself keeps it (tasks --paste); the session records that, so
-    # the actions menu does not mark the default action as enter's
-    if [[ ",$_flags," == *,default,* ]] && ! fzx::_module_bound "$module" enter; then
+    # the actions menu does not mark the default action as enter's. A picker (FZX_PRINT=1: --print, the zsh
+    # widgets, workspace pick) wants enter to print: a default action that prints a value keeps it
+    # (history's insert), any other leaves enter to fzf's accept
+    if [[ ",$_flags," == *,default,* ]] && ! fzx::_module_bound "$module" enter &&
+      { [[ "${FZX_PRINT:-0}" != 1 ]] || [[ ",$_flags," == *,print,* ]]; }; then
       _FZX_BIND_SCOPE="$module" fzx::bind enter "$act" "default action: ${_desc:-$_n}"
       enter_default=1
     fi

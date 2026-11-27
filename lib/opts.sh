@@ -378,6 +378,10 @@ fzx::opts_build() {
   fzx::bind "${FZX_KEYS[reload_hard]}" "$act" "reload: run the source again"
   fzx::bind "${FZX_KEYS[wrap]}" toggle-wrap-word "wrap the list's rows"
   fzx::bind "${FZX_KEYS[preview_wrap]}" toggle-preview-wrap "wrap the preview"
+  # print the selection and close, whatever enter does here (a default action, unless fzx runs as a picker);
+  # not in the menus, whose ids mean nothing outside fzx
+  [[ "$module" == menu || "$module" == actions || -z "${FZX_KEYS[print]:-}" ]] ||
+    fzx::bind "${FZX_KEYS[print]}" accept "print the selection and close"
 
   if fzx::in_session; then
     fzx::session_title label

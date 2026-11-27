@@ -27,6 +27,9 @@ declare -gA FZX_KEYS=(
   [help]=f1
   [debug]=f2
   [actions]="ctrl-\\"
+  # print the selection and close, in every module (what enter does when fzx runs as a picker: --print,
+  # FZX_PRINT=1), so a browser screen whose enter acts can still hand back the selection
+  [print]="ctrl-]"
 )
 
 # toggles also flip with alt-1 .. alt-8, numbered by their order in components.tsv (alt-9 and alt-0 switch
@@ -37,9 +40,9 @@ FZX_TOGGLE_DIGIT_KEYS=1
 # short (^X, M-left) or glyph (⌃X, ⌥←; needs a font with the symbols). Binds and FZX_KEYS keep fzf's names.
 FZX_KEY_STYLE=full
 
-# keys modules may not take: scrolling, query editing and the wrap toggles (ctrl-w, alt-w). A module binding on one of these is skipped with a warning in the log (fzx's own keys are not
+# keys modules may not take: scrolling, query editing, the wrap toggles (ctrl-w, alt-w) and print (ctrl-]). A module binding on one of these is skipped with a warning in the log (fzx's own keys are not
 # checked); drop a key from the list to let modules have it
-FZX_RESERVED_KEYS=(ctrl-f ctrl-b ctrl-u ctrl-w ctrl-g alt-g ctrl-p ctrl-n up down alt-b alt-f alt-w scroll-up scroll-down)
+FZX_RESERVED_KEYS=(ctrl-f ctrl-b ctrl-u ctrl-w ctrl-g alt-g ctrl-p ctrl-n up down alt-b alt-f alt-w scroll-up scroll-down "ctrl-]")
 
 # size and position of a plain popup (fzf's --popup on tmux/Zellij) and float (a floating tmux pane, tmux
 # new-pane) by the width of the whole tmux window (not the calling pane: they cover its splits), else the

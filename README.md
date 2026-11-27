@@ -45,6 +45,7 @@ Inside any module, f1 shows every key, mode, toggle and action. The common ones:
 | Key | Does |
 |---|---|
 | f1 | help: the keys in use, the module's components |
+| enter / ctrl-] | the module's default action (open, launch, run), else print the selection / always print it and close; `--print` (`FZX_PRINT=1`, the zsh widgets) makes enter print too |
 | ctrl-\ | the actions menu |
 | ctrl-o / alt-left | into the row where a module has a level below (a branch's log, a directory) / back |
 | alt-9 / alt-0 | previous / next mode |

@@ -91,6 +91,7 @@ fzx completion zsh	print the zsh completion: fzx completion zsh > "${fpath[1]}/_
     --float[=OPTS]	start in a floating tmux pane (tmux new-pane; --popup syntax, default from FZX_POPUP_LAYOUTS)
     --split[=DIR,SIZE]	start in a tmux split pane (DIR up|down|left|right, default down,40%)
     --query=QUERY	start with QUERY typed in
+    --print	a picker: enter prints the selection instead of running a default action (FZX_PRINT=1)
     --dry-run	print the resolved fzf command instead of running it
     --keep	keep the session directory after exit (until fzx gc --all)
 -h, --help	show this help
@@ -224,6 +225,9 @@ main() {
         shift 2 || shift
         ;;
       --dry-run) dry_run=1 && shift ;;
+      # a picker: enter prints the selection on every screen of the tree (an environment variable, so the
+      # callbacks and the screens fzf becomes see it too)
+      --print) export FZX_PRINT=1 && shift ;;
       --keep) keep=1 && shift ;;
       -h | --help)
         fzx::usage

@@ -403,6 +403,15 @@ modification time) and todos (urgency) sort without a column to mark.
 | `background` | under fzx, `bg-transform(fzx _cb notify NAME ARGS)`: the list stays usable while it runs, the footer says when it is done, and with `reload` (or `restart`) the callback's answer reloads (restarts) only then, the loading prompt showing meanwhile (repos' rescan, ~10s). Not with `confirm`, `asks`, `become` or `print`; standalone it is `silent` |
 | `notify` | silent, and under fzx `transform(fzx _cb notify NAME ARGS)`: the callback runs the action, puts "copied ITEM", "copied N items" or "✓ DESCRIPTION" (on failure "✗ NAME failed: first stderr line") in the footer and brings the component line back after `FZX_NOTIFY_SECONDS` (`bg-transform-footer(sleep N; fzx _cb footer)`, from the state then). The `copy` and `copy-line` built-ins always notify |
 
+**Enter, print and pickers.** On a module's screen enter runs its `default` action when it has one; without
+one it prints the selection (fzf's accept). `FZX_KEYS[print]` (ctrl-], reserved for fzx) prints the selection
+and closes on every screen but the menus, whatever enter does there. fzx runs as a picker when the caller
+wants what it prints: `--print`, or `FZX_PRINT=1` in the environment (the zsh widgets set it in `fzx-run`,
+tmux's `workspace pick` when it asks fzx); then a default action that does not print is left off enter, which
+prints, while one flagged `print` (history's insert) keeps it. Being an environment variable, it reaches the
+callbacks and every screen of the tree. The tmux `M-o` popup is not a picker: enter acts there, and ctrl-]
+hands the selection to the popup script, which pastes it into the pane.
+
 The key `reload` in an action row is fzx's reload key (`FZX_KEYS[reload_hard]`, ctrl-r): `lib/components.sh`
 resolves it and flags the row `reload-key`, and `lib/actions.sh` drops fzx's plain reload from the help, so
 the row takes the key without the bound-twice warning (a module whose source reads a cache: repos' rescan,

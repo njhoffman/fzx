@@ -6,6 +6,17 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.122.0] - 2026-11-26
+
+### Added
+
+- ctrl-] (`FZX_KEYS[print]`) prints the selection and closes on every module's screen, whatever enter does
+  there, so a screen whose enter runs an action can still hand its selection back (in tmux's `M-o` popup:
+  pasted into the pane). It is in `FZX_RESERVED_KEYS`, so no module can take it.
+- `--print` (or `FZX_PRINT=1`): fzx as a picker. Enter prints the selection instead of running a module's
+  default action; one that prints a value (history's insert) keeps enter. The zsh widgets run fzx this way,
+  so they keep inserting and cd-ing into what was picked.
+
 ## [0.121.0] - 2026-11-26
 
 ### Added

@@ -150,6 +150,7 @@ _fzx() {
     '(--popup --float)--split=-[start in a tmux split pane]::direction and size:(up down left right down,40% right,50%)' \
     '--query=[start with this query typed in]:query: ' \
     '--dry-run[print the fzf command instead of running it]' \
+    '--print[a picker: enter prints the selection instead of running a default action]' \
     '--keep[keep the session directory after exit]' \
     '(- *)'{-h,--help}'[show the help]' \
     '(- *)'{-V,--version}'[print the version]' \

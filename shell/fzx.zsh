@@ -67,11 +67,12 @@ _fzx_focus_restore() {
   return 0
 }
 
-# fzx-run <fzx args...>: fzx from a widget, with focus reporting off.
+# fzx-run <fzx args...>: fzx from a widget, with focus reporting off. The widgets insert or cd into what
+# fzx prints, so it runs as a picker (FZX_PRINT=1): enter prints the selection instead of a default action.
 fzx-run() {
   local rc
   _fzx_focus_off
-  command "${FZX_ZSH_BIN:-fzx}" "$@"
+  FZX_PRINT=1 command "${FZX_ZSH_BIN:-fzx}" "$@"
   rc=$?
   _fzx_focus_restore
   return "$rc"

@@ -54,6 +54,35 @@ fake_clipboard() {
   [ "$(fzf_bind enter)" = "enter:become($FZX _cb action open {+1})" ]
 }
 
+@test "ctrl-] prints the selection on every module's screen, not in the menu" {
+  run "$FZX" -m counter
+  [ "$(fzf_bind_last 'ctrl-]')" = "ctrl-]:accept" ]
+  run "$FZX"
+  run fzf_bind 'ctrl-]'
+  [ "$status" -eq 1 ]
+}
+
+@test "a picker (--print, FZX_PRINT=1) leaves enter printing unless the default action prints" {
+  # the default open is a become: a picker's enter is fzf's accept
+  run "$FZX" --print -m counter
+  run fzf_bind enter
+  [ "$status" -eq 1 ]
+  FZX_PRINT=1 run "$FZX" -m counter
+  run fzf_bind enter
+  [ "$status" -eq 1 ]
+  # a default action that prints a value (history's insert) is what a picker wants: it keeps enter
+  sed -i 's/become,default/print,default/' "$FZX_CONFIG_DIR/modules/counter/components.tsv"
+  FZX_PRINT=1 run "$FZX" -m counter
+  [ "$(fzf_bind enter)" = "enter:become($FZX _cb action open {+1})" ]
+}
+
+@test "ctrl-] is reserved: a module row on it is skipped with a warning" {
+  echo 'action  grab  ctrl-]  take the print key  silent' >> "$FZX_CONFIG_DIR/modules/counter/components.tsv"
+  run "$FZX" -m counter
+  [ "$(fzf_bind_last 'ctrl-]')" = "ctrl-]:accept" ]
+  grep -qF 'key ctrl-] is reserved (FZX_RESERVED_KEYS); not bound for counter' "$LOG"
+}
+
 @test "without a default action enter is left alone" {
   echo 'action  open  -  =  become' >> "$FZX_CONFIG_DIR/modules/counter/components.tsv"
   run "$FZX" -m counter
