@@ -102,6 +102,14 @@ capture::paste() {
   command tmux paste-buffer -p -d -b "$buffer" -t "$CAPTURE_ORIGIN"
   rc=$?
   ((rc == 0)) || command tmux delete-buffer -b "$buffer" 2> /dev/null
+  # the snippets module's paste history (lib/snippets.sh)
+  if ((rc == 0)); then
+    fzx::require snippets
+    fzx::paste_record capture "$(
+      IFS=$'\n'
+      printf '%s' "$*"
+    )"
+  fi
   return "$rc"
 }
 

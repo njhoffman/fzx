@@ -57,7 +57,7 @@ zsh_run() {
   run zsh -f -i -c "FZX_ZSH_NO_BIND=1 source '$ZSH_INT'; bindkey -M viins '^[f'; zle -l | grep -c '^fzx-'" 2> /dev/null
   [[ "${lines[0]}" != *fzx-files-widget* ]]
   # fzx-go-widget too (its key is fzx's own, for the M-o popup's go)
-  [ "${lines[1]}" = 12 ]
+  [ "${lines[1]}" = 13 ]
 }
 
 @test "go: FZX_ZSH_GO_KEY runs fzx-go-widget in every map, and in tmux the pane's @fzx_zsh holds it in hex" {
@@ -106,6 +106,16 @@ zsh_run() {
   [ "$output" = 1 ]
   run zsh_run 'fzx-cd-widget-run() { print -r -- "args: $*"; }; fzx-claude-widget'
   [ "$output" = "args: -m claude" ]
+}
+
+@test "snippets widget: unbound by default, inserts the text fzx prints as it is" {
+  run zsh_run 'zle -l | grep -c "^fzx-snippets-widget"'
+  [ "$output" = 1 ]
+  # a terminal for the widget's /dev/tty (script gives the command a pty)
+  printf '%s\n' "source '$ZSH_INT'" 'zle() { :; }' 'fzx-run() { print -rn -- "ls -la | grep x"; }' \
+    'LBUFFER="x "; fzx-snippets-widget; print -r -- "[$LBUFFER]"' > "$BATS_TEST_TMPDIR/w.zsh"
+  run script -qec "zsh -f -i '$BATS_TEST_TMPDIR/w.zsh'" /dev/null
+  [[ "$output" == *"[x ls -la | grep x]"* ]]
 }
 
 @test "menu-popup: unbound by default, bound when given a key; runs fzx --popup" {

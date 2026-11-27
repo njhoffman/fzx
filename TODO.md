@@ -1,7 +1,7 @@
 # fzx TODO
 
 Status (0.117.1): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs, displays,
-docker, files, firewall, fonts, git, github, glyphs, history, kdeconnect, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, ssh, systemd, tasks, tmux,
+docker, files, firewall, fonts, git, github, glyphs, history, kdeconnect, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, snippets, ssh, systemd, tasks, tmux,
 todos, workspaces, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
 add what you find, and tick items off (`- [x]`) as they land, never delete them; once every item of a section
 is ticked, the section moves to `## Completed` at the end as a `### <heading> (completed YYYY-MM-DD)` block
@@ -142,7 +142,7 @@ Reviewed: 2026-11-25
       (images:), files multiline (grep:), git reset (log, reflog:). Fix in the lib, splitting only at a
       "; " followed by known modes and ": " (robust, one place), or reword the four rows (no lib change,
       but the next description falls into it again); plus a test that scans every module's table.
-- [ ] **snippets and paste history** (p3) [feature]: both kinds: an automatic history of what capture and tmux
+- [x] **snippets and paste history** (p3) [feature]: both kinds: an automatic history of what capture and tmux
       buffers paste (newest first, under FZX_STATE_DIR), and named snippets saved on purpose (snippetdb's
       put/get/remove/list). Open: a capture mode, or a module of its own that the zsh widgets can use
       outside tmux too. Ref: resources/fzfmenu/proto-widgets/tmux/snippetdb.

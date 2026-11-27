@@ -233,8 +233,11 @@ tmux::action() {
         printf 'tmux: paste needs --pane %%N or an invoking tmux pane\n' >&2
         return 2
       }
+      fzx::require snippets
       for id in "${TMUX_IDS[@]}"; do
         command tmux paste-buffer -p -b "$id" -t "$TMUX_TARGET_PANE" || return
+        # the snippets module's paste history (lib/snippets.sh)
+        fzx::paste_record tmux "$(command tmux show-buffer -b "$id" 2> /dev/null)"
       done
       ;;
     edit)
@@ -252,6 +255,8 @@ tmux::action() {
         command tmux delete-buffer -b "$target" 2> /dev/null
         return 1
       }
+      fzx::require snippets
+      fzx::paste_record tmux "$value"
       ;;
   esac
 }

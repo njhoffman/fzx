@@ -1,0 +1,11 @@
+# snippets components: kind  name  key  description  flags (see lib/components.sh)
+# Rows are "id<TAB>display": a saved snippet's id (its name's sha1), a history entry's file name.
+mode    saved     -       snippets you saved by name (alt-n adds one)                         default
+mode    history   -       what fzx pasted (capture, the tmux module's buffers), newest first  -
+action  insert    -       print the text (the zsh widget inserts it; from the M-o popup it is pasted into the pane)  default,print
+action  copy      ctrl-y  copy the text to the clipboard                                      notify
+action  edit      ctrl-e  edit the text in $EDITOR                                            foreground,reload
+action  new       alt-n   a new snippet: asks its name, then $EDITOR for the text             foreground,asks,reload
+action  save      alt-S   history: keep the entry as a snippet (asks a name)                  foreground,asks,reload
+action  rename    alt-R   saved: rename the snippet (asks the name)                           foreground,asks,reload
+action  remove    alt-x   remove the snippets or history entries                              confirm,reload

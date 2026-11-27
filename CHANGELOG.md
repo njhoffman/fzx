@@ -6,6 +6,17 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.128.0] - 2026-11-27
+
+### Added
+
+- snippets, a new module (`fzx -m snippets[:history]`): named snippets you keep, and the paste history, what
+  capture's and the tmux module's paste actions sent, newest first (200 kept; `FZX_SNIPPETS_HISTORY=0`
+  records nothing). Enter prints the text, so the zsh widget inserts it, and from tmux's M-o popup pastes it
+  into the pane as it is; ctrl-y copies it, ctrl-e edits it, alt-n adds a snippet (its name, then $EDITOR),
+  alt-S keeps a history entry as one, alt-R renames, alt-x removes. shell/fzx.zsh: `fzx-snippets-widget`
+  (unbound: `FZX_ZSH_KEYS[snippets]`) inserts a snippet's text at the cursor unquoted.
+
 ## [0.127.0] - 2026-11-27
 
 ### Added

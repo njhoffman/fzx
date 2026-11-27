@@ -96,6 +96,7 @@ Inside any module, f1 shows every key, mode, toggle and action. The common ones:
 | sessions | fzx's own session trees: resume kept ones, open a copy of live ones |
 | shell | commands on PATH, zsh builtins, aliases, functions, parameters and completions (zsh-complete) |
 | ssh | hosts from your ssh config, known_hosts and shell history: connect, send, fetch |
+| snippets | named snippets you keep, and the history of what fzx pasted |
 | systemd | user and system units, failed ones, timers and sockets |
 | tasks | project scripts: make, just, npm, Taskfile, cargo aliases, pdm/poe/hatch |
 | tmux | sessions, windows, panes and buffers; reference browsers for keys, options, formats and more |
