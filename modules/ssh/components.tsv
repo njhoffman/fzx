@@ -1,0 +1,12 @@
+# ssh components: kind  name  key  description  flags (see lib/components.sh)
+# Rows are "target<TAB>host<TAB>display", target [user@]host as ssh takes it.
+mode    hosts     -          hosts from ~/.ssh/config, known_hosts (unhashed) and the ssh, scp, rsync, mosh and sftp commands in histdb  default
+sort    recent    -          last used first (never used last)                                default,desc
+sort    name      -          by host                                                          -
+action  connect   -          connect in a new tmux window named after the host (outside tmux: here), then close  default,become
+action  here      alt-enter  connect in this terminal                                         become
+action  send      alt-s      send a local path there (rsync, else scp; asks the path and the directory there)  foreground,asks
+action  fetch     alt-F      fetch a path from there (asks the path and the local directory)  foreground,asks
+action  copy-id   alt-i      install your public key there (ssh-copy-id)                      foreground
+action  edit      ctrl-e     ~/.ssh/config in $EDITOR at the host's entry (else at the end)   foreground,reload
+action  copy      ctrl-y     copy the targets                                                 silent,builtin

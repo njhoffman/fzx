@@ -1,7 +1,7 @@
 # fzx TODO
 
 Status (0.117.1): the six steps of `docs/design.md` are done. Modules: actions, applications, audio, aws, bluetooth, browser, capture, claude, colors, cron, dirs, displays,
-docker, files, firewall, fonts, git, github, glyphs, history, kdeconnect, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, systemd, tasks, tmux,
+docker, files, firewall, fonts, git, github, glyphs, history, kdeconnect, keybindings, logs, man, menu, music, network, packages, ps, recent, repos, sessions, shell, ssh, systemd, tasks, tmux,
 todos, workspaces, youtube; zsh widgets in `shell/fzx.zsh`. What has shipped is in CHANGELOG.md. Keep this file current:
 add what you find, and tick items off (`- [x]`) as they land, never delete them; once every item of a section
 is ticked, the section moves to `## Completed` at the end as a `### <heading> (completed YYYY-MM-DD)` block
@@ -249,7 +249,7 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [x] **firewall: add rules** (p3) [feature]: rules come only from profiles (alt-a, alt-D). A prompt for a
       free rule (`allow 8080/tcp from 192.168.1.0/24`, readline as docker's alt-E has, checked with
       `ufw --dry-run`) would add any rule; inserting at a position (`ufw insert N`) from the focused row too.
-- [ ] **ssh** (p3) [module]: hosts from ~/.ssh/config and known_hosts, connect or scp. Refs: vendors/widgets/
+- [x] **ssh** (p3) [module]: hosts from ~/.ssh/config and known_hosts, connect or scp. Refs: vendors/widgets/
       fzf-exec-ssh, system/fzscp, fzf-scripts/sshget. Has: ssh, scp, rsync. No ~/.ssh/config here.
 - [ ] **kubernetes** (p3) [module]: contexts, namespaces, pods (logs, exec, describe). Refs: kubectl_fzf.plugin.zsh,
       kubernetes/fz-k, vendors/completers/kubectl.zsh. Has: kubectl. Missing: helm.

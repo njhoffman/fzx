@@ -6,6 +6,18 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.127.0] - 2026-11-27
+
+### Added
+
+- ssh, a new module (`fzx -m ssh`): hosts from `~/.ssh/config` (its Include files too), the unhashed names
+  in known_hosts, and the ssh, scp, rsync, mosh and sftp commands zsh-histdb recorded, one row a
+  `[user@]host` with its sources, last use and count, last used first. The preview shows what ssh would use
+  (`ssh -G`, no connection), whether known_hosts has the host's key, and the last commands that named it.
+  Enter connects in a new tmux window named after the host (outside tmux, here), alt-enter here; alt-s sends
+  a local path there and alt-F fetches one (rsync, else scp; both ask the paths), alt-i runs ssh-copy-id,
+  ctrl-e opens `~/.ssh/config` at the host's entry.
+
 ## [0.126.0] - 2026-11-27
 
 ### Added
