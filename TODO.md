@@ -187,6 +187,32 @@ Built from the reference repos in `resources/` (fzfmenu widgets, proto-widgets, 
 completers, the fzf attempt's modules, fzf-scripts) and checked against what is installed here
 (2026-10-20; tools rechecked 2026-11-03). "has" lists tools found on PATH, "missing" what the old code used that is not installed.
 
+- [ ] **tests** (p2) [module]: test runs kept by `~/.shell/scripts/test-progress` (shell 0.146.0+; agreed
+      2026-11-27 in a ~/.shell session): see which runners ran and when, and jump to any of them.
+      - **Data**: each run is `$XDG_STATE_HOME/test-progress/<project>/<run id>/` (`~/.local/state`,
+        `TEST_PROGRESS_DIR`) with `output.log` (raw runner output) and `events.jsonl` (normalized records:
+        start, plan, result n/status/name/reason, message n/text, note, end status/counts/elapsed/aborted);
+        `<project>/latest` links the newest. Read through the CLI, not the files: `test-progress list`,
+        `test-progress watch -r json RUN`, `test-progress __complete runs|projects` (VALUE<TAB>DESCRIPTION,
+        active runs first) work today.
+      - **Waits on test-progress** (the ~/.shell session builds these next; check `test-progress --help`):
+        `list --tsv` with fixed columns, `show RUN` (a run's summary, failures in full, the log's tail: the
+        preview), and the start record's tmux session/window/pane and cwd (for jumping back to a run).
+      - **Modes**: runs (default; every run across projects, active first: state mark, project, kind,
+        counts, duration, when), projects (each project's latest run), failures (failing tests from recent
+        runs: project, test, the telling line), timeline (runs grouped by day: what ran when).
+      - **Preview**: `test-progress show RUN`; for a failure row, its message lines.
+      - **Enter**: an active run jumps to the tmux pane it runs in (from the start record); a finished one
+        opens `test-progress watch -r bar --hold RUN` in a popup.
+      - **Actions**: rerun (the run's command in its cwd, in a new tmux window, through `test-progress run`
+        or detection mode as the start record says), log (`output.log` in the pager), open a failure's
+        file:line in nvim, copy a failure, stop an active run (confirm; the start record's pid), dashboard
+        (`test-progress dashboard` in a popup), follow (`test-progress watch --follow` in a split).
+      - **Toggles**: active only, failed only, this repository only. Reload every 2 s while a run is active.
+      - **applicable**: `test-progress` on PATH. **Summary**: running / failed-today counts.
+      - **Tests**: `test/tests.bats` with a stub `test-progress` (or a fixture `TEST_PROGRESS_DIR` of
+        recorded runs): rows per mode and toggle, the preview, enter for an active and a finished run, the
+        actions' commands. **Docs**: a Modules paragraph, CHANGELOG, the status line.
 - [x] **workspaces** (p2) [module]: tmux workspaces (`~/.config/tmux/scripts/workspace`, tmux 0.33.0+):
       the picker tmux's alt-w opens. `workspace pick` uses this module when `fzx -m workspaces --dry-run`
       exits 0, runs `fzx -m workspaces` and opens the KEY it prints; until then it falls back to plain fzf.
