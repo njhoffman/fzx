@@ -6,6 +6,13 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.133.1] - 2026-11-28
+
+### Changed
+- `just test` runs bats through `~/.shell/scripts/test-progress run` when it is installed, which shows the
+  run live and keeps it under `~/.local/state/test-progress` (`TEST_PROGRESS_MODE=pane|events|bar|plain`
+  picks the view); without it, plain bats as before.
+
 ## [0.133.0] - 2026-11-27
 
 ### Added

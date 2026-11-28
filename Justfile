@@ -1,6 +1,10 @@
 default:
     @just --list
 
+# test-progress (~/.shell) shows the run live and keeps it (~/.local/state/test-progress); without it, plain
+# bats. TEST_PROGRESS_MODE=pane|events|bar|plain picks its view
+tp := if path_exists(home_directory() / ".shell/scripts/test-progress") == "true" { home_directory() / ".shell/scripts/test-progress run --" } else { "" }
+
 # run the bats test suite, every CPU at once when GNU parallel is installed (bats -j needs it; moreutils'
 # parallel is another program); FZX_TEST_JOBS=1 runs it serially
 test *ARGS:
@@ -8,9 +12,9 @@ test *ARGS:
     set -euo pipefail
     jobs="${FZX_TEST_JOBS:-$(nproc)}"
     if ((jobs > 1)) && parallel --version 2> /dev/null | grep -q '^GNU parallel'; then
-      exec bats --jobs "$jobs" {{ ARGS }} test
+      exec {{ tp }} bats --jobs "$jobs" {{ ARGS }} test
     fi
-    exec bats {{ ARGS }} test
+    exec {{ tp }} bats {{ ARGS }} test
 
 # docker and systemd against the real daemon and user manager (test/live.bats; skipped in `just test`):
 # makes and removes a container, volume, network and user unit named fzx-live-*

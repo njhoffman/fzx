@@ -5,7 +5,8 @@ changing lib/ or adding a module; a new module follows its "New-module checklist
 
 ## Commands
 
-- `just test`: full suite, in parallel with GNU parallel installed (`FZX_TEST_JOBS=1`: serially, ~4 minutes);
+- `just test`: full suite, in parallel with GNU parallel installed (`FZX_TEST_JOBS=1`: serially, ~4 minutes),
+  through ~/.shell's test-progress when present (`TEST_PROGRESS_MODE=pane|events`);
   `bats test/<file>.bats` for one area
 - `just test-live`: docker and systemd against the real daemon and user manager (test/live.bats; it makes
   and removes fzx-live-* containers, volumes, networks and a user unit; skipped by `just test`)
