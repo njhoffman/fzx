@@ -434,11 +434,11 @@ opts hook bound enter itself (it keeps it); standalone they do nothing.
   prints the rest and exits once the owner is gone), else all at once when fzf closes, since lines on the
   terminal would land on fzf's screen.
 
-The screen says so: with `--loop` the border title ends in the `loop` icon (nf-fa-infinity) in
+The screen says so: with `--loop` the border title ends in the `loop` icon (nf-md-infinity) in
 `FZX_COLORS[title_loop]`, kept in `meta/title_marks` so the in-place refreshes after a mode or toggle change
-(`fzx::session_title`) keep it; with `--to` the info line ends in the `output` icon (nf-md-bullseye), the pane
-and the command it runs (`#{pane_current_command}`, `(gone)` when it is not there) in
-`FZX_COLORS[output_target]`, through an `--info-command` that appends `meta/output_target` to `$FZF_INFO`.
+(`fzx::session_title`) keep it; with `--to` the info line ends in the `output` icon (nf-md-console_line) in
+`FZX_COLORS[output_target]` and the pane id, subdued in `FZX_COLORS[output_pane]` (`(gone)` after it when it
+is not there), through an `--info-command` that appends `meta/output_target` to `$FZF_INFO`.
 fzf runs that command on every info update and waits for it, so it reads the file with builtins only; tmux is
 asked once per launch, and again after a failed send, which then toggles twice to have fzf redraw the line
 (it has no action for that). Screens that send nothing (the menus, a module's own enter) show neither.

@@ -238,7 +238,7 @@ fzx::output_binds() {
   fzx::_output_title_set
 }
 
-# fzx::output_title <var>: the border title's mark with --loop: the loop icon (nf-fa-infinity; FZX_ICONS=none:
+# fzx::output_title <var>: the border title's mark with --loop: the loop icon (nf-md-infinity; FZX_ICONS=none:
 # the word) in FZX_COLORS[title_loop]
 fzx::output_title() {
   local _i="" _c="${FZX_COLORS[title_loop]:-}"
@@ -250,18 +250,23 @@ fzx::output_title() {
   printf -v "$1" ' %s' "$_i"
 }
 
-# fzx::output_target <var>: the info line's mark with --to: the output icon (nf-md-bullseye; none: "to"), the
-# pane and the command it runs ("(gone)" when it is not there any more), in FZX_COLORS[output_target]
+# fzx::output_target <var>: the info line's mark with --to: the output icon (nf-md-console_line; none: "to") in
+# FZX_COLORS[output_target], then the pane, subdued in FZX_COLORS[output_pane], with "(gone)" when tmux has
+# no such pane any more
 fzx::output_target() {
-  local _i="" _cmd _m _c="${FZX_COLORS[output_target]:-}"
+  local _i="" _id _p _c="${FZX_COLORS[output_target]:-}" _pc="${FZX_COLORS[output_pane]:-}"
   [[ -n "${FZX_OUTPUT_PANE:-}" ]] || { printf -v "$1" '%s' "" && return 0; }
   fzx::require icons
   fzx::icon output _i
-  _cmd="$(tmux display-message -p -t "$FZX_OUTPUT_PANE" '#{pane_id} #{pane_current_command}' 2> /dev/null)" || :
-  if [[ "$_cmd" == "$FZX_OUTPUT_PANE "* ]]; then _cmd="${_cmd#* }"; else _cmd="(gone)"; fi
-  _m="${_i:-to} $FZX_OUTPUT_PANE${_cmd:+ $_cmd}"
-  [[ -n "$_c" && -z "${NO_COLOR:+x}" ]] && _m=$'\e['"${_c}m$_m"$'\e[0m'
-  printf -v "$1" '%s' "$_m"
+  _i="${_i:-to}"
+  _p="$FZX_OUTPUT_PANE"
+  _id="$(tmux display-message -p -t "$FZX_OUTPUT_PANE" '#{pane_id}' 2> /dev/null)" || :
+  [[ "$_id" == "$FZX_OUTPUT_PANE" ]] || _p+=" (gone)"
+  if [[ -z "${NO_COLOR:+x}" ]]; then
+    [[ -n "$_c" ]] && _i=$'\e['"${_c}m$_i"$'\e[0m'
+    [[ -n "$_pc" ]] && _p=$'\e['"${_pc}m$_p"$'\e[0m'
+  fi
+  printf -v "$1" '%s %s' "$_i" "$_p"
 }
 
 # fzx::_output_title_set: the loop mark into meta/title_marks (fzx::session_title appends it, here and on
@@ -340,7 +345,7 @@ fzx::output_cb() {
     fzx::reload_action "$(fzx::cb source)" reload
     act+="+clear-selection+$reload"
   elif [[ -n "${FZX_OUTPUT_PANE:-}" ]]; then
-    # the info line's pane and command are the launch's: say now that the pane is gone (or what runs there)
+    # the info line's mark is the launch's: say now that the pane is gone
     local target
     fzx::output_target target
     fzx::meta_set output_target "$target"

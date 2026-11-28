@@ -137,9 +137,10 @@ declare -gA FZX_COLORS=(
   [notify_fail]="38;5;203"
   # the icons before preview labels (lib/icons.sh)
   [preview_icon]="38;5;110"
-  # --loop's mark in the border title, --to's target pane on the info line (lib/output.sh)
+  # --loop's mark in the border title; --to's mark on the info line: its icon, then the pane (lib/output.sh)
   [title_loop]="1;38;5;214"
-  [output_target]="38;5;110"
+  [output_target]="1;38;5;214"
+  [output_pane]="38;5;244"
 )
 
 # how the column a list is sorted by (ps, docker, tmux, ...) is drawn on top of its own color: decorations,

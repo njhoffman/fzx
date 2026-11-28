@@ -227,7 +227,7 @@ libs() {
   [ "$output" = $'first\nsecond\nthird' ]
 }
 
-@test "title and info: the loop icon in the title, the target pane and its command after fzf's info" {
+@test "title and info: the loop icon in the title, the target icon and pane after fzf's info" {
   # the stub answers #{pane_current_command} with zsh for a pane it knows
   sed -i 's/^    awk -v t="\$t"/    [[ "${5:-}" == "#{pane_id} #{pane_current_command}" ]] \&\& { awk -v t="$t" '"'"'$1 == t { print $1 " zsh"; f = 1 } END { exit !f }'"'"' "$panes"; exit; }\n    awk -v t="$t"/' "$BATS_TEST_TMPDIR/bin/tmux"
   export FZX_TITLE_CURRENT_COLOR="" FZX_ICONS=unicode NO_COLOR=1
@@ -252,9 +252,13 @@ libs() {
   FZX_ICONS=none FZX_LOOP=1 fzx::output_title m
   [ "$m" = " loop" ]
   FZX_ICONS=none FZX_OUTPUT_PANE=%2 fzx::output_target m
-  [ "$m" = "to %2 zsh" ]
+  [ "$m" = "to %2" ]
   FZX_OUTPUT_PANE=%9 fzx::output_target m
   [ "$m" = "◎ %9 (gone)" ]
+  # colored: the icon in output_target, the pane in output_pane, each on its own
+  declare -A FZX_COLORS=([output_target]="1;31" [output_pane]="2")
+  NO_COLOR="" FZX_ICONS=none FZX_OUTPUT_PANE=%2 fzx::output_target m
+  [ "$m" = $'\e[1;31mto\e[0m \e[2m%2\e[0m' ]
   # no flags: no marks, no info command
   "$FZX" -m counter > /dev/null
   read_fzf_args

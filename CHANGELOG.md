@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.132.1] - 2026-11-27
+
+### Changed
+- The `--loop` mark is nf-md-infinity. The `--to` mark on the info line is nf-md-console_line, bold amber
+  like the loop mark (`FZX_COLORS[output_target]`), and the pane id, subdued in the new
+  `FZX_COLORS[output_pane]`; it no longer names the command running in the pane (`(gone)` still follows a
+  pane that was closed).
+
 ## [0.132.0] - 2026-11-27
 
 ### Added
