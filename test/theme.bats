@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
-# colors:theme and colors:pick: every color setting from the user's fzf options and fzx's layers, the
-# pending edits, saving them into theme.sh (a config layer), the picker's values and the screens' binds
+# colors:theme, colors:pick and colors:presets: every color setting from the user's fzf options and fzx's
+# layers, the pending edits, saving them into theme.sh (a config layer), the picker's values, the base16
+# presets and the screens' binds
 
 load test_helper
 
@@ -211,4 +212,120 @@ row() { colors::theme_values | awk -F'\t' -v id="$1" '$1 == id'; }
   [[ "$output" == *$'\e[48;2;24;31;50m  The quick brown fox'* ]]
   FZX_MODE=theme run "$COLORS/preview.sh" fzx:dim "38;5;244" "38;5;244"
   [[ "$output" == *"FZX_COLORS[dim]"*$'\e[38;5;244mThe quick brown fox'* ]]
+}
+
+@test "presets.tsv: every row a slug, a name, an author and 16 rrggbb colors; slugs unique" {
+  run awk -F'\t' '!/^#/ { n++; if (NF != 19) bad++; for (i = 4; i <= 19; i++) if ($i !~ /^[0-9a-f]{6}$/) bad++; if (s[$1]++) bad++ }
+    END { print n + 0, bad + 0 }' "$COLORS/presets.tsv"
+  [ "$output" = "182 0" ]
+  # the generator makes the same rows from base16-fzf's files
+  mkdir -p "$BATS_TEST_TMPDIR/b16/bash"
+  cat > "$BATS_TEST_TMPDIR/b16/bash/base16-zz-test.config" << 'EOF2'
+# Base16 ZZ Test
+# Author: Some One (https://example.com)
+_gen_fzf_default_opts() {
+local color00='#000000'
+local color01='#111111'
+local color02='#222222'
+local color03='#333333'
+local color04='#444444'
+local color05='#555555'
+local color06='#666666'
+local color07='#777777'
+local color08='#888888'
+local color09='#999999'
+local color0A='#AAAAAA'
+local color0B='#bbbbbb'
+local color0C='#cccccc'
+local color0D='#dddddd'
+local color0E='#eeeeee'
+local color0F='#ffffff'
+}
+EOF2
+  run bash "$COLORS/presets-gen.sh" "$BATS_TEST_TMPDIR/b16"
+  [ "$status" -eq 0 ]
+  [ "${lines[3]}" = $'zz-test\tZZ Test\tSome One (https://example.com)\t000000\t111111\t222222\t333333\t444444\t555555\t666666\t777777\t888888\t999999\taaaaaa\tbbbbbb\tcccccc\tdddddd\teeeeee\tffffff' ]
+  run bash "$COLORS/presets-gen.sh" "$BATS_TEST_TMPDIR/nope"
+  [ "$status" -eq 1 ]
+}
+
+@test "preset items: the mapped keys in the key table's order, base16-fzf's own among them" {
+  lib
+  run colors::preset_items gruvbox-dark-hard
+  [ "$status" -eq 0 ]
+  [ "${#lines[@]}" -eq 24 ]
+  [ "${lines[0]}" = $'fg\t#bdae93' ]
+  printf '%s\n' "${lines[@]}" | grep -qx $'bg\t#1d2021'
+  printf '%s\n' "${lines[@]}" | grep -qx $'bg+\t#3c3836'
+  printf '%s\n' "${lines[@]}" | grep -qx $'hl\t#83a598'
+  printf '%s\n' "${lines[@]}" | grep -qx $'prompt\t#fabd2f'
+  printf '%s\n' "${lines[@]}" | grep -qx $'border\t#665c54'
+  run colors::preset_items no-such-scheme
+  [ "$status" -ne 0 ]
+}
+
+@test "applying a preset: its keys pending, pending fzf edits replaced, saved fzf keys it leaves out reset, fzx's kept" {
+  lib
+  # saved: an fzf key the preset sets, one it does not (nth), an fzx color
+  colors::theme_pend fzf:fg 1
+  colors::theme_pend fzf:nth bold
+  colors::theme_pend fzx:dim "38;5;240"
+  colors::theme_save
+  colors::theme_pend fzf:alt-bg 236
+  colors::theme_pend fzx:title "1;38;5;81"
+  colors::theme_preset gruvbox-dark-hard
+  [ "$(row fzf:fg | cut -f2,3)" = $'#bdae93\tpending' ]
+  [ "$(row fzf:bg | cut -f2,3)" = $'#1d2021\tpending' ]
+  # saved and left out: a pending reset; pending and left out: dropped (back to the layers)
+  [ "$(row fzf:nth | cut -f3)" = reset ]
+  [ "$(row fzf:alt-bg | cut -f2,3)" = $'\tdefault' ]
+  # fzx's colors are no preset's business
+  [ "$(row fzx:title | cut -f2,3)" = $'1;38;5;81\tpending' ]
+  [ "$(row fzx:dim | cut -f3)" = theme ]
+  # a second preset replaces the first
+  colors::theme_preset nord
+  [ "$(row fzf:bg | cut -f2)" = "#2e3440" ]
+  [ "$(grep -c '^fzf:bg	' "$FZX_SESSION_DIR/state/theme_pending")" -eq 1 ]
+  ! colors::theme_preset no-such-scheme 2> /dev/null
+}
+
+@test "presets screen: rows of name, swatches, author; the transforms open it and apply one, then go back" {
+  lib
+  FZX_MODE=presets run colors::source
+  [ "${#lines[@]}" -eq 182 ]
+  [[ "${lines[0]}" == "3024"$'\t'"3024 "*$'\e[48;2;9;3;0m  '*"Jan T. Sott"$'\e[0m\t\t' ]]
+  # the links and addresses are left out of the author
+  ! printf '%s\n' "${lines[@]}" | grep -q 'http'
+  local parent="$FZX_SESSION_DIR" act child
+  act="$(colors::transform presets)"
+  [[ "$act" == "become:"*" --resume "*" -m :presets" ]]
+  [[ "$act" =~ --resume\ ([^ ]+) ]]
+  child="$FZX_SESSIONS_DIR/${BASH_REMATCH[1]}"
+  export FZX_SESSION="${BASH_REMATCH[1]}" FZX_SESSION_DIR="$child"
+  fzx::state_set mode presets
+  run colors::transform preset nord
+  [[ "$output" == "become:"*" --resume ${parent##*/}" ]]
+  grep -qx $'fzf:bg\t#2e3440' "$parent/state/theme_pending"
+  [ "$(< "$parent/state/fresh")" = 1 ]
+  run colors::transform preset no-such-scheme
+  [ "$output" = bell ]
+}
+
+@test "presets under fzx: alt-t in the theme, enter in the presets; the preview draws the scheme" {
+  stub_fzf
+  run "$FZX" -m colors:theme
+  [ "$(fzf_bind alt-t)" = "alt-t:transform:$FZX _cb transform presets" ]
+  run "$FZX" -m colors:presets
+  [ "$status" -eq 0 ]
+  [ "$(fzf_bind enter)" = "enter:transform:$FZX _cb transform preset {1}" ]
+  FZX_MODE=presets FZF_PREVIEW_COLUMNS=60 run "$COLORS/preview.sh" nord
+  [ "$status" -eq 0 ]
+  [[ "$output" == "Nord"* ]]
+  # the sample's background and the list of keys, each with its color
+  [[ "$output" == *$'\e[48;2;46;52;64m'*"╭"* ]]
+  [[ "$output" == *"bg           #2e3440"* ]]
+  # every sample line is as wide as its border
+  local w
+  w="$(printf '%s\n' "$output" | sed 's/\x1b\[[0-9;]*m//g' | grep '^ [│╭╰]' | awk '{ print length($0) }' | sort -u)"
+  [ "$w" = 45 ]
 }

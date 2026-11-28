@@ -3,7 +3,8 @@
 # the theme selector over every color setting, fzf's and fzx's.
 # `fzx -m colors[:16|:names|:fzx|:theme]`. Enter prints numbers, names or keys; alt-h/alt-s/alt-e copy codes.
 # In theme enter opens a value picker (colors:pick) for the setting; edits wait until alt-k saves them into
-# ~/.config/fzx/theme.sh; alt-p shows them in a sample fzf in a tmux split.
+# ~/.config/fzx/theme.sh; alt-p shows them in a sample fzf in a tmux split; alt-t lists base16 presets
+# (colors:presets), enter there sets fzf's keys to one.
 
 FZX_MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../lib/core.sh
@@ -28,7 +29,14 @@ colors::opts() {
   fzx::in_session || return 0
   case "${FZX_MODE:-}" in
     # the third field is the setting's value as it is now
-    theme) fzx::bind enter "transform:$(fzx::cb transform edit '{1}' '{3}')" "change the setting: choose its new value" ;;
+    theme)
+      fzx::bind enter "transform:$(fzx::cb transform edit '{1}' '{3}')" "change the setting: choose its new value"
+      fzx::bind alt-t "transform:$(fzx::cb transform presets)" "presets: a base16 color scheme for fzf's keys"
+      ;;
+    presets)
+      fzx::bind enter "transform:$(fzx::cb transform preset '{1}')" \
+        "set fzf's keys to this scheme (pending until alt-k saves); the theme's other fzf keys are reset"
+      ;;
     pick)
       fzx::bind enter "transform:$(fzx::cb transform pick '{1}')" \
         "set it to this color with the attributes on; with nothing matching, to what you typed"

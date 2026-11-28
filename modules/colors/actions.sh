@@ -237,15 +237,19 @@ colors::_pick_args() {
   [[ -n "$COLORS_PICK_ID" ]]
 }
 
-# colors::transform <edit ID VALUE | pick ROW>
+# colors::transform <edit ID VALUE | pick ROW | presets | preset SLUG>
 #   edit  enter in colors:theme: the picker for that setting, a child session, its toggles set from the
 #         value's attributes and its query emptied
 #   pick  enter in colors:pick: the value into the theme's pending edits, the sample restarted, back to the
 #         list (which reads its rows again)
+#   presets  alt-t in colors:theme: the base16 presets (colors:presets), a child session
+#   preset   enter in colors:presets: the scheme into the theme's pending edits, the sample restarted, back
 colors::transform() {
   case "${1:-}" in
     edit) colors::_transform_edit "${2:-}" "${3:-}" ;;
     pick) colors::_transform_pick "${2:-}" ;;
+    presets) fzx::require nav && fzx::nav goto colors:presets ;;
+    preset) colors::_transform_preset "${2:-}" ;;
     *)
       printf 'colors: unknown transform: %s\n' "${1:-}" >&2
       return 2
@@ -285,6 +289,15 @@ colors::_transform_pick() {
     colors::theme_sample refresh
   fi
   # the list reads its rows again when it comes back
+  colors::theme_dir dir && fzx::_kv_set "$dir/state/fresh" 1
+  fzx::require nav
+  fzx::nav back
+}
+
+colors::_transform_preset() {
+  local dir
+  colors::theme_preset "$1" 2> /dev/null || { printf 'bell'; return 0; }
+  colors::theme_sample refresh
   colors::theme_dir dir && fzx::_kv_set "$dir/state/fresh" 1
   fzx::require nav
   fzx::nav back

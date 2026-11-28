@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.136.0] - 2026-11-28
+
+### Added
+- Theme presets: alt-t in `colors:theme` lists the 182 base16 color schemes (from base16-fzf), each with
+  its 16 colors and a preview of a small fzf drawn in it. Enter sets fzf's colors to the scheme as pending
+  edits (see them in the alt-p sample, alt-k saves them to theme.sh); fzx's own colors stay as they are.
+  `just presets DIR` regenerates the list from a base16-fzf checkout.
+
 ## [0.135.0] - 2026-11-28
 
 ### Changed

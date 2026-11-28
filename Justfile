@@ -44,6 +44,11 @@ lint:
     # sources (xargs exits 123 when any batch finds something, so CI still fails)
     printf '%s\0' "${files[@]}" | xargs -0 -P "$(nproc)" -n 8 shellcheck
 
+# regenerate the colors module's base16 presets from a checkout of base16-fzf
+# (https://github.com/tinted-theming/base16-fzf)
+presets DIR:
+    bash modules/colors/presets-gen.sh {{ DIR }} > modules/colors/presets.tsv
+
 # print the resolved fzf command for a module
 dry-run MODULE *ARGS:
     bin/fzx -m {{ MODULE }} --dry-run {{ ARGS }}

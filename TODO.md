@@ -25,8 +25,10 @@ Reviewed: 2026-11-25
       interactively, and see it in a live sample fzf launched with the new colors; save to the user config.
       Done (0.134.0): `colors:theme`, its picker `colors:pick`, the sample fzf in a tmux split, saved into
       `~/.config/fzx/theme.sh` (a config layer after config.sh).
-- [ ] **Theme presets** (p3) [feature]: presets generated from common color schemes (the 182 base16 schemes
+- [x] **Theme presets** (p3) [feature]: presets generated from common color schemes (the 182 base16 schemes
       in fzf-rsc/colors as a start), browsable and previewed in the theme selector.
+      Done in 0.136.0: colors:presets (alt-t), 24 fzf keys per scheme; other scheme collections can be
+      added as more presets.tsv rows.
 - [x] **Floats follow the window** (p3) [feature]: popups are reopened on a window resize (`fzx _resized`,
       `nav relayout`); a float keeps its first size. `tmux resize-pane -x/-y` plus a move to the new
       position (if new-pane floats can be moved) would do it without a relaunch.

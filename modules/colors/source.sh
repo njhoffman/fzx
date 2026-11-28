@@ -3,7 +3,7 @@
 # the FZX_COLORS key; hex is empty for fzx colors; sgr is the foreground's SGR parameters.
 # Mode from $FZX_MODE: 256 (xterm-256.tsv), 16 (the terminal's own 8 colors and their bright twins; no hex:
 # the terminal sets them), names (FZX_COLORS_RGB_TXT), fzx (every config layer), theme (every color setting,
-# fzf's and fzx's, to change; theme.sh) and pick (the theme's value picker, `--key ID`).
+# fzf's and fzx's, to change; theme.sh), pick (the theme's value picker, `--key ID`) and presets (base16 schemes).
 
 COLORS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=./theme.sh
@@ -150,6 +150,21 @@ colors::pick() {
     "$COLORS_DIR/xterm-256.tsv"
 }
 
+# colors::presets: the base16 presets, "slug<TAB>display<TAB><TAB>": the name, its 16 colors, the author
+# (without the links and addresses)
+colors::presets() {
+  awk -F'\t' -v D=$'\e[38;5;244m' -v R=$'\e[0m' '
+    /^#/ || NF < 19 { next }
+    {
+      a = $3; gsub(/ *[(<][^)>]*[)>]/, "", a)
+      s = ""
+      for (i = 4; i <= 19; i++) s = s sprintf("\033[48;2;%d;%d;%dm  ", hex(substr($i, 1, 2)), hex(substr($i, 3, 2)), hex(substr($i, 5, 2)))
+      printf "%s\t%-28s %s%s %s%s%s\t\t\n", $1, substr($2, 1, 28), s, R, D, a, R
+    }
+    function hex(h,   i, v) { v = 0; for (i = 1; i <= 2; i++) v = v * 16 + index("0123456789abcdef", substr(h, i, 1)) - 1; return v }' \
+    "$(colors::presets_file)"
+}
+
 colors::source() {
   case "${FZX_MODE:-256}" in
     256) colors::palette ;;
@@ -158,6 +173,7 @@ colors::source() {
     fzx) colors::fzx ;;
     theme) colors::theme ;;
     pick) colors::pick "$@" ;;
+    presets) colors::presets ;;
     *)
       printf 'colors: unknown mode: %s\n' "$FZX_MODE" >&2
       return 2

@@ -59,6 +59,77 @@ nomatch	-	non-matching items in raw mode'
 # shellcheck disable=SC2034  # read by source.sh and actions.sh
 COLORS_ATTRS=(bold:1 dim:2 italic:3 underline:4 reverse:7)
 
+# what a base16 preset sets: fzf key, base color (00-0F). base16-fzf's 12 keys (bg bg+ fg fg+ hl hl+ header
+# info pointer marker prompt spinner, as its template sets them), and the base16 styling guide's roles for the
+# rest: 00 the background, 01 a lighter one, 02 the selection's, 03 comments and borders, 04-06 text, dark to
+# light. Keys left out fall back to these (the key table's parents), unless the user's fzf options set them.
+COLORS_PRESET_MAP='bg 00
+bg+ 01
+fg 04
+fg+ 06
+hl 0D
+hl+ 0D
+header 0D
+info 0A
+pointer 0C
+marker 0C
+prompt 0A
+spinner 0C
+gutter 00
+query 05
+ghost 03
+disabled 03
+border 03
+separator 03
+label 05
+selected-fg 05
+selected-bg 02
+selected-hl 0D
+preview-fg 05
+footer 0D'
+
+# colors::presets_file: the base16 schemes (presets-gen.sh makes it)
+colors::presets_file() { printf '%s/presets.tsv' "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; }
+
+# colors::preset_row <slug> <var>: the preset's row in presets.tsv (fails for one it does not have)
+colors::preset_row() {
+  local _row
+  _row="$(awk -F'\t' -v s="$1" '$1 == s { print; exit }' "$(colors::presets_file)")"
+  printf -v "$2" '%s' "$_row"
+  [[ -n "$_row" ]]
+}
+
+# colors::preset_items <slug>: what the preset sets, "key<TAB>#rrggbb", in the key table's order
+colors::preset_items() {
+  local row
+  colors::preset_row "$1" row || return 1
+  {
+    printf '%s\n' "$COLORS_FZF_KEYS" | sed 's/^/K\t/'
+    printf '%s\n' "$COLORS_PRESET_MAP" | sed 's/^/M\t/; s/ /\t/'
+    printf 'R\t%s\n' "$row"
+  } | awk -F'\t' '
+    $1 == "K" { n++; k[n] = $2 }
+    $1 == "M" { m[$2] = $3 }
+    $1 == "R" { for (i = 0; i < 16; i++) c[sprintf("%02X", i)] = $(i + 5) }
+    END { for (i = 1; i <= n; i++) if (k[i] in m) print k[i] "\t#" c[m[k[i]]] }'
+}
+
+# colors::theme_preset <slug>: the preset as the pending fzf edits: every pending fzf edit goes, the preset's
+# keys are set, and the saved fzf keys it does not set are reset, so its look is whole; fzx's edits stay
+colors::theme_preset() {
+  local f items saved
+  items="$(colors::preset_items "$1")" || { printf 'colors: no preset %s\n' "$1" >&2; return 1; }
+  colors::theme_pending_file f || return 1
+  saved="$(colors::theme_saved)"
+  {
+    [[ -r "$f" ]] && awk -F'\t' '$1 !~ /^fzf:/' "$f"
+    printf '%s\n' "$items" | sed 's/^/fzf:/'
+    printf '%s\n' "$saved" | awk -F'\t' -v set="$(printf '%s\n' "$items" | cut -f1 | tr '\n' ' ')" '
+      BEGIN { n = split(set, s, " "); for (i = 1; i <= n; i++) in_set["fzf:" s[i]] = 1 }
+      $1 ~ /^fzf:/ && !($1 in in_set) { print $1 "\t-" }'
+  } > "$f.tmp" && mv -- "$f.tmp" "$f"
+}
+
 # colors::theme_file: where save writes
 colors::theme_file() { printf '%s/theme.sh' "${FZX_CONFIG_DIR:-$HOME/.config/fzx}"; }
 
@@ -151,13 +222,13 @@ colors::theme_saved() {
   done < "$f"
 }
 
-# colors::theme_pending_file <var>: the pending edits of the colors session (the picker's parent when called
-# from colors:pick)
+# colors::theme_pending_file <var>: the pending edits of the colors session (the parent when called from
+# colors:pick or colors:presets)
 colors::theme_pending_file() {
   local _dir="${FZX_SESSION_DIR:-}" _mode="" _parent=""
   [[ -n "$_dir" ]] || { printf -v "$1" '%s' "" && return 1; }
   fzx::_kv_get "$_dir/state/mode" _mode 2> /dev/null || :
-  if [[ "$_mode" == pick ]] && fzx::_kv_get "$_dir/meta/parent" _parent 2> /dev/null; then
+  if [[ "$_mode" == pick || "$_mode" == presets ]] && fzx::_kv_get "$_dir/meta/parent" _parent 2> /dev/null; then
     _dir="$FZX_SESSIONS_DIR/$_parent"
   fi
   printf -v "$1" '%s' "$_dir/state/theme_pending"

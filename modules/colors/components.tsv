@@ -5,6 +5,7 @@ mode    names  -  X11 color names in true color, nearest 256 color  -
 mode    fzx    -  fzx's own colors (FZX_COLORS), by module           -
 mode    theme  -  every color setting, fzf's and fzx's: change them, see them in a sample fzf, save them (theme.sh)  restart
 mode    pick   -  a new value for one setting (--key ID --value VALUE): a palette color, or typed  hidden,nopersist
+mode    presets  -  base16 color schemes for fzf's keys, previewed; enter sets them in the theme  hidden,nopersist
 toggle  bold       -  pick: bold          -
 toggle  dim        -  pick: dim           -
 toggle  italic     -  pick: italic        -
