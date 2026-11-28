@@ -170,7 +170,7 @@ libs() {
   ! grep -q 'bound twice' "$LOG"
 }
 
-@test "binds: --to sends on enter and closes; --submit needs --to; the module's own enter is kept" {
+@test "binds: --to sends on enter and closes; --submit needs --to; the module's own enter is kept, and the footer says so" {
   "$FZX" -m counter --to right > /dev/null
   [[ "$(fzf_binds enter | tail -1)" == "enter:become($FZX _cb output once items {+n} -- {+})" ]]
   [[ "$(fzf_binds 'ctrl-]' | tail -1)" == "ctrl-]:become($FZX _cb output once items"* ]]
@@ -181,6 +181,13 @@ libs() {
   [ "$status" -eq 2 ]
   COUNTER_BIND_ENTER=1 "$FZX" -m counter --to right --loop > /dev/null
   [ "$(fzf_binds enter | tail -1)" = "enter:accept" ]
+  # and the footer says the flags do nothing here, once fzf starts
+  [[ "$(fzf_binds start | grep 'binds enter')" == "start:+change-footer("*"--to/--loop: counter binds enter itself"*")+bg-cancel+bg-transform-footer("* ]]
+  COUNTER_BIND_ENTER=1 "$FZX" -m counter --loop > /dev/null
+  [[ "$(fzf_binds start | grep 'binds enter')" == "start:+change-footer("*"m--loop: counter binds enter itself"* ]]
+  # a module that sends its picks has no such note
+  "$FZX" -m counter --loop > /dev/null
+  ! fzf_binds start | grep -q 'binds enter'
 }
 
 @test "binds: a default action that prints is what goes out (history's insert)" {
@@ -239,8 +246,8 @@ libs() {
   [[ "$output" == "--info-command=IFS= read -r m < "*"/meta/output_target; printf %s \"\$FZF_INFO  \$m\"" ]]
   # the command, as fzf runs it, over the file the launch wrote
   local f="$BATS_TEST_TMPDIR/target"
-  printf '◎ %%2 zsh\n' > "$f"
-  [ "$(FZF_INFO='2/2 (0)' bash -c "IFS= read -r m < $f; printf %s \"\$FZF_INFO  \$m\"")" = '2/2 (0)  ◎ %2 zsh' ]
+  printf '▸ %%2\n' > "$f"
+  [ "$(FZF_INFO='2/2 (0)' bash -c "IFS= read -r m < $f; printf %s \"\$FZF_INFO  \$m\"")" = '2/2 (0)  ▸ %2' ]
   # an in-place refresh (lib/nav.sh) makes the title again from the session: the mark comes with it
   libs
   local m
@@ -254,7 +261,7 @@ libs() {
   FZX_ICONS=none FZX_OUTPUT_PANE=%2 fzx::output_target m
   [ "$m" = "to %2" ]
   FZX_OUTPUT_PANE=%9 fzx::output_target m
-  [ "$m" = "◎ %9 (gone)" ]
+  [ "$m" = "▸ %9 (gone)" ]
   # colored: the icon in output_target, the pane in output_pane, each on its own
   declare -A FZX_COLORS=([output_target]="1;31" [output_pane]="2")
   NO_COLOR="" FZX_ICONS=none FZX_OUTPUT_PANE=%2 fzx::output_target m

@@ -6,6 +6,17 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.133.0] - 2026-11-27
+
+### Added
+- zsh completion for `--to` (left, right, up, down and, inside tmux, the window's panes with what runs in
+  them and their size), `--loop` and `--submit`.
+- `--to` or `--loop` on a module that binds enter itself says so in the footer when the list opens, since
+  the flags do nothing there.
+
+### Changed
+- With `FZX_ICONS=unicode` the `--to` mark is ▸, matching the console icon, not ◎.
+
 ## [0.132.1] - 2026-11-27
 
 ### Changed

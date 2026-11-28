@@ -441,7 +441,8 @@ The screen says so: with `--loop` the border title ends in the `loop` icon (nf-m
 is not there), through an `--info-command` that appends `meta/output_target` to `$FZF_INFO`.
 fzf runs that command on every info update and waits for it, so it reads the file with builtins only; tmux is
 asked once per launch, and again after a failed send, which then toggles twice to have fzf redraw the line
-(it has no action for that). Screens that send nothing (the menus, a module's own enter) show neither.
+(it has no action for that). Screens that send nothing (the menus, a module's own enter) show neither; on a
+module's own enter a `start` bind says in the footer that the flags do nothing there.
 
 What goes out is what accept would print: the `--accept-nth` fields, its template included (`{1}:{2}`), or
 the whole row. fzf's placeholders ignore `--accept-nth`, so `meta/accept` holds the template and the

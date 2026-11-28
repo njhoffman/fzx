@@ -188,7 +188,13 @@ fzx::output_binds() {
   ((loop)) || [[ -n "$pane" ]] || return 0
   [[ "$module" == menu || "$module" == actions ]] && return 0
   if ((own_enter)); then
-    fzx::log info "output: $module binds enter itself; --to/--loop leave it"
+    # say so on the screen, not only in the log: the flags were asked for and do nothing here
+    local flags note
+    flags="${pane:+--to}" && ((loop)) && flags+="${flags:+/}--loop"
+    fzx::log info "output: $module binds enter itself; $flags leave it"
+    fzx::require callback
+    fzx::footer_note "$flags: $module binds enter itself" "${FZX_COLORS[notify_fail]:-}" note
+    FZX_OPTS+=(--bind "start:+$note")
     return 0
   fi
   # the action the opts hook names, else a default action that prints a value: its output is what goes out

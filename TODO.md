@@ -71,6 +71,9 @@ Reviewed: 2026-11-25
       turns the accepted rows into the text to send would let it use the shared path and gain `--loop`.
       Done (0.132.0): the opts hook names an action in `FZX_OUTPUT_ACTION` (tasks' new `line`) and sets
       `FZX_OUTPUT_NEWLINE=0`; `--paste PANE` is `--to PANE`.
+- [x] **--to and --loop follow-ups** (p3) [feature]: zsh completion for `--to` (directions, the window's
+      panes), `--loop` and `--submit`; a footer note when the screen's module binds enter itself, so the
+      flags do nothing there, rather than only a log line (0.133.0).
 - [ ] **Piping** (p3) [feature]: when stdin is not a tty and no module is given, match each manifest's `detect`
       against the first lines and pick the module (design.md, "Piping").
 - [ ] **Completion integration** (p3) [feature]: `**<TAB>` completion (`_fzf_complete_<cmd>`) backed by fzx

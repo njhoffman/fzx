@@ -42,7 +42,7 @@ setup() {
   [ "$status" -eq 2 ]
 }
 
-@test "completion zsh: in a real shell, tab lists commands, module:mode targets and options" {
+@test "completion zsh: in a real shell, tab lists commands, module:mode targets, options and --to panes" {
   command -v zsh > /dev/null || skip "zsh not installed"
   mkdir -p "$BATS_TEST_TMPDIR/fpath"
   "$FZX" completion zsh > "$BATS_TEST_TMPDIR/fpath/_fzx"
@@ -70,13 +70,20 @@ complete_line() {
 print "== commands"; complete_line 'fzx ' 'completion'
 print "== targets"; complete_line 'fzx -m files:' 'files:grep'
 print "== options"; complete_line 'fzx stats --' '--since'
+print "== flags"; complete_line 'fzx --' '--submit'
+print "== panes"; complete_line 'fzx --to ' 'right'
 EOF
   FPATH_DIR="$BATS_TEST_TMPDIR/fpath" BIN_DIR="$FZX_REPO/bin" run timeout 60 zsh -f "$BATS_TEST_TMPDIR/drive.zsh"
   local commands targets options
   commands="${output#*== commands}" commands="${commands%%== targets*}"
   targets="${output#*== targets}" targets="${targets%%== options*}"
-  options="${output#*== options}"
+  options="${output#*== options}" options="${options%%== flags*}"
+  local flags panes
+  flags="${output#*== flags}" flags="${flags%%== panes*}" panes="${output#*== panes}"
   [[ "$commands" == *"completion  -- print a shell completion script"* && "$commands" == *"stats "*"-- runs, callbacks"* ]]
   [[ "$targets" == *"files:grep"*"-- search file contents as you type"* && "$targets" == *"files:dirs"* ]]
   [[ "$options" == *"--since"*"-- only what ran since"* && "$options" == *"--module"* ]]
+  # fzx's own flags; --to offers the directions (and, inside tmux, the window's panes)
+  [[ "$flags" == *"--loop"*"-- keep the list open"* && "$flags" == *"--to"* && "$flags" == *"--submit"* ]]
+  [[ "$panes" == *"left"*"-- the pane to the left"* && "$panes" == *"right"* ]]
 }

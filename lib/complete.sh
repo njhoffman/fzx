@@ -101,6 +101,19 @@ _fzx_sessions() {
   _describe -t sessions session sessions
 }
 
+# --to: a direction from the pane fzx starts in, or a pane of this window by id (what runs in it, its size)
+_fzx_panes() {
+  local -a dirs=('left:the pane to the left' 'right:the pane to the right' 'up:the pane above' 'down:the pane below')
+  local -a panes
+  local line
+  _describe -t directions direction dirs
+  [[ -n "$TMUX" ]] || return 0
+  for line in "${(@f)$(_call_program panes tmux list-panes -F "'#{pane_id}:#{pane_current_command} #{pane_width}x#{pane_height}#{?pane_active, (active),}'" 2> /dev/null)}"; do
+    [[ -n "$line" ]] && panes+=("$line")
+  done
+  _describe -t panes pane panes
+}
+
 _fzx() {
   local curcontext="$curcontext" state line ret=1
   typeset -A opt_args
@@ -151,6 +164,9 @@ _fzx() {
     '--query=[start with this query typed in]:query: ' \
     '--dry-run[print the fzf command instead of running it]' \
     '--print[a picker: enter prints the selection instead of running a default action]' \
+    '--to=[paste the selection into a tmux pane: an id or a direction]:pane:_fzx_panes' \
+    '--submit[with --to: press Enter in the pane after the paste]' \
+    '--loop[keep the list open after enter, reloaded]' \
     '--keep[keep the session directory after exit]' \
     '(- *)'{-h,--help}'[show the help]' \
     '(- *)'{-V,--version}'[print the version]' \
