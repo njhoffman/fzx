@@ -71,7 +71,7 @@ Inside any module, f1 shows every key, mode, toggle and action. The common ones:
 | browser | Chrome, Chromium, Brave, Vivaldi and Firefox history and bookmarks, opened in their own profile |
 | claude | Claude Code projects: git state, version, open TODOs and sessions; enter goes to Claude there (or starts it), alt-enter resumes |
 | capture | URLs, paths, words, hashes, IPs or lines out of a tmux pane |
-| colors | the 256-color palette, the terminal's 16 colors, X11 names and fzx's own colors |
+| colors | the 256-color palette, the terminal's 16 colors, X11 names and fzx's own colors; a theme selector for fzf's and fzx's colors, with a live sample |
 | cron | crontab and system cron entries with their next runs, anacron jobs and cron scripts |
 | dirs | directories under ~, and bookmarks |
 | displays | xrandr outputs and modes: on, off, primary, place, rotate; displayd's profiles |

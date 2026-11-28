@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# colors: the 256-color palette, the terminal's 16 colors, X11 color names and fzx's own FZX_COLORS, with swatches and samples.
-# `fzx -m colors[:16|:names|:fzx]`. Enter prints numbers, names or keys; alt-h/alt-s/alt-e copy codes.
+# colors: the 256-color palette, the terminal's 16 colors, X11 color names and fzx's own FZX_COLORS, with swatches and samples;
+# the theme selector over every color setting, fzf's and fzx's.
+# `fzx -m colors[:16|:names|:fzx|:theme]`. Enter prints numbers, names or keys; alt-h/alt-s/alt-e copy codes.
+# In theme enter opens a value picker (colors:pick) for the setting; edits wait until alt-k saves them into
+# ~/.config/fzx/theme.sh; alt-p shows them in a sample fzf in a tmux split.
 
 FZX_MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../lib/core.sh
@@ -21,6 +24,29 @@ colors::opts() {
   FZX_ACTION_ARGS_FOR['hex']='{+3}'
   FZX_ACTION_ARGS_FOR['sgr']='{+4}'
   FZX_ACTION_ARGS_FOR['escape']='{+4}'
+  FZX_ACTION_ARGS_FOR['reset']='{+1}'
+  fzx::in_session || return 0
+  case "${FZX_MODE:-}" in
+    # the third field is the setting's value as it is now
+    theme) fzx::bind enter "transform:$(fzx::cb transform edit '{1}' '{3}')" "change the setting: choose its new value" ;;
+    pick)
+      fzx::bind enter "transform:$(fzx::cb transform pick '{1}')" \
+        "set it to this color with the attributes on; with nothing matching, to what you typed"
+      colors::_pick_header
+      ;;
+  esac
+}
+
+# colors::_pick_header: the picker's header: the setting and its value, how to give your own
+colors::_pick_header() {
+  local i id="" value=""
+  for ((i = 0; i < ${#FZX_ARGS[@]}; i++)); do
+    case "${FZX_ARGS[i]}" in
+      --key) id="${FZX_ARGS[i + 1]:-}" ;;
+      --value) value="${FZX_ARGS[i + 1]:-}" ;;
+    esac
+  done
+  FZX_OPTS+=("--header=${id#*:}: ${value:-(not set)}  type #rrggbb, 0-255 or $([[ "$id" == fzx:* ]] && echo SGR || echo "fzf's syntax") for your own")
 }
 
 fzx::module_main "$@"

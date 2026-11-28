@@ -6,6 +6,7 @@ colors::manifest() {
   fzx::entry colors:16 "The terminal's 16 colors"
   fzx::entry colors:names "X11 color names"
   fzx::entry colors:fzx "fzx's own colors"
+  fzx::entry colors:theme "Theme selector: fzf's and fzx's colors"
 }
 
 colors::applicable() {
@@ -17,6 +18,13 @@ colors::summary() {
   case "$1" in
     colors) printf '256 colors\n' ;;
     colors:16) printf '16 colors, 8 and bright\n' ;;
+    colors:theme)
+      # cheap: the fzf keys and what theme.sh saved (counting fzx's colors loads every module's config)
+      # shellcheck source=./theme.sh
+      source "$(dirname "${BASH_SOURCE[0]}")/theme.sh" || :
+      printf '%s fzf keys and fzx colors, %s saved\n' "$(printf '%s\n' "$COLORS_FZF_KEYS" | wc -l)" \
+        "$(colors::theme_saved | wc -l)"
+      ;;
     colors:names | colors:fzx)
       # shellcheck source=./source.sh
       source "$(dirname "${BASH_SOURCE[0]}")/source.sh" || :

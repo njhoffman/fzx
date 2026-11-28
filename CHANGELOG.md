@@ -6,6 +6,19 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.134.0] - 2026-11-28
+
+### Added
+- `colors:theme`, a theme selector: every color setting, fzf's `--color` keys (valued from your fzf options
+  and `FZX_FZF_COLORS`; an unset key shows the one it falls back to) and fzx's `FZX_COLORS`, each with a
+  swatch, its value and where it comes from. Enter picks a new value from the 256 palette with bold, dim,
+  italic, underline and reverse toggles (alt-1..5), or takes what you type (#rrggbb, 0-255, fzf's syntax or
+  SGR). Changes wait until alt-k saves them; alt-x resets a setting, alt-z drops every unsaved change, alt-c
+  copies the resulting `--color` option, and alt-p opens a sample fzf in a tmux split that redraws in the
+  pending colors after each change.
+- `~/.config/fzx/theme.sh`, written by the theme selector's save: a config layer loaded after
+  `config.sh`. fzf colors saved there apply to fzx's screens, not to fzf started on its own.
+
 ## [0.133.1] - 2026-11-28
 
 ### Changed

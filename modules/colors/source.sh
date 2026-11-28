@@ -2,9 +2,12 @@
 # colors source. Lines are "id<TAB>display<TAB>hex<TAB>sgr": the id is the color number, the X11 name or
 # the FZX_COLORS key; hex is empty for fzx colors; sgr is the foreground's SGR parameters.
 # Mode from $FZX_MODE: 256 (xterm-256.tsv), 16 (the terminal's own 8 colors and their bright twins; no hex:
-# the terminal sets them), names (FZX_COLORS_RGB_TXT), fzx (every config layer).
+# the terminal sets them), names (FZX_COLORS_RGB_TXT), fzx (every config layer), theme (every color setting,
+# fzf's and fzx's, to change; theme.sh) and pick (the theme's value picker, `--key ID`).
 
 COLORS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=./theme.sh
+source "$COLORS_DIR/theme.sh"
 
 # awk functions: the 256 palette's rgb (16-231 the 6x6x6 cube, 232-255 the grays) and the nearest of
 # 16-255 to an rgb (0-15 are left out: terminals redefine them)
@@ -85,12 +88,76 @@ colors::fzx() {
     printf "%s\t\033[%sm%-22s\033[0m \033[38;5;244m%-10s\033[0m %s\t\t%s\n", $1, $2, $1, $3, $2, $2 }'
 }
 
+# colors::theme_sgr <id> <value> <var>: what a setting's swatch is drawn in: fzx values are SGR already,
+# fzf's are converted (backgrounds as backgrounds)
+colors::theme_sgr() {
+  local _k="${1#*:}"
+  if [[ "$1" == fzx:* ]]; then
+    printf -v "$3" '%s' "$2"
+  else
+    colors::fzf_sgr "$2" "$(colors::_is_bg "$_k" && echo 1 || echo 0)" "$3"
+  fi
+}
+
+# colors::theme: one row per setting, "id<TAB>display<TAB>value<TAB>sgr": a mark for an unsaved change, the swatch,
+# the key, its value (an fzf key nothing sets: the key it falls back to, drawn in that one's color) and
+# where the value comes from
+colors::theme() {
+  local id val org sgr key parent shown swatch mark D=$'\e[38;5;244m' R=$'\e[0m' M=""
+  local -A eff=() parents=()
+  [[ -z "${NO_COLOR:+x}" ]] && M=$'\e['"${FZX_COLORS[title_loop]:-1;38;5;214}m"
+  while IFS=$'\t' read -r key parent _; do parents[$key]="$parent"; done <<< "$COLORS_FZF_KEYS"
+  # read splits on a separator that is not whitespace, or the empty values would run together
+  while IFS=$'\x1f' read -r id val org _ _; do
+    key="${id#*:}" shown="$val"
+    # an unset fzf key shows the one it falls back to, the nearest that is set
+    if [[ "$id" == fzf:* && -z "$val" ]]; then
+      parent="${parents[$key]:--}" shown="(fzf's default)"
+      while [[ "$parent" != - ]]; do
+        if [[ -n "${eff[$parent]:-}" ]]; then val="${eff[$parent]}" shown="(as $parent)"; break; fi
+        parent="${parents[$parent]:--}"
+      done
+    fi
+    [[ "$id" == fzf:* && -n "$val" ]] && eff[$key]="$val"
+    sgr=""
+    [[ -n "$val" ]] && colors::theme_sgr "$id" "$val" sgr
+    if [[ -z "$sgr" ]]; then
+      swatch="      "
+    elif [[ "$id" == fzf:* ]] && colors::_is_bg "$key"; then
+      swatch=$'\e['"${sgr}m      $R"
+    else
+      swatch=$'\e['"${sgr}m Abc  $R"
+    fi
+    mark=" "
+    [[ "$org" == pending || "$org" == reset ]] && mark="${M}●$R"
+    # the value as set (empty for an fzf key nothing sets), not the one it falls back to
+    [[ "$shown" == "(as "* || "$shown" == "(fzf's default)" ]] && val=""
+    printf '%s\t%s %s %-22s %-24s %s%s%s\t%s\t%s\n' "$id" "$mark" "$swatch" "$key" "$shown" "$D" "$org" "$R" "$val" "$sgr"
+  done < <(colors::theme_values | tr '\t' '\037')
+}
+
+# colors::pick [--key ID]: the value picker: a reset row ("-"), then the 256 palette in the attributes the
+# toggles have on. The id is the color number; nothing matching the query means the query is the value
+colors::pick() {
+  local attrs="" a name
+  for a in "${COLORS_ATTRS[@]}"; do
+    name="${a%%:*}"
+    [[ " ${FZX_TOGGLES:-} " == *" $name "* ]] && attrs+="${a#*:};"
+  done
+  printf -- '-\t\e[38;5;244m%-6s\e[0m reset: back to the value the config layers or fzf give\t\t\n' reset
+  awk -F'\t' -v A="$attrs" '{
+    printf "%s\t\033[48;5;%sm      \033[0m \033[%s38;5;%sm%3s %-20s\033[0m %s\t%s\t%s38;5;%s\n", $1, $1, A, $1, $1, $2, $3, $3, A, $1 }' \
+    "$COLORS_DIR/xterm-256.tsv"
+}
+
 colors::source() {
   case "${FZX_MODE:-256}" in
     256) colors::palette ;;
     16) colors::sixteen ;;
     names) colors::names ;;
     fzx) colors::fzx ;;
+    theme) colors::theme ;;
+    pick) colors::pick "$@" ;;
     *)
       printf 'colors: unknown mode: %s\n' "$FZX_MODE" >&2
       return 2

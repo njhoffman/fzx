@@ -20,9 +20,39 @@ colors::gradient() {
     printf "\n" }'
 }
 
-# colors::preview <id> <hex> <sgr>
+# colors::theme_preview <id> <value> <sgr>: a setting: what it colors, its value, a sample in it, the keys
+colors::theme_preview() {
+  local id="$1" value="$2" sgr="$3" key="${1#*:}" desc="" parent="" cols="${FZF_PREVIEW_COLUMNS:-60}" line
+  local D=$'\e[38;5;244m' R=$'\e[0m' text="The quick brown fox jumps over the lazy dog"
+  if [[ "$id" == fzf:* ]]; then
+    IFS=$'\t' read -r _ parent desc < <(awk -F'\t' -v k="$key" '$1 == k' <<< "$COLORS_FZF_KEYS")
+    printf '%sfzf --color%s %s\n%s\n' "$D" "$R" "$key" "$desc"
+    [[ "$parent" != - && -n "$parent" ]] && printf '%swhen unset it is drawn as %s%s\n' "$D" "$parent" "$R"
+  else
+    printf '%sfzx%s FZX_COLORS[%s]\n' "$D" "$R" "$key"
+  fi
+  printf '\n%svalue%s   %s\n%ssgr%s     %s\n\n' "$D" "$R" "${value:-(not set)}" "$D" "$R" "${sgr:-}"
+  if [[ -n "$sgr" ]]; then
+    if [[ "$id" == fzf:* ]] && colors::_is_bg "$key"; then
+      printf -v line '%*s' "$cols" ''
+      for _ in 1 2 3; do printf '\e[%sm%s\e[0m\n' "$sgr" "$line"; done
+      printf '\e[%sm  %s\e[0m\n\n' "$sgr" "$text"
+    else
+      printf '  \e[%sm%s\e[0m\n' "$sgr" "$text"
+      printf '  \e[%s;48;5;236m %s \e[0m\n' "$sgr" "$text"
+      printf '  \e[%s;48;5;254m %s \e[0m\n\n' "$sgr" "$text"
+    fi
+  fi
+  printf '%senter%s change it  %salt-x%s reset  %salt-k%s save  %salt-p%s sample\n' "$D" "$R" "$D" "$R" "$D" "$R" "$D" "$R"
+}
+
+# colors::preview <id> <hex> <sgr> (theme: <id> <value> <sgr>)
 colors::preview() {
   local id="${1:-}" hex="${2:-}" sgr="${3:-}" cols="${FZF_PREVIEW_COLUMNS:-60}" bg="" line rgb name hsl
+  if [[ "${FZX_MODE:-}" == theme ]]; then
+    colors::theme_preview "$id" "$hex" "$sgr"
+    return
+  fi
   local fg_re='(^|;)38;(5;[0-9]+|2;[0-9]+;[0-9]+;[0-9]+)($|;)'
   local D=$'\e[38;5;244m' R=$'\e[0m' text="The quick brown fox jumps over the lazy dog"
   [[ -n "$id" && -n "$sgr" ]] || return 0
@@ -39,7 +69,7 @@ colors::preview() {
   printf '  \e[%s;48;5;254m %s \e[0m\n' "$sgr" "$text"
   printf '  \e[1;%sm%s\e[0m\n\n' "$sgr" "$text"
   case "${FZX_MODE:-256}" in
-    256)
+    256 | pick)
       IFS=$'\t' read -r _ name _ rgb hsl < <(awk -F'\t' -v n="$id" '$1 == n' "$COLORS_DIR/xterm-256.tsv")
       printf '%snumber%s  %s\n%sname%s    %s\n%shex%s     %s\n%srgb%s     %s\n%shsl%s     %s\n' \
         "$D" "$R" "$id" "$D" "$R" "$name" "$D" "$R" "$hex" "$D" "$R" "${rgb#rgb}" "$D" "$R" "${hsl#hsl}"

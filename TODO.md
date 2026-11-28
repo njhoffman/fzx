@@ -20,9 +20,11 @@ Reviewed: 2026-11-25
 
 ## 2. Menu and presentation
 
-- [ ] **Theme selector** (p2) [feature]: building on `colors:fzx`, a screen listing every color setting
+- [x] **Theme selector** (p2) [feature]: building on `colors:fzx`, a screen listing every color setting
       (fzf's `--color` keys and fzx's `FZX_COLORS`) with their current values; pick one, change it
       interactively, and see it in a live sample fzf launched with the new colors; save to the user config.
+      Done (0.134.0): `colors:theme`, its picker `colors:pick`, the sample fzf in a tmux split, saved into
+      `~/.config/fzx/theme.sh` (a config layer after config.sh).
 - [ ] **Theme presets** (p3) [feature]: presets generated from common color schemes (the 182 base16 schemes
       in fzf-rsc/colors as a start), browsable and previewed in the theme selector.
 - [x] **Floats follow the window** (p3) [feature]: popups are reopened on a window resize (`fzx _resized`,

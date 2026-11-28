@@ -106,4 +106,5 @@ src() { FZX_MODE="$1" "$COLORS/source.sh" | sed 's/\x1b\[[0-9;:]*m//g'; }
   [ "$(colors::summary colors)" = "256 colors" ]
   [ "$(colors::summary colors:16)" = "16 colors, 8 and bright" ]
   [[ "$(colors::summary colors:fzx)" =~ ^[0-9]+\ colors$ ]]
+  [ "$(colors::summary colors:theme)" = "46 fzf keys and fzx colors, 0 saved" ]
 }

@@ -3,7 +3,19 @@ mode    256    -  the 256-color palette, with xterm names            default
 mode    16     -  the terminal's 16 colors (30-37, 90-97): normal, bold, faint, inverted  -
 mode    names  -  X11 color names in true color, nearest 256 color  -
 mode    fzx    -  fzx's own colors (FZX_COLORS), by module           -
+mode    theme  -  every color setting, fzf's and fzx's: change them, see them in a sample fzf, save them (theme.sh)  restart
+mode    pick   -  a new value for one setting (--key ID --value VALUE): a palette color, or typed  hidden,nopersist
+toggle  bold       -  pick: bold          -
+toggle  dim        -  pick: dim           -
+toggle  italic     -  pick: italic        -
+toggle  underline  -  pick: underline     -
+toggle  reverse    -  pick: reverse video  -
 action  copy    ctrl-y  copy the selection (numbers, names, keys)    silent,builtin
 action  hex     alt-h   256, names: copy the hex values              silent,notify
 action  sgr     alt-s   copy the SGR parameters (38;5;N), as FZX_COLORS takes them  silent,notify
 action  escape  alt-e   copy the escape sequences (\e[38;5;Nm)        silent,notify
+action  reset   alt-x   theme: back to the value without the theme (pending until saved)  notify,reload
+action  revert  alt-z   theme: drop every unsaved change                   confirm,reload
+action  save    alt-k   theme: save the changes to ~/.config/fzx/theme.sh, then restart in them  notify,restart
+action  colors  alt-c   theme: copy fzx's fzf colors as a --color option   silent,notify
+action  sample  alt-p   theme: open or close a sample fzf in the pending colors (tmux split)  silent,notify

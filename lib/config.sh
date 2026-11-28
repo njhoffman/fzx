@@ -3,7 +3,8 @@
 #   1. <repo>/config/defaults.sh          fzx defaults
 #   2. <module dir>/config.sh             the module's own defaults (its keys, colors, persist policy)
 #   3. ~/.config/fzx/config.sh            the user, for every module
-#   4. ~/.config/fzx/modules/<m>/config.sh the user, for one module
+#   4. ~/.config/fzx/theme.sh             the colors colors:theme saves (FZX_THEME_SKIP=1: left out)
+#   5. ~/.config/fzx/modules/<m>/config.sh the user, for one module
 # Module defaults come before the user's config so a global user setting is never undone by a module.
 
 # fzx::config_load [module_dir] [module]; records the loaded files in FZX_CONFIG_LOADED
@@ -12,6 +13,7 @@ fzx::config_load() {
   local layers=("$FZX_ROOT/config/defaults.sh")
   [[ -n "$module_dir" ]] && layers+=("$module_dir/config.sh")
   layers+=("$FZX_CONFIG_DIR/config.sh")
+  [[ "${FZX_THEME_SKIP:-0}" == 1 ]] || layers+=("$FZX_CONFIG_DIR/theme.sh")
   [[ -n "$module" ]] && layers+=("$FZX_CONFIG_DIR/modules/$module/config.sh")
 
   FZX_CONFIG_LOADED=()
