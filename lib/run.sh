@@ -192,6 +192,11 @@ fzx::_launch() {
   [[ -n "$FZX_SORT" ]] && fzx::state_set sort "$FZX_SORT"
 
   fzx::opts_build "$FZX_MODULE" || fzx::die 1 "$FZX_MODULE::opts failed"
+  # what nvcat draws with, once per launch: its previews' cache key (lib/render.sh)
+  if [[ " ${FZX_OPTS[*]} " == *" --preview "* || " ${FZX_OPTS[*]} " == *" --preview="* ]]; then
+    fzx::require render
+    fzx::nvcat_stamp_save "$FZX_SESSION_DIR"
+  fi
   fzx::_placement "$dry_run"
 
   fzx::require stats

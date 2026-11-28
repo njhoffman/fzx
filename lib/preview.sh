@@ -13,6 +13,7 @@
 #   FZX_PREVIEW_IMAGE_FORMAT  chafa's --format (default symbols)
 #   FZX_PREVIEW_BAT_STYLE     bat's --style (default: bat's own config)
 #   FZX_PREVIEW_NVCAT_MAX_LINES  longest file nvcat draws (default 300); longer ones go to bat
+#   FZX_PREVIEW_NVCAT_CACHE      1 (default) keeps nvcat's output in $FZX_CACHE_DIR/preview/nvcat; 0: off
 
 # the text and markdown renderers, and the FZX_PREVIEW_VIEWERS lookup
 declare -F fzx::render_text > /dev/null || source "$(dirname "${BASH_SOURCE[0]}")/render.sh"

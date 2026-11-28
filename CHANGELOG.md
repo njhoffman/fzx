@@ -6,6 +6,14 @@ All notable changes to fzx are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.135.0] - 2026-11-28
+
+### Changed
+- nvcat previews (markdown, and the config files nvcat-dispatch claims) are cached in
+  `$FZX_CACHE_DIR/preview/nvcat`: a file shown once shows at once the next time, until it changes or the
+  preview's width does. A change to your Neovim config draws them again from the next fzx launch.
+  `FZX_PREVIEW_NVCAT_CACHE=0` turns the cache off.
+
 ## [0.134.0] - 2026-11-28
 
 ### Added

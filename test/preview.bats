@@ -453,3 +453,78 @@ render() {
   FZX_PREVIEW_NVCAT_MAX_LINES=400 run pv "$D/long.md"
   [[ "$output" == nvcat* ]]
 }
+
+@test "nvcat cache: a file drawn once is read back; its edit, another width or filetype, or Neovim's config draw again" {
+  local t
+  for t in md5sum mkdir touch mv rm find; do ln -sf "$(command -v "$t")" "$STUBS/$t"; done
+  export XDG_CONFIG_HOME="$BATS_TEST_TMPDIR/xdg"
+  mkdir -p "$XDG_CONFIG_HOME/nvim"
+  echo 'vim.o.x = 1' > "$XDG_CONFIG_HOME/nvim/init.lua"
+  # counts its runs in $CALLS and draws the width and the file's first line
+  export CALLS="$BATS_TEST_TMPDIR/calls"
+  stub nvcat 'echo x >> "$CALLS"; printf "%s %s\n" "$2" "$(head -1 "${!#}")"'
+  printf '# one\n' > "$D/r.md"
+  run render fzx::render_markdown -- "$D/r.md"
+  [ "$output" = "80 # one" ]
+  run render fzx::render_markdown -- "$D/r.md"
+  [ "$output" = "80 # one" ]
+  [ "$(wc -l < "$CALLS")" -eq 1 ]
+  ls "$FZX_CACHE_DIR/preview/nvcat/" | grep -q .
+  # another width
+  run render fzx::render_markdown --width 50 -- "$D/r.md"
+  [ "$output" = "50 # one" ]
+  [ "$(wc -l < "$CALLS")" -eq 2 ]
+  # the file changed (size and mtime)
+  printf '# two, longer\n' > "$D/r.md"
+  touch -d '+1 minute' "$D/r.md"
+  run render fzx::render_markdown -- "$D/r.md"
+  [ "$output" = "80 # two, longer" ]
+  [ "$(wc -l < "$CALLS")" -eq 3 ]
+  # Neovim's config changed: the stamp a launch records (here none: each preview takes it)
+  touch -d '+2 minutes' "$XDG_CONFIG_HOME/nvim/init.lua"
+  run render fzx::render_markdown -- "$D/r.md"
+  [ "$(wc -l < "$CALLS")" -eq 4 ]
+  # a session's stamp, taken at launch, is what the key uses
+  export FZX_SESSION_DIR="$BATS_TEST_TMPDIR/sess"
+  mkdir -p "$FZX_SESSION_DIR/meta"
+  PATH="$STUBS" fzx::nvcat_stamp_save "$FZX_SESSION_DIR"
+  [ -s "$FZX_SESSION_DIR/meta/nvcat_stamp" ]
+  run render fzx::render_markdown -- "$D/r.md"
+  [ "$(wc -l < "$CALLS")" -eq 5 ]
+  run render fzx::render_markdown -- "$D/r.md"
+  [ "$(wc -l < "$CALLS")" -eq 5 ]
+  # a failed render keeps nothing and falls back to bat; FZX_PREVIEW_NVCAT_CACHE=0 always runs it
+  local kept
+  kept="$(ls "$FZX_CACHE_DIR/preview/nvcat/" | wc -l)"
+  stub bat
+  stub nvcat 'echo x >> "$CALLS"; exit 1'
+  printf '# three\n' > "$D/s.md"
+  run render fzx::render_markdown -- "$D/s.md"
+  [[ "$output" == "bat "* ]]
+  [ "$(ls "$FZX_CACHE_DIR/preview/nvcat/" | wc -l)" -eq "$kept" ]
+  stub nvcat 'echo x >> "$CALLS"; echo drawn'
+  : > "$CALLS"
+  FZX_PREVIEW_NVCAT_CACHE=0 run render fzx::render_markdown -- "$D/r.md"
+  FZX_PREVIEW_NVCAT_CACHE=0 run render fzx::render_markdown -- "$D/r.md"
+  [ "$(wc -l < "$CALLS")" -eq 2 ]
+  # stdin, spooled into a new file each time, is not kept
+  ln -sf "$(command -v mktemp)" "$STUBS/mktemp"
+  export TMPDIR="$BATS_TEST_TMPDIR/tmp"
+  mkdir -p "$TMPDIR"
+  run render fzx::render_markdown <<< '# t'
+  [ "$output" = drawn ]
+  [ "$(ls "$FZX_CACHE_DIR/preview/nvcat/" | wc -l)" -eq "$kept" ]
+}
+
+@test "nvcat stamp: saved at a launch of a screen with a preview" {
+  stub_fzf
+  mkdir -p "$BATS_TEST_TMPDIR/bin"
+  printf '#!/usr/bin/env bash\necho nvcat\n' > "$BATS_TEST_TMPDIR/bin/nvcat"
+  chmod +x "$BATS_TEST_TMPDIR/bin/nvcat"
+  export STUB_FZF_RUN='cp "$FZX_SESSION_DIR/meta/nvcat_stamp" "$BATS_TEST_TMPDIR/stamp" 2> /dev/null || :'
+  "$FZX" -m colors > /dev/null
+  [ -s "$BATS_TEST_TMPDIR/stamp" ]
+  rm -f "$BATS_TEST_TMPDIR/stamp"
+  FZX_PREVIEW_NVCAT_CACHE=0 "$FZX" -m colors > /dev/null
+  [ ! -e "$BATS_TEST_TMPDIR/stamp" ]
+}

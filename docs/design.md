@@ -591,6 +591,7 @@ resolved config: the callback loads the layers just before the first module func
 | `FZX_PREVIEW_VIEWERS` | empty | per-type preview commands, `KEY=COMMAND;KEY=COMMAND`: KEY is a type (`markdown`, `mp3`, `audio`, `video`, `image`, `pdf`, `archive`, `compressed`, `json`, `sqlite`, `cert`, `document`, `binary`, `text`) or a glob on the file name (`*.log`); a glob wins over a type, a type over `FZX_PREVIEW_TEXT`. Commands run through bash, so they may hold options and pipes, but not `;` |
 | `FZX_PREVIEW_DEBUG` | `0` | `1`: file previews start with a dim line saying how the file was detected, what drew it and how long it took (`ext:markdown -> nvcat (230ms)`) |
 | `FZX_PREVIEW_NVCAT_MAX_LINES` | `300` | the longest file (source lines) nvcat draws; longer ones go to bat, since nvcat's complete output stops at 1000 screen rows and reaching that took seconds |
+| `FZX_PREVIEW_NVCAT_CACHE` | `1` | keep nvcat's output in `$FZX_CACHE_DIR/preview/nvcat`, so a file it drew shows at once the next time; `0`: run nvcat on every focus change |
 | `FZX_READ0` | `0` | `1` (a module's opts hook may set it): the source's items end with NUL and may span lines; fzf gets `--read0 --highlight-line`, and the callbacks count items by NUL (`meta/read0`). history sets it unless `FZX_HISTORY_MULTILINE=0` |
 | `FZX_POPUP_LAYOUTS` | `0:center,100%` `140:center,90%,85%` `220:center,80%` | popup and float size by the tmux window's width, see "Popup geometry" |
 | `FZX_RESIZE_SETTLE_MS` | `300` | how long the window's size must hold before a popup is reopened at the new size |
@@ -645,6 +646,16 @@ is named and never shown; office documents and epub pandoc; other binaries file'
 (xxd below 79 columns); directories eza's tree two levels deep (lsd, ls). Every preview logs
 `preview PATH: ext:TYPE -> TOOL (Nms)` at debug level. nvcat is skipped (bat draws) under `NO_COLOR` and
 for files over `FZX_PREVIEW_NVCAT_MAX_LINES`.
+
+nvcat starts Neovim for each file (0.3-1.2s, most of it opening the file and rendering), so its output is
+cached (`FZX_PREVIEW_NVCAT_CACHE`): `$FZX_CACHE_DIR/preview/nvcat/<md5>`, keyed by the file's absolute
+path, mtime and size, the width, the filetype and a stamp of what nvcat draws with (`fzx::nvcat_stamp`:
+the newest mtime under `$XDG_CONFIG_HOME/nvim` without `.git` and `node_modules`, and nvcat's and nvim's
+own). The stamp is taken once per launch of a screen with a preview (`meta/nvcat_stamp`, one `find`), not
+per preview, so a theme or config change shows from the next launch on; `fzx preview` outside a session
+takes it itself. A hit refreshes the entry's mtime, so `fzx gc` (files older than
+`FZX_CACHE_MAX_AGE_DAYS`) drops only unused ones. A failed or empty render keeps nothing, stdin spooled to
+a temporary file is not kept, and without `md5sum` or a writable cache directory nvcat runs uncached.
 
 **Renderers.** `lib/render.sh` holds the text and markdown renderers for every preview: `lib/preview.sh` and
 the modules' own (github, history, logs, man, shell, todos) source it by path, since module previews run as

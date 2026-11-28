@@ -404,10 +404,12 @@ completers, the fzf attempt's modules, fzf-scripts) and checked against what is 
 - [x] **`files` alt-up** (p3) [bug]: each parent directory becomes a new child session instead of reusing an
       existing ancestor in the tree; harmless (cleaned on exit) but deep trees and long labels.
 - [x] **Stats prune** (p3) [bug] can drop rows appended while the file is being rewritten.
-- [ ] **nvcat is slow for previews** (p3) [perf]: about 300-1200ms per focus change (it starts Neovim), for
+- [x] **nvcat is slow for previews** (p3) [perf]: about 300-1200ms per focus change (it starts Neovim), for
       markdown and every filetype `nvcat-dispatch` claims (any *.conf, systemd units, ...); files over
       FZX_PREVIEW_NVCAT_MAX_LINES already go to bat. Cache its output under $FZX_CACHE_DIR keyed by path,
       mtime and width (lib/render.sh, fzx::_render_nvcat), or keep one Neovim running.
+      Done (0.135.0): cached, keyed by path, mtime, size, width, filetype and a per-launch stamp of Neovim's
+      config (FZX_PREVIEW_NVCAT_CACHE); a second view of a file takes milliseconds.
 - [x] **files: the flags label falls off long paths** (p3) [bug]: the header shows the extra rg/fd flags
       (alt-a, 0.110.0) as "  rg: FLAGS" after the base path, so on a long path the label is cut off at the
       terminal's edge and the flags in effect are hidden. Put the label before the path, or shorten the

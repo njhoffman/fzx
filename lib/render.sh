@@ -14,6 +14,9 @@
 # (config formats bat has no syntax for: kitty, tmux, systemd units, justfiles, ...), except with a --line
 # (a grep hit), which bat highlights, and files over FZX_PREVIEW_NVCAT_MAX_LINES source lines (default 300):
 # nvcat's complete output stops at 1000 screen rows, and failing there took seconds; those go to bat.
+# nvcat starts Neovim, 0.3-1.2s a file, so its output is kept (FZX_PREVIEW_NVCAT_CACHE, default 1) in
+# $FZX_CACHE_DIR/preview/nvcat, keyed by the file's path, mtime and size, the width, the filetype and the
+# stamp of what nvcat draws with (fzx::nvcat_stamp: Neovim's config, nvcat, nvim), taken once per launch.
 
 # fzx::preview_viewer <path> <type> <var>: the user's command for this file (FZX_PREVIEW_VIEWERS; text also
 # FZX_PREVIEW_TEXT), empty when there is none
@@ -124,9 +127,78 @@ fzx::_render_short() {
   ((${#_lines[@]} <= _max))
 }
 
+# fzx::nvcat_stamp <var>: what nvcat's output depends on besides the file: the newest mtime under Neovim's
+# config ($XDG_CONFIG_HOME/nvim, .git and node_modules left out), then nvcat's and nvim's own
+fzx::nvcat_stamp() {
+  local _s _bin
+  _s="$(find "${XDG_CONFIG_HOME:-$HOME/.config}/nvim" \( -name .git -o -name node_modules \) -prune -o -type f \
+    -printf '%T@\n' 2> /dev/null | awk '$1 > m { m = $1 } END { printf "%d", m }')"
+  for _bin in nvcat nvim; do
+    _bin="$(command -v "$_bin")" && _s+=" $(stat -L -c %Y -- "$_bin" 2> /dev/null)"
+  done
+  printf -v "$1" '%s' "$_s"
+}
+
+# fzx::nvcat_stamp_save <session dir>: at a launch, the stamp into meta/nvcat_stamp, read by every preview of
+# the screen; only when nvcat is there and its cache on (a few ms: one find over Neovim's config)
+fzx::nvcat_stamp_save() {
+  [[ "${FZX_PREVIEW_NVCAT_CACHE:-1}" == 1 ]] && command -v nvcat > /dev/null || return 0
+  local _s
+  fzx::nvcat_stamp _s
+  printf '%s\n' "$_s" > "$1/meta/nvcat_stamp"
+}
+
 # fzx::_render_nvcat <columns> <filetype> <file>: the whole file through nvcat, without its pager or its
 # own bat fallback (the callers fall back, and name what drew the preview)
 fzx::_render_nvcat() {
+  local cols="$1" ft="$2" file="$3" path st stamp="" key="" cache rc
+  # the cache needs the file's mtime and size, a key and a directory; without any of them nvcat runs as is
+  if [[ "${FZX_PREVIEW_NVCAT_CACHE:-1}" != 1 || -z "${FZX_CACHE_DIR:-}" ]] ||
+    ! st="$(stat -L -c '%Y %s' -- "$file" 2> /dev/null)"; then
+    fzx::_render_nvcat_run "$cols" "$ft" "$file"
+    return
+  fi
+  [[ "$file" == /* ]] && path="$file" || path="$PWD/$file"
+  if [[ -n "${FZX_SESSION_DIR:-}" && -r "$FZX_SESSION_DIR/meta/nvcat_stamp" ]]; then
+    IFS= read -r stamp < "$FZX_SESSION_DIR/meta/nvcat_stamp"
+  else
+    fzx::nvcat_stamp stamp
+  fi
+  key="$(printf '%s\0' "$path" "$st" "$cols" "$ft" "$stamp" | md5sum 2> /dev/null)" || key=""
+  cache="$FZX_CACHE_DIR/preview/nvcat/${key%% *}"
+  if [[ -z "$key" ]] || ! mkdir -p -- "${cache%/*}" 2> /dev/null; then
+    fzx::_render_nvcat_run "$cols" "$ft" "$file"
+    return
+  fi
+  if [[ -s "$cache" ]]; then
+    # used: gc removes cache files by age, so an entry in use stays
+    touch -- "$cache" 2> /dev/null
+    cat -- "$cache"
+    return 0
+  fi
+  fzx::_render_nvcat_run "$cols" "$ft" "$file" > "$cache.$$"
+  rc=$?
+  # a failed render keeps nothing (the caller falls back to bat), nor does an empty one
+  if ((rc == 0)) && [[ -s "$cache.$$" ]] && mv -f -- "$cache.$$" "$cache" 2> /dev/null; then
+    cat -- "$cache"
+    return 0
+  fi
+  ((rc == 0)) && cat -- "$cache.$$"
+  rm -f -- "$cache.$$"
+  return "$rc"
+}
+
+# fzx::_render_nvcat_cached <columns> <filetype> <file> <spool>: a spooled stdin (a new temporary file each
+# time) is not worth keeping
+fzx::_render_nvcat_cached() {
+  if [[ -n "$4" ]]; then
+    FZX_PREVIEW_NVCAT_CACHE=0 fzx::_render_nvcat "$1" "$2" "$3"
+  else
+    fzx::_render_nvcat "$1" "$2" "$3"
+  fi
+}
+
+fzx::_render_nvcat_run() {
   command nvcat --columns "$1" --all --cat --fallback none --filetype "$2" -- "$3" 2> /dev/null < /dev/null
 }
 
@@ -155,7 +227,7 @@ fzx::render_markdown() {
       _FZX_PV_RENDERER="user: $viewer"
       fzx::_preview_user "$viewer" "$file" && rc=0
     elif [[ -n "$draw" ]] && command -v nvcat > /dev/null &&
-      _FZX_PV_RENDERER=nvcat && fzx::_render_nvcat "$width" markdown "$file"; then
+      _FZX_PV_RENDERER=nvcat && fzx::_render_nvcat_cached "$width" markdown "$file" "$tmp"; then
       rc=0
     else
       FZF_PREVIEW_COLUMNS="$width" fzx::render_text --language markdown --style "${FZX_PREVIEW_BAT_STYLE:-plain}" --wrap "$file" && rc=0
